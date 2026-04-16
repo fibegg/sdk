@@ -19,9 +19,7 @@ import (
 // "wait until I see 'listening on :8080' in the logs").
 func (s *Server) registerLogsFollowTool() {
 	s.addTool(&toolImpl{
-		name:        "fibe_playgrounds_logs_follow",
-		description: "Stream playground service logs as MCP progress notifications",
-		tier:        tierFull,
+		name: "fibe_playgrounds_logs_follow", description: "Stream the live service logs from a playground as progress notifications", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLogsFollow(ctx, c, args, false)
@@ -38,15 +36,13 @@ Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you n
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_tricks_logs_follow",
-		description: "Stream trick service logs as MCP progress notifications",
-		tier:        tierFull,
+		name: "fibe_tricks_logs_follow", description: "Stream the live execution logs from a trick as progress notifications", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLogsFollow(ctx, c, args, true)
 		},
 	}, mcp.NewTool("fibe_tricks_logs_follow",
-		mcp.WithDescription("Stream trick service logs (one-shot completion-oriented). Emits progress notifications per line."),
+		mcp.WithDescription("Stream the live execution logs from a trick as progress notifications"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Trick ID")),
 		mcp.WithString("service", mcp.Required(), mcp.Description("Service name")),
 		mcp.WithNumber("tail", mcp.Description("Initial lines from history (default: 50)")),

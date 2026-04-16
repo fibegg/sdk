@@ -25,9 +25,7 @@ import (
 // them regardless of FIBE_MCP_TOOLS=core|full.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_tools_catalog",
-		description: "List every tool registered on the Fibe MCP server (including tools not advertised in the current tier)",
-		tier:        tierMeta,
+		name: "fibe_tools_catalog", description: "List all tools registered and available on the Fibe MCP server", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
@@ -98,9 +96,7 @@ FILTERS:
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_call",
-		description: "Invoke any registered tool by name (including tools not advertised in the current tier)",
-		tier:        tierMeta,
+		name: "fibe_call", description: "Dynamically invoke any registered Fibe tool by name", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")

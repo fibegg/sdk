@@ -16,15 +16,13 @@ import (
 // notifications on each tick so hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name:        "fibe_playgrounds_wait",
-		description: "Poll a playground until it reaches a target status",
-		tier:        tierCore,
+		name: "fibe_playgrounds_wait", description: "Block and poll until a playground reaches a specified target state", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args, waitResourcePlayground)
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
-		mcp.WithDescription("Poll a playground until it reaches a target status. Emits MCP progress notifications on every tick. Useful to replace agent-side retry loops — let the server do the polling."),
+		mcp.WithDescription("Block and poll until a playground reaches a specified target state"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playground ID")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target status: running, stopped, has_changes, etc.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
@@ -32,15 +30,13 @@ func (s *Server) registerWaitTool() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_tricks_wait",
-		description: "Poll a trick until it reaches a target status (e.g., completed)",
-		tier:        tierCore,
+		name: "fibe_tricks_wait", description: "Block and poll until a background trick completes its execution", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args, waitResourceTrick)
 		},
 	}, mcp.NewTool("fibe_tricks_wait",
-		mcp.WithDescription("Poll a trick until it reaches a target status (e.g. completed). Emits MCP progress notifications on every tick."),
+		mcp.WithDescription("Block and poll until a background trick completes its execution"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Trick ID")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target status: completed, error, running, etc.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration (default: 10m)")),

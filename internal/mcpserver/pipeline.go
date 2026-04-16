@@ -23,9 +23,7 @@ import (
 // fibe_pipeline_result.
 func (s *Server) registerPipelineTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_pipeline",
-		description: "Compose multiple fibe_* tool calls in a single round-trip with JSONPath bindings",
-		tier:        tierCore,
+		name: "fibe_pipeline", description: "Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runPipeline(ctx, args)
@@ -80,9 +78,7 @@ Args may contain JSONPath references starting with "$.", resolved against the ma
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_pipeline_result",
-		description: "Look up a cached pipeline result by pipeline_id and JSONPath",
-		tier:        tierCore,
+		name: "fibe_pipeline_result", description: "Look up a cached result from a previous pipeline execution", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			pid := argString(args, "pipeline_id")
