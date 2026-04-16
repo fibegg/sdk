@@ -42,6 +42,19 @@ func (s *Server) registerMetaTools() {
 		mcp.WithDescription("Show account status dashboard. Returns counts for playgrounds (total/active/stopped), agents, props, playspecs, marquees, secrets, teams, API keys, plus subscription info. One request, full context."),
 	))
 
+	// ---------- fibe_server_info ----------
+	s.addTool(&toolImpl{
+		name:        "fibe_server_info",
+		description: "Show Fibe server UTC time, build time, and git commit SHA",
+		tier:        tierCore,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			return c.ServerInfo.Get(ctx)
+		},
+	}, mcp.NewTool("fibe_server_info",
+		mcp.WithDescription("Returns the server's current UTC time (time_utc), build time (build_time), and git commit SHA (git_commit_sha). Unauthenticated /up endpoint. Useful for clock-drift checks and identifying which server build you're talking to."),
+	))
+
 	// ---------- fibe_doctor ----------
 	s.addTool(&toolImpl{
 		name:        "fibe_doctor",

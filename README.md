@@ -44,6 +44,7 @@ The CLI acts as a human-readable entrypoint or an automated integration for LLM 
 fibe doctor
 fibe status
 fibe me
+fibe server-info   # server UTC clock + build identity (unauthenticated)
 
 # View JSON schemas for commands (useful for LLM Agents)
 fibe schema list

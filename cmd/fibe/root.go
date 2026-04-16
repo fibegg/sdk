@@ -127,6 +127,7 @@ DOCUMENTATION:
 		installationsCmd(),
 		repoStatusCmd(),
 		statusCmd(),
+		serverInfoCmd(),
 		schemaCmd(),
 		waitCmd(),
 		doctorCmd(),

@@ -51,6 +51,7 @@ type Client struct {
 	RepoStatus       *RepoStatusService
 	TemplateCategories *TemplateCategoryService
 	Status           *StatusService
+	ServerInfo       *ServerInfoService
 }
 
 func NewClient(opts ...Option) *Client {
@@ -125,6 +126,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.RepoStatus = &RepoStatusService{client: c}
 	c.TemplateCategories = &TemplateCategoryService{client: c}
 	c.Status = &StatusService{client: c}
+	c.ServerInfo = &ServerInfoService{client: c}
 
 	return c
 }
