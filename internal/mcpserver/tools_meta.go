@@ -42,6 +42,30 @@ func (s *Server) registerMetaTools() {
 		mcp.WithDescription("Show account status dashboard. Returns counts for playgrounds (total/active/stopped), agents, props, playspecs, marquees, secrets, teams, API keys, plus subscription info. One request, full context."),
 	))
 
+	// ---------- fibe_limits ----------
+	s.addTool(&toolImpl{
+		name:        "fibe_limits",
+		description: "Show current quotas, per-parent caps, and API-key rate-limit usage",
+		tier:        tierCore,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			status, err := c.Status.Get(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if status.ResourceQuotas == nil && status.PerParentCaps == nil && status.RateLimits == nil {
+				return nil, fmt.Errorf("no limits data returned — ensure the request is authenticated with an API key")
+			}
+			return map[string]any{
+				"resource_quotas": status.ResourceQuotas,
+				"per_parent_caps": status.PerParentCaps,
+				"rate_limits":     status.RateLimits,
+			}, nil
+		},
+	}, mcp.NewTool("fibe_limits",
+		mcp.WithDescription("Show the caller's current resource quotas (used/limit/status per resource), per-parent caps, and API-key rate-limit usage (limit, remaining, seconds until reset). Requires API-key authentication."),
+	))
+
 	// ---------- fibe_server_info ----------
 	s.addTool(&toolImpl{
 		name:        "fibe_server_info",

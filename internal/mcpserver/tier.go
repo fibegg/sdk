@@ -11,6 +11,7 @@ var metaTools = map[string]bool{
 	"fibe_auth_set":        true,
 	"fibe_me":              true,
 	"fibe_status":          true,
+	"fibe_limits":          true,
 	"fibe_doctor":          true,
 	"fibe_schema":          true,
 	"fibe_tools_catalog":   true,

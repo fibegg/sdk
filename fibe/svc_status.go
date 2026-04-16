@@ -31,6 +31,31 @@ type Status struct {
 		Plan            string `json:"plan"`
 		PlaygroundLimit int    `json:"playground_limit"`
 	} `json:"subscription"`
+
+	ResourceQuotas map[string]ResourceQuotaEntry `json:"resource_quotas,omitempty"`
+	PerParentCaps  map[string]*int               `json:"per_parent_caps,omitempty"`
+	RateLimits     *RateLimitsSection            `json:"rate_limits,omitempty"`
+}
+
+// ResourceQuotaEntry reports usage, limit, and status for one resource type.
+// Limit is nil when the quota is unlimited.
+type ResourceQuotaEntry struct {
+	Used   int    `json:"used"`
+	Limit  *int   `json:"limit"`
+	Status string `json:"status"`
+}
+
+// RateLimitsSection carries rate-limit state for the authenticated credential.
+// Only populated when the request is authenticated via API key.
+type RateLimitsSection struct {
+	APIKey *RateLimitInfo `json:"api_key,omitempty"`
+}
+
+// RateLimitInfo describes a single rate-limit bucket.
+type RateLimitInfo struct {
+	Limit        int `json:"limit"`
+	Remaining    int `json:"remaining"`
+	ResetSeconds int `json:"reset_seconds"`
 }
 
 // Get returns a summary of all the authenticated user's resources.

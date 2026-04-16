@@ -36,6 +36,7 @@ func TestServerBootstrap(t *testing.T) {
 	for _, essential := range []string{
 		"fibe_me",
 		"fibe_status",
+		"fibe_limits",
 		"fibe_doctor",
 		"fibe_help",
 		"fibe_run",

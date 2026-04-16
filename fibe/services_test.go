@@ -303,3 +303,87 @@ func TestBuildQuery_EmptyParams(t *testing.T) {
 		t.Errorf("expected empty query for zero-value params, got %q", q)
 	}
 }
+
+func TestStatus_Get_WithLimitsSections(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/status" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		limit1000 := 1000
+		limit10 := 10
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"playgrounds":  map[string]any{"total": 2, "active": 1, "stopped": 1},
+			"agents":       map[string]any{"total": 3, "authenticated": 2},
+			"props":        5,
+			"playspecs":    4,
+			"marquees":     1,
+			"secrets":      0,
+			"teams":        0,
+			"api_keys":     2,
+			"subscription": map[string]any{"plan": "single", "playground_limit": 1000},
+			"resource_quotas": map[string]any{
+				"playgrounds": map[string]any{"used": 2, "limit": limit1000, "status": "ok"},
+				"agents":      map[string]any{"used": 3, "limit": limit10, "status": "ok"},
+			},
+			"per_parent_caps": map[string]any{
+				"mounted_files_per_agent": 5,
+				"artefacts_per_agent":     100,
+			},
+			"rate_limits": map[string]any{
+				"api_key": map[string]any{"limit": 5000, "remaining": 4987, "reset_seconds": 1234},
+			},
+		})
+	})
+
+	status, err := c.Status.Get(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.ResourceQuotas == nil || status.ResourceQuotas["playgrounds"].Used != 2 {
+		t.Errorf("expected resource_quotas.playgrounds.used=2, got %+v", status.ResourceQuotas)
+	}
+	if status.ResourceQuotas["playgrounds"].Limit == nil || *status.ResourceQuotas["playgrounds"].Limit != 1000 {
+		t.Errorf("expected playgrounds limit 1000, got %+v", status.ResourceQuotas["playgrounds"].Limit)
+	}
+	if status.PerParentCaps["mounted_files_per_agent"] == nil || *status.PerParentCaps["mounted_files_per_agent"] != 5 {
+		t.Errorf("expected per_parent_caps.mounted_files_per_agent=5, got %+v", status.PerParentCaps)
+	}
+	if status.RateLimits == nil || status.RateLimits.APIKey == nil {
+		t.Fatalf("expected rate_limits.api_key section")
+	}
+	if status.RateLimits.APIKey.Limit != 5000 || status.RateLimits.APIKey.Remaining != 4987 {
+		t.Errorf("unexpected rate limit values: %+v", status.RateLimits.APIKey)
+	}
+}
+
+func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"playgrounds":  map[string]any{"total": 0, "active": 0, "stopped": 0},
+			"agents":       map[string]any{"total": 0, "authenticated": 0},
+			"props":        0,
+			"playspecs":    0,
+			"marquees":     0,
+			"secrets":      0,
+			"teams":        0,
+			"api_keys":     0,
+			"subscription": map[string]any{"plan": "free", "playground_limit": 1000},
+		})
+	})
+
+	status, err := c.Status.Get(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.ResourceQuotas != nil {
+		t.Errorf("expected nil resource_quotas when omitted, got %+v", status.ResourceQuotas)
+	}
+	if status.PerParentCaps != nil {
+		t.Errorf("expected nil per_parent_caps when omitted, got %+v", status.PerParentCaps)
+	}
+	if status.RateLimits != nil {
+		t.Errorf("expected nil rate_limits when omitted, got %+v", status.RateLimits)
+	}
+}
