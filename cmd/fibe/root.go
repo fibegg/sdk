@@ -118,6 +118,7 @@ DOCUMENTATION:
 		hunksCmd(),
 		feedbacksCmd(),
 		auditLogsCmd(),
+		monitorCmd(),
 		launchCmd(),
 		categoriesCmd(),
 		artefactsCmd(),

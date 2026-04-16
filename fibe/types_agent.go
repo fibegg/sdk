@@ -83,13 +83,6 @@ type AgentChatSession struct {
 	ComposeProject string  `json:"compose_project"`
 }
 
-type AgentSearchResult struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	Messages   []any  `json:"messages"`
-	Activities []any  `json:"activities"`
-}
-
 type AgentData struct {
 	Content any `json:"content"`
 }

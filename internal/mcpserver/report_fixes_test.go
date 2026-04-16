@@ -81,19 +81,6 @@ func TestAgentsChatAcceptsMessageAlias(t *testing.T) {
 	}
 }
 
-func TestAgentsSearchAcceptsQAlias(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_search", map[string]any{
-		"q": "hello",
-	})
-	if err != nil && strings.Contains(err.Error(), "'query' not set") {
-		t.Errorf("q alias didn't canonicalize; got: %v", err)
-	}
-}
-
 func TestRegistryCredentialTypeEnforced(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
@@ -139,13 +126,13 @@ func TestMutationsCreateAcceptsShaAlias(t *testing.T) {
 
 func TestParseRepoFullName(t *testing.T) {
 	cases := map[string]string{
-		"octocat/Hello-World":                          "octocat/Hello-World",
-		"https://github.com/octocat/Hello-World.git":   "octocat/Hello-World",
-		"https://github.com/octocat/Hello-World":       "octocat/Hello-World",
-		"git@github.com:octocat/Hello-World.git":       "octocat/Hello-World",
-		"https://gitea.example/org/repo.git":           "org/repo",
-		"invalid":                                       "",
-		"":                                              "",
+		"octocat/Hello-World":                        "octocat/Hello-World",
+		"https://github.com/octocat/Hello-World.git": "octocat/Hello-World",
+		"https://github.com/octocat/Hello-World":     "octocat/Hello-World",
+		"git@github.com:octocat/Hello-World.git":     "octocat/Hello-World",
+		"https://gitea.example/org/repo.git":         "org/repo",
+		"invalid":                                    "",
+		"":                                           "",
 	}
 	for input, want := range cases {
 		got := parseRepoFullName(input)
@@ -233,9 +220,9 @@ func TestLaunchSurfacesBothIDs(t *testing.T) {
 
 func TestSplitContentHeader(t *testing.T) {
 	cases := []struct {
-		input   string
-		wantFn  string
-		wantCT  string
+		input  string
+		wantFn string
+		wantCT string
 	}{
 		{"text/x-python", "", "text/x-python"},
 		{`attachment; filename="artefact.py"`, "artefact.py", ""},

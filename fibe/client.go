@@ -44,6 +44,7 @@ type Client struct {
 	Feedbacks        *FeedbackService
 	Mutters          *MutterService
 	AuditLogs        *AuditLogService
+	Monitor          *MonitorService
 	GitHubRepos      *GitHubRepoService
 	GiteaRepos       *GiteaRepoService
 	Installations    *InstallationService
@@ -119,6 +120,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.Feedbacks = &FeedbackService{client: c}
 	c.Mutters = &MutterService{client: c}
 	c.AuditLogs = &AuditLogService{client: c}
+	c.Monitor = &MonitorService{client: c}
 	c.GitHubRepos = &GitHubRepoService{client: c}
 	c.GiteaRepos = &GiteaRepoService{client: c}
 	c.Installations = &InstallationService{client: c}

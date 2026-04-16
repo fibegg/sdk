@@ -82,13 +82,6 @@ func (s *AgentService) Duplicate(ctx context.Context, id int64) (*Agent, error) 
 	return &result, err
 }
 
-func (s *AgentService) SearchData(ctx context.Context, query string) (*ListResult[AgentSearchResult], error) {
-	values := url.Values{}
-	values.Set("q", query)
-	path := "/api/agents/search_data?" + values.Encode()
-	return doList[AgentSearchResult](s.client, ctx, path)
-}
-
 func (s *AgentService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) (*Agent, error) {
 	fields := map[string]string{
 		"mount_path": params.MountPath,

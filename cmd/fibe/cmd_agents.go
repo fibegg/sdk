@@ -33,7 +33,6 @@ SUBCOMMANDS:
   chat <id>             Send a chat message
   authenticate <id>     Authenticate agent with provider
   revoke-token <id>     Revoke agent's GitHub token
-  search                Search across agents
   messages <id>         Get agent messages
   set-messages <id>     Replace agent messages content
   activity <id>         Get agent activity
@@ -54,7 +53,6 @@ SUBCOMMANDS:
 		agChatCmd(),
 		agAuthCmd(),
 		agRevokeCmd(),
-		agSearchCmd(),
 		agMessagesCmd(),
 		agSetMessagesCmd(),
 		agActivityCmd(),
@@ -102,15 +100,33 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AgentListParams{}
-			if query != "" { params.Q = query }
-			if provider != "" { params.Provider = provider }
-			if status != "" { params.Status = status }
-			if name != "" { params.Name = name }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if provider != "" {
+				params.Provider = provider
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			agents, err := c.Agents.List(ctx(), params)
 			if err != nil {
 				return err
@@ -204,12 +220,24 @@ EXAMPLES:
 				return err
 			}
 
-			if cmd.Flags().Changed("name") { params.Name = name }
-			if cmd.Flags().Changed("provider") { params.Provider = provider }
-			if cmd.Flags().Changed("sync") { params.SyncEnabled = &syncEnabled }
-			if cmd.Flags().Changed("syscheck") { params.SyscheckEnabled = &syscheckEnabled }
-			if cmd.Flags().Changed("memory-limit") { params.MemoryLimit = &memoryLimit }
-			if cmd.Flags().Changed("cpu-limit") { params.CpuLimit = &cpuLimit }
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+			if cmd.Flags().Changed("provider") {
+				params.Provider = provider
+			}
+			if cmd.Flags().Changed("sync") {
+				params.SyncEnabled = &syncEnabled
+			}
+			if cmd.Flags().Changed("syscheck") {
+				params.SyscheckEnabled = &syscheckEnabled
+			}
+			if cmd.Flags().Changed("memory-limit") {
+				params.MemoryLimit = &memoryLimit
+			}
+			if cmd.Flags().Changed("cpu-limit") {
+				params.CpuLimit = &cpuLimit
+			}
 
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
@@ -267,12 +295,24 @@ EXAMPLES:
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("sync") { params.SyncEnabled = &syncEnabled }
-			if cmd.Flags().Changed("syscheck") { params.SyscheckEnabled = &syscheckEnabled }
-			if cmd.Flags().Changed("memory-limit") { params.MemoryLimit = &memoryLimit }
-			if cmd.Flags().Changed("cpu-limit") { params.CpuLimit = &cpuLimit }
-			if cmd.Flags().Changed("build-in-public-playground-id") { params.BuildInPublicPlaygroundID = &buildInPublicPlaygroundID }
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("sync") {
+				params.SyncEnabled = &syncEnabled
+			}
+			if cmd.Flags().Changed("syscheck") {
+				params.SyscheckEnabled = &syscheckEnabled
+			}
+			if cmd.Flags().Changed("memory-limit") {
+				params.MemoryLimit = &memoryLimit
+			}
+			if cmd.Flags().Changed("cpu-limit") {
+				params.CpuLimit = &cpuLimit
+			}
+			if cmd.Flags().Changed("build-in-public-playground-id") {
+				params.BuildInPublicPlaygroundID = &buildInPublicPlaygroundID
+			}
 			agent, err := c.Agents.Update(ctx(), id, params)
 			if err != nil {
 				return err
@@ -468,35 +508,6 @@ EXAMPLES:
 	}
 }
 
-func agSearchCmd() *cobra.Command {
-	var query string
-
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search across agents",
-		Long: `Search for agents by name, with their messages and activity data.
-
-REQUIRED FLAGS:
-  --query   Search query string
-
-EXAMPLES:
-  fibe agents search --query "deploy"`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			results, err := c.Agents.SearchData(ctx(), query)
-			if err != nil {
-				return err
-			}
-			outputJSON(results)
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (required)")
-	cmd.MarkFlagRequired("query")
-	return cmd
-}
-
 func agMessagesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "messages <id>",
@@ -613,8 +624,13 @@ EXAMPLES:
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			token, err := c.Agents.GetGiteaToken(ctx(), id)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(token); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(token)
+				return nil
+			}
 			fmt.Printf("Token:     %s\n", token.Token)
 			fmt.Printf("Host:      %s\n", token.GiteaHost)
 			fmt.Printf("Username:  %s\n", token.Username)
@@ -637,7 +653,9 @@ EXAMPLES:
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			data, err := c.Agents.GetRawProviders(ctx(), id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(data)
 			return nil
 		},
@@ -667,7 +685,9 @@ EXAMPLES:
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 			err := c.Agents.UpdateRawProviders(ctx(), id, content)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Println("Raw providers updated")
 			return nil
 		},

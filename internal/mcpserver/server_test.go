@@ -49,6 +49,8 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_playgrounds_create",
 		"fibe_playgrounds_wait",
 		"fibe_playgrounds_logs",
+		"fibe_monitor_list",
+		"fibe_monitor_follow",
 		"fibe_launch",
 	} {
 		if _, ok := srv.dispatcher.lookup(essential); !ok {

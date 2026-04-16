@@ -74,7 +74,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 
 	t.Run("search param injection", func(t *testing.T) {
 		t.Parallel()
-		result, err := c.Agents.SearchData(ctx(), "' OR '1'='1")
+		result, err := c.Monitor.List(ctx(), &fibe.MonitorListParams{Q: "' OR '1'='1"})
 		if err != nil {
 			return // API rejected — acceptable
 		}

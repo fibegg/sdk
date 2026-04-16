@@ -15,6 +15,7 @@ func (s *Server) registerTools() error {
 	s.registerMetaTools()
 	s.registerWaitTool()
 	s.registerLogsFollowTool()
+	s.registerMonitorFollowTool()
 	s.registerPipelineTools()
 	s.registerParityTools()
 	s.registerDiscoveryTools()

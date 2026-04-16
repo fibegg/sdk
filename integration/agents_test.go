@@ -152,21 +152,6 @@ func TestAgents_Messages(t *testing.T) {
 	})
 }
 
-func TestAgents_SearchData(t *testing.T) {
-	t.Parallel()
-	c := adminClient(t)
-
-	result, err := c.Agents.SearchData(ctx(), "nonexistent-query-xyz")
-	requireNoError(t, err)
-
-	if result == nil {
-		t.Error("expected non-nil result")
-	}
-	if result.Data == nil {
-		t.Error("expected non-nil data (empty array)")
-	}
-}
-
 func TestAgents_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)

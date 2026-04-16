@@ -89,23 +89,6 @@ func (s *Server) registerAgentParity() {
 		mcp.WithString("token", mcp.Description("Raw authentication token")),
 	))
 
-	// search_data
-	s.addTool(&toolImpl{
-		name: "fibe_agents_search", description: "Search across agents' messages and activity (accepts 'query' or legacy 'q')", tier: tierFull,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			aliasField(args, "query", "q")
-			q := argString(args, "query")
-			if q == "" {
-				return nil, fmt.Errorf("required field 'query' not set (also accepts 'q' as alias)")
-			}
-			return c.Agents.SearchData(ctx, q)
-		},
-	}, mcp.NewTool("fibe_agents_search",
-		mcp.WithDescription("Full-text search across agents' messages and activity streams. Canonical field is 'query'; 'q' is accepted as an alias."),
-		mcp.WithString("query", mcp.Required(), mcp.Description("Search query (alias: 'q')")),
-	))
-
 	// get/update messages
 	s.addTool(&toolImpl{
 		name: "fibe_agents_messages_get", description: "Get agent messages", tier: tierFull,
