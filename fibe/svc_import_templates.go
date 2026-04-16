@@ -1,0 +1,112 @@
+package fibe
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+)
+
+type ImportTemplateService struct {
+	client *Client
+}
+
+func (s *ImportTemplateService) List(ctx context.Context, params *ImportTemplateListParams) (*ListResult[ImportTemplate], error) {
+	path := "/api/import_templates" + buildQuery(params)
+	return doList[ImportTemplate](s.client, ctx, path)
+}
+
+func (s *ImportTemplateService) Search(ctx context.Context, query string, templateID *int64) (*ListResult[ImportTemplate], error) {
+	values := url.Values{}
+	values.Set("q", query)
+	if templateID != nil {
+		values.Set("template_id", fmt.Sprintf("%d", *templateID))
+	}
+	path := "/api/import_templates/search?" + values.Encode()
+	return doList[ImportTemplate](s.client, ctx, path)
+}
+
+func (s *ImportTemplateService) Get(ctx context.Context, id int64) (*ImportTemplate, error) {
+	var result ImportTemplate
+	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/import_templates/%d", id), nil, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) Create(ctx context.Context, params *ImportTemplateCreateParams) (*ImportTemplate, error) {
+	var result ImportTemplate
+	body := map[string]any{
+		"import_template": map[string]any{
+			"name":        params.Name,
+			"description": params.Description,
+			"category_id": params.CategoryID,
+		},
+		"template_body": params.TemplateBody,
+	}
+	err := s.client.do(ctx, http.MethodPost, "/api/import_templates", body, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) Update(ctx context.Context, id int64, params *ImportTemplateUpdateParams) (*ImportTemplate, error) {
+	var result ImportTemplate
+	body := map[string]any{"import_template": params}
+	err := s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/import_templates/%d", id), body, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) Delete(ctx context.Context, id int64) error {
+	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/import_templates/%d", id), nil, nil)
+}
+
+func (s *ImportTemplateService) ListVersions(ctx context.Context, id int64, params *ListParams) (*ListResult[ImportTemplateVersion], error) {
+	path := fmt.Sprintf("/api/import_templates/%d/versions", id) + buildQuery(params)
+	return doList[ImportTemplateVersion](s.client, ctx, path)
+}
+
+func (s *ImportTemplateService) CreateVersion(ctx context.Context, id int64, params *ImportTemplateVersionCreateParams) (*ImportTemplateVersion, error) {
+	var result ImportTemplateVersion
+	path := fmt.Sprintf("/api/import_templates/%d/versions", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) TogglePublic(ctx context.Context, templateID, versionID int64) (*ImportTemplateVersion, error) {
+	var result ImportTemplateVersion
+	path := fmt.Sprintf("/api/import_templates/%d/toggle_public", templateID)
+	body := map[string]any{"version_id": versionID}
+	err := s.client.do(ctx, http.MethodPatch, path, body, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) DestroyVersion(ctx context.Context, templateID, versionID int64) error {
+	path := fmt.Sprintf("/api/import_templates/%d/destroy_version", templateID)
+	body := map[string]any{"version_id": versionID}
+	return s.client.do(ctx, http.MethodDelete, path, body, nil)
+}
+
+func (s *ImportTemplateService) Launch(ctx context.Context, id int64) (*LaunchResult, error) {
+	return s.LaunchWithParams(ctx, id, nil)
+}
+
+func (s *ImportTemplateService) LaunchWithParams(ctx context.Context, id int64, params *ImportTemplateLaunchParams) (*LaunchResult, error) {
+	if params != nil {
+		if err := validateParams(params); err != nil {
+			return nil, err
+		}
+	}
+	var result LaunchResult
+	path := fmt.Sprintf("/api/import_templates/%d/launch", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) Fork(ctx context.Context, id int64) (*ImportTemplate, error) {
+	var result ImportTemplate
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/import_templates/%d/fork", id), nil, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) UploadImage(ctx context.Context, id int64, params *UploadImageParams) (*ImportTemplate, error) {
+	var result ImportTemplate
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/import_templates/%d/image", id), params, &result)
+	return &result, err
+}

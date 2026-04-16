@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: fibe
+    main: ./cmd/fibe
+    binary: fibe
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+      - -X github.com/fibegg/sdk/internal/mcpserver.Version={{.Version}}
+
+archives:
+  - id: fibe
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+    name_template: >-
+      fibe_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+release:
+  github:
+    owner: fibegg
+    name: sdk
+  draft: false
+  prerelease: auto
+
+brews:
+  - ids:
+      - fibe
+    name: fibe
+    directory: Formula
+    homepage: https://github.com/fibegg/sdk
+    description: Official Go SDK, CLI, and MCP server for the Fibe platform
+    repository:
+      owner: fibegg
+      name: homebrew-sdk
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_msg_template: "chore(brew): update {{ .ProjectName }} to {{ .Tag }}"
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    skip_upload: auto
+    install: |
+      bin.install "fibe"
+    test: |
+      system "#{bin}/fibe", "version"

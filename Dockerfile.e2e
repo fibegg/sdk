@@ -1,0 +1,23 @@
+FROM golang:1.26-alpine AS builder
+
+RUN apk add --no-cache git
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build ./...
+RUN go vet ./...
+
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache bash
+RUN go install gotest.tools/gotestsum@latest
+
+WORKDIR /app
+COPY --from=builder /app /app
+COPY --from=builder /go/pkg /go/pkg
+
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["gotestsum --format testname -- ./integration/... -v -count=1 -timeout 300s"]

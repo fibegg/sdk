@@ -1,0 +1,324 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strconv"
+
+	"github.com/fibegg/sdk/internal/mcpserver"
+	"github.com/spf13/cobra"
+)
+
+func mcpCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mcp",
+		Short: "Run Fibe as a local Model Context Protocol server",
+		Long: `Run the Fibe CLI as a local MCP server so LLM agents can drive Fibe
+without paying the fork+exec cost of invoking the CLI per operation.
+
+TRANSPORTS:
+  stdio  (default) — one client per spawned process; single-tenant
+  sse    --http :8080 — multiple clients, per-session auth required
+  http   --streamable :8080 — same as SSE but with streamable-HTTP transport
+
+SUBCOMMANDS:
+  serve     Run the MCP server (default: stdio)
+  install   Register the server in a client's MCP config
+            (claude-code | claude-desktop | cursor | vscode)
+  config    Print the JSON snippet needed to register the server manually
+
+ENV VARS:
+  FIBE_API_KEY              Default API key when per-session auth not set
+  FIBE_DOMAIN               API domain override
+  FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
+  FIBE_MCP_TOOLS=core|full  Tool surface. core=~20 curated, full=every leaf
+  FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
+
+EXAMPLES:
+  fibe mcp serve                                      # stdio, core toolset
+  fibe mcp serve --tools full                         # all ~130 tools
+  fibe mcp serve --yolo                               # skip destructive confirm gate
+  FIBE_MCP_TOOLS=full fibe mcp serve --http :8080     # multi-tenant SSE
+
+  fibe mcp install --client claude-code               # wire into ~/.claude.json
+  fibe mcp config --client claude-desktop             # print config snippet`,
+	}
+	cmd.AddCommand(
+		mcpServeCmd(),
+		mcpInstallCmd(),
+		mcpUninstallCmd(),
+		mcpConfigCmd(),
+	)
+	return cmd
+}
+
+func mcpServeCmd() *cobra.Command {
+	var (
+		httpAddr      string
+		streamableHTTP bool
+		toolSet       string
+		yolo          bool
+		requireAuth   bool
+		cacheSize     int
+		cacheEntryMax int
+		maxSteps      int
+		maxIterations int
+	)
+
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Run the Fibe MCP server",
+		Long: `Run the Fibe MCP server. Default transport is stdio (single-tenant,
+spawned by MCP clients like Claude Code). Use --http to serve multiple
+tenants over SSE.
+
+TOOL SURFACE:
+  --tools core   ~20 curated tools + fibe_pipeline + fibe_run escape hatch
+  --tools full   Every leaf command exposed as an MCP tool (~130 total)
+
+SAFETY:
+  --yolo         Skip the confirm:true gate on destructive tools
+                 (equivalent to FIBE_MCP_YOLO=1)
+
+MULTI-TENANT (HTTP only):
+  --require-auth  Reject requests with no resolved API key
+
+  Per-request auth: Authorization: Bearer <fibe-api-key>
+  Per-session:      call the fibe_auth_set tool once per session
+
+PIPELINE:
+  --pipeline-cache-size N    Max cached pipeline results (default 256)
+  --pipeline-max-steps N     Hard cap on steps per pipeline (default 25)
+
+EXAMPLES:
+  fibe mcp serve
+  fibe mcp serve --tools full --yolo
+  fibe mcp serve --http :8080 --require-auth`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := mcpserver.DefaultConfig()
+			cfg.APIKey = resolveAPIKey()
+			cfg.Domain = flagDomain
+			cfg.Debug = flagDebug
+
+			cfg.ToolSet = resolveEnv("FIBE_MCP_TOOLS", toolSet, cfg.ToolSet)
+			cfg.Yolo = yolo || envBool("FIBE_MCP_YOLO")
+			cfg.RequireAuth = requireAuth || envBool("FIBE_MCP_REQUIRE_AUTH")
+			if cacheSize > 0 {
+				cfg.PipelineCacheSize = cacheSize
+			} else if v := envInt("FIBE_MCP_PIPELINE_CACHE_SIZE"); v > 0 {
+				cfg.PipelineCacheSize = v
+			}
+			if cacheEntryMax > 0 {
+				cfg.PipelineCacheEntryMax = cacheEntryMax
+			} else if v := envInt("FIBE_MCP_PIPELINE_CACHE_ENTRY_MAX"); v > 0 {
+				cfg.PipelineCacheEntryMax = v
+			}
+			if maxSteps > 0 {
+				cfg.PipelineMaxSteps = maxSteps
+			} else if v := envInt("FIBE_MCP_PIPELINE_MAX_STEPS"); v > 0 {
+				cfg.PipelineMaxSteps = v
+			}
+			if maxIterations > 0 {
+				cfg.PipelineMaxIterations = maxIterations
+			} else if v := envInt("FIBE_MCP_PIPELINE_MAX_ITERATIONS"); v > 0 {
+				cfg.PipelineMaxIterations = v
+			}
+
+			if cfg.Yolo {
+				fmt.Fprintln(os.Stderr, "WARN: --yolo enabled; destructive tools do not require confirm:true")
+			}
+
+			// Wire the cobra root tree so fibe_help and fibe_run can introspect it.
+			cfg.CobraRoot = cmd.Root()
+
+			srv := mcpserver.New(cfg)
+			if err := srv.RegisterAll(); err != nil {
+				return fmt.Errorf("register: %w", err)
+			}
+
+			ctx := context.Background()
+			if httpAddr != "" {
+				return srv.ServeHTTP(ctx, httpAddr, streamableHTTP)
+			}
+			return srv.ServeStdio(ctx)
+		},
+	}
+	cmd.Flags().StringVar(&httpAddr, "http", "", "Listen on host:port for SSE transport (default: stdio)")
+	cmd.Flags().BoolVar(&streamableHTTP, "streamable", false, "Use streamable-HTTP transport instead of SSE (requires --http)")
+	cmd.Flags().StringVar(&toolSet, "tools", "", "Tool surface: core|full (env: FIBE_MCP_TOOLS, default: core)")
+	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip confirm:true gate on destructive tools (env: FIBE_MCP_YOLO)")
+	cmd.Flags().BoolVar(&requireAuth, "require-auth", false, "Reject requests with no resolved API key (multi-tenant)")
+	cmd.Flags().IntVar(&cacheSize, "pipeline-cache-size", 0, "Max cached pipeline results (env: FIBE_MCP_PIPELINE_CACHE_SIZE)")
+	cmd.Flags().IntVar(&cacheEntryMax, "pipeline-cache-entry-max", 0, "Max bytes per cached entry (env: FIBE_MCP_PIPELINE_CACHE_ENTRY_MAX)")
+	cmd.Flags().IntVar(&maxSteps, "pipeline-max-steps", 0, "Max steps per pipeline (env: FIBE_MCP_PIPELINE_MAX_STEPS)")
+	cmd.Flags().IntVar(&maxIterations, "pipeline-max-iterations", 0, "Max total for_each iterations (env: FIBE_MCP_PIPELINE_MAX_ITERATIONS)")
+	return cmd
+}
+
+func mcpInstallCmd() *cobra.Command {
+	var client, project string
+	var dryRun bool
+	var opts installOptions
+	cmd := &cobra.Command{
+		Use:   "install",
+		Short: "Register the Fibe MCP server in a client's config",
+		Long: `Write the Fibe MCP server into an MCP client's configuration file.
+
+SUPPORTED CLIENTS:
+  claude-code      ~/.claude.json (or project .claude/settings.json with --project .)
+  claude-desktop   ~/Library/Application Support/Claude/claude_desktop_config.json
+  cursor           ~/.cursor/mcp.json
+  vscode           ~/.vscode/mcp.json (or workspace .vscode/mcp.json with --project .)
+  antigravity      ~/.gemini/antigravity/mcp_config.json
+
+The installer detects the absolute path of the current fibe executable and
+emits an entry that launches "fibe mcp serve" on stdio.
+
+ENV VARS:
+  By default, FIBE_API_KEY is written as "${FIBE_API_KEY}" so the client
+  expands it at runtime. Antigravity does NOT expand placeholders, so the
+  installer auto-resolves FIBE_API_KEY from your shell at install time for
+  that client. Override with --api-key to inline any value explicitly.
+
+TOOL TIERS:
+  --tools core   Expose ~40 commonly-used tools (default). Additional tools
+                 remain reachable via fibe_call / fibe_tools_catalog.
+  --tools full   Expose all ~159 tools up front.
+
+EXAMPLES:
+  fibe mcp install --client claude-code
+  fibe mcp install --client antigravity --api-key pk_live_... --domain http://dev.local:3000
+  fibe mcp install --client claude-desktop --tools full --yolo
+  fibe mcp install --client cursor --env FOO=bar --env BAZ=qux
+  fibe mcp install --client antigravity --dry-run`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runMCPInstall(client, project, dryRun, opts)
+		},
+	}
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode|antigravity")
+	cmd.Flags().StringVar(&project, "project", "", "Install into a project-scoped config (pass the project directory). Default: user-scoped.")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and JSON diff without writing")
+	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
+	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
+	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
+	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: core|full")
+	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
+	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
+	return cmd
+}
+
+func mcpUninstallCmd() *cobra.Command {
+	var client, project string
+	var dryRun bool
+	cmd := &cobra.Command{
+		Use:   "uninstall",
+		Short: "Remove the Fibe MCP server from a client's config",
+		Long: `Remove the "fibe" entry from an MCP client's configuration file without
+touching other registered servers.
+
+EXAMPLES:
+  fibe mcp uninstall --client claude-code
+  fibe mcp uninstall --client claude-desktop --dry-run`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runMCPUninstall(client, project, dryRun)
+		},
+	}
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode")
+	cmd.Flags().StringVar(&project, "project", "", "Operate on a project-scoped config (pass the project directory)")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed content without writing")
+	return cmd
+}
+
+func mcpConfigCmd() *cobra.Command {
+	var client string
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Print the MCP config snippet for a client",
+		Long: `Print the JSON snippet needed to register the Fibe MCP server manually
+in an MCP client's configuration.
+
+EXAMPLES:
+  fibe mcp config --client claude-code
+  fibe mcp config --client claude-desktop`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			bin, err := os.Executable()
+			if err != nil {
+				bin = "fibe"
+			}
+			snippet := map[string]any{
+				"fibe": map[string]any{
+					"command": bin,
+					"args":    []string{"mcp", "serve"},
+					"env": map[string]string{
+						"FIBE_API_KEY": "${FIBE_API_KEY}",
+					},
+				},
+			}
+			switch client {
+			case "claude-code":
+				fmt.Println(`// Add under "mcpServers" in ~/.claude.json or .claude/settings.json:`)
+			case "claude-desktop":
+				fmt.Println(`// Add under "mcpServers" in ~/Library/Application Support/Claude/claude_desktop_config.json:`)
+			case "cursor":
+				fmt.Println(`// Add under "mcpServers" in ~/.cursor/mcp.json:`)
+			case "vscode":
+				fmt.Println(`// Add under "servers" in .vscode/mcp.json (schema differs slightly — see VS Code docs):`)
+			case "antigravity":
+				fmt.Println(`// Add under "mcpServers" in ~/.gemini/antigravity/mcp_config.json:`)
+			default:
+				return fmt.Errorf("unknown client %q — valid: claude-code, claude-desktop, cursor, vscode, antigravity", client)
+			}
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(snippet)
+		},
+	}
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode")
+	return cmd
+}
+
+// resolveAPIKey resolves the effective API key for the MCP server base
+// client: first --api-key, then FIBE_API_KEY. Per-session overrides are
+// resolved later, inside the dispatcher.
+func resolveAPIKey() string {
+	if flagAPIKey != "" {
+		return flagAPIKey
+	}
+	return os.Getenv("FIBE_API_KEY")
+}
+
+func resolveEnv(envKey, flagVal, def string) string {
+	if flagVal != "" {
+		return flagVal
+	}
+	if v := os.Getenv(envKey); v != "" {
+		return v
+	}
+	return def
+}
+
+func envBool(key string) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return false
+	}
+	switch v {
+	case "1", "true", "TRUE", "yes", "on":
+		return true
+	}
+	return false
+}
+
+func envInt(key string) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0
+	}
+	return n
+}
