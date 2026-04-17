@@ -253,6 +253,7 @@ EXAMPLES:
 					"args":    []string{"mcp", "serve"},
 					"env": map[string]string{
 						"FIBE_API_KEY": "${FIBE_API_KEY}",
+						"FIBE_DOMAIN":  "${FIBE_DOMAIN}",
 					},
 				},
 			}

@@ -149,9 +149,18 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 		}
 	}
 
-	// Domain override (only written if caller opted in).
-	if opts.Domain != "" {
+	// Domain override.
+	switch {
+	case opts.Domain != "":
 		env["FIBE_DOMAIN"] = opts.Domain
+	case expandsPlaceholders:
+		env["FIBE_DOMAIN"] = "${FIBE_DOMAIN}"
+	default:
+		if v := os.Getenv("FIBE_DOMAIN"); v != "" {
+			env["FIBE_DOMAIN"] = v
+		} else {
+			env["FIBE_DOMAIN"] = "fibe.gg"
+		}
 	}
 
 	// Tool set + yolo + audit log.
