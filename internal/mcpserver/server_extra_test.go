@@ -434,6 +434,29 @@ func TestDecodeFileSource(t *testing.T) {
 	}
 }
 
+func TestReadInlineOrPathTextArg(t *testing.T) {
+	inline, err := readInlineOrPathTextArg(map[string]any{"compose_yaml": "services:\n  web:\n    image: nginx"}, "compose_yaml", "compose_path")
+	if err != nil {
+		t.Fatalf("inline read: %v", err)
+	}
+	if inline == "" {
+		t.Fatal("expected inline compose text")
+	}
+
+	tmp := filepath.Join(t.TempDir(), "compose.yml")
+	const content = "services:\n  web:\n    image: nginx"
+	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	fromPath, err := readInlineOrPathTextArg(map[string]any{"compose_path": tmp}, "compose_yaml", "compose_path")
+	if err != nil {
+		t.Fatalf("path read: %v", err)
+	}
+	if fromPath != content {
+		t.Fatalf("path read mismatch: got %q want %q", fromPath, content)
+	}
+}
+
 // ---------- Struct-pointer results must be walkable by JSONPath ----------
 
 // TestPipelineStructPointerNormalization reproduces the bug reported when
@@ -441,8 +464,8 @@ func TestDecodeFileSource(t *testing.T) {
 // typed struct pointer (e.g. *fibe.Team, *fibe.Secret) used to crash the
 // next step's ref resolution with:
 //
-//   "unsupported value type *fibe.Team for select,
-//    expected map[string]interface{} or []interface{}"
+//	"unsupported value type *fibe.Team for select,
+//	 expected map[string]interface{} or []interface{}"
 //
 // because PaesslerAG/jsonpath can't walk arbitrary Go structs. The runner
 // now JSON-round-trips every step output so JSONPath can read its fields.

@@ -276,6 +276,40 @@ func TestRunCobraTruncatesLargeOutput(t *testing.T) {
 	}
 }
 
+func TestRunCobraTimeoutAndRecommendation(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	launch := &cobra.Command{
+		Use: "launch",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			<-cmd.Context().Done()
+			return cmd.Context().Err()
+		},
+	}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(launch)
+	srv.cfg.CobraRoot = root
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args":       []any{"launch"},
+		"timeout_ms": 10,
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["timed_out"] != true {
+		t.Fatalf("expected timed_out=true, got %#v", m["timed_out"])
+	}
+	if m["recommended_tool"] != "fibe_launch" {
+		t.Fatalf("expected recommended_tool=fibe_launch, got %#v", m["recommended_tool"])
+	}
+}
+
 func findModuleRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

@@ -92,18 +92,27 @@ func (s *Server) registerCustomTools() {
 	// ---------- fibe_launch ----------
 	// Parses compose YAML → creates playspec → deploys playground on a marquee.
 	s.addTool(&toolImpl{
-		name: "fibe_launch", description: "Perform a one-shot deployment from Docker Compose YAML to a running playground", tier: tierCore,
+		name: "fibe_launch", description: "Preferred one-shot deployment tool: create a playspec and optionally a playground from compose YAML or a local compose file path", tier: tierCore,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			aliasField(args, "compose_yaml", "compose")
+			aliasField(args, "compose_path", "compose_file_path")
+
 			var p fibe.LaunchParams
 			if err := bindArgs(args, &p); err != nil {
 				return nil, err
+			}
+			if p.ComposeYAML == "" {
+				yaml, err := readInlineOrPathTextArg(args, "compose_yaml", "compose_path")
+				if err == nil {
+					p.ComposeYAML = yaml
+				}
 			}
 			if p.Name == "" {
 				return nil, fmt.Errorf("required field 'name' not set")
 			}
 			if p.ComposeYAML == "" {
-				return nil, fmt.Errorf("required field 'compose_yaml' not set")
+				return nil, fmt.Errorf("required field 'compose_yaml' not set (or pass compose_path / compose_file_path)")
 			}
 			result, err := c.Launch.Create(ctx, &p)
 			if err != nil {
@@ -123,8 +132,17 @@ func (s *Server) registerCustomTools() {
 			return out, nil
 		},
 	}, mcp.NewTool("fibe_launch",
-		mcp.WithDescription("Perform a one-shot deployment from Docker Compose YAML to a running playground"),
-		mcp.WithInputSchema[fibe.LaunchParams](),
+		mcp.WithDescription(`Preferred one-shot deployment tool. Use this instead of fibe_run(["launch", ...]) whenever possible.
+
+Pass either compose_yaml inline or compose_path/compose_file_path pointing at an absolute local file. The file-path form is preferred for larger compose documents in local MCP sessions.`),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Playground or trick name")),
+		mcp.WithString("compose_yaml", mcp.Description("Docker Compose YAML content. Use compose_path for larger files.")),
+		mcp.WithString("compose_path", mcp.Description("Absolute local path to a compose YAML file (local MCP only). Alias: compose_file_path.")),
+		mcp.WithNumber("marquee_id", mcp.Description("Target marquee ID")),
+		mcp.WithBoolean("job_mode", mcp.Description("Create as a trick/job instead of a playground")),
+		mcp.WithBoolean("create_playground", mcp.Description("Override automatic playground creation behavior")),
+		mcp.WithObject("variables", mcp.Description("Template variables map, e.g. {\"subdomain\":\"unstable\",\"production\":\"false\"}")),
+		mcp.WithObject("prop_mappings", mcp.Description("Dictionary mapping repository URL to Prop ID, e.g. {\"https://github.com/viktorvsk/fibe\":4}")),
 	))
 
 	// ---------- fibe_repo_status ----------
@@ -203,15 +221,17 @@ func (s *Server) registerCustomTools() {
 		name: "fibe_playspecs_validate_compose", description: "Validate a docker-compose YAML file against the playspec schema", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			yaml := argString(args, "compose_yaml")
-			if yaml == "" {
-				return nil, fmt.Errorf("required field 'compose_yaml' not set")
+			aliasField(args, "compose_path", "compose_file_path")
+			yaml, err := readInlineOrPathTextArg(args, "compose_yaml", "compose_path")
+			if err != nil {
+				return nil, fmt.Errorf("required field 'compose_yaml' not set (or pass compose_path / compose_file_path)")
 			}
 			return c.Playspecs.ValidateCompose(ctx, yaml)
 		},
 	}, mcp.NewTool("fibe_playspecs_validate_compose",
-		mcp.WithDescription("Validate a docker-compose YAML file against the playspec schema"),
-		mcp.WithString("compose_yaml", mcp.Required(), mcp.Description("Docker-compose YAML content")),
+		mcp.WithDescription("Validate a docker-compose YAML file against the playspec schema. Pass compose_yaml inline or compose_path/compose_file_path to read a local file."),
+		mcp.WithString("compose_yaml", mcp.Description("Docker-compose YAML content")),
+		mcp.WithString("compose_path", mcp.Description("Absolute local path to a compose YAML file (local MCP only). Alias: compose_file_path.")),
 	))
 
 	// ---------- fibe_installations_list ----------

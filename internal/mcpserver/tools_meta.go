@@ -3,10 +3,12 @@ package mcpserver
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -199,15 +201,20 @@ is most useful in multi-tenant HTTP deployments.`),
 	// ---------- fibe_run ----------
 	// Escape hatch: invoke any fibe CLI command programmatically.
 	s.addTool(&toolImpl{
-		name: "fibe_run", description: "Programmatically invoke any arbitrary Fibe CLI command", tier: tierMeta,
+		name: "fibe_run", description: "Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runCobra(ctx, args)
 		},
 	}, mcp.NewTool("fibe_run",
-		mcp.WithDescription("Programmatically invoke any arbitrary Fibe CLI command"),
+		mcp.WithDescription(`Last-resort escape hatch for arbitrary CLI commands.
+
+Prefer dedicated MCP tools first (for example fibe_launch, fibe_playgrounds_*, fibe_props_*, etc.). If the target tool already exists but is not advertised in the current tier, prefer fibe_call over fibe_run.
+
+Use timeout_ms to bound risky calls that might otherwise outlive the host's tool-call budget.`),
 		mcp.WithArray("args", mcp.Required(),
 			mcp.Description("Command args as if typed after `fibe`. Scalar items (string, number, boolean) are accepted and stringified into CLI tokens in-order.")),
+		mcp.WithNumber("timeout_ms", mcp.Description("Optional per-call timeout in milliseconds. Recommended for risky escape-hatch calls.")),
 	))
 
 	// ---------- fibe_schema ----------
@@ -283,6 +290,18 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		}
 		strs = append(strs, token)
 	}
+	userArgs := append([]string(nil), strs...)
+
+	var timeoutMs int64
+	if v, ok := argInt64(args, "timeout_ms"); ok {
+		if v <= 0 {
+			return nil, fmt.Errorf("field 'timeout_ms' must be > 0")
+		}
+		timeoutMs = v
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
+		defer cancel()
+	}
 
 	// Force JSON output for predictable downstream parsing.
 	strs = append([]string{"--output", "json"}, strs...)
@@ -339,6 +358,13 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		"stdout": stdoutBuf.String(),
 		"stderr": stderrBuf.String(),
 	}
+	if timeoutMs > 0 {
+		result["timeout_ms"] = timeoutMs
+	}
+	if recommended := s.recommendedToolForCLIArgs(userArgs); recommended != "" {
+		result["recommended_tool"] = recommended
+		result["warning"] = fmt.Sprintf("prefer %s over fibe_run when possible", recommended)
+	}
 	if stdoutBuf.truncated {
 		result["stdout_truncated"] = true
 		result["stdout_total_bytes"] = stdoutBuf.total
@@ -352,6 +378,9 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 	}
 	if execErr != nil {
 		result["error"] = execErr.Error()
+		if errors.Is(execErr, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			result["timed_out"] = true
+		}
 	}
 	return result, nil
 }
@@ -372,6 +401,43 @@ func stringifyCLIArg(v any) (string, error) {
 	default:
 		return "", fmt.Errorf("field 'args' may contain only scalars (string, number, boolean)")
 	}
+}
+
+func (s *Server) recommendedToolForCLIArgs(args []string) string {
+	if s.cfg.CobraRoot == nil || len(args) == 0 {
+		return ""
+	}
+
+	current := s.cfg.CobraRoot
+	var path []string
+	for _, token := range args {
+		if strings.HasPrefix(token, "-") {
+			break
+		}
+		found := false
+		for _, candidate := range current.Commands() {
+			if !candidate.Hidden && candidate.Name() == token {
+				path = append(path, token)
+				current = candidate
+				found = true
+				break
+			}
+		}
+		if !found {
+			break
+		}
+	}
+	if len(path) == 0 {
+		return ""
+	}
+	name := "fibe_" + strings.Join(path, "_")
+	if name == "fibe_run" {
+		return ""
+	}
+	if _, ok := s.dispatcher.lookup(name); ok {
+		return name
+	}
+	return ""
 }
 
 type truncatingBuffer struct {

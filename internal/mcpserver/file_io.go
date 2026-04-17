@@ -37,6 +37,24 @@ func readLocalFileBase64(path string) (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
+// readInlineOrPathTextArg returns inline text from inlineKey or reads it from
+// an absolute local file path in pathKey. Used by local-MCP tools that accept
+// large text payloads but also need a file-path escape hatch to avoid bloating
+// the JSON-RPC request.
+func readInlineOrPathTextArg(args map[string]any, inlineKey, pathKey string) (string, error) {
+	if text := argString(args, inlineKey); text != "" {
+		return text, nil
+	}
+	if path := argString(args, pathKey); path != "" {
+		data, err := readLocalFile(path)
+		if err != nil {
+			return "", err
+		}
+		return string(data), nil
+	}
+	return "", fmt.Errorf("required field missing: pass %s or %s", inlineKey, pathKey)
+}
+
 func isNotExist(err error) bool {
 	return err != nil && os.IsNotExist(err)
 }

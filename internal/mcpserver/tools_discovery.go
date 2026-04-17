@@ -84,7 +84,7 @@ func (s *Server) registerDiscoveryTools() {
 	}, mcp.NewTool("fibe_tools_catalog",
 		mcp.WithDescription(`List every tool registered on the Fibe MCP server, including tools not advertised in the current tier.
 
-Use this to discover the full capability surface when the server is running in core mode (the default). Call fibe_call(tool=<name>, args=...) to invoke any tool found here, whether or not it's in the advertised list.
+Use this to discover the full capability surface when the server is running in core mode (the default). Prefer calling the concrete tool directly once you know its name. Use fibe_call(tool=<name>, args=...) only when the target tool is not currently advertised.
 
 FILTERS:
   tier           "core" | "full" | "meta" | "all" (default: all)
@@ -129,7 +129,9 @@ FILTERS:
 			return s.dispatcher.dispatch(ctx, name, subArgs)
 		},
 	}, mcp.NewTool("fibe_call",
-		mcp.WithDescription(`Invoke any registered Fibe tool by name. Useful in core mode to reach tools not in the advertised list.
+		mcp.WithDescription(`Invoke any registered Fibe tool by name. Useful in core mode to reach tools that are registered but not currently advertised.
+
+Prefer calling the concrete tool directly whenever you already know it. Use fibe_call when the tool name is dynamic or when the concrete tool is hidden by the current tool tier.
 
 Safety, auth, and idempotency gates apply exactly as they would for a direct call to the named tool. Destructive tools still require confirm:true unless the server is running with --yolo.
 
