@@ -21,12 +21,12 @@ type Status struct {
 		Total         int `json:"total"`
 		Authenticated int `json:"authenticated"`
 	} `json:"agents"`
-	Props     int `json:"props"`
-	Playspecs int `json:"playspecs"`
-	Marquees  int `json:"marquees"`
-	Secrets   int `json:"secrets"`
-	Teams     int `json:"teams"`
-	APIKeys   int `json:"api_keys"`
+	Props        int `json:"props"`
+	Playspecs    int `json:"playspecs"`
+	Marquees     int `json:"marquees"`
+	Secrets      int `json:"secrets"`
+	Teams        int `json:"teams"`
+	APIKeys      int `json:"api_keys"`
 	Subscription struct {
 		Plan            string `json:"plan"`
 		PlaygroundLimit int    `json:"playground_limit"`
@@ -45,10 +45,10 @@ type ResourceQuotaEntry struct {
 	Status string `json:"status"`
 }
 
-// RateLimitsSection carries rate-limit state for the authenticated credential.
+// RateLimitsSection carries rate-limit state for the authenticated player.
 // Only populated when the request is authenticated via API key.
 type RateLimitsSection struct {
-	APIKey *RateLimitInfo `json:"api_key,omitempty"`
+	API *RateLimitInfo `json:"api,omitempty"`
 }
 
 // RateLimitInfo describes a single rate-limit bucket.

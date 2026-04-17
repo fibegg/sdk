@@ -11,9 +11,9 @@ import (
 func limitsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "limits",
-		Short: "Show current quotas and API-key rate limits",
+		Short: "Show current quotas and API rate limits",
 		Long: `Show the caller's current resource quotas, per-parent caps, and
-API-key rate-limit usage (limit, remaining, seconds until reset).
+API rate-limit usage (limit, remaining, seconds until reset).
 
 Requires authentication via an API key (Authorization: Bearer ...).
 The server only returns limits data to API-key-authenticated callers.
@@ -80,12 +80,12 @@ func printLimitsTable(status *fibe.Status) {
 	}
 
 	fmt.Println()
-	fmt.Println("=== API Key Rate Limits ===")
-	if status.RateLimits == nil || status.RateLimits.APIKey == nil {
+	fmt.Println("=== API Rate Limits ===")
+	if status.RateLimits == nil || status.RateLimits.API == nil {
 		fmt.Println("(not available)")
 		return
 	}
-	rl := status.RateLimits.APIKey
+	rl := status.RateLimits.API
 	fmt.Printf("Limit:         %d req/hour\n", rl.Limit)
 	fmt.Printf("Remaining:     %d\n", rl.Remaining)
 	fmt.Printf("Resets in:     %d seconds\n", rl.ResetSeconds)

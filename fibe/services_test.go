@@ -274,8 +274,8 @@ func TestProps_Sync(t *testing.T) {
 
 func TestBuildQuery(t *testing.T) {
 	params := &ArtefactListParams{
-		Query:  "test",
-		Sort:   "created_at_asc",
+		Query:   "test",
+		Sort:    "created_at_asc",
 		Page:    1,
 		PerPage: 25,
 	}
@@ -331,7 +331,7 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 				"artefacts_per_agent":     100,
 			},
 			"rate_limits": map[string]any{
-				"api_key": map[string]any{"limit": 5000, "remaining": 4987, "reset_seconds": 1234},
+				"api": map[string]any{"limit": 5000, "remaining": 4987, "reset_seconds": 1234},
 			},
 		})
 	})
@@ -349,11 +349,11 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 	if status.PerParentCaps["mounted_files_per_agent"] == nil || *status.PerParentCaps["mounted_files_per_agent"] != 5 {
 		t.Errorf("expected per_parent_caps.mounted_files_per_agent=5, got %+v", status.PerParentCaps)
 	}
-	if status.RateLimits == nil || status.RateLimits.APIKey == nil {
-		t.Fatalf("expected rate_limits.api_key section")
+	if status.RateLimits == nil || status.RateLimits.API == nil {
+		t.Fatalf("expected rate_limits.api section")
 	}
-	if status.RateLimits.APIKey.Limit != 5000 || status.RateLimits.APIKey.Remaining != 4987 {
-		t.Errorf("unexpected rate limit values: %+v", status.RateLimits.APIKey)
+	if status.RateLimits.API.Limit != 5000 || status.RateLimits.API.Remaining != 4987 {
+		t.Errorf("unexpected rate limit values: %+v", status.RateLimits.API)
 	}
 }
 
