@@ -92,7 +92,7 @@ func (s *Server) registerCustomTools() {
 	// ---------- fibe_launch ----------
 	// Parses compose YAML → creates playspec → deploys playground on a marquee.
 	s.addTool(&toolImpl{
-		name: "fibe_launch", description: "Perform a one-shot deployment from Docker Compose YAML to a running playground", tier: tierFull,
+		name: "fibe_launch", description: "Perform a one-shot deployment from Docker Compose YAML to a running playground", tier: tierCore,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.LaunchParams

@@ -578,6 +578,7 @@ func (s *Server) registerImportTemplateParity() {
 		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target marquee ID")),
 		mcp.WithString("name", mcp.Description("Optional playground name override")),
 		mcp.WithNumber("version", mcp.Description("Optional template version to launch")),
+		mcp.WithObject("variables", mcp.Description("Dictionary mapping dynamically evaluated Fibe template parameters smoothly natively")),
 	))
 
 	s.addTool(&toolImpl{

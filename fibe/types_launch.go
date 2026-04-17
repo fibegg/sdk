@@ -20,11 +20,13 @@ type LaunchResult struct {
 }
 
 type LaunchParams struct {
-	ComposeYAML      string `json:"compose_yaml"`
-	Name             string `json:"name"`
-	JobMode          *bool  `json:"job_mode,omitempty"`
-	MarqueeID        *int64 `json:"marquee_id,omitempty"`
-	CreatePlayground *bool  `json:"create_playground,omitempty"`
+	ComposeYAML      string            `json:"compose_yaml"`
+	Name             string            `json:"name"`
+	JobMode          *bool             `json:"job_mode,omitempty"`
+	MarqueeID        *int64            `json:"marquee_id,omitempty"`
+	CreatePlayground *bool             `json:"create_playground,omitempty"`
+	Variables        map[string]string `json:"variables,omitempty"`
+	PropMappings     map[string]int64  `json:"prop_mappings,omitempty"`
 }
 
 
