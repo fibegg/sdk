@@ -174,6 +174,108 @@ func TestRunCobraCapturesStdout(t *testing.T) {
 	}
 }
 
+func TestRunCobraStringifiesScalarArgs(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	echo := &cobra.Command{
+		Use: "echo",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println(strings.Join(args, ","))
+			return nil
+		},
+	}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(echo)
+	srv.cfg.CobraRoot = root
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"echo", 75, true},
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	gotArgs, ok := m["args"].([]string)
+	if !ok {
+		t.Fatalf("args type = %T, want []string", m["args"])
+	}
+	if strings.Join(gotArgs, " ") != "--output json echo 75 true" {
+		t.Errorf("args=%v want [--output json echo 75 true]", gotArgs)
+	}
+	if !strings.Contains(m["stdout"].(string), "75,true") {
+		t.Errorf("expected scalar args in stdout, got %q", m["stdout"])
+	}
+}
+
+func TestRunCobraRejectsNestedArgs(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(&cobra.Command{Use: "echo", RunE: func(cmd *cobra.Command, args []string) error { return nil }})
+	srv.cfg.CobraRoot = root
+
+	_, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"echo", map[string]any{"bad": "value"}},
+	})
+	if err == nil {
+		t.Fatal("expected nested args to be rejected")
+	}
+	if !strings.Contains(err.Error(), "only scalars") {
+		t.Errorf("expected scalar-only error, got %v", err)
+	}
+}
+
+func TestRunCobraTruncatesLargeOutput(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	oldLimit := fibeRunCaptureMaxBytes
+	fibeRunCaptureMaxBytes = 32
+	t.Cleanup(func() { fibeRunCaptureMaxBytes = oldLimit })
+
+	root := &cobra.Command{Use: "fibe"}
+	noisy := &cobra.Command{
+		Use: "noisy",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Print(strings.Repeat("x", 64))
+			return nil
+		},
+	}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(noisy)
+	srv.cfg.CobraRoot = root
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"noisy"},
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["stdout_truncated"] != true {
+		t.Fatalf("expected stdout_truncated=true, got %#v", m["stdout_truncated"])
+	}
+	if m["capture_limit_bytes"] != 32 {
+		t.Errorf("capture_limit_bytes=%v want 32", m["capture_limit_bytes"])
+	}
+	if m["stdout_total_bytes"] != 64 {
+		t.Errorf("stdout_total_bytes=%v want 64", m["stdout_total_bytes"])
+	}
+	if len(m["stdout"].(string)) != 32 {
+		t.Errorf("stdout length=%d want 32", len(m["stdout"].(string)))
+	}
+}
+
 func findModuleRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

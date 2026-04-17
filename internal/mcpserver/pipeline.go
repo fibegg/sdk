@@ -23,7 +23,7 @@ import (
 // fibe_pipeline_result.
 func (s *Server) registerPipelineTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline", description: "Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings", tier: tierCore,
+		name: "fibe_pipeline", description: "Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runPipeline(ctx, args)
@@ -78,7 +78,7 @@ Args may contain JSONPath references starting with "$.", resolved against the ma
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline_result", description: "Look up a cached result from a previous pipeline execution", tier: tierCore,
+		name: "fibe_pipeline_result", description: "Look up a cached result from a previous pipeline execution", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			pid := argString(args, "pipeline_id")
@@ -184,25 +184,25 @@ func stepSchema() map[string]any {
 // pipelineRequest is the DSL envelope.
 type pipelineRequest struct {
 	Steps          []pipelineStep `json:"steps"`
-	Return         any            `json:"return,omitempty"`          // string (JSONPath) or object literal
+	Return         any            `json:"return,omitempty"` // string (JSONPath) or object literal
 	DryRun         bool           `json:"dry_run,omitempty"`
-	Cache          *bool          `json:"cache,omitempty"`           // defaults to true
+	Cache          *bool          `json:"cache,omitempty"` // defaults to true
 	IdempotencyKey string         `json:"idempotency_key,omitempty"`
 }
 
 // pipelineStep is a single step. Exactly one of Tool / Parallel / ForEach
 // must be set.
 type pipelineStep struct {
-	ID       string          `json:"id,omitempty"`
-	Tool     string          `json:"tool,omitempty"`
-	Args     map[string]any  `json:"args,omitempty"`
-	Parallel []pipelineStep  `json:"parallel,omitempty"`
+	ID       string         `json:"id,omitempty"`
+	Tool     string         `json:"tool,omitempty"`
+	Args     map[string]any `json:"args,omitempty"`
+	Parallel []pipelineStep `json:"parallel,omitempty"`
 
 	// for_each semantics
-	ForEach       string         `json:"for_each,omitempty"`
-	As            string         `json:"as,omitempty"`
-	Steps         []pipelineStep `json:"steps,omitempty"`
-	Collect       string         `json:"collect,omitempty"` // optional JSONPath on each iteration's final output
+	ForEach string         `json:"for_each,omitempty"`
+	As      string         `json:"as,omitempty"`
+	Steps   []pipelineStep `json:"steps,omitempty"`
+	Collect string         `json:"collect,omitempty"` // optional JSONPath on each iteration's final output
 
 	// Error handling
 	OnError string `json:"on_error,omitempty"` // abort (default) | continue

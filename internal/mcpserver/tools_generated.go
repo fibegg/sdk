@@ -21,7 +21,7 @@ import (
 // see applyToolFilter in register.go.
 func (s *Server) registerGeneratedTools() {
 	// ---------- Playgrounds ----------
-	registerList(s, "fibe_playgrounds_list", "List all active interactive playgrounds", toolOpts{Tier: tierFull},
+	registerList(s, "fibe_playgrounds_list", "List all active interactive playgrounds", toolOpts{Tier: tierCore},
 		func(ctx context.Context, c *fibe.Client, p *fibe.PlaygroundListParams) (*fibe.ListResult[fibe.Playground], error) {
 			f := false
 			if p.JobMode == nil {
@@ -53,7 +53,7 @@ func (s *Server) registerGeneratedTools() {
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Playground, error) {
 			return c.Playgrounds.HardRestart(ctx, id)
 		})
-	registerIDAction(s, "fibe_playgrounds_status", "Check the current operational status and health of a playground", toolOpts{Tier: tierFull},
+	registerIDAction(s, "fibe_playgrounds_status", "Check the current operational status and health of a playground", toolOpts{Tier: tierCore},
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.PlaygroundStatus, error) {
 			return c.Playgrounds.Status(ctx, id)
 		})
@@ -250,33 +250,33 @@ func (s *Server) registerGeneratedTools() {
 		})
 
 	// ---------- Teams ----------
-// 	registerList(s, "fibe_teams_list", "List teams", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, p *fibe.TeamListParams) (*fibe.ListResult[fibe.Team], error) {
-// 			return c.Teams.List(ctx, p)
-// 		})
-// 	registerGet(s, "fibe_teams_get", "Show team details", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Team, error) {
-// 			return c.Teams.Get(ctx, id)
-// 		})
-// 	registerCreate(s, "fibe_teams_create", "Create a team", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, p *fibe.TeamCreateParams) (*fibe.Team, error) {
-// 			return c.Teams.Create(ctx, p)
-// 		})
-// 	registerUpdate(s, "fibe_teams_update", "Update a team", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, id int64, p *fibe.TeamUpdateParams) (*fibe.Team, error) {
-// 			return c.Teams.Update(ctx, id, p)
-// 		})
-// 	registerDelete(s, "fibe_teams_delete", "Delete a team", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, id int64) error {
-// 			return c.Teams.Delete(ctx, id)
-// 		})
-// 	registerIDActionNoReturn(s, "fibe_teams_leave", "Leave a team (accepts 'id' or 'team_id' for consistency with fibe_teams_members_* tools)",
-// 		toolOpts{Tier: tierFull, Destructive: true, Aliases: map[string][]string{
-// 			"id": {"team_id"},
-// 		}},
-// 		func(ctx context.Context, c *fibe.Client, id int64) error {
-// 			return c.Teams.Leave(ctx, id)
-// 		})
+	// 	registerList(s, "fibe_teams_list", "List teams", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, p *fibe.TeamListParams) (*fibe.ListResult[fibe.Team], error) {
+	// 			return c.Teams.List(ctx, p)
+	// 		})
+	// 	registerGet(s, "fibe_teams_get", "Show team details", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Team, error) {
+	// 			return c.Teams.Get(ctx, id)
+	// 		})
+	// 	registerCreate(s, "fibe_teams_create", "Create a team", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, p *fibe.TeamCreateParams) (*fibe.Team, error) {
+	// 			return c.Teams.Create(ctx, p)
+	// 		})
+	// 	registerUpdate(s, "fibe_teams_update", "Update a team", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, id int64, p *fibe.TeamUpdateParams) (*fibe.Team, error) {
+	// 			return c.Teams.Update(ctx, id, p)
+	// 		})
+	// 	registerDelete(s, "fibe_teams_delete", "Delete a team", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, id int64) error {
+	// 			return c.Teams.Delete(ctx, id)
+	// 		})
+	// 	registerIDActionNoReturn(s, "fibe_teams_leave", "Leave a team (accepts 'id' or 'team_id' for consistency with fibe_teams_members_* tools)",
+	// 		toolOpts{Tier: tierFull, Destructive: true, Aliases: map[string][]string{
+	// 			"id": {"team_id"},
+	// 		}},
+	// 		func(ctx context.Context, c *fibe.Client, id int64) error {
+	// 			return c.Teams.Leave(ctx, id)
+	// 		})
 
 	// ---------- Webhook Endpoints ----------
 	registerList(s, "fibe_webhooks_list", "List all registered webhook endpoints", toolOpts{Tier: tierFull},
@@ -338,40 +338,40 @@ func (s *Server) registerGeneratedTools() {
 		})
 
 	// ---------- Mutations (nested under props) ----------
-// 	registerListNested(s, "fibe_mutations_list", "List mutations for a prop", "prop_id", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.MutationListParams) (*fibe.ListResult[fibe.Mutation], error) {
-// 			return c.Mutations.List(ctx, propID, p)
-// 		})
-// 	registerCreateNested(s, "fibe_mutations_create",
-// 		"Create a mutation for a prop. Required: branch, found_commit_sha (CLI flag --sha is accepted as an alias).",
-// 		"prop_id",
-// 		toolOpts{Tier: tierFull, Aliases: map[string][]string{
-// 			"found_commit_sha": {"sha", "commit_sha", "commit"},
-// 		}},
-// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.MutationCreateParams) (*fibe.Mutation, error) {
-// 			return c.Mutations.Create(ctx, propID, p)
-// 		})
-// 	registerUpdateNested(s, "fibe_mutations_update", "Update a mutation", "prop_id",
-// 		toolOpts{Tier: tierFull, Aliases: map[string][]string{
-// 			"found_commit_sha": {"sha", "commit_sha", "commit"},
-// 		}},
-// 		func(ctx context.Context, c *fibe.Client, propID, id int64, p *fibe.MutationUpdateParams) (*fibe.Mutation, error) {
-// 			return c.Mutations.Update(ctx, propID, id, p)
-// 		})
+	// 	registerListNested(s, "fibe_mutations_list", "List mutations for a prop", "prop_id", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.MutationListParams) (*fibe.ListResult[fibe.Mutation], error) {
+	// 			return c.Mutations.List(ctx, propID, p)
+	// 		})
+	// 	registerCreateNested(s, "fibe_mutations_create",
+	// 		"Create a mutation for a prop. Required: branch, found_commit_sha (CLI flag --sha is accepted as an alias).",
+	// 		"prop_id",
+	// 		toolOpts{Tier: tierFull, Aliases: map[string][]string{
+	// 			"found_commit_sha": {"sha", "commit_sha", "commit"},
+	// 		}},
+	// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.MutationCreateParams) (*fibe.Mutation, error) {
+	// 			return c.Mutations.Create(ctx, propID, p)
+	// 		})
+	// 	registerUpdateNested(s, "fibe_mutations_update", "Update a mutation", "prop_id",
+	// 		toolOpts{Tier: tierFull, Aliases: map[string][]string{
+	// 			"found_commit_sha": {"sha", "commit_sha", "commit"},
+	// 		}},
+	// 		func(ctx context.Context, c *fibe.Client, propID, id int64, p *fibe.MutationUpdateParams) (*fibe.Mutation, error) {
+	// 			return c.Mutations.Update(ctx, propID, id, p)
+	// 		})
 
 	// ---------- Hunks (nested under props) ----------
-// 	registerListNested(s, "fibe_hunks_list", "List hunks for a prop", "prop_id", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.HunkListParams) (*fibe.ListResult[fibe.Hunk], error) {
-// 			return c.Hunks.List(ctx, propID, p)
-// 		})
-// 	registerGetNested(s, "fibe_hunks_get", "Show a hunk", "prop_id", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, propID, id int64) (*fibe.Hunk, error) {
-// 			return c.Hunks.Get(ctx, propID, id)
-// 		})
-// 	registerUpdateNested(s, "fibe_hunks_update", "Update a hunk", "prop_id", toolOpts{Tier: tierFull},
-// 		func(ctx context.Context, c *fibe.Client, propID, id int64, p *fibe.HunkUpdateParams) (*fibe.Hunk, error) {
-// 			return c.Hunks.Update(ctx, propID, id, p)
-// 		})
+	// 	registerListNested(s, "fibe_hunks_list", "List hunks for a prop", "prop_id", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.HunkListParams) (*fibe.ListResult[fibe.Hunk], error) {
+	// 			return c.Hunks.List(ctx, propID, p)
+	// 		})
+	// 	registerGetNested(s, "fibe_hunks_get", "Show a hunk", "prop_id", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, propID, id int64) (*fibe.Hunk, error) {
+	// 			return c.Hunks.Get(ctx, propID, id)
+	// 		})
+	// 	registerUpdateNested(s, "fibe_hunks_update", "Update a hunk", "prop_id", toolOpts{Tier: tierFull},
+	// 		func(ctx context.Context, c *fibe.Client, propID, id int64, p *fibe.HunkUpdateParams) (*fibe.Hunk, error) {
+	// 			return c.Hunks.Update(ctx, propID, id, p)
+	// 		})
 
 	// ---------- Feedbacks (nested under agents) ----------
 	registerListNested(s, "fibe_feedbacks_list", "List all feedback entries associated with an agent", "agent_id", toolOpts{Tier: tierCore},

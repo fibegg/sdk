@@ -13,19 +13,19 @@ import (
 // surface reachable from core mode without loading all 159 descriptions
 // into the agent's context:
 //
-//   fibe_tools_catalog  — list every registered tool (name, description,
-//                         annotations, optional input schema), filterable
-//                         by tier/pattern
-//   fibe_call           — invoke any registered tool by name through the
-//                         same dispatcher path direct MCP calls use, so
-//                         destructive gating, auth, and idempotency still
-//                         apply
+//	fibe_tools_catalog  — list every registered tool (name, description,
+//	                      annotations, optional input schema), filterable
+//	                      by tier/pattern
+//	fibe_call           — invoke any registered tool by name through the
+//	                      same dispatcher path direct MCP calls use, so
+//	                      destructive gating, auth, and idempotency still
+//	                      apply
 //
 // Both live in the meta tier (always advertised) so agents can rely on
 // them regardless of FIBE_MCP_TOOLS=core|full.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_tools_catalog", description: "List all tools registered and available on the Fibe MCP server", tier: tierCore,
+		name: "fibe_tools_catalog", description: "List all tools registered and available on the Fibe MCP server", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
@@ -35,14 +35,14 @@ func (s *Server) registerDiscoveryTools() {
 			advertisedSet := advertisedToolNames(s)
 
 			type entry struct {
-				Name         string         `json:"name"`
-				Description  string         `json:"description"`
-				Tier         string         `json:"tier"`
-				Advertised   bool           `json:"advertised"`
-				ReadOnly     bool           `json:"read_only,omitempty"`
-				Destructive  bool           `json:"destructive,omitempty"`
-				Idempotent   bool           `json:"idempotent,omitempty"`
-				InputSchema  map[string]any `json:"input_schema,omitempty"`
+				Name        string         `json:"name"`
+				Description string         `json:"description"`
+				Tier        string         `json:"tier"`
+				Advertised  bool           `json:"advertised"`
+				ReadOnly    bool           `json:"read_only,omitempty"`
+				Destructive bool           `json:"destructive,omitempty"`
+				Idempotent  bool           `json:"idempotent,omitempty"`
+				InputSchema map[string]any `json:"input_schema,omitempty"`
 			}
 
 			var out []entry
@@ -76,9 +76,9 @@ func (s *Server) registerDiscoveryTools() {
 			}
 
 			return map[string]any{
-				"count":      len(out),
-				"tool_set":   s.cfg.ToolSet,
-				"tools":      out,
+				"count":    len(out),
+				"tool_set": s.cfg.ToolSet,
+				"tools":    out,
 			}, nil
 		},
 	}, mcp.NewTool("fibe_tools_catalog",
@@ -96,7 +96,7 @@ FILTERS:
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_call", description: "Dynamically invoke any registered Fibe tool by name", tier: tierCore,
+		name: "fibe_call", description: "Dynamically invoke any registered Fibe tool by name", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")

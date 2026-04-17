@@ -2,9 +2,14 @@ package mcpserver
 
 import (
 	"context"
+	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/fibegg/sdk/fibe"
@@ -13,6 +18,11 @@ import (
 // Ensure the fibe import stays compile-visible even when no signature
 // references it directly — handler is `func(..., *fibe.Client, ...)`.
 var _ *fibe.Client
+
+var (
+	jsonUnmarshalerType = reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+)
 
 // dispatcher is the single choke point through which every tool invocation
 // passes — including steps of a fibe_pipeline. It enforces:
@@ -185,15 +195,397 @@ func argInt64(args map[string]any, key string) (int64, bool) {
 }
 
 // bindArgs re-marshals the map then unmarshals into a typed destination.
-// Slow but uniform and tolerant of JSON number conversions.
+// Slow but uniform. Before unmarshaling, it normalizes incoming arg keys and
+// scalar values against the destination type so MCP hosts can pass the common
+// snake_case / stringified-number shapes without losing the benefits of typed
+// tool structs.
 func bindArgs(args map[string]any, dest any) error {
 	if dest == nil {
 		return errors.New("nil destination")
 	}
-	data, err := json.Marshal(args)
+	normalized := any(args)
+	if t := reflect.TypeOf(dest); t != nil {
+		normalized = normalizeValueForType(args, t)
+	}
+	data, err := json.Marshal(normalized)
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal(data, dest)
 }
 
+func normalizeValueForType(v any, t reflect.Type) any {
+	if v == nil || t == nil {
+		return v
+	}
+	if implementsCustomUnmarshal(t) {
+		return v
+	}
+	if t.Kind() == reflect.Pointer {
+		return normalizeValueForType(v, t.Elem())
+	}
+	if implementsCustomUnmarshal(t) {
+		return v
+	}
+
+	switch t.Kind() {
+	case reflect.Struct:
+		return normalizeStructValue(v, t)
+	case reflect.Slice, reflect.Array:
+		items, ok := v.([]any)
+		if !ok {
+			return v
+		}
+		out := make([]any, len(items))
+		for i, item := range items {
+			out[i] = normalizeValueForType(item, t.Elem())
+		}
+		return out
+	case reflect.Map:
+		if t.Key().Kind() != reflect.String {
+			return v
+		}
+		m, ok := v.(map[string]any)
+		if !ok {
+			return v
+		}
+		out := make(map[string]any, len(m))
+		for key, value := range m {
+			out[key] = normalizeValueForType(value, t.Elem())
+		}
+		return out
+	case reflect.String:
+		if s, ok := coerceString(v); ok {
+			return s
+		}
+	case reflect.Bool:
+		if b, ok := coerceBool(v); ok {
+			return b
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if n, ok := coerceInt64(v); ok {
+			return n
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if n, ok := coerceUint64(v); ok {
+			return n
+		}
+	case reflect.Float32, reflect.Float64:
+		if f, ok := coerceFloat64(v); ok {
+			return f
+		}
+	}
+	return v
+}
+
+func normalizeStructValue(v any, t reflect.Type) any {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return v
+	}
+	fields := structFieldLookup(t)
+	out := make(map[string]any, len(m))
+	for key, value := range m {
+		field, ok := fields[normalizeLookupKey(key)]
+		if !ok {
+			out[key] = value
+			continue
+		}
+		out[field.outputKey] = normalizeValueForType(value, field.typ)
+	}
+	return out
+}
+
+type boundField struct {
+	outputKey string
+	typ       reflect.Type
+}
+
+func structFieldLookup(t reflect.Type) map[string]boundField {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	out := map[string]boundField{}
+	if t.Kind() != reflect.Struct {
+		return out
+	}
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if !field.IsExported() {
+			continue
+		}
+		if field.Anonymous {
+			for key, nested := range structFieldLookup(field.Type) {
+				if _, exists := out[key]; !exists {
+					out[key] = nested
+				}
+			}
+			continue
+		}
+		if tagName(field.Tag.Get("json")) == "-" {
+			continue
+		}
+		entry := boundField{
+			outputKey: fieldOutputKey(field),
+			typ:       field.Type,
+		}
+		for _, key := range fieldLookupKeys(field) {
+			if key == "" {
+				continue
+			}
+			out[normalizeLookupKey(key)] = entry
+		}
+	}
+	return out
+}
+
+func fieldLookupKeys(field reflect.StructField) []string {
+	keys := []string{
+		field.Name,
+		strings.ToLower(field.Name),
+		toSnakeCase(field.Name),
+	}
+	if jsonName := tagName(field.Tag.Get("json")); jsonName != "" {
+		keys = append(keys, jsonName)
+	}
+	if urlName := tagName(field.Tag.Get("url")); urlName != "" {
+		keys = append(keys, urlName)
+	}
+	return keys
+}
+
+func fieldOutputKey(field reflect.StructField) string {
+	if jsonName := tagName(field.Tag.Get("json")); jsonName != "" {
+		return jsonName
+	}
+	return field.Name
+}
+
+func tagName(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	name, _, _ := strings.Cut(raw, ",")
+	return name
+}
+
+func normalizeLookupKey(key string) string {
+	return strings.ToLower(strings.TrimSpace(key))
+}
+
+func toSnakeCase(s string) string {
+	if s == "" {
+		return ""
+	}
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			b.WriteByte('_')
+		}
+		b.WriteRune(r)
+	}
+	return strings.ToLower(b.String())
+}
+
+func implementsCustomUnmarshal(t reflect.Type) bool {
+	if t == nil {
+		return false
+	}
+	return t.Implements(jsonUnmarshalerType) ||
+		t.Implements(textUnmarshalerType) ||
+		reflect.PointerTo(t).Implements(jsonUnmarshalerType) ||
+		reflect.PointerTo(t).Implements(textUnmarshalerType)
+}
+
+func coerceString(v any) (string, bool) {
+	switch x := v.(type) {
+	case string:
+		return x, true
+	case bool:
+		if x {
+			return "true", true
+		}
+		return "false", true
+	case json.Number:
+		return x.String(), true
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64), true
+	case float32:
+		return strconv.FormatFloat(float64(x), 'f', -1, 32), true
+	case int:
+		return strconv.Itoa(x), true
+	case int8:
+		return strconv.FormatInt(int64(x), 10), true
+	case int16:
+		return strconv.FormatInt(int64(x), 10), true
+	case int32:
+		return strconv.FormatInt(int64(x), 10), true
+	case int64:
+		return strconv.FormatInt(x, 10), true
+	case uint:
+		return strconv.FormatUint(uint64(x), 10), true
+	case uint8:
+		return strconv.FormatUint(uint64(x), 10), true
+	case uint16:
+		return strconv.FormatUint(uint64(x), 10), true
+	case uint32:
+		return strconv.FormatUint(uint64(x), 10), true
+	case uint64:
+		return strconv.FormatUint(x, 10), true
+	default:
+		return "", false
+	}
+}
+
+func coerceBool(v any) (bool, bool) {
+	switch x := v.(type) {
+	case bool:
+		return x, true
+	case string:
+		switch strings.ToLower(strings.TrimSpace(x)) {
+		case "true", "1", "yes":
+			return true, true
+		case "false", "0", "no":
+			return false, true
+		}
+	case float64:
+		if x == 1 {
+			return true, true
+		}
+		if x == 0 {
+			return false, true
+		}
+	case int:
+		if x == 1 {
+			return true, true
+		}
+		if x == 0 {
+			return false, true
+		}
+	case int64:
+		if x == 1 {
+			return true, true
+		}
+		if x == 0 {
+			return false, true
+		}
+	}
+	return false, false
+}
+
+func coerceInt64(v any) (int64, bool) {
+	switch x := v.(type) {
+	case int:
+		return int64(x), true
+	case int8:
+		return int64(x), true
+	case int16:
+		return int64(x), true
+	case int32:
+		return int64(x), true
+	case int64:
+		return x, true
+	case uint:
+		return int64(x), true
+	case uint8:
+		return int64(x), true
+	case uint16:
+		return int64(x), true
+	case uint32:
+		return int64(x), true
+	case uint64:
+		if x <= math.MaxInt64 {
+			return int64(x), true
+		}
+	case float64:
+		if math.Trunc(x) == x {
+			return int64(x), true
+		}
+	case json.Number:
+		if n, err := x.Int64(); err == nil {
+			return n, true
+		}
+	case string:
+		n, err := strconv.ParseInt(strings.TrimSpace(x), 10, 64)
+		if err == nil {
+			return n, true
+		}
+	}
+	return 0, false
+}
+
+func coerceUint64(v any) (uint64, bool) {
+	switch x := v.(type) {
+	case uint:
+		return uint64(x), true
+	case uint8:
+		return uint64(x), true
+	case uint16:
+		return uint64(x), true
+	case uint32:
+		return uint64(x), true
+	case uint64:
+		return x, true
+	case int:
+		if x >= 0 {
+			return uint64(x), true
+		}
+	case int64:
+		if x >= 0 {
+			return uint64(x), true
+		}
+	case float64:
+		if x >= 0 && math.Trunc(x) == x {
+			return uint64(x), true
+		}
+	case json.Number:
+		if n, err := strconv.ParseUint(x.String(), 10, 64); err == nil {
+			return n, true
+		}
+	case string:
+		n, err := strconv.ParseUint(strings.TrimSpace(x), 10, 64)
+		if err == nil {
+			return n, true
+		}
+	}
+	return 0, false
+}
+
+func coerceFloat64(v any) (float64, bool) {
+	switch x := v.(type) {
+	case float64:
+		return x, true
+	case float32:
+		return float64(x), true
+	case int:
+		return float64(x), true
+	case int8:
+		return float64(x), true
+	case int16:
+		return float64(x), true
+	case int32:
+		return float64(x), true
+	case int64:
+		return float64(x), true
+	case uint:
+		return float64(x), true
+	case uint8:
+		return float64(x), true
+	case uint16:
+		return float64(x), true
+	case uint32:
+		return float64(x), true
+	case uint64:
+		return float64(x), true
+	case json.Number:
+		if f, err := x.Float64(); err == nil {
+			return f, true
+		}
+	case string:
+		f, err := strconv.ParseFloat(strings.TrimSpace(x), 64)
+		if err == nil {
+			return f, true
+		}
+	}
+	return 0, false
+}

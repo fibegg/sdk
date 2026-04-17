@@ -59,8 +59,9 @@ type Config struct {
 	// setting FIBE_MCP_YOLO=1. Use in non-interactive environments (CI).
 	Yolo bool
 
-	// ToolSet selects which tools are registered. "core" is a curated
-	// ~20-tool subset; "full" registers every leaf command. Default: core.
+	// ToolSet selects which tools are advertised. "core" is the curated
+	// default surface for common agent workflows; "full" advertises every
+	// leaf command. Meta tools are always advertised. Default: core.
 	ToolSet string
 
 	// RequireAuth refuses tool calls that could not resolve an API key from
@@ -174,18 +175,18 @@ func (s *Server) RegisterAll() error {
 // misbehaving log line, a cobra handler using fmt.Println, a panic trace)
 // will corrupt the MCP pipe with an unrecoverable parse error like:
 //
-//   calling "tools/call": invalid message version tag ""; expected "2.0"
+//	calling "tools/call": invalid message version tag ""; expected "2.0"
 //
 // To prevent that, we:
-//   1. Capture the real os.Stdout into a private variable BEFORE mcp-go
-//      starts using it.
-//   2. Replace os.Stdout with os.Stderr so every fmt.Println / log.Println
-//      in the rest of the process writes to stderr instead of the pipe.
-//   3. Hand the captured real stdout to mcp-go's StdioServer.Listen so only
-//      properly-framed JSON-RPC messages reach the client.
-//   4. Redirect the stdlib "log" package to stderr too (its default writer
-//      is the same os.Stderr, but be explicit because log.SetOutput(nil)
-//      would target os.Stdout post-redirect).
+//  1. Capture the real os.Stdout into a private variable BEFORE mcp-go
+//     starts using it.
+//  2. Replace os.Stdout with os.Stderr so every fmt.Println / log.Println
+//     in the rest of the process writes to stderr instead of the pipe.
+//  3. Hand the captured real stdout to mcp-go's StdioServer.Listen so only
+//     properly-framed JSON-RPC messages reach the client.
+//  4. Redirect the stdlib "log" package to stderr too (its default writer
+//     is the same os.Stderr, but be explicit because log.SetOutput(nil)
+//     would target os.Stdout post-redirect).
 func (s *Server) ServeStdio(ctx context.Context) error {
 	s.baseCli = s.buildBaseClient()
 

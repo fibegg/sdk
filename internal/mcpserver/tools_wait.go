@@ -16,7 +16,7 @@ import (
 // notifications on each tick so hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_wait", description: "Block and poll until a playground reaches a specified target state", tier: tierFull,
+		name: "fibe_playgrounds_wait", description: "Block and poll until a playground reaches a specified target state", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args, waitResourcePlayground)

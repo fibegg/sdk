@@ -88,6 +88,59 @@ func TestCoreTierFilter(t *testing.T) {
 	t.Logf("registered %d tools in core mode (dispatcher-level)", len(full))
 }
 
+func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "core", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	advertised := advertisedToolNames(srv)
+
+	for _, name := range []string{
+		"fibe_playgrounds_list",
+		"fibe_playgrounds_get",
+		"fibe_playgrounds_create",
+		"fibe_playgrounds_status",
+		"fibe_playgrounds_debug",
+		"fibe_playgrounds_logs",
+		"fibe_playgrounds_wait",
+	} {
+		if !advertised[name] {
+			t.Errorf("%s should be advertised in core mode", name)
+		}
+	}
+
+	for _, name := range []string{
+		"fibe_pipeline",
+		"fibe_pipeline_result",
+		"fibe_help",
+		"fibe_run",
+		"fibe_auth_set",
+		"fibe_me",
+		"fibe_status",
+		"fibe_limits",
+		"fibe_doctor",
+		"fibe_schema",
+		"fibe_tools_catalog",
+		"fibe_call",
+	} {
+		if !advertised[name] {
+			t.Errorf("%s should always be advertised", name)
+		}
+		tImpl, ok := srv.dispatcher.lookup(name)
+		if !ok {
+			t.Fatalf("meta tool %s not registered", name)
+		}
+		if tImpl.tier != tierMeta {
+			t.Errorf("%s tier=%v want tierMeta", name, tImpl.tier)
+		}
+	}
+
+	if advertised["fibe_playgrounds_logs_follow"] {
+		t.Errorf("fibe_playgrounds_logs_follow should remain full-tier in core mode")
+	}
+}
+
 // TestConfirmGate verifies destructive tools require confirm:true unless
 // --yolo is set.
 func TestConfirmGate(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 func (s *Server) registerMetaTools() {
 	// ---------- fibe_me ----------
 	s.addTool(&toolImpl{
-		name: "fibe_me", description: "Display the currently authenticated user's profile information", tier: tierCore,
+		name: "fibe_me", description: "Display the currently authenticated user's profile information", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.APIKeys.Me(ctx)
@@ -29,7 +29,7 @@ func (s *Server) registerMetaTools() {
 
 	// ---------- fibe_status ----------
 	s.addTool(&toolImpl{
-		name: "fibe_status", description: "Display a comprehensive dashboard of resource counts across your account", tier: tierCore,
+		name: "fibe_status", description: "Display a comprehensive dashboard of resource counts across your account", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.Status.Get(ctx)
@@ -40,7 +40,7 @@ func (s *Server) registerMetaTools() {
 
 	// ---------- fibe_limits ----------
 	s.addTool(&toolImpl{
-		name: "fibe_limits", description: "Display current resource quotas, platform caps, and API rate-limit usage", tier: tierCore,
+		name: "fibe_limits", description: "Display current resource quotas, platform caps, and API rate-limit usage", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			status, err := c.Status.Get(ctx)
@@ -73,7 +73,7 @@ func (s *Server) registerMetaTools() {
 
 	// ---------- fibe_doctor ----------
 	s.addTool(&toolImpl{
-		name: "fibe_doctor", description: "Run self-diagnostic checks to verify API validity and system connectivity", tier: tierCore,
+		name: "fibe_doctor", description: "Run self-diagnostic checks to verify API validity and system connectivity", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			me, err := c.APIKeys.Me(ctx)
@@ -110,7 +110,7 @@ func (s *Server) registerMetaTools() {
 	// mode where subsequent calls keep returning 401 because a typo'd key
 	// was silently installed. Pass validate:false to skip the ping.
 	s.addTool(&toolImpl{
-		name: "fibe_auth_set", description: "Configure session-scoped authentication credentials for multi-tenant setups", tier: tierCore,
+		name: "fibe_auth_set", description: "Configure session-scoped authentication credentials for multi-tenant setups", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			apiKey := argString(args, "api_key")
@@ -170,7 +170,7 @@ is most useful in multi-tenant HTTP deployments.`),
 	// ---------- fibe_help ----------
 	// Returns cobra Long help for any fibe subcommand.
 	s.addTool(&toolImpl{
-		name: "fibe_help", description: "Display detailed CLI help documentation for a specific Fibe command path", tier: tierCore,
+		name: "fibe_help", description: "Display detailed CLI help documentation for a specific Fibe command path", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			path := argString(args, "path")
@@ -199,7 +199,7 @@ is most useful in multi-tenant HTTP deployments.`),
 	// ---------- fibe_run ----------
 	// Escape hatch: invoke any fibe CLI command programmatically.
 	s.addTool(&toolImpl{
-		name: "fibe_run", description: "Programmatically invoke any arbitrary Fibe CLI command", tier: tierCore,
+		name: "fibe_run", description: "Programmatically invoke any arbitrary Fibe CLI command", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runCobra(ctx, args)
@@ -207,8 +207,7 @@ is most useful in multi-tenant HTTP deployments.`),
 	}, mcp.NewTool("fibe_run",
 		mcp.WithDescription("Programmatically invoke any arbitrary Fibe CLI command"),
 		mcp.WithArray("args", mcp.Required(),
-			mcp.Description("Command args as if typed after `fibe`, e.g. [\"playgrounds\", \"list\", \"--status\", \"running\"]"),
-			mcp.WithStringItems()),
+			mcp.Description("Command args as if typed after `fibe`. Scalar items (string, number, boolean) are accepted and stringified into CLI tokens in-order.")),
 	))
 
 	// ---------- fibe_schema ----------
@@ -217,7 +216,7 @@ is most useful in multi-tenant HTTP deployments.`),
 	// are the machine-facing source of truth; fibe_schema is for agents
 	// that want a consolidated overview.
 	s.addTool(&toolImpl{
-		name: "fibe_schema", description: "Return JSON Schema definitions for Fibe resource creation and updates", tier: tierCore,
+		name: "fibe_schema", description: "Return JSON Schema definitions for Fibe resource creation and updates", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			resource := argString(args, "resource")
@@ -274,15 +273,15 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 	}
 	rawSlice, ok := raw.([]any)
 	if !ok {
-		return nil, fmt.Errorf("field 'args' must be a JSON array of strings")
+		return nil, fmt.Errorf("field 'args' must be a JSON array")
 	}
 	strs := make([]string, 0, len(rawSlice))
 	for _, v := range rawSlice {
-		if s, ok := v.(string); ok {
-			strs = append(strs, s)
-		} else {
-			return nil, fmt.Errorf("field 'args' must contain strings only")
+		token, err := stringifyCLIArg(v)
+		if err != nil {
+			return nil, err
 		}
+		strs = append(strs, token)
 	}
 
 	// Force JSON output for predictable downstream parsing.
@@ -307,14 +306,20 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 
 	// Drain the pipe into a buffer. If this goroutine leaks we don't care
 	// because each fibe_run call creates a fresh pipe.
-	var stdoutBuf bytes.Buffer
+	limit := fibeRunCaptureMaxBytes
+	if limit <= 0 {
+		limit = 1 << 20
+	}
+	var stdoutBuf truncatingBuffer
+	stdoutBuf.limit = limit
 	done := make(chan struct{})
 	go func() {
 		_, _ = io.Copy(&stdoutBuf, r)
 		close(done)
 	}()
 
-	var stderrBuf bytes.Buffer
+	var stderrBuf truncatingBuffer
+	stderrBuf.limit = limit
 	root := s.cfg.CobraRoot
 	root.SetArgs(strs)
 	root.SetOut(&stdoutBuf) // for commands that DO honor cobra's writer
@@ -334,9 +339,66 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		"stdout": stdoutBuf.String(),
 		"stderr": stderrBuf.String(),
 	}
+	if stdoutBuf.truncated {
+		result["stdout_truncated"] = true
+		result["stdout_total_bytes"] = stdoutBuf.total
+	}
+	if stderrBuf.truncated {
+		result["stderr_truncated"] = true
+		result["stderr_total_bytes"] = stderrBuf.total
+	}
+	if stdoutBuf.truncated || stderrBuf.truncated {
+		result["capture_limit_bytes"] = limit
+	}
 	if execErr != nil {
 		result["error"] = execErr.Error()
 	}
 	return result, nil
 }
 
+var fibeRunCaptureMaxBytes = 1 << 20
+
+func stringifyCLIArg(v any) (string, error) {
+	switch x := v.(type) {
+	case string:
+		return x, nil
+	case bool:
+		if x {
+			return "true", nil
+		}
+		return "false", nil
+	case float64, float32, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return fmt.Sprint(x), nil
+	default:
+		return "", fmt.Errorf("field 'args' may contain only scalars (string, number, boolean)")
+	}
+}
+
+type truncatingBuffer struct {
+	limit     int
+	total     int
+	truncated bool
+	buf       bytes.Buffer
+}
+
+func (b *truncatingBuffer) Write(p []byte) (int, error) {
+	b.total += len(p)
+	if b.limit <= 0 {
+		return b.buf.Write(p)
+	}
+	remaining := b.limit - b.buf.Len()
+	if remaining <= 0 {
+		b.truncated = true
+		return len(p), nil
+	}
+	if len(p) > remaining {
+		b.truncated = true
+		_, _ = b.buf.Write(p[:remaining])
+		return len(p), nil
+	}
+	return b.buf.Write(p)
+}
+
+func (b *truncatingBuffer) String() string {
+	return b.buf.String()
+}

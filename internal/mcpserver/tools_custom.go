@@ -15,7 +15,7 @@ func (s *Server) registerCustomTools() {
 	// ---------- fibe_playgrounds_logs ----------
 	// Needs: id (int64), service (string), tail (int, optional).
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_logs", description: "Retrieve the consolidated service logs from a playground", tier: tierFull,
+		name: "fibe_playgrounds_logs", description: "Retrieve the consolidated service logs from a playground", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")

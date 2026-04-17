@@ -58,6 +58,44 @@ func TestAliasFieldEmptyStringIsNotSet(t *testing.T) {
 	}
 }
 
+func TestBindArgsUnderstandsURLTagsAndScalarCoercion(t *testing.T) {
+	var p fibe.PlaygroundListParams
+	err := bindArgs(map[string]any{
+		"page":     "2",
+		"per_page": "25",
+		"job_mode": "true",
+	}, &p)
+	if err != nil {
+		t.Fatalf("bindArgs: %v", err)
+	}
+	if p.Page != 2 {
+		t.Errorf("Page=%d want 2", p.Page)
+	}
+	if p.PerPage != 25 {
+		t.Errorf("PerPage=%d want 25", p.PerPage)
+	}
+	if p.JobMode == nil || !*p.JobMode {
+		t.Errorf("JobMode=%v want true", p.JobMode)
+	}
+}
+
+func TestBindArgsStringifiesStringSliceElements(t *testing.T) {
+	type payload struct {
+		Args []string `json:"args"`
+	}
+	var p payload
+	err := bindArgs(map[string]any{
+		"args": []any{75, true, "logs"},
+	}, &p)
+	if err != nil {
+		t.Fatalf("bindArgs: %v", err)
+	}
+	got := strings.Join(p.Args, ",")
+	if got != "75,true,logs" {
+		t.Errorf("Args=%q want %q", got, "75,true,logs")
+	}
+}
+
 // ---------- Tool-level alias wiring ----------
 
 func TestAgentsChatAcceptsMessageAlias(t *testing.T) {

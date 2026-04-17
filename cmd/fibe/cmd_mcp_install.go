@@ -1,27 +1,50 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
+
+const (
+	mcpServerName      = "fibe"
+	mcpClientFlagHelp  = "claude-code|claude-desktop|cursor|vscode|antigravity|codex"
+	mcpValidClientList = "claude-code, claude-desktop, cursor, vscode, antigravity, codex"
+)
+
+type mcpConfigFormat string
+
+const (
+	mcpConfigJSON mcpConfigFormat = "json"
+	mcpConfigTOML mcpConfigFormat = "toml"
+)
+
+type mcpClientTarget struct {
+	Path           string
+	WrapperKey     string
+	WrapperDefault map[string]any
+	Format         mcpConfigFormat
+}
 
 // installOptions bundles the flags that shape the emitted MCP config entry.
 // Each field is optional; empty means "use the default".
 type installOptions struct {
-	APIKey    string   // literal value to inline for FIBE_API_KEY
-	Domain    string   // literal value to inline for FIBE_DOMAIN
-	Env       []string // arbitrary KEY=VALUE pairs to inline
-	ToolSet   string   // "core" | "full" (passed as FIBE_MCP_TOOLS)
-	Yolo      bool     // sets FIBE_MCP_YOLO=1
-	AuditLog  string   // sets FIBE_MCP_AUDIT_LOG
+	APIKey   string   // literal value to inline for FIBE_API_KEY
+	Domain   string   // literal value to inline for FIBE_DOMAIN
+	Env      []string // arbitrary KEY=VALUE pairs to inline
+	ToolSet  string   // "core" | "full" (passed as FIBE_MCP_TOOLS)
+	Yolo     bool     // sets FIBE_MCP_YOLO=1
+	AuditLog string   // sets FIBE_MCP_AUDIT_LOG
 }
 
 // runMCPInstall writes the fibe MCP server entry into the target client's
 // configuration file. Works with claude-code, claude-desktop, cursor, vscode,
-// antigravity.
+// antigravity, and codex.
 //
 // Design notes:
 //   - Never clobber unrelated entries: we read the existing config, merge
@@ -29,7 +52,8 @@ type installOptions struct {
 //   - Dry-run mode prints the resolved path and the proposed delta so users
 //     can review before overwriting.
 //   - Each client has a slightly different schema (claude uses "mcpServers",
-//     vscode uses "servers") so we keep a small per-client adapter.
+//     vscode uses "servers", Codex uses TOML "mcp_servers"), so we keep a
+//     small per-client adapter.
 //   - Some clients (e.g. Antigravity) don't expand ${VAR} placeholders in
 //     env values. When --api-key is omitted for those, we auto-resolve
 //     FIBE_API_KEY from the parent shell so the entry works out of the box.
@@ -39,61 +63,29 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 		return fmt.Errorf("resolve fibe binary path: %w", err)
 	}
 
-	env, warnings := resolveInstallEnv(client, opts)
-	entry := map[string]any{
-		"command": bin,
-		"args":    []string{"mcp", "serve"},
-		"env":     env,
-	}
-
-	var target string
-	var wrapperKey string
-	var wrapperDefault map[string]any
-	switch client {
-	case "claude-code":
-		target, err = claudeCodeConfigPath(project)
-		wrapperKey = "mcpServers"
-		wrapperDefault = map[string]any{}
-	case "claude-desktop":
-		target, err = claudeDesktopConfigPath()
-		wrapperKey = "mcpServers"
-		wrapperDefault = map[string]any{}
-	case "cursor":
-		target, err = cursorConfigPath(project)
-		wrapperKey = "mcpServers"
-		wrapperDefault = map[string]any{}
-	case "vscode":
-		target, err = vscodeConfigPath(project)
-		wrapperKey = "servers"
-		wrapperDefault = map[string]any{}
-		// VS Code's schema uses "type":"stdio" explicitly.
-		entry["type"] = "stdio"
-	case "antigravity":
-		target, err = antigravityConfigPath()
-		wrapperKey = "mcpServers"
-		wrapperDefault = map[string]any{}
-	default:
-		return fmt.Errorf("unknown client %q — valid: claude-code, claude-desktop, cursor, vscode, antigravity", client)
-	}
+	target, err := resolveMCPClientTarget(client, project)
 	if err != nil {
 		return err
 	}
 
+	entry, warnings := buildMCPInstallEntry(client, bin, opts)
+
 	existing := map[string]any{}
-	if data, readErr := os.ReadFile(target); readErr == nil && len(data) > 0 {
-		if err := json.Unmarshal(data, &existing); err != nil {
-			return fmt.Errorf("parse existing config %s: %w", target, err)
+	if data, readErr := os.ReadFile(target.Path); readErr == nil && len(data) > 0 {
+		existing, err = parseMCPConfig(data, target.Format)
+		if err != nil {
+			return fmt.Errorf("parse existing config %s: %w", target.Path, err)
 		}
 	}
 
-	servers, _ := existing[wrapperKey].(map[string]any)
+	servers, _ := existing[target.WrapperKey].(map[string]any)
 	if servers == nil {
-		servers = wrapperDefault
+		servers = target.WrapperDefault
 	}
-	servers["fibe"] = entry
-	existing[wrapperKey] = servers
+	servers[mcpServerName] = entry
+	existing[target.WrapperKey] = servers
 
-	out, err := json.MarshalIndent(existing, "", "  ")
+	out, err := marshalMCPConfig(existing, target.Format)
 	if err != nil {
 		return err
 	}
@@ -103,18 +95,37 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 	}
 
 	if dryRun {
-		fmt.Printf("# target: %s\n\n%s\n", target, string(out))
+		fmt.Printf("# target: %s\n\n%s", target.Path, string(out))
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(target.Path), 0o755); err != nil {
 		return fmt.Errorf("create parent dir: %w", err)
 	}
-	if err := os.WriteFile(target, append(out, '\n'), 0o644); err != nil {
-		return fmt.Errorf("write %s: %w", target, err)
+	if err := os.WriteFile(target.Path, out, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", target.Path, err)
 	}
-	fmt.Printf("Installed fibe MCP server into %s\n", target)
+	fmt.Printf("Installed fibe MCP server into %s\n", target.Path)
 	return nil
+}
+
+func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]any, []string) {
+	env, envVars, warnings := resolveInstallEnv(client, opts)
+	entry := map[string]any{
+		"command": bin,
+		"args":    []string{"mcp", "serve"},
+	}
+	if len(env) > 0 {
+		entry["env"] = env
+	}
+	if len(envVars) > 0 {
+		entry["env_vars"] = envVars
+	}
+	if client == "vscode" {
+		// VS Code's schema uses "type":"stdio" explicitly.
+		entry["type"] = "stdio"
+	}
+	return entry, warnings
 }
 
 // resolveInstallEnv builds the "env" map for the MCP server entry based on
@@ -127,7 +138,14 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 // For clients that don't (antigravity): we auto-resolve FIBE_API_KEY from
 // the parent shell at install time. If the shell doesn't have it, we emit a
 // warning and leave an empty string so the user can edit the file.
-func resolveInstallEnv(client string, opts installOptions) (map[string]string, []string) {
+//
+// Codex is handled separately because its TOML schema supports "env_vars",
+// which forwards selected shell variables without ${VAR} placeholders.
+func resolveInstallEnv(client string, opts installOptions) (map[string]string, []string, []string) {
+	if client == "codex" {
+		return resolveCodexInstallEnv(opts)
+	}
+
 	var warnings []string
 	env := map[string]string{}
 	expandsPlaceholders := clientExpandsEnvPlaceholders(client)
@@ -175,7 +193,47 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 	}
 
 	// Arbitrary --env KEY=VALUE pairs (override earlier values).
-	for _, pair := range opts.Env {
+	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
+
+	return env, nil, warnings
+}
+
+func resolveCodexInstallEnv(opts installOptions) (map[string]string, []string, []string) {
+	var warnings []string
+	env := map[string]string{}
+
+	if opts.APIKey != "" {
+		env["FIBE_API_KEY"] = opts.APIKey
+	}
+	if opts.Domain != "" {
+		env["FIBE_DOMAIN"] = opts.Domain
+	}
+	if opts.ToolSet != "" {
+		env["FIBE_MCP_TOOLS"] = opts.ToolSet
+	}
+	if opts.Yolo {
+		env["FIBE_MCP_YOLO"] = "1"
+	}
+	if opts.AuditLog != "" {
+		env["FIBE_MCP_AUDIT_LOG"] = opts.AuditLog
+	}
+
+	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
+
+	envVars := make([]string, 0, 2)
+	if _, ok := env["FIBE_API_KEY"]; !ok {
+		envVars = append(envVars, "FIBE_API_KEY")
+	}
+	if _, ok := env["FIBE_DOMAIN"]; !ok {
+		envVars = append(envVars, "FIBE_DOMAIN")
+	}
+
+	return env, envVars, warnings
+}
+
+func applyInstallEnvPairs(env map[string]string, pairs []string) []string {
+	var warnings []string
+	for _, pair := range pairs {
 		k, v, ok := strings.Cut(pair, "=")
 		if !ok {
 			warnings = append(warnings, "ignoring malformed --env entry (expected KEY=VALUE): "+pair)
@@ -183,13 +241,13 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 		}
 		env[k] = v
 	}
-
-	return env, warnings
+	return warnings
 }
 
 // clientExpandsEnvPlaceholders returns true for MCP clients known to expand
 // ${VAR} syntax inside env values. Antigravity does not; Claude Code,
 // Claude Desktop, Cursor, and VS Code do (at least as of this writing).
+// Codex uses "env_vars" forwarding instead of placeholder expansion.
 func clientExpandsEnvPlaceholders(client string) bool {
 	switch client {
 	case "antigravity":
@@ -205,77 +263,119 @@ func clientExpandsEnvPlaceholders(client string) bool {
 // project is unused for claude-desktop and antigravity because their configs
 // are always user-scoped.
 func runMCPUninstall(client, project string, dryRun bool) error {
-	var target string
-	var wrapperKey string
-	var err error
-	switch client {
-	case "claude-code":
-		target, err = claudeCodeConfigPath(project)
-		wrapperKey = "mcpServers"
-	case "claude-desktop":
-		target, err = claudeDesktopConfigPath()
-		wrapperKey = "mcpServers"
-	case "cursor":
-		target, err = cursorConfigPath(project)
-		wrapperKey = "mcpServers"
-	case "vscode":
-		target, err = vscodeConfigPath(project)
-		wrapperKey = "servers"
-	case "antigravity":
-		target, err = antigravityConfigPath()
-		wrapperKey = "mcpServers"
-	default:
-		return fmt.Errorf("unknown client %q — valid: claude-code, claude-desktop, cursor, vscode, antigravity", client)
-	}
+	target, err := resolveMCPClientTarget(client, project)
 	if err != nil {
 		return err
 	}
 
-	data, readErr := os.ReadFile(target)
+	data, readErr := os.ReadFile(target.Path)
 	if readErr != nil {
 		if os.IsNotExist(readErr) {
-			fmt.Printf("No config file at %s — nothing to uninstall.\n", target)
+			fmt.Printf("No config file at %s — nothing to uninstall.\n", target.Path)
 			return nil
 		}
-		return fmt.Errorf("read %s: %w", target, readErr)
+		return fmt.Errorf("read %s: %w", target.Path, readErr)
 	}
-	existing := map[string]any{}
-	if len(data) > 0 {
-		if err := json.Unmarshal(data, &existing); err != nil {
-			return fmt.Errorf("parse existing config %s: %w", target, err)
-		}
+	existing, err := parseMCPConfig(data, target.Format)
+	if err != nil {
+		return fmt.Errorf("parse existing config %s: %w", target.Path, err)
 	}
 
-	servers, _ := existing[wrapperKey].(map[string]any)
+	servers, _ := existing[target.WrapperKey].(map[string]any)
 	if servers == nil {
-		fmt.Printf("No %q entries in %s — nothing to uninstall.\n", wrapperKey, target)
+		fmt.Printf("No %q entries in %s — nothing to uninstall.\n", target.WrapperKey, target.Path)
 		return nil
 	}
-	if _, present := servers["fibe"]; !present {
-		fmt.Printf("No 'fibe' entry in %s — nothing to uninstall.\n", target)
+	if _, present := servers[mcpServerName]; !present {
+		fmt.Printf("No 'fibe' entry in %s — nothing to uninstall.\n", target.Path)
 		return nil
 	}
 
-	delete(servers, "fibe")
+	delete(servers, mcpServerName)
 	if len(servers) == 0 {
-		delete(existing, wrapperKey)
+		delete(existing, target.WrapperKey)
 	} else {
-		existing[wrapperKey] = servers
+		existing[target.WrapperKey] = servers
 	}
 
-	out, err := json.MarshalIndent(existing, "", "  ")
+	out, err := marshalMCPConfig(existing, target.Format)
 	if err != nil {
 		return err
 	}
 	if dryRun {
-		fmt.Printf("# target: %s\n\n%s\n", target, string(out))
+		fmt.Printf("# target: %s\n\n%s", target.Path, string(out))
 		return nil
 	}
-	if err := os.WriteFile(target, append(out, '\n'), 0o644); err != nil {
-		return fmt.Errorf("write %s: %w", target, err)
+	if err := os.WriteFile(target.Path, out, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", target.Path, err)
 	}
-	fmt.Printf("Removed fibe MCP server from %s\n", target)
+	fmt.Printf("Removed fibe MCP server from %s\n", target.Path)
 	return nil
+}
+
+func resolveMCPClientTarget(client, project string) (mcpClientTarget, error) {
+	switch client {
+	case "claude-code":
+		target, err := claudeCodeConfigPath(project)
+		return mcpClientTarget{Path: target, WrapperKey: "mcpServers", WrapperDefault: map[string]any{}, Format: mcpConfigJSON}, err
+	case "claude-desktop":
+		target, err := claudeDesktopConfigPath()
+		return mcpClientTarget{Path: target, WrapperKey: "mcpServers", WrapperDefault: map[string]any{}, Format: mcpConfigJSON}, err
+	case "cursor":
+		target, err := cursorConfigPath(project)
+		return mcpClientTarget{Path: target, WrapperKey: "mcpServers", WrapperDefault: map[string]any{}, Format: mcpConfigJSON}, err
+	case "vscode":
+		target, err := vscodeConfigPath(project)
+		return mcpClientTarget{Path: target, WrapperKey: "servers", WrapperDefault: map[string]any{}, Format: mcpConfigJSON}, err
+	case "antigravity":
+		target, err := antigravityConfigPath()
+		return mcpClientTarget{Path: target, WrapperKey: "mcpServers", WrapperDefault: map[string]any{}, Format: mcpConfigJSON}, err
+	case "codex":
+		target, err := codexConfigPath(project)
+		return mcpClientTarget{Path: target, WrapperKey: "mcp_servers", WrapperDefault: map[string]any{}, Format: mcpConfigTOML}, err
+	default:
+		return mcpClientTarget{}, fmt.Errorf("unknown client %q — valid: %s", client, mcpValidClientList)
+	}
+}
+
+func parseMCPConfig(data []byte, format mcpConfigFormat) (map[string]any, error) {
+	existing := map[string]any{}
+	switch format {
+	case mcpConfigJSON:
+		if err := json.Unmarshal(data, &existing); err != nil {
+			return nil, err
+		}
+	case mcpConfigTOML:
+		if _, err := toml.Decode(string(data), &existing); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported config format %q", format)
+	}
+	return existing, nil
+}
+
+func marshalMCPConfig(existing map[string]any, format mcpConfigFormat) ([]byte, error) {
+	switch format {
+	case mcpConfigJSON:
+		out, err := json.MarshalIndent(existing, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		return append(out, '\n'), nil
+	case mcpConfigTOML:
+		var buf bytes.Buffer
+		if err := toml.NewEncoder(&buf).Encode(existing); err != nil {
+			return nil, err
+		}
+		out := buf.Bytes()
+		if len(out) == 0 || out[len(out)-1] != '\n' {
+			out = append(out, '\n')
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unsupported config format %q", format)
+	}
 }
 
 func claudeCodeConfigPath(project string) (string, error) {
@@ -314,6 +414,21 @@ func cursorConfigPath(project string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, ".cursor", "mcp.json"), nil
+}
+
+func codexConfigPath(project string) (string, error) {
+	if project != "" {
+		abs, err := filepath.Abs(project)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(abs, ".codex", "config.toml"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".codex", "config.toml"), nil
 }
 
 // antigravityConfigPath returns the per-user Antigravity MCP config path.

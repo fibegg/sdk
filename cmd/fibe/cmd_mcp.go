@@ -26,14 +26,14 @@ TRANSPORTS:
 SUBCOMMANDS:
   serve     Run the MCP server (default: stdio)
   install   Register the server in a client's MCP config
-            (claude-code | claude-desktop | cursor | vscode)
-  config    Print the JSON snippet needed to register the server manually
+            (claude-code | claude-desktop | cursor | vscode | antigravity | codex)
+  config    Print the client-specific config snippet needed to register the server manually
 
 ENV VARS:
   FIBE_API_KEY              Default API key when per-session auth not set
   FIBE_DOMAIN               API domain override
   FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
-  FIBE_MCP_TOOLS=core|full  Tool surface. core=~20 curated, full=every leaf
+  FIBE_MCP_TOOLS=core|full  Tool surface. core=curated default, full=every leaf
   FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
 
 EXAMPLES:
@@ -43,6 +43,7 @@ EXAMPLES:
   FIBE_MCP_TOOLS=full fibe mcp serve --http :8080     # multi-tenant SSE
 
   fibe mcp install --client claude-code               # wire into ~/.claude.json
+  fibe mcp install --client codex                     # wire into ~/.codex/config.toml
   fibe mcp config --client claude-desktop             # print config snippet`,
 	}
 	cmd.AddCommand(
@@ -56,15 +57,15 @@ EXAMPLES:
 
 func mcpServeCmd() *cobra.Command {
 	var (
-		httpAddr      string
+		httpAddr       string
 		streamableHTTP bool
-		toolSet       string
-		yolo          bool
-		requireAuth   bool
-		cacheSize     int
-		cacheEntryMax int
-		maxSteps      int
-		maxIterations int
+		toolSet        string
+		yolo           bool
+		requireAuth    bool
+		cacheSize      int
+		cacheEntryMax  int
+		maxSteps       int
+		maxIterations  int
 	)
 
 	cmd := &cobra.Command{
@@ -75,7 +76,7 @@ spawned by MCP clients like Claude Code). Use --http to serve multiple
 tenants over SSE.
 
 TOOL SURFACE:
-  --tools core   ~20 curated tools + fibe_pipeline + fibe_run escape hatch
+  --tools core   Curated default tools + always-visible meta tools
   --tools full   Every leaf command exposed as an MCP tool (~130 total)
 
 SAFETY:
@@ -172,15 +173,18 @@ SUPPORTED CLIENTS:
   cursor           ~/.cursor/mcp.json
   vscode           ~/.vscode/mcp.json (or workspace .vscode/mcp.json with --project .)
   antigravity      ~/.gemini/antigravity/mcp_config.json
+  codex            ~/.codex/config.toml (or project .codex/config.toml with --project .)
 
 The installer detects the absolute path of the current fibe executable and
 emits an entry that launches "fibe mcp serve" on stdio.
 
 ENV VARS:
-  By default, FIBE_API_KEY is written as "${FIBE_API_KEY}" so the client
-  expands it at runtime. Antigravity does NOT expand placeholders, so the
-  installer auto-resolves FIBE_API_KEY from your shell at install time for
-  that client. Override with --api-key to inline any value explicitly.
+  By default, FIBE_API_KEY is written as "${FIBE_API_KEY}" so placeholder-
+  expanding clients resolve it at runtime. Antigravity does NOT expand
+  placeholders, so the installer auto-resolves FIBE_API_KEY from your shell
+  at install time for that client. Codex uses env_vars forwarding in
+  ~/.codex/config.toml instead of ${VAR} placeholders. Override with
+  --api-key to inline any value explicitly.
 
 TOOL TIERS:
   --tools core   Expose ~40 commonly-used tools (default). Additional tools
@@ -192,14 +196,15 @@ EXAMPLES:
   fibe mcp install --client antigravity --api-key pk_live_... --domain http://dev.local:3000
   fibe mcp install --client claude-desktop --tools full --yolo
   fibe mcp install --client cursor --env FOO=bar --env BAZ=qux
+  fibe mcp install --client codex --project .
   fibe mcp install --client antigravity --dry-run`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runMCPInstall(client, project, dryRun, opts)
 		},
 	}
-	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode|antigravity")
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
 	cmd.Flags().StringVar(&project, "project", "", "Install into a project-scoped config (pass the project directory). Default: user-scoped.")
-	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and JSON diff without writing")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed config without writing")
 	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
 	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
@@ -220,12 +225,13 @@ touching other registered servers.
 
 EXAMPLES:
   fibe mcp uninstall --client claude-code
-  fibe mcp uninstall --client claude-desktop --dry-run`,
+  fibe mcp uninstall --client claude-desktop --dry-run
+  fibe mcp uninstall --client codex --project .`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runMCPUninstall(client, project, dryRun)
 		},
 	}
-	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode")
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
 	cmd.Flags().StringVar(&project, "project", "", "Operate on a project-scoped config (pass the project directory)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed content without writing")
 	return cmd
@@ -236,47 +242,69 @@ func mcpConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Print the MCP config snippet for a client",
-		Long: `Print the JSON snippet needed to register the Fibe MCP server manually
-in an MCP client's configuration.
+		Long: `Print the client-specific config snippet needed to register the Fibe
+MCP server manually in an MCP client's configuration.
 
 EXAMPLES:
   fibe mcp config --client claude-code
-  fibe mcp config --client claude-desktop`,
+  fibe mcp config --client claude-desktop
+  fibe mcp config --client codex`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			bin, err := os.Executable()
 			if err != nil {
 				bin = "fibe"
 			}
-			snippet := map[string]any{
-				"fibe": map[string]any{
-					"command": bin,
-					"args":    []string{"mcp", "serve"},
-					"env": map[string]string{
-						"FIBE_API_KEY": "${FIBE_API_KEY}",
-						"FIBE_DOMAIN":  "${FIBE_DOMAIN}",
-					},
-				},
-			}
+			entry, _ := buildMCPInstallEntry(client, bin, installOptions{})
 			switch client {
 			case "claude-code":
 				fmt.Println(`// Add under "mcpServers" in ~/.claude.json or .claude/settings.json:`)
+				snippet := map[string]any{mcpServerName: entry}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(snippet)
 			case "claude-desktop":
 				fmt.Println(`// Add under "mcpServers" in ~/Library/Application Support/Claude/claude_desktop_config.json:`)
+				snippet := map[string]any{mcpServerName: entry}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(snippet)
 			case "cursor":
 				fmt.Println(`// Add under "mcpServers" in ~/.cursor/mcp.json:`)
+				snippet := map[string]any{mcpServerName: entry}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(snippet)
 			case "vscode":
 				fmt.Println(`// Add under "servers" in .vscode/mcp.json (schema differs slightly — see VS Code docs):`)
+				snippet := map[string]any{mcpServerName: entry}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(snippet)
 			case "antigravity":
 				fmt.Println(`// Add under "mcpServers" in ~/.gemini/antigravity/mcp_config.json:`)
+				snippet := map[string]any{mcpServerName: entry}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(snippet)
+			case "codex":
+				fmt.Println(`# Add to ~/.codex/config.toml or .codex/config.toml:`)
+				snippet := map[string]any{
+					"mcp_servers": map[string]any{
+						mcpServerName: entry,
+					},
+				}
+				out, err := marshalMCPConfig(snippet, mcpConfigTOML)
+				if err != nil {
+					return err
+				}
+				_, err = os.Stdout.Write(out)
+				return err
 			default:
-				return fmt.Errorf("unknown client %q — valid: claude-code, claude-desktop, cursor, vscode, antigravity", client)
+				return fmt.Errorf("unknown client %q — valid: %s", client, mcpValidClientList)
 			}
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetIndent("", "  ")
-			return enc.Encode(snippet)
 		},
 	}
-	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: claude-code|claude-desktop|cursor|vscode")
+	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
 	return cmd
 }
 

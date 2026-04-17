@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Structured errors**: `*fibe.APIError` (`code`, `status`, `message`, `request_id`, `details`, `retry_after_seconds`, `idempotent_replayed`) survives intact through MCP tool-error results.
   - **Resources**: `fibe://me`, `fibe://status`, `fibe://schema`, `fibe://schema/{resource}`, `fibe://help/{path}`, `fibe://pipeline/schema`, `fibe://pipelines/{id}`.
   - **Audit log**: set `FIBE_MCP_AUDIT_LOG=/path/to/log.jsonl` (or `stderr`) for one JSON line per tool call with sensitive-arg redaction.
-  - **Install helpers**: `fibe mcp install --client {claude-code,claude-desktop,cursor,vscode}` merges into existing configs non-destructively; `fibe mcp uninstall` removes cleanly; `fibe mcp config` prints the snippet.
+  - **Install helpers**: `fibe mcp install --client {claude-code,claude-desktop,cursor,vscode,antigravity,codex}` merges into existing configs non-destructively; `fibe mcp uninstall` removes cleanly; `fibe mcp config` prints the snippet.
 - **`Client.Playgrounds.LogsStream(ctx, id, service, opts) <-chan LogLine`** and **`Client.Tricks.LogsStream`**: push-style log streaming (polling-backed today, SSE-backed when the server exposes it).
 - **`fibe github-repos create`** CLI command (parity with existing `fibe gitea-repos create`).
 - **`fibe playspecs add-mounted-file` / `update-mounted-file` / `remove-mounted-file`** CLI commands.
