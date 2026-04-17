@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
@@ -21,15 +22,17 @@ var (
 	commit  = "none"
 	date    = "unknown"
 
-	flagAPIKey  string
-	flagDomain  string
-	flagDebug   bool
-	flagOutput  string
-	flagOnly    []string
+	flagAPIKey        string
+	flagDomain        string
+	flagDebug         bool
+	flagOutput        string
+	flagOnly          []string
 	flagPage          int
 	flagPerPage       int
 	flagFromFile      string
 	flagExplainErrors bool
+	commandCtxMu      sync.RWMutex
+	commandCtx        context.Context
 )
 
 func rootCmd() *cobra.Command {
@@ -88,7 +91,13 @@ DOCUMENTATION:
   Run any command with --help for detailed usage information.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Version:       version,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			setCommandContext(cmd.Context())
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			setCommandContext(nil)
+		},
+		Version: version,
 	}
 
 	cmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key (default: $FIBE_API_KEY)")
@@ -253,7 +262,7 @@ func outputJSON(v any) {
 
 func outputError(err error) {
 	format := effectiveOutput()
-	
+
 	// structured format requested by explicit format or flag
 	if format == "json" || format == "yaml" || flagExplainErrors {
 		// Attempt to extract the API error
@@ -261,7 +270,7 @@ func outputError(err error) {
 		var details map[string]any
 		var reqId string
 		var statusCode = 500
-		
+
 		// If it's castable to an *APIError
 		if apiErr, ok := err.(*fibe.APIError); ok {
 			code = apiErr.Code
@@ -367,7 +376,7 @@ func fmtStr(s *string) string {
 }
 
 func ctx() context.Context {
-	c := context.Background()
+	c := currentCommandContext()
 	if len(flagOnly) > 0 {
 		var fields []string
 		for _, f := range flagOnly {
@@ -382,6 +391,22 @@ func ctx() context.Context {
 		}
 	}
 	return c
+}
+
+func setCommandContext(ctx context.Context) {
+	commandCtxMu.Lock()
+	commandCtx = ctx
+	commandCtxMu.Unlock()
+}
+
+func currentCommandContext() context.Context {
+	commandCtxMu.RLock()
+	ctx := commandCtx
+	commandCtxMu.RUnlock()
+	if ctx != nil {
+		return ctx
+	}
+	return context.Background()
 }
 
 func must(err error) {
@@ -407,4 +432,3 @@ func listParams() *fibe.ListParams {
 	}
 	return &fibe.ListParams{Page: flagPage, PerPage: flagPerPage}
 }
-

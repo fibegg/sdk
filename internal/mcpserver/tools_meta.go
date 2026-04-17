@@ -325,7 +325,7 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 	root.SetOut(&stdoutBuf) // for commands that DO honor cobra's writer
 	root.SetErr(&stderrBuf)
 
-	execErr := root.Execute()
+	execErr := root.ExecuteContext(ctx)
 
 	// Close the write side and wait for the copy goroutine to drain before
 	// restoring, so we don't lose trailing bytes.
