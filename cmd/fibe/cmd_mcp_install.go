@@ -34,12 +34,14 @@ type mcpClientTarget struct {
 // installOptions bundles the flags that shape the emitted MCP config entry.
 // Each field is optional; empty means "use the default".
 type installOptions struct {
-	APIKey   string   // literal value to inline for FIBE_API_KEY
-	Domain   string   // literal value to inline for FIBE_DOMAIN
-	Env      []string // arbitrary KEY=VALUE pairs to inline
-	ToolSet  string   // "core" | "full" (passed as FIBE_MCP_TOOLS)
-	Yolo     bool     // sets FIBE_MCP_YOLO=1
-	AuditLog string   // sets FIBE_MCP_AUDIT_LOG
+	APIKey    string   // literal value to inline for FIBE_API_KEY
+	Domain    string   // literal value to inline for FIBE_DOMAIN
+	Env       []string // arbitrary KEY=VALUE pairs to inline
+	ToolSet   string   // "core" | "full" (passed as FIBE_MCP_TOOLS)
+	Yolo      bool     // sets FIBE_MCP_YOLO=1
+	AuditLog  string   // sets FIBE_MCP_AUDIT_LOG
+	Transport string   // stdio (default) | streamable-http (URL-backed clients)
+	URL       string   // URL for URL-backed MCP clients
 }
 
 // runMCPInstall writes the fibe MCP server entry into the target client's
@@ -68,7 +70,10 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 		return err
 	}
 
-	entry, warnings := buildMCPInstallEntry(client, bin, opts)
+	entry, warnings, err := buildMCPInstallEntry(client, bin, opts)
+	if err != nil {
+		return err
+	}
 
 	existing := map[string]any{}
 	if data, readErr := os.ReadFile(target.Path); readErr == nil && len(data) > 0 {
@@ -109,7 +114,22 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 	return nil
 }
 
-func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]any, []string) {
+func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]any, []string, error) {
+	transport := opts.Transport
+	if transport == "" {
+		if opts.URL != "" {
+			transport = "streamable-http"
+		} else {
+			transport = "stdio"
+		}
+	}
+	if opts.URL != "" {
+		return buildRemoteMCPInstallEntry(client, transport, opts)
+	}
+	if transport != "stdio" {
+		return nil, nil, fmt.Errorf("transport %q requires --url; supported URL-backed clients: cursor, vscode, codex", transport)
+	}
+
 	env, envVars, warnings := resolveInstallEnv(client, opts)
 	entry := map[string]any{
 		"command": bin,
@@ -125,7 +145,91 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 		// VS Code's schema uses "type":"stdio" explicitly.
 		entry["type"] = "stdio"
 	}
-	return entry, warnings
+	return entry, warnings, nil
+}
+
+func buildRemoteMCPInstallEntry(client, transport string, opts installOptions) (map[string]any, []string, error) {
+	if transport != "streamable-http" {
+		return nil, nil, fmt.Errorf("URL-backed MCP install only supports streamable-http transport, got %q", transport)
+	}
+	if err := validateRemoteInstallOptions(client, opts); err != nil {
+		return nil, nil, err
+	}
+
+	switch client {
+	case "cursor":
+		entry := map[string]any{"url": opts.URL}
+		headers := remoteAuthHeaders(client, opts)
+		if len(headers) > 0 {
+			entry["headers"] = headers
+		}
+		return entry, nil, nil
+	case "vscode":
+		entry := map[string]any{
+			"type": "http",
+			"url":  opts.URL,
+		}
+		headers := remoteAuthHeaders(client, opts)
+		if len(headers) > 0 {
+			entry["headers"] = headers
+		}
+		return entry, nil, nil
+	case "codex":
+		entry := map[string]any{
+			"url":                  opts.URL,
+			"bearer_token_env_var": "FIBE_API_KEY",
+		}
+		return entry, nil, nil
+	default:
+		return nil, nil, fmt.Errorf("client %q only supports stdio install today; URL-backed install is supported for cursor, vscode, and codex", client)
+	}
+}
+
+func validateRemoteInstallOptions(client string, opts installOptions) error {
+	var unsupported []string
+	if opts.Domain != "" {
+		unsupported = append(unsupported, "--domain")
+	}
+	if len(opts.Env) > 0 {
+		unsupported = append(unsupported, "--env")
+	}
+	if opts.ToolSet != "" {
+		unsupported = append(unsupported, "--tools")
+	}
+	if opts.Yolo {
+		unsupported = append(unsupported, "--yolo")
+	}
+	if opts.AuditLog != "" {
+		unsupported = append(unsupported, "--audit-log")
+	}
+	if len(unsupported) > 0 {
+		return fmt.Errorf("URL-backed MCP install does not launch a local fibe process, so %s do not apply", strings.Join(unsupported, ", "))
+	}
+	if client == "codex" && opts.APIKey != "" {
+		return fmt.Errorf("codex URL mode cannot inline API keys; export FIBE_API_KEY in your shell and use bearer_token_env_var instead")
+	}
+	return nil
+}
+
+func remoteAuthHeaders(client string, opts installOptions) map[string]string {
+	if opts.APIKey != "" {
+		return map[string]string{"Authorization": "Bearer " + opts.APIKey}
+	}
+	switch client {
+	case "cursor", "vscode":
+		return map[string]string{"Authorization": "Bearer " + remoteAPIKeyPlaceholder(client)}
+	default:
+		return nil
+	}
+}
+
+func remoteAPIKeyPlaceholder(client string) string {
+	switch client {
+	case "cursor", "vscode":
+		return "${env:FIBE_API_KEY}"
+	default:
+		return "${FIBE_API_KEY}"
+	}
 }
 
 // resolveInstallEnv builds the "env" map for the MCP server entry based on

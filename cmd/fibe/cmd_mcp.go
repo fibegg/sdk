@@ -176,7 +176,24 @@ SUPPORTED CLIENTS:
   codex            ~/.codex/config.toml (or project .codex/config.toml with --project .)
 
 The installer detects the absolute path of the current fibe executable and
-emits an entry that launches "fibe mcp serve" on stdio.
+emits an entry that launches "fibe mcp serve" on stdio by default.
+
+For Codex specifically, you can also emit a URL-backed config entry that
+points at a separately managed streamable-HTTP server:
+
+  fibe mcp install --client codex --transport streamable-http \
+    --url http://127.0.0.1:7797/mcp
+
+Cursor and VS Code also support URL-backed MCP entries:
+
+  fibe mcp install --client cursor --transport streamable-http \
+    --url https://fibe.example.com/mcp
+  fibe mcp install --client vscode --transport streamable-http \
+    --url https://fibe.example.com/mcp
+
+URL-backed mode is useful when you already operate a managed remote MCP
+endpoint. Stdio remains the default because the SDK does not supervise a
+long-lived local HTTP daemon yet.
 
 ENV VARS:
   By default, FIBE_API_KEY is written as "${FIBE_API_KEY}" so placeholder-
@@ -197,6 +214,9 @@ EXAMPLES:
   fibe mcp install --client claude-desktop --tools full --yolo
   fibe mcp install --client cursor --env FOO=bar --env BAZ=qux
   fibe mcp install --client codex --project .
+  fibe mcp install --client cursor --transport streamable-http --url https://fibe.example.com/mcp
+  fibe mcp install --client vscode --transport streamable-http --url https://fibe.example.com/mcp
+  fibe mcp install --client codex --transport streamable-http --url http://127.0.0.1:7797/mcp
   fibe mcp install --client antigravity --dry-run`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runMCPInstall(client, project, dryRun, opts)
@@ -211,6 +231,8 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: core|full")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
+	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Install transport override. Supported: stdio (default) or streamable-http with --url (cursor, vscode, codex)")
+	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
 }
 
@@ -239,6 +261,7 @@ EXAMPLES:
 
 func mcpConfigCmd() *cobra.Command {
 	var client string
+	var opts installOptions
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Print the MCP config snippet for a client",
@@ -248,13 +271,19 @@ MCP server manually in an MCP client's configuration.
 EXAMPLES:
   fibe mcp config --client claude-code
   fibe mcp config --client claude-desktop
-  fibe mcp config --client codex`,
+  fibe mcp config --client cursor --transport streamable-http --url https://fibe.example.com/mcp
+  fibe mcp config --client vscode --transport streamable-http --url https://fibe.example.com/mcp
+  fibe mcp config --client codex
+  fibe mcp config --client codex --transport streamable-http --url http://127.0.0.1:7797/mcp`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			bin, err := os.Executable()
 			if err != nil {
 				bin = "fibe"
 			}
-			entry, _ := buildMCPInstallEntry(client, bin, installOptions{})
+			entry, _, err := buildMCPInstallEntry(client, bin, opts)
+			if err != nil {
+				return err
+			}
 			switch client {
 			case "claude-code":
 				fmt.Println(`// Add under "mcpServers" in ~/.claude.json or .claude/settings.json:`)
@@ -305,6 +334,14 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
+	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
+	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
+	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
+	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: core|full")
+	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
+	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
+	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (cursor, vscode, codex)")
+	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
 }
 
