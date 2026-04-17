@@ -221,7 +221,9 @@ func keyDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.APIKeys.Delete(ctx(), id))
+			if err := c.APIKeys.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("API key %d deleted\n", id)
 			return nil
 		},

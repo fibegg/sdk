@@ -354,7 +354,9 @@ func whDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.WebhookEndpoints.Delete(ctx(), id))
+			if err := c.WebhookEndpoints.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Webhook endpoint %d deleted\n", id)
 			return nil
 		},
@@ -368,7 +370,9 @@ func whTestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.WebhookEndpoints.Test(ctx(), id))
+			if err := c.WebhookEndpoints.Test(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Println("Test event queued")
 			return nil
 		},

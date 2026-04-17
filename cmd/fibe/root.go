@@ -409,21 +409,19 @@ func currentCommandContext() context.Context {
 	return context.Background()
 }
 
-func must(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func saveDownload(body io.ReadCloser, filename string) {
+func saveDownload(body io.ReadCloser, filename string) error {
 	defer body.Close()
 	f, err := os.Create(filename)
-	must(err)
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 	_, err = io.Copy(f, body)
-	must(err)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Downloaded: %s\n", filename)
+	return nil
 }
 
 func listParams() *fibe.ListParams {

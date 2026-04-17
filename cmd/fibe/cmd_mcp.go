@@ -178,13 +178,16 @@ SUPPORTED CLIENTS:
 The installer detects the absolute path of the current fibe executable and
 emits an entry that launches "fibe mcp serve" on stdio by default.
 
-For Codex specifically, you can also emit a URL-backed config entry that
-points at a separately managed streamable-HTTP server:
+For Antigravity, Cursor, VS Code, and Codex you can also emit a URL-backed
+config entry that points at a separately managed streamable-HTTP server:
+
+  fibe mcp install --client antigravity --transport streamable-http \
+    --url https://fibe.example.com/mcp
 
   fibe mcp install --client codex --transport streamable-http \
     --url http://127.0.0.1:7797/mcp
 
-Cursor and VS Code also support URL-backed MCP entries:
+Cursor and VS Code support the same transport:
 
   fibe mcp install --client cursor --transport streamable-http \
     --url https://fibe.example.com/mcp
@@ -231,7 +234,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: core|full")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
-	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Install transport override. Supported: stdio (default) or streamable-http with --url (cursor, vscode, codex)")
+	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Install transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
 	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
 }
@@ -271,6 +274,7 @@ MCP server manually in an MCP client's configuration.
 EXAMPLES:
   fibe mcp config --client claude-code
   fibe mcp config --client claude-desktop
+  fibe mcp config --client antigravity --transport streamable-http --url https://fibe.example.com/mcp
   fibe mcp config --client cursor --transport streamable-http --url https://fibe.example.com/mcp
   fibe mcp config --client vscode --transport streamable-http --url https://fibe.example.com/mcp
   fibe mcp config --client codex
@@ -340,7 +344,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: core|full")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
-	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (cursor, vscode, codex)")
+	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
 	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
 }

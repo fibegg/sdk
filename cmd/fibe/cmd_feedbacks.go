@@ -7,6 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func feedbacksCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "feedbacks",
@@ -56,17 +57,37 @@ EXAMPLES:
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.FeedbackListParams{}
-			if query != "" { params.Query = query }
-			if sourceType != "" { params.SourceType = sourceType }
-			if sourceID != "" { params.SourceID = sourceID }
-			if playgroundID != "" { params.PlaygroundID = playgroundID }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Query = query
+			}
+			if sourceType != "" {
+				params.SourceType = sourceType
+			}
+			if sourceID != "" {
+				params.SourceID = sourceID
+			}
+			if playgroundID != "" {
+				params.PlaygroundID = playgroundID
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			fbs, err := c.Feedbacks.List(ctx(), agentID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(fbs)
 			return nil
 		},
@@ -89,7 +110,9 @@ func fbGetCmd() *cobra.Command {
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
 			fb, err := c.Feedbacks.Get(ctx(), agentID, id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(fb)
 			return nil
 		},
@@ -105,14 +128,24 @@ func fbCreateCmd() *cobra.Command {
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.FeedbackCreateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("source-type") { params.SourceType = sourceType }
-			if cmd.Flags().Changed("comment") { params.Comment = &comment }
-			
-			if params.SourceType == "" { return fmt.Errorf("required field 'source-type' not set") }
-			
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("source-type") {
+				params.SourceType = sourceType
+			}
+			if cmd.Flags().Changed("comment") {
+				params.Comment = &comment
+			}
+
+			if params.SourceType == "" {
+				return fmt.Errorf("required field 'source-type' not set")
+			}
+
 			fb, err := c.Feedbacks.Create(ctx(), agentID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Created feedback %s\n", fmtInt64Ptr(fb.ID))
 			return nil
 		},
@@ -129,10 +162,11 @@ func fbDeleteCmd() *cobra.Command {
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
-			must(c.Feedbacks.Delete(ctx(), agentID, id))
+			if err := c.Feedbacks.Delete(ctx(), agentID, id); err != nil {
+				return err
+			}
 			fmt.Printf("Feedback %d deleted\n", id)
 			return nil
 		},
 	}
 }
-

@@ -7,6 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func hunksCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hunks",
@@ -63,22 +64,52 @@ EXAMPLES:
 			c := newClient()
 			propID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.HunkListParams{}
-			if filePath != "" { params.FilePath = filePath }
-			if changeType != "" { params.ChangeType = changeType }
-			if authorEmail != "" { params.AuthorEmail = authorEmail }
-			if authorName != "" { params.AuthorName = authorName }
-			if commitSHA != "" { params.CommitSHA = commitSHA }
-			if status != "" { params.Status = status }
-			if processor != "" { params.ProcessorName = processor }
-			if committedAfter != "" { params.CommittedAfter = committedAfter }
-			if committedBefore != "" { params.CommittedBefore = committedBefore }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if filePath != "" {
+				params.FilePath = filePath
+			}
+			if changeType != "" {
+				params.ChangeType = changeType
+			}
+			if authorEmail != "" {
+				params.AuthorEmail = authorEmail
+			}
+			if authorName != "" {
+				params.AuthorName = authorName
+			}
+			if commitSHA != "" {
+				params.CommitSHA = commitSHA
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if processor != "" {
+				params.ProcessorName = processor
+			}
+			if committedAfter != "" {
+				params.CommittedAfter = committedAfter
+			}
+			if committedBefore != "" {
+				params.CommittedBefore = committedBefore
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			hunks, err := c.Hunks.List(ctx(), propID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(hunks)
 			return nil
 		},
@@ -106,7 +137,9 @@ func hunkGetCmd() *cobra.Command {
 			propID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
 			hunk, err := c.Hunks.Get(ctx(), propID, id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(hunk)
 			return nil
 		},
@@ -123,11 +156,19 @@ func hunkUpdateCmd() *cobra.Command {
 			propID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
 			params := &fibe.HunkUpdateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("status") { params.Status = &status }
-			if cmd.Flags().Changed("processor") { params.ProcessorName = &processor }
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("status") {
+				params.Status = &status
+			}
+			if cmd.Flags().Changed("processor") {
+				params.ProcessorName = &processor
+			}
 			_, err := c.Hunks.Update(ctx(), propID, id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Updated hunk %d\n", id)
 			return nil
 		},
@@ -145,7 +186,9 @@ func hunkIngestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			propID, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Hunks.Ingest(ctx(), propID, force))
+			if err := c.Hunks.Ingest(ctx(), propID, force); err != nil {
+				return err
+			}
 			fmt.Println("Hunk ingestion scheduled")
 			return nil
 		},
@@ -163,7 +206,9 @@ func hunkNextCmd() *cobra.Command {
 			c := newClient()
 			propID, _ := strconv.ParseInt(args[0], 10, 64)
 			hunk, err := c.Hunks.Next(ctx(), propID, processor)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(hunk)
 			return nil
 		},
@@ -172,4 +217,3 @@ func hunkNextCmd() *cobra.Command {
 	cmd.MarkFlagRequired("processor")
 	return cmd
 }
-

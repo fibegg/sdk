@@ -127,7 +127,7 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 		return buildRemoteMCPInstallEntry(client, transport, opts)
 	}
 	if transport != "stdio" {
-		return nil, nil, fmt.Errorf("transport %q requires --url; supported URL-backed clients: cursor, vscode, codex", transport)
+		return nil, nil, fmt.Errorf("transport %q requires --url; supported URL-backed clients: antigravity, cursor, vscode, codex", transport)
 	}
 
 	env, envVars, warnings := resolveInstallEnv(client, opts)
@@ -157,23 +157,30 @@ func buildRemoteMCPInstallEntry(client, transport string, opts installOptions) (
 	}
 
 	switch client {
-	case "cursor":
-		entry := map[string]any{"url": opts.URL}
-		headers := remoteAuthHeaders(client, opts)
+	case "antigravity":
+		entry := map[string]any{"serverUrl": opts.URL}
+		headers, warnings := remoteAuthHeaders(client, opts)
 		if len(headers) > 0 {
 			entry["headers"] = headers
 		}
-		return entry, nil, nil
+		return entry, warnings, nil
+	case "cursor":
+		entry := map[string]any{"url": opts.URL}
+		headers, warnings := remoteAuthHeaders(client, opts)
+		if len(headers) > 0 {
+			entry["headers"] = headers
+		}
+		return entry, warnings, nil
 	case "vscode":
 		entry := map[string]any{
 			"type": "http",
 			"url":  opts.URL,
 		}
-		headers := remoteAuthHeaders(client, opts)
+		headers, warnings := remoteAuthHeaders(client, opts)
 		if len(headers) > 0 {
 			entry["headers"] = headers
 		}
-		return entry, nil, nil
+		return entry, warnings, nil
 	case "codex":
 		entry := map[string]any{
 			"url":                  opts.URL,
@@ -181,7 +188,7 @@ func buildRemoteMCPInstallEntry(client, transport string, opts installOptions) (
 		}
 		return entry, nil, nil
 	default:
-		return nil, nil, fmt.Errorf("client %q only supports stdio install today; URL-backed install is supported for cursor, vscode, and codex", client)
+		return nil, nil, fmt.Errorf("client %q only supports stdio install today; URL-backed install is supported for antigravity, cursor, vscode, and codex", client)
 	}
 }
 
@@ -211,15 +218,22 @@ func validateRemoteInstallOptions(client string, opts installOptions) error {
 	return nil
 }
 
-func remoteAuthHeaders(client string, opts installOptions) map[string]string {
+func remoteAuthHeaders(client string, opts installOptions) (map[string]string, []string) {
 	if opts.APIKey != "" {
-		return map[string]string{"Authorization": "Bearer " + opts.APIKey}
+		return map[string]string{"Authorization": "Bearer " + opts.APIKey}, nil
 	}
 	switch client {
 	case "cursor", "vscode":
-		return map[string]string{"Authorization": "Bearer " + remoteAPIKeyPlaceholder(client)}
+		return map[string]string{"Authorization": "Bearer " + remoteAPIKeyPlaceholder(client)}, nil
+	case "antigravity":
+		if v := os.Getenv("FIBE_API_KEY"); v != "" {
+			return map[string]string{"Authorization": "Bearer " + v}, nil
+		}
+		return nil, []string{
+			"Authorization header omitted — antigravity does not expand ${VAR} placeholders in remote MCP config; rerun with --api-key <key> or export FIBE_API_KEY before install.",
+		}
 	default:
-		return nil
+		return nil, nil
 	}
 }
 

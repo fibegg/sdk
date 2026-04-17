@@ -76,15 +76,41 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.PlayspecListParams{}
-			if query != "" { params.Q = query }
-			if jobMode == "true" { t := true; params.JobMode = &t } else if jobMode == "false" { f := false; params.JobMode = &f }
-			if locked == "true" { t := true; params.Locked = &t } else if locked == "false" { f := false; params.Locked = &f }
-			if name != "" { params.Name = name }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if jobMode == "true" {
+				t := true
+				params.JobMode = &t
+			} else if jobMode == "false" {
+				f := false
+				params.JobMode = &f
+			}
+			if locked == "true" {
+				t := true
+				params.Locked = &t
+			} else if locked == "false" {
+				f := false
+				params.Locked = &f
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			specs, err := c.Playspecs.List(ctx(), params)
 			if err != nil {
 				return err
@@ -191,11 +217,21 @@ EXAMPLES:
 				return err
 			}
 
-			if cmd.Flags().Changed("name") { params.Name = name }
-			if cmd.Flags().Changed("compose") { params.BaseComposeYAML = resolveStringValue(compose) }
-			if cmd.Flags().Changed("description") { params.Description = &description }
-			if cmd.Flags().Changed("persist-volumes") { params.PersistVolumes = &persistVolumes }
-			if cmd.Flags().Changed("job-mode") { params.JobMode = &jobMode }
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+			if cmd.Flags().Changed("compose") {
+				params.BaseComposeYAML = resolveStringValue(compose)
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &description
+			}
+			if cmd.Flags().Changed("persist-volumes") {
+				params.PersistVolumes = &persistVolumes
+			}
+			if cmd.Flags().Changed("job-mode") {
+				params.JobMode = &jobMode
+			}
 
 			if params.BaseComposeYAML == "" && len(rawPayload) > 0 {
 				params.BaseComposeYAML = string(rawPayload)
@@ -256,14 +292,22 @@ EXAMPLES:
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("description") { params.Description = &description }
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &description
+			}
 			if cmd.Flags().Changed("base-compose") {
 				v := resolveStringValue(baseCompose)
 				params.BaseComposeYAML = &v
 			}
-			if cmd.Flags().Changed("persist-volumes") { params.PersistVolumes = &persistVolumes }
-			if cmd.Flags().Changed("job-mode") { params.JobMode = &jobMode }
+			if cmd.Flags().Changed("persist-volumes") {
+				params.PersistVolumes = &persistVolumes
+			}
+			if cmd.Flags().Changed("job-mode") {
+				params.JobMode = &jobMode
+			}
 			spec, err := c.Playspecs.Update(ctx(), id, params)
 			if err != nil {
 				return err
@@ -293,7 +337,9 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Playspecs.Delete(ctx(), id))
+			if err := c.Playspecs.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Playspec %d deleted\n", id)
 			return nil
 		},

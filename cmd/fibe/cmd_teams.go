@@ -7,6 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func teamsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "teams",
@@ -69,17 +70,34 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TeamListParams{}
-			if query != "" { params.Q = query }
-			if name != "" { params.Name = name }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			teams, err := c.Teams.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(teams); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(teams)
+				return nil
+			}
 			headers := []string{"ID", "NAME", "SLUG", "MEMBERS"}
 			rows := make([][]string, len(teams.Data))
-			for i, t := range teams.Data { rows[i] = []string{fmtInt64(t.ID), t.Name, t.Slug, fmtInt64(t.MembersCount)} }
+			for i, t := range teams.Data {
+				rows[i] = []string{fmtInt64(t.ID), t.Name, t.Slug, fmtInt64(t.MembersCount)}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -97,7 +115,9 @@ func teamGetCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			team, err := c.Teams.Get(ctx(), id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(team)
 			return nil
 		},
@@ -112,13 +132,21 @@ func teamCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TeamCreateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("name") { params.Name = name }
-			
-			if params.Name == "" { return fmt.Errorf("required field 'name' not set") }
-			
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+
+			if params.Name == "" {
+				return fmt.Errorf("required field 'name' not set")
+			}
+
 			team, err := c.Teams.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Created team %d (%s)\n", team.ID, team.Name)
 			return nil
 		},
@@ -135,11 +163,17 @@ func teamUpdateCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.TeamUpdateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("name") { params.Name = name }
-			
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+
 			team, err := c.Teams.Update(ctx(), id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Updated team %d (%s)\n", team.ID, team.Name)
 			return nil
 		},
@@ -154,7 +188,9 @@ func teamDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Teams.Delete(ctx(), id))
+			if err := c.Teams.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Team %d deleted\n", id)
 			return nil
 		},
@@ -170,7 +206,9 @@ func teamTransferCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			_, err := c.Teams.TransferLeadership(ctx(), id, newLeaderID)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Leadership transferred to player %d\n", newLeaderID)
 			return nil
 		},
@@ -189,7 +227,9 @@ func teamInviteCmd() *cobra.Command {
 			c := newClient()
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
 			m, err := c.Teams.InviteMember(ctx(), teamID, username)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Invited %s (membership %d) — status: %s\n", username, m.ID, m.Status)
 			return nil
 		},
@@ -207,7 +247,9 @@ func teamAcceptCmd() *cobra.Command {
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
 			mID, _ := strconv.ParseInt(args[1], 10, 64)
 			_, err := c.Teams.AcceptInvite(ctx(), teamID, mID)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Println("Invitation accepted")
 			return nil
 		},
@@ -222,7 +264,9 @@ func teamDeclineCmd() *cobra.Command {
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
 			mID, _ := strconv.ParseInt(args[1], 10, 64)
 			_, err := c.Teams.DeclineInvite(ctx(), teamID, mID)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Println("Invitation declined")
 			return nil
 		},
@@ -235,7 +279,9 @@ func teamLeaveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Teams.Leave(ctx(), teamID))
+			if err := c.Teams.Leave(ctx(), teamID); err != nil {
+				return err
+			}
 			fmt.Println("Left team")
 			return nil
 		},
@@ -250,11 +296,18 @@ func teamResourcesCmd() *cobra.Command {
 			c := newClient()
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
 			resources, err := c.Teams.ListResources(ctx(), teamID, nil)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(resources); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(resources)
+				return nil
+			}
 			headers := []string{"ID", "TYPE", "RESOURCE_ID", "NAME", "PERMISSION"}
 			rows := make([][]string, len(resources.Data))
-			for i, r := range resources.Data { rows[i] = []string{fmtInt64(r.ID), r.ResourceType, fmtInt64(r.ResourceID), r.ResourceName, r.PermissionLevel} }
+			for i, r := range resources.Data {
+				rows[i] = []string{fmtInt64(r.ID), r.ResourceType, fmtInt64(r.ResourceID), r.ResourceName, r.PermissionLevel}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -272,16 +325,30 @@ func teamContributeCmd() *cobra.Command {
 			c := newClient()
 			teamID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.TeamResourceParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("type") { params.ResourceType = resType }
-			if cmd.Flags().Changed("resource-id") { params.ResourceID = resID }
-			if cmd.Flags().Changed("permission") { params.PermissionLevel = perm }
-			
-			if params.ResourceType == "" { return fmt.Errorf("required field 'type' not set") }
-			if params.ResourceID == 0 { return fmt.Errorf("required field 'resource-id' not set") }
-			
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("type") {
+				params.ResourceType = resType
+			}
+			if cmd.Flags().Changed("resource-id") {
+				params.ResourceID = resID
+			}
+			if cmd.Flags().Changed("permission") {
+				params.PermissionLevel = perm
+			}
+
+			if params.ResourceType == "" {
+				return fmt.Errorf("required field 'type' not set")
+			}
+			if params.ResourceID == 0 {
+				return fmt.Errorf("required field 'resource-id' not set")
+			}
+
 			r, err := c.Teams.ContributeResource(ctx(), teamID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Contributed %s %d to team\n", r.ResourceType, r.ResourceID)
 			return nil
 		},

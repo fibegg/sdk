@@ -79,19 +79,44 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ImportTemplateListParams{}
-			if query != "" { params.Q = query }
-			if name != "" { params.Name = name }
-			if categoryID > 0 { params.CategoryID = categoryID }
-			if system == "true" { t := true; params.System = &t } else if system == "false" { f := false; params.System = &f }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if categoryID > 0 {
+				params.CategoryID = categoryID
+			}
+			if system == "true" {
+				t := true
+				params.System = &t
+			} else if system == "false" {
+				f := false
+				params.System = &f
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			tpls, err := c.ImportTemplates.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(tpls); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(tpls)
+				return nil
+			}
 			headers := []string{"ID", "NAME", "AUTHOR", "CATEGORY"}
 			rows := make([][]string, len(tpls.Data))
-			for i, t := range tpls.Data { rows[i] = []string{fmtInt64Ptr(t.ID), t.Name, fmtStr(t.Author), fmtStr(t.Category)} }
+			for i, t := range tpls.Data {
+				rows[i] = []string{fmtInt64Ptr(t.ID), t.Name, fmtStr(t.Author), fmtStr(t.Category)}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -111,7 +136,9 @@ func tplGetCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			tpl, err := c.ImportTemplates.Get(ctx(), id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(tpl)
 			return nil
 		},
@@ -127,17 +154,33 @@ func tplCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ImportTemplateCreateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("name") { params.Name = name }
-			if cmd.Flags().Changed("description") { params.Description = desc }
-			if cmd.Flags().Changed("category-id") { params.CategoryID = catID }
-			if cmd.Flags().Changed("body") { params.TemplateBody = body }
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = desc
+			}
+			if cmd.Flags().Changed("category-id") {
+				params.CategoryID = catID
+			}
+			if cmd.Flags().Changed("body") {
+				params.TemplateBody = body
+			}
 
-			if params.Name == "" { return fmt.Errorf("required field 'name' not set") }
-			if params.TemplateBody == "" { return fmt.Errorf("required field 'body' not set") }
-			
+			if params.Name == "" {
+				return fmt.Errorf("required field 'name' not set")
+			}
+			if params.TemplateBody == "" {
+				return fmt.Errorf("required field 'body' not set")
+			}
+
 			tpl, err := c.ImportTemplates.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Created template %s (%s)\n", fmtInt64Ptr(tpl.ID), tpl.Name)
 			return nil
 		},
@@ -157,10 +200,16 @@ func tplUpdateCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ImportTemplateUpdateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("name") { params.Name = &name }
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
 			_, err := c.ImportTemplates.Update(ctx(), id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Updated template %d\n", id)
 			return nil
 		},
@@ -175,7 +224,9 @@ func tplDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.ImportTemplates.Delete(ctx(), id))
+			if err := c.ImportTemplates.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Template %d deleted\n", id)
 			return nil
 		},
@@ -190,7 +241,9 @@ func tplSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			results, err := c.ImportTemplates.Search(ctx(), query, nil)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(results)
 			return nil
 		},
@@ -374,7 +427,9 @@ func tplLaunchCmd() *cobra.Command {
 				params.Version = &version
 			}
 			result, err := c.ImportTemplates.LaunchWithParams(ctx(), id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(result)
 			return nil
 		},

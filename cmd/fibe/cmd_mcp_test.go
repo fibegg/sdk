@@ -163,6 +163,41 @@ func TestRunMCPInstallCursorURLModeWritesHeaderConfig(t *testing.T) {
 	}
 }
 
+func TestRunMCPInstallAntigravityURLModeWritesHeaderConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("FIBE_API_KEY", "pk_live_antigravity")
+
+	opts := installOptions{
+		Transport: "streamable-http",
+		URL:       "https://fibe.example.com/mcp",
+	}
+	if err := runMCPInstall("antigravity", "", false, opts); err != nil {
+		t.Fatalf("install antigravity url config: %v", err)
+	}
+
+	configPath := filepath.Join(home, ".gemini", "antigravity", "mcp_config.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+
+	cfg, err := parseMCPConfig(data, mcpConfigJSON)
+	if err != nil {
+		t.Fatalf("parse config: %v", err)
+	}
+
+	servers := nestedMap(t, cfg["mcpServers"])
+	entry := nestedMap(t, servers[mcpServerName])
+	if got := entry["serverUrl"]; got != "https://fibe.example.com/mcp" {
+		t.Fatalf("expected serverUrl entry, got %#v", got)
+	}
+	headers := nestedMap(t, entry["headers"])
+	if got := headers["Authorization"]; got != "Bearer pk_live_antigravity" {
+		t.Fatalf("expected literal auth header, got %#v", got)
+	}
+}
+
 func TestRunMCPInstallVSCodeURLModeWritesHTTPConfig(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

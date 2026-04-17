@@ -7,6 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func secretsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "secrets",
@@ -58,16 +59,35 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.SecretListParams{}
-			if query != "" { params.Q = query }
-			if key != "" { params.Key = key }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if key != "" {
+				params.Key = key
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			result, err := c.Secrets.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(result); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(result)
+				return nil
+			}
 			headers := []string{"ID", "KEY", "DESCRIPTION", "CREATED"}
 			rows := make([][]string, len(result.Data))
 			for i, s := range result.Data {
@@ -93,8 +113,13 @@ func secGetCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			s, err := c.Secrets.Get(ctx(), id)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(s); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(s)
+				return nil
+			}
 			fmt.Printf("ID:    %s\nKey:   %s\nValue: %s\nDesc:  %s\n", fmtInt64Ptr(s.ID), s.Key, fmtStr(s.Value), fmtStr(s.Description))
 			return nil
 		},
@@ -109,16 +134,30 @@ func secCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.SecretCreateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("key") { params.Key = key }
-			if cmd.Flags().Changed("value") { params.Value = value }
-			if cmd.Flags().Changed("description") { params.Description = &desc }
-			
-			if params.Key == "" { return fmt.Errorf("required field 'key' not set") }
-			if params.Value == "" { return fmt.Errorf("required field 'value' not set") }
-			
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("key") {
+				params.Key = key
+			}
+			if cmd.Flags().Changed("value") {
+				params.Value = value
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &desc
+			}
+
+			if params.Key == "" {
+				return fmt.Errorf("required field 'key' not set")
+			}
+			if params.Value == "" {
+				return fmt.Errorf("required field 'value' not set")
+			}
+
 			s, err := c.Secrets.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Created secret %s (%s)\n", fmtInt64Ptr(s.ID), s.Key)
 			return nil
 		},
@@ -137,11 +176,19 @@ func secUpdateCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.SecretUpdateParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("value") { params.Value = &value }
-			if cmd.Flags().Changed("description") { params.Description = &desc }
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("value") {
+				params.Value = &value
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &desc
+			}
 			s, err := c.Secrets.Update(ctx(), id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Updated secret %s\n", fmtInt64Ptr(s.ID))
 			return nil
 		},
@@ -157,10 +204,11 @@ func secDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Secrets.Delete(ctx(), id))
+			if err := c.Secrets.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Secret %d deleted\n", id)
 			return nil
 		},
 	}
 }
-

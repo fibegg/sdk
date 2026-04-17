@@ -80,16 +80,40 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.PropListParams{}
-			if query != "" { params.Q = query }
-			if status != "" { params.Status = status }
-			if provider != "" { params.Provider = provider }
-			if name != "" { params.Name = name }
-			if private == "true" { t := true; params.Private = &t } else if private == "false" { f := false; params.Private = &f }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if provider != "" {
+				params.Provider = provider
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if private == "true" {
+				t := true
+				params.Private = &t
+			} else if private == "false" {
+				f := false
+				params.Private = &f
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			props, err := c.Props.List(ctx(), params)
 			if err != nil {
 				return err
@@ -186,11 +210,21 @@ EXAMPLES:
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("url") { params.RepositoryURL = repoURL }
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("private") { params.Private = &private }
-			if cmd.Flags().Changed("default-branch") { params.DefaultBranch = &defaultBranch }
-			if cmd.Flags().Changed("provider") { params.Provider = &provider }
+			if cmd.Flags().Changed("url") {
+				params.RepositoryURL = repoURL
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("private") {
+				params.Private = &private
+			}
+			if cmd.Flags().Changed("default-branch") {
+				params.DefaultBranch = &defaultBranch
+			}
+			if cmd.Flags().Changed("provider") {
+				params.Provider = &provider
+			}
 			if cmd.Flags().Changed("docker-compose") {
 				v := resolveStringValue(dockerCompose)
 				params.DockerComposeYAML = &v
@@ -236,7 +270,7 @@ OPTIONAL FLAGS:
 EXAMPLES:
   fibe props update 5 --name renamed
   fibe props update 5 --default-branch main --private` + generateSchemaDoc(&fibe.PropUpdateParams{}),
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
@@ -244,11 +278,21 @@ EXAMPLES:
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("url") { params.RepositoryURL = &repoURL }
-			if cmd.Flags().Changed("private") { params.Private = &private }
-			if cmd.Flags().Changed("default-branch") { params.DefaultBranch = &defaultBranch }
-			if cmd.Flags().Changed("provider") { params.Provider = &provider }
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("url") {
+				params.RepositoryURL = &repoURL
+			}
+			if cmd.Flags().Changed("private") {
+				params.Private = &private
+			}
+			if cmd.Flags().Changed("default-branch") {
+				params.DefaultBranch = &defaultBranch
+			}
+			if cmd.Flags().Changed("provider") {
+				params.Provider = &provider
+			}
 			if cmd.Flags().Changed("docker-compose") {
 				v := resolveStringValue(dockerCompose)
 				params.DockerComposeYAML = &v
@@ -279,7 +323,9 @@ func propDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Props.Delete(ctx(), id))
+			if err := c.Props.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Prop %d deleted\n", id)
 			return nil
 		},
@@ -360,7 +406,9 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Props.Sync(ctx(), id))
+			if err := c.Props.Sync(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Sync scheduled for prop %d\n", id)
 			return nil
 		},

@@ -7,6 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func marqueesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "marquees",
@@ -64,20 +65,43 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.MarqueeListParams{}
-			if query != "" { params.Q = query }
-			if status != "" { params.Status = status }
-			if name != "" { params.Name = name }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			mqs, err := c.Marquees.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(mqs); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(mqs)
+				return nil
+			}
 			headers := []string{"ID", "NAME", "HOST", "STATUS"}
 			rows := make([][]string, len(mqs.Data))
-			for i, m := range mqs.Data { rows[i] = []string{fmtInt64(m.ID), m.Name, m.Host, m.Status} }
+			for i, m := range mqs.Data {
+				rows[i] = []string{fmtInt64(m.ID), m.Name, m.Host, m.Status}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -99,8 +123,13 @@ func mqGetCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			mq, err := c.Marquees.Get(ctx(), id)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(mq); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(mq)
+				return nil
+			}
 			fmt.Printf("ID:     %d\nName:   %s\nHost:   %s:%d\nUser:   %s\nStatus: %s\n", mq.ID, mq.Name, mq.Host, mq.Port, mq.User, mq.Status)
 			return nil
 		},
@@ -119,21 +148,45 @@ func mqCreateCmd() *cobra.Command {
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = name }
-			if cmd.Flags().Changed("host") { params.Host = host }
-			if cmd.Flags().Changed("port") { params.Port = port }
-			if cmd.Flags().Changed("user") { params.User = user }
-			if cmd.Flags().Changed("ssh-key") { params.SSHPrivateKey = sshKey }
-			if cmd.Flags().Changed("status") { params.Status = &status }
-			if cmd.Flags().Changed("dns-provider") { params.DnsProvider = &dnsProvider }
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+			if cmd.Flags().Changed("host") {
+				params.Host = host
+			}
+			if cmd.Flags().Changed("port") {
+				params.Port = port
+			}
+			if cmd.Flags().Changed("user") {
+				params.User = user
+			}
+			if cmd.Flags().Changed("ssh-key") {
+				params.SSHPrivateKey = sshKey
+			}
+			if cmd.Flags().Changed("status") {
+				params.Status = &status
+			}
+			if cmd.Flags().Changed("dns-provider") {
+				params.DnsProvider = &dnsProvider
+			}
 
-			if params.Name == "" { return fmt.Errorf("required field 'name' not set") }
-			if params.Host == "" { return fmt.Errorf("required field 'host' not set") }
-			if params.User == "" { return fmt.Errorf("required field 'user' not set") }
-			if params.SSHPrivateKey == "" { return fmt.Errorf("required field 'ssh-key' not set") }
+			if params.Name == "" {
+				return fmt.Errorf("required field 'name' not set")
+			}
+			if params.Host == "" {
+				return fmt.Errorf("required field 'host' not set")
+			}
+			if params.User == "" {
+				return fmt.Errorf("required field 'user' not set")
+			}
+			if params.SSHPrivateKey == "" {
+				return fmt.Errorf("required field 'ssh-key' not set")
+			}
 
 			mq, err := c.Marquees.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Created marquee %d (%s)\n", mq.ID, mq.Name)
 			return nil
 		},
@@ -160,11 +213,19 @@ func mqUpdateCmd() *cobra.Command {
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("status") { params.Status = &status }
-			if cmd.Flags().Changed("dns-provider") { params.DnsProvider = &dnsProvider }
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("status") {
+				params.Status = &status
+			}
+			if cmd.Flags().Changed("dns-provider") {
+				params.DnsProvider = &dnsProvider
+			}
 			mq, err := c.Marquees.Update(ctx(), id, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Printf("Updated marquee %d\n", mq.ID)
 			return nil
 		},
@@ -182,7 +243,9 @@ func mqDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			must(c.Marquees.Delete(ctx(), id))
+			if err := c.Marquees.Delete(ctx(), id); err != nil {
+				return err
+			}
 			fmt.Printf("Marquee %d deleted\n", id)
 			return nil
 		},
@@ -197,7 +260,9 @@ func mqSSHKeyCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			result, err := c.Marquees.GenerateSSHKey(ctx(), id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Println(result.PublicKey)
 			return nil
 		},
@@ -212,7 +277,9 @@ func mqTestCmd() *cobra.Command {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
 			result, err := c.Marquees.TestConnection(ctx(), id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			if result.Success {
 				fmt.Println("Connection successful")
 			} else {
@@ -243,13 +310,25 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AutoconnectTokenParams{}
-			if email != "" { params.Email = email }
-			if domain != "" { params.Domain = domain }
-			if ip != "" { params.IP = ip }
-			if sslMode != "" { params.SSLMode = sslMode }
-			if dnsProvider != "" { params.DnsProvider = dnsProvider }
+			if email != "" {
+				params.Email = email
+			}
+			if domain != "" {
+				params.Domain = domain
+			}
+			if ip != "" {
+				params.IP = ip
+			}
+			if sslMode != "" {
+				params.SSLMode = sslMode
+			}
+			if dnsProvider != "" {
+				params.DnsProvider = dnsProvider
+			}
 			result, err := c.Marquees.AutoconnectToken(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			fmt.Println(result.Token)
 			return nil
 		},

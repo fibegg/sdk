@@ -120,6 +120,9 @@ FIBE_API_KEY=pk_live_... fibe mcp serve
 
 # Serve multiple tenants over SSE with per-request bearer auth
 fibe mcp serve --http :8080 --require-auth
+
+# Emit a remote MCP entry for clients that support URL-backed servers
+fibe mcp install --client antigravity --transport streamable-http --url https://fibe.example.com/mcp
 ```
 
 Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments. Do not expose it to untrusted remote callers.
