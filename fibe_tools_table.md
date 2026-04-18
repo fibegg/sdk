@@ -119,6 +119,10 @@
 | `fibe_secrets_get` | Show secret metadata (value is redacted) |
 | `fibe_secrets_list` | List all secrets |
 | `fibe_secrets_update` | Update a secret |
+| `fibe_job_env_delete` | Delete a job ENV entry |
+| `fibe_job_env_list` | List global and Prop-scoped job ENV entries |
+| `fibe_job_env_set` | Create a global or Prop-scoped job ENV entry |
+| `fibe_job_env_update` | Update a job ENV entry |
 | `fibe_server_info` | Show Fibe server UTC time, build time, and git commit SHA |
 | `fibe_status` | Show account status dashboard (counts across all resources in one request) |
 | `fibe_teams_create` | Create a team |
@@ -143,7 +147,11 @@
 | `fibe_templates_launch` | Launch a playground from an import template |
 | `fibe_templates_list` | List import templates |
 | `fibe_templates_search` | Search import templates |
+| `fibe_templates_source_clear` | Clear tracked source metadata from an import template |
+| `fibe_templates_source_refresh` | Refresh an import template from its tracked source file |
+| `fibe_templates_source_set` | Set or update a tracked Prop file as an import template source |
 | `fibe_templates_update` | Update an import template |
+| `fibe_templates_upgrade_playspecs` | Upgrade linked job Playspecs to a target template version |
 | `fibe_templates_upload_image` | Upload a cover image for an import template (required: id, filename, image_data OR content_path) |
 | `fibe_templates_versions_create` | Create a new template version (accepts 'template_body' or legacy 'body') |
 | `fibe_templates_versions_destroy` | Delete a template version |

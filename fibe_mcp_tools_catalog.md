@@ -1,6 +1,6 @@
 # Fibe MCP Tools
 
-Total Tools: 163
+Total Tools: 171
 
 ## `fibe_agents_activity_get`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
@@ -704,6 +704,30 @@ List all secrets
 ### Description
 Update a secret
 
+## `fibe_job_env_delete`
+**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
+
+### Description
+Delete a job ENV entry
+
+## `fibe_job_env_list`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+List global and Prop-scoped job ENV entries
+
+## `fibe_job_env_set`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+
+### Description
+Create a global or Prop-scoped job ENV entry
+
+## `fibe_job_env_update`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+
+### Description
+Update a job ENV entry
+
 ## `fibe_server_info`
 **Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
 
@@ -848,11 +872,35 @@ List import templates
 ### Description
 Search import templates
 
+## `fibe_templates_source_clear`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Clear tracked source metadata from an import template
+
+## `fibe_templates_source_refresh`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Refresh an import template from its tracked source file
+
+## `fibe_templates_source_set`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Set or update a tracked Prop file as an import template source
+
 ## `fibe_templates_update`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
 
 ### Description
 Update an import template
+
+## `fibe_templates_upgrade_playspecs`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Upgrade linked job Playspecs to a target template version
 
 ## `fibe_templates_upload_image`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False

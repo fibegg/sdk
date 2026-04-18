@@ -25,6 +25,7 @@ func (s *Server) registerParityTools() {
 	s.registerHunkParity()
 	s.registerImportTemplateParity()
 	s.registerInstallationParity()
+	s.registerJobEnvParity()
 	s.registerMarqueeParity()
 	s.registerMutterParity()
 	s.registerPlayspecParity()
@@ -406,46 +407,48 @@ func (s *Server) registerArtefactParity() {
 // ---------- Hunks ----------
 
 func (s *Server) registerHunkParity() {
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_hunks_ingest", description: "Trigger hunk ingestion for a prop", tier: tierFull,
-// 		annotations: toolAnnotations{Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			propID, ok := argInt64(args, "prop_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'prop_id' not set")
-// 			}
-// 			force := argBool(args, "force")
-// 			if err := c.Hunks.Ingest(ctx, propID, force); err != nil {
-// 				return nil, err
-// 			}
-// 			return map[string]any{"prop_id": propID, "ingested": true, "force": force}, nil
-// 		},
-// 	}, mcp.NewTool("fibe_hunks_ingest",
-// 		mcp.WithDescription("Kick off hunk ingestion for a prop. Pass force:true to re-ingest already-processed hunks."),
-// 		mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
-// 		mcp.WithBoolean("force", mcp.Description("Force re-ingestion")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_hunks_ingest", description: "Trigger hunk ingestion for a prop", tier: tierFull,
+	// 		annotations: toolAnnotations{Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			propID, ok := argInt64(args, "prop_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'prop_id' not set")
+	// 			}
+	// 			force := argBool(args, "force")
+	// 			if err := c.Hunks.Ingest(ctx, propID, force); err != nil {
+	// 				return nil, err
+	// 			}
+	// 			return map[string]any{"prop_id": propID, "ingested": true, "force": force}, nil
+	// 		},
+	// 	}, mcp.NewTool("fibe_hunks_ingest",
+	// 		mcp.WithDescription("Kick off hunk ingestion for a prop. Pass force:true to re-ingest already-processed hunks."),
+	// 		mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
+	// 		mcp.WithBoolean("force", mcp.Description("Force re-ingestion")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_hunks_next", description: "Fetch the next hunk awaiting processing (requires processor_name)", tier: tierFull,
-// 		annotations: toolAnnotations{},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			aliasField(args, "processor_name", "processor", "worker")
-// 			propID, ok := argInt64(args, "prop_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'prop_id' not set")
-// 			}
-// 			proc := argString(args, "processor_name")
-// 			if proc == "" {
-// 				return nil, fmt.Errorf("required field 'processor_name' not set — the worker claiming the hunk must identify itself (alias: 'processor')")
-// 			}
-// 			return c.Hunks.Next(ctx, propID, proc)
-// 		},
-// 	}, mcp.NewTool("fibe_hunks_next",
-// 		mcp.WithDescription("Claim the next hunk awaiting processing by the named processor. 'processor_name' is REQUIRED — it's the identifier the backend uses to track which worker owns the hunk. Alias 'processor' is accepted."),
-// 		mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
-// 		mcp.WithString("processor_name", mcp.Required(), mcp.Description("Processor identifier (required — alias: 'processor')")),
-// 	))
+	//	s.addTool(&toolImpl{
+	//		name: "fibe_hunks_next", description: "Fetch the next hunk awaiting processing (requires processor_name)", tier: tierFull,
+	//		annotations: toolAnnotations{},
+	//		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	//			aliasField(args, "processor_name", "processor", "worker")
+	//			propID, ok := argInt64(args, "prop_id")
+	//			if !ok {
+	//				return nil, fmt.Errorf("required field 'prop_id' not set")
+	//			}
+	//			proc := argString(args, "processor_name")
+	//			if proc == "" {
+	//				return nil, fmt.Errorf("required field 'processor_name' not set — the worker claiming the hunk must identify itself (alias: 'processor')")
+	//			}
+	//			return c.Hunks.Next(ctx, propID, proc)
+	//		},
+	//	}, mcp.NewTool("fibe_hunks_next",
+	//
+	//	mcp.WithDescription("Claim the next hunk awaiting processing by the named processor. 'processor_name' is REQUIRED — it's the identifier the backend uses to track which worker owns the hunk. Alias 'processor' is accepted."),
+	//	mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
+	//	mcp.WithString("processor_name", mcp.Required(), mcp.Description("Processor identifier (required — alias: 'processor')")),
+	//
+	// ))
 }
 
 // ---------- Import Templates ----------
@@ -559,6 +562,91 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
+		name: "fibe_templates_source_set", description: "Set or update a tracked Prop file as an import template source", tier: tierFull,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			aliasField(args, "source_prop_id", "prop_id")
+			aliasField(args, "source_path", "path")
+			aliasField(args, "source_ref", "ref")
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.ImportTemplateSourceParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.SourcePropID <= 0 {
+				return nil, fmt.Errorf("required field 'source_prop_id' not set (also accepts 'prop_id')")
+			}
+			if p.SourcePath == "" {
+				return nil, fmt.Errorf("required field 'source_path' not set (also accepts 'path')")
+			}
+			return c.ImportTemplates.SetSource(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_templates_source_set",
+		mcp.WithDescription("Set or update a tracked Prop file as an import template source"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
+		mcp.WithNumber("source_prop_id", mcp.Required(), mcp.Description("Source Prop ID (alias: prop_id)")),
+		mcp.WithString("source_path", mcp.Required(), mcp.Description("Source YAML path (alias: path)")),
+		mcp.WithString("source_ref", mcp.Description("Source branch/ref (alias: ref)")),
+		mcp.WithBoolean("source_auto_refresh", mcp.Description("Refresh on matching pushes")),
+		mcp.WithBoolean("source_auto_upgrade", mcp.Description("Auto-upgrade linked job Playspecs")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_source_refresh", description: "Refresh an import template from its tracked source file", tier: tierFull,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.ImportTemplates.RefreshSource(ctx, id)
+		},
+	}, mcp.NewTool("fibe_templates_source_refresh",
+		mcp.WithDescription("Refresh an import template from its tracked source file"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_source_clear", description: "Clear tracked source metadata from an import template", tier: tierFull,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.ImportTemplates.ClearSource(ctx, id)
+		},
+	}, mcp.NewTool("fibe_templates_source_clear",
+		mcp.WithDescription("Clear tracked source metadata from an import template"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_upgrade_playspecs", description: "Upgrade linked job Playspecs to a target template version", tier: tierFull,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			aliasField(args, "template_id", "id")
+			aliasField(args, "version_id", "target_version_id")
+			tid, ok := argInt64(args, "template_id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'template_id' not set")
+			}
+			vid, ok := argInt64(args, "version_id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'version_id' not set (also accepts 'target_version_id')")
+			}
+			return c.ImportTemplates.UpgradeLinkedPlayspecs(ctx, tid, vid)
+		},
+	}, mcp.NewTool("fibe_templates_upgrade_playspecs",
+		mcp.WithDescription("Upgrade linked job Playspecs to a target template version"),
+		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID (alias: id)")),
+		mcp.WithNumber("version_id", mcp.Required(), mcp.Description("Target template version ID (alias: target_version_id)")),
+	))
+
+	s.addTool(&toolImpl{
 		name: "fibe_templates_launch", description: "Bootstrap and launch a new playground directly from an import template", tier: tierCore,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -621,6 +709,96 @@ func (s *Server) registerImportTemplateParity() {
 		mcp.WithString("content_base64", mcp.Description("Alias for image_data")),
 		mcp.WithString("content_path", mcp.Description("Absolute local path to read (local MCP only)")),
 		mcp.WithString("content_type", mcp.Description("MIME type (default: image/png)")),
+	))
+}
+
+// ---------- Job ENV ----------
+
+func (s *Server) registerJobEnvParity() {
+	s.addTool(&toolImpl{
+		name: "fibe_job_env_list", description: "List global and Prop-scoped job ENV entries", tier: tierFull,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			var p fibe.JobEnvListParams
+			_ = bindArgs(args, &p)
+			return c.JobEnv.List(ctx, &p)
+		},
+	}, mcp.NewTool("fibe_job_env_list",
+		mcp.WithDescription("List global and Prop-scoped job ENV entries"),
+		mcp.WithNumber("prop_id", mcp.Description("Optional Prop ID")),
+		mcp.WithBoolean("secret", mcp.Description("Filter by secret flag")),
+		mcp.WithBoolean("enabled", mcp.Description("Filter by enabled flag")),
+		mcp.WithString("q", mcp.Description("Search key/description")),
+		mcp.WithNumber("page", mcp.Description("Page number")),
+		mcp.WithNumber("per_page", mcp.Description("Page size")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_job_env_set", description: "Create a global or Prop-scoped job ENV entry", tier: tierFull,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			var p fibe.JobEnvSetParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.Key == "" {
+				return nil, fmt.Errorf("required field 'key' not set")
+			}
+			if p.Value == "" {
+				return nil, fmt.Errorf("required field 'value' not set")
+			}
+			return c.JobEnv.Set(ctx, &p)
+		},
+	}, mcp.NewTool("fibe_job_env_set",
+		mcp.WithDescription("Create a global or Prop-scoped job ENV entry"),
+		mcp.WithString("key", mcp.Required(), mcp.Description("ENV key")),
+		mcp.WithString("value", mcp.Required(), mcp.Description("ENV value")),
+		mcp.WithNumber("prop_id", mcp.Description("Optional Prop ID")),
+		mcp.WithBoolean("secret", mcp.Description("Store as secret")),
+		mcp.WithBoolean("enabled", mcp.Description("Enabled flag")),
+		mcp.WithString("description", mcp.Description("Optional description")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_job_env_update", description: "Update a job ENV entry", tier: tierFull,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.JobEnvUpdateParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			return c.JobEnv.Update(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_job_env_update",
+		mcp.WithDescription("Update a job ENV entry"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
+		mcp.WithString("value", mcp.Description("New value")),
+		mcp.WithBoolean("secret", mcp.Description("Secret flag")),
+		mcp.WithBoolean("enabled", mcp.Description("Enabled flag")),
+		mcp.WithString("description", mcp.Description("Description")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_job_env_delete", description: "Delete a job ENV entry", tier: tierFull,
+		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			if err := c.JobEnv.Delete(ctx, id); err != nil {
+				return nil, err
+			}
+			return map[string]any{"id": id, "deleted": true}, nil
+		},
+	}, mcp.NewTool("fibe_job_env_delete",
+		mcp.WithDescription("Delete a job ENV entry"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
+		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 }
 
@@ -1017,199 +1195,201 @@ func (s *Server) registerPropParity() {
 // ---------- Teams ----------
 
 func (s *Server) registerTeamParity() {
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_transfer_leadership", description: "Transfer team leadership to another member (accepts 'id' or 'team_id')", tier: tierFull,
-// 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			aliasField(args, "id", "team_id")
-// 			id, ok := argInt64(args, "id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'id' not set (also accepts 'team_id' as alias)")
-// 			}
-// 			newLeader, ok := argInt64(args, "new_leader_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'new_leader_id' not set")
-// 			}
-// 			return c.Teams.TransferLeadership(ctx, id, newLeader)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_transfer_leadership",
-// 		mcp.WithDescription("Transfer team leadership to another member. Destructive: you lose admin rights. Canonical team field is 'id'; 'team_id' is accepted as an alias for consistency with fibe_teams_members_* tools."),
-// 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Team ID (alias: 'team_id')")),
-// 		mcp.WithNumber("new_leader_id", mcp.Required(), mcp.Description("Player ID of the new leader")),
-// 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_transfer_leadership", description: "Transfer team leadership to another member (accepts 'id' or 'team_id')", tier: tierFull,
+	// 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			aliasField(args, "id", "team_id")
+	// 			id, ok := argInt64(args, "id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'id' not set (also accepts 'team_id' as alias)")
+	// 			}
+	// 			newLeader, ok := argInt64(args, "new_leader_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'new_leader_id' not set")
+	// 			}
+	// 			return c.Teams.TransferLeadership(ctx, id, newLeader)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_transfer_leadership",
+	// 		mcp.WithDescription("Transfer team leadership to another member. Destructive: you lose admin rights. Canonical team field is 'id'; 'team_id' is accepted as an alias for consistency with fibe_teams_members_* tools."),
+	// 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Team ID (alias: 'team_id')")),
+	// 		mcp.WithNumber("new_leader_id", mcp.Required(), mcp.Description("Player ID of the new leader")),
+	// 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_members_invite", description: "Invite a user to a team", tier: tierFull,
-// 		annotations: toolAnnotations{},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			username := argString(args, "username")
-// 			if username == "" {
-// 				return nil, fmt.Errorf("required field 'username' not set")
-// 			}
-// 			return c.Teams.InviteMember(ctx, teamID, username)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_members_invite",
-// 		mcp.WithDescription("Invite a user to a team by username."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithString("username", mcp.Required(), mcp.Description("Username (platform handle)")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_members_invite", description: "Invite a user to a team", tier: tierFull,
+	// 		annotations: toolAnnotations{},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			username := argString(args, "username")
+	// 			if username == "" {
+	// 				return nil, fmt.Errorf("required field 'username' not set")
+	// 			}
+	// 			return c.Teams.InviteMember(ctx, teamID, username)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_members_invite",
+	// 		mcp.WithDescription("Invite a user to a team by username."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithString("username", mcp.Required(), mcp.Description("Username (platform handle)")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_members_accept", description: "Accept a pending team invite", tier: tierFull,
-// 		annotations: toolAnnotations{},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			memID, ok := argInt64(args, "membership_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'membership_id' not set")
-// 			}
-// 			return c.Teams.AcceptInvite(ctx, teamID, memID)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_members_accept",
-// 		mcp.WithDescription("Accept a pending team membership invite."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_members_accept", description: "Accept a pending team invite", tier: tierFull,
+	// 		annotations: toolAnnotations{},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			memID, ok := argInt64(args, "membership_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'membership_id' not set")
+	// 			}
+	// 			return c.Teams.AcceptInvite(ctx, teamID, memID)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_members_accept",
+	// 		mcp.WithDescription("Accept a pending team membership invite."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_members_decline", description: "Decline a pending team invite", tier: tierFull,
-// 		annotations: toolAnnotations{},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			memID, ok := argInt64(args, "membership_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'membership_id' not set")
-// 			}
-// 			return c.Teams.DeclineInvite(ctx, teamID, memID)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_members_decline",
-// 		mcp.WithDescription("Decline a pending team membership invite."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_members_decline", description: "Decline a pending team invite", tier: tierFull,
+	// 		annotations: toolAnnotations{},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			memID, ok := argInt64(args, "membership_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'membership_id' not set")
+	// 			}
+	// 			return c.Teams.DeclineInvite(ctx, teamID, memID)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_members_decline",
+	// 		mcp.WithDescription("Decline a pending team membership invite."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_members_update", description: "Update a team member's role", tier: tierFull,
-// 		annotations: toolAnnotations{Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			memID, ok := argInt64(args, "membership_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'membership_id' not set")
-// 			}
-// 			role := argString(args, "role")
-// 			if role == "" {
-// 				return nil, fmt.Errorf("required field 'role' not set")
-// 			}
-// 			return c.Teams.UpdateMember(ctx, teamID, memID, role)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_members_update",
-// 		mcp.WithDescription("Update a team member's role."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
-// 		mcp.WithString("role", mcp.Required(), mcp.Description("New role (admin, member, ...)")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_members_update", description: "Update a team member's role", tier: tierFull,
+	// 		annotations: toolAnnotations{Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			memID, ok := argInt64(args, "membership_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'membership_id' not set")
+	// 			}
+	// 			role := argString(args, "role")
+	// 			if role == "" {
+	// 				return nil, fmt.Errorf("required field 'role' not set")
+	// 			}
+	// 			return c.Teams.UpdateMember(ctx, teamID, memID, role)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_members_update",
+	// 		mcp.WithDescription("Update a team member's role."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
+	// 		mcp.WithString("role", mcp.Required(), mcp.Description("New role (admin, member, ...)")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_members_remove", description: "Remove a member from a team", tier: tierFull,
-// 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			memID, ok := argInt64(args, "membership_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'membership_id' not set")
-// 			}
-// 			if err := c.Teams.RemoveMember(ctx, teamID, memID); err != nil {
-// 				return nil, err
-// 			}
-// 			return map[string]any{"team_id": teamID, "membership_id": memID, "removed": true}, nil
-// 		},
-// 	}, mcp.NewTool("fibe_teams_members_remove",
-// 		mcp.WithDescription("Remove a member from a team."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
-// 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_members_remove", description: "Remove a member from a team", tier: tierFull,
+	// 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			memID, ok := argInt64(args, "membership_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'membership_id' not set")
+	// 			}
+	// 			if err := c.Teams.RemoveMember(ctx, teamID, memID); err != nil {
+	// 				return nil, err
+	// 			}
+	// 			return map[string]any{"team_id": teamID, "membership_id": memID, "removed": true}, nil
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_members_remove",
+	// 		mcp.WithDescription("Remove a member from a team."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithNumber("membership_id", mcp.Required(), mcp.Description("Membership ID")),
+	// 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_resources_list", description: "List resources owned by a team", tier: tierFull,
-// 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			var p fibe.ListParams
-// 			_ = bindArgs(args, &p)
-// 			return c.Teams.ListResources(ctx, teamID, &p)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_resources_list",
-// 		mcp.WithDescription("List shared resources owned by a team."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("page", mcp.Description("Page number")),
-// 		mcp.WithNumber("per_page", mcp.Description("Page size")),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_resources_list", description: "List resources owned by a team", tier: tierFull,
+	// 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			var p fibe.ListParams
+	// 			_ = bindArgs(args, &p)
+	// 			return c.Teams.ListResources(ctx, teamID, &p)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_resources_list",
+	// 		mcp.WithDescription("List shared resources owned by a team."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithNumber("page", mcp.Description("Page number")),
+	// 		mcp.WithNumber("per_page", mcp.Description("Page size")),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_resources_contribute", description: "Contribute a resource to a team", tier: tierFull,
-// 		annotations: toolAnnotations{Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			var p fibe.TeamResourceParams
-// 			if err := bindArgs(args, &p); err != nil {
-// 				return nil, err
-// 			}
-// 			return c.Teams.ContributeResource(ctx, teamID, &p)
-// 		},
-// 	}, mcp.NewTool("fibe_teams_resources_contribute",
-// 		mcp.WithDescription("Share a resource with a team."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithInputSchema[fibe.TeamResourceParams](),
-// 	))
+	// 	s.addTool(&toolImpl{
+	// 		name: "fibe_teams_resources_contribute", description: "Contribute a resource to a team", tier: tierFull,
+	// 		annotations: toolAnnotations{Idempotent: true},
+	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	// 			teamID, ok := argInt64(args, "team_id")
+	// 			if !ok {
+	// 				return nil, fmt.Errorf("required field 'team_id' not set")
+	// 			}
+	// 			var p fibe.TeamResourceParams
+	// 			if err := bindArgs(args, &p); err != nil {
+	// 				return nil, err
+	// 			}
+	// 			return c.Teams.ContributeResource(ctx, teamID, &p)
+	// 		},
+	// 	}, mcp.NewTool("fibe_teams_resources_contribute",
+	// 		mcp.WithDescription("Share a resource with a team."),
+	// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	// 		mcp.WithInputSchema[fibe.TeamResourceParams](),
+	// 	))
 
-// 	s.addTool(&toolImpl{
-// 		name: "fibe_teams_resources_remove", description: "Remove a shared team resource", tier: tierFull,
-// 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
-// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-// 			teamID, ok := argInt64(args, "team_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'team_id' not set")
-// 			}
-// 			resID, ok := argInt64(args, "resource_id")
-// 			if !ok {
-// 				return nil, fmt.Errorf("required field 'resource_id' not set")
-// 			}
-// 			if err := c.Teams.RemoveResource(ctx, teamID, resID); err != nil {
-// 				return nil, err
-// 			}
-// 			return map[string]any{"team_id": teamID, "resource_id": resID, "removed": true}, nil
-// 		},
-// 	}, mcp.NewTool("fibe_teams_resources_remove",
-// 		mcp.WithDescription("Remove a shared resource from a team."),
-// 		mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
-// 		mcp.WithNumber("resource_id", mcp.Required(), mcp.Description("Resource ID")),
-// 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
-// 	))
+	//	s.addTool(&toolImpl{
+	//		name: "fibe_teams_resources_remove", description: "Remove a shared team resource", tier: tierFull,
+	//		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+	//		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	//			teamID, ok := argInt64(args, "team_id")
+	//			if !ok {
+	//				return nil, fmt.Errorf("required field 'team_id' not set")
+	//			}
+	//			resID, ok := argInt64(args, "resource_id")
+	//			if !ok {
+	//				return nil, fmt.Errorf("required field 'resource_id' not set")
+	//			}
+	//			if err := c.Teams.RemoveResource(ctx, teamID, resID); err != nil {
+	//				return nil, err
+	//			}
+	//			return map[string]any{"team_id": teamID, "resource_id": resID, "removed": true}, nil
+	//		},
+	//	}, mcp.NewTool("fibe_teams_resources_remove",
+	//
+	//	mcp.WithDescription("Remove a shared resource from a team."),
+	//	mcp.WithNumber("team_id", mcp.Required(), mcp.Description("Team ID")),
+	//	mcp.WithNumber("resource_id", mcp.Required(), mcp.Description("Resource ID")),
+	//	mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
+	//
+	// ))
 }
 
 // ---------- Webhooks ----------

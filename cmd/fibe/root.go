@@ -119,6 +119,7 @@ DOCUMENTATION:
 		propsCmd(),
 		marqueesCmd(),
 		secretsCmd(),
+		jobEnvCmd(),
 		apiKeysCmd(),
 		teamsCmd(),
 		templatesCmd(),

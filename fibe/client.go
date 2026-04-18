@@ -20,39 +20,40 @@ import (
 )
 
 type Client struct {
-	cfg            *clientConfig
-	http           *http.Client
-	rateLimit      *rateLimitTracker
-	breaker        *circuitBreaker
-	retry          *retryPolicy
-	lastRequestID  atomic.Value // stores string
+	cfg           *clientConfig
+	http          *http.Client
+	rateLimit     *rateLimitTracker
+	breaker       *circuitBreaker
+	retry         *retryPolicy
+	lastRequestID atomic.Value // stores string
 
-	Playgrounds      *PlaygroundService
-	Tricks           *TrickService
-	Agents           *AgentService
-	Artefacts        *ArtefactService
-	Playspecs        *PlayspecService
-	Props            *PropService
-	Marquees         *MarqueeService
-	Secrets          *SecretService
-	APIKeys          *APIKeyService
-	Teams            *TeamService
-	ImportTemplates  *ImportTemplateService
-	WebhookEndpoints *WebhookEndpointService
-	Mutations        *MutationService
-	Hunks            *HunkService
-	Feedbacks        *FeedbackService
-	Mutters          *MutterService
-	AuditLogs        *AuditLogService
-	Monitor          *MonitorService
-	GitHubRepos      *GitHubRepoService
-	GiteaRepos       *GiteaRepoService
-	Installations    *InstallationService
-	Launch           *LaunchService
-	RepoStatus       *RepoStatusService
+	Playgrounds        *PlaygroundService
+	Tricks             *TrickService
+	Agents             *AgentService
+	Artefacts          *ArtefactService
+	Playspecs          *PlayspecService
+	Props              *PropService
+	Marquees           *MarqueeService
+	Secrets            *SecretService
+	JobEnv             *JobEnvService
+	APIKeys            *APIKeyService
+	Teams              *TeamService
+	ImportTemplates    *ImportTemplateService
+	WebhookEndpoints   *WebhookEndpointService
+	Mutations          *MutationService
+	Hunks              *HunkService
+	Feedbacks          *FeedbackService
+	Mutters            *MutterService
+	AuditLogs          *AuditLogService
+	Monitor            *MonitorService
+	GitHubRepos        *GitHubRepoService
+	GiteaRepos         *GiteaRepoService
+	Installations      *InstallationService
+	Launch             *LaunchService
+	RepoStatus         *RepoStatusService
 	TemplateCategories *TemplateCategoryService
-	Status           *StatusService
-	ServerInfo       *ServerInfoService
+	Status             *StatusService
+	ServerInfo         *ServerInfoService
 }
 
 func NewClient(opts ...Option) *Client {
@@ -111,6 +112,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.Props = &PropService{client: c}
 	c.Marquees = &MarqueeService{client: c}
 	c.Secrets = &SecretService{client: c}
+	c.JobEnv = &JobEnvService{client: c}
 	c.APIKeys = &APIKeyService{client: c}
 	c.Teams = &TeamService{client: c}
 	c.ImportTemplates = &ImportTemplateService{client: c}

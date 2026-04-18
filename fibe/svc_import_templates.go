@@ -69,6 +69,32 @@ func (s *ImportTemplateService) CreateVersion(ctx context.Context, id int64, par
 	return &result, err
 }
 
+func (s *ImportTemplateService) SetSource(ctx context.Context, id int64, params *ImportTemplateSourceParams) (*ImportTemplate, error) {
+	var result ImportTemplate
+	body := map[string]any{"source": params}
+	err := s.client.do(ctx, http.MethodPut, fmt.Sprintf("/api/import_templates/%d/source", id), body, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) ClearSource(ctx context.Context, id int64) (*ImportTemplate, error) {
+	var result ImportTemplate
+	err := s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/import_templates/%d/source", id), nil, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) RefreshSource(ctx context.Context, id int64) (*ImportTemplateSourceRefreshResult, error) {
+	var result ImportTemplateSourceRefreshResult
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/import_templates/%d/source/refresh", id), nil, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) UpgradeLinkedPlayspecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
+	var result ImportTemplateUpgradeLinkedResult
+	path := fmt.Sprintf("/api/import_templates/%d/versions/%d/upgrade_linked_playspecs", templateID, versionID)
+	err := s.client.do(ctx, http.MethodPost, path, nil, &result)
+	return &result, err
+}
+
 func (s *ImportTemplateService) TogglePublic(ctx context.Context, templateID, versionID int64) (*ImportTemplateVersion, error) {
 	var result ImportTemplateVersion
 	path := fmt.Sprintf("/api/import_templates/%d/toggle_public", templateID)

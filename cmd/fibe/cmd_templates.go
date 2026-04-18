@@ -34,6 +34,10 @@ SUBCOMMANDS:
   versions create <id>                       Create a new version
   versions destroy <id> <ver-id>             Delete a version
   versions toggle-public <id> <ver-id>       Toggle version public visibility
+  source set <id>                            Track a Prop file as template source
+  source refresh <id>                        Refresh tracked source now
+  source clear <id>                          Clear tracked source
+  upgrade-playspecs <id>                     Upgrade linked job Playspecs to a version
   fork <id>                                  Fork a template into your account
   upload-image <id>                          Upload a cover image
   launch <id>                                Launch a playground from template`,
@@ -42,6 +46,7 @@ SUBCOMMANDS:
 		tplListCmd(), tplGetCmd(), tplCreateCmd(), tplUpdateCmd(), tplDeleteCmd(),
 		tplSearchCmd(), tplVersionsCmd(),
 		tplCreateVersionCmd(), tplDestroyVersionCmd(), tplTogglePublicCmd(),
+		tplSourceCmd(), tplUpgradePlayspecsCmd(),
 		tplForkCmd(), tplUploadImageCmd(), tplLaunchCmd(),
 	)
 	return cmd
@@ -321,6 +326,7 @@ func tplVersionsListCmd() *cobra.Command {
 
 func tplVersionsCreateCmd() *cobra.Command {
 	var body string
+	var changelog string
 	var public bool
 	cmd := &cobra.Command{
 		Use:   "create <template-id>",
@@ -346,6 +352,9 @@ EXAMPLES:
 			if cmd.Flags().Changed("public") {
 				params.Public = &public
 			}
+			if cmd.Flags().Changed("changelog") {
+				params.Changelog = &changelog
+			}
 			if params.TemplateBody == "" {
 				return fmt.Errorf("required field 'body' not set")
 			}
@@ -359,6 +368,113 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&body, "body", "", "Template YAML body (required, use @path to read file)")
 	cmd.Flags().BoolVar(&public, "public", false, "Mark version as public")
+	cmd.Flags().StringVar(&changelog, "changelog", "", "Optional changelog for this version")
+	return cmd
+}
+
+func tplSourceCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "source", Short: "Manage tracked template source"}
+	cmd.AddCommand(tplSourceSetCmd(), tplSourceRefreshCmd(), tplSourceClearCmd())
+	return cmd
+}
+
+func tplSourceSetCmd() *cobra.Command {
+	var propID int64
+	var path, ref string
+	var autoRefresh, autoUpgrade bool
+	cmd := &cobra.Command{
+		Use:   "set <template-id>",
+		Short: "Track a YAML file from a Prop",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			templateID, _ := strconv.ParseInt(args[0], 10, 64)
+			if propID <= 0 {
+				return fmt.Errorf("required field 'prop-id' not set")
+			}
+			if path == "" {
+				return fmt.Errorf("required field 'path' not set")
+			}
+			params := &fibe.ImportTemplateSourceParams{
+				SourcePropID: propID,
+				SourcePath:   path,
+				SourceRef:    ref,
+			}
+			if cmd.Flags().Changed("auto-refresh") {
+				params.SourceAutoRefresh = &autoRefresh
+			}
+			if cmd.Flags().Changed("auto-upgrade") {
+				params.SourceAutoUpgrade = &autoUpgrade
+			}
+			result, err := newClient().ImportTemplates.SetSource(ctx(), templateID, params)
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+	cmd.Flags().Int64Var(&propID, "prop-id", 0, "Source Prop ID (required)")
+	cmd.Flags().StringVar(&path, "path", "", "Source YAML path, e.g. fibe-ci.yml")
+	cmd.Flags().StringVar(&ref, "ref", "", "Source ref/branch")
+	cmd.Flags().BoolVar(&autoRefresh, "auto-refresh", true, "Refresh versions from matching pushes")
+	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Playspecs")
+	return cmd
+}
+
+func tplSourceRefreshCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "refresh <template-id>",
+		Short: "Refresh tracked template source now",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			templateID, _ := strconv.ParseInt(args[0], 10, 64)
+			result, err := newClient().ImportTemplates.RefreshSource(ctx(), templateID)
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+}
+
+func tplSourceClearCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "clear <template-id>",
+		Short: "Clear tracked template source",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			templateID, _ := strconv.ParseInt(args[0], 10, 64)
+			result, err := newClient().ImportTemplates.ClearSource(ctx(), templateID)
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+}
+
+func tplUpgradePlayspecsCmd() *cobra.Command {
+	var versionID int64
+	cmd := &cobra.Command{
+		Use:   "upgrade-playspecs <template-id>",
+		Short: "Upgrade linked job Playspecs to a template version",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			templateID, _ := strconv.ParseInt(args[0], 10, 64)
+			if versionID <= 0 {
+				return fmt.Errorf("required field 'target-version-id' not set")
+			}
+			result, err := newClient().ImportTemplates.UpgradeLinkedPlayspecs(ctx(), templateID, versionID)
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+	cmd.Flags().Int64Var(&versionID, "target-version-id", 0, "Target template version ID")
 	return cmd
 }
 
