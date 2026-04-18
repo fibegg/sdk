@@ -79,3 +79,25 @@ jobs:
         with:
           name: fibe-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/
+
+  notify-slack:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.result == 'success' }}
+    env:
+      SLACK_WORKFLOW_URL: ${{ secrets.SLACK_WORKFLOW_URL }}
+    steps:
+      - name: Post deployment message
+        run: |
+          if [ -z "$SLACK_WORKFLOW_URL" ]; then
+            echo "SLACK_WORKFLOW_URL is not set; skipping Slack notification."
+            exit 0
+          fi
+
+          if ! curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"message":"New binary is ready"}' \
+            "$SLACK_WORKFLOW_URL"; then
+            echo "::warning::Failed to notify Slack workflow."
+          fi
