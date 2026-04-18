@@ -560,6 +560,18 @@ Remove a registry credential from a playspec
 ### Description
 List services defined in a playspec
 
+## `fibe_playspecs_switch_version`
+**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** False
+
+### Description
+Switch a template-backed playspec to another template version
+
+## `fibe_playspecs_switch_version_preview`
+**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Preview switching a template-backed playspec to another template version
+
 ## `fibe_playspecs_update`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
 

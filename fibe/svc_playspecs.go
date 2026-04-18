@@ -56,6 +56,20 @@ func (s *PlayspecService) ValidateCompose(ctx context.Context, composeYAML strin
 	return &result, err
 }
 
+func (s *PlayspecService) PreviewTemplateVersionSwitch(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error) {
+	var result PlayspecTemplateVersionSwitchPreview
+	path := fmt.Sprintf("/api/playspecs/%d/template_version_switch/preview", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
+func (s *PlayspecService) SwitchTemplateVersion(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error) {
+	var result PlayspecTemplateVersionSwitchResult
+	path := fmt.Sprintf("/api/playspecs/%d/template_version_switch", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
 func (s *PlayspecService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) error {
 	fields := map[string]string{
 		"mount_path": params.MountPath,

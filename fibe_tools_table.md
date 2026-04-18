@@ -95,6 +95,8 @@
 | `fibe_playspecs_registry_credential_add` | Add a registry credential to a playspec (registry_type must be one of: ghcr, dockerhub, aws_ecr) |
 | `fibe_playspecs_registry_credential_remove` | Remove a registry credential from a playspec |
 | `fibe_playspecs_services` | List services defined in a playspec |
+| `fibe_playspecs_switch_version` | Switch a template-backed playspec to another template version |
+| `fibe_playspecs_switch_version_preview` | Preview switching a template-backed playspec to another template version |
 | `fibe_playspecs_update` | Update a playspec |
 | `fibe_playspecs_validate_compose` | Validate a docker-compose YAML as a Fibe playspec |
 | `fibe_props_attach` | Attach an existing GitHub repository to your account as a prop (accepts 'repo_full_name' or 'repository_url') |

@@ -730,6 +730,59 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
+		name: "fibe_playspecs_switch_version_preview", description: "Preview switching a template-backed playspec to another template version", tier: tierCore,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.PlayspecTemplateVersionSwitchParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.TargetTemplateVersionID == 0 {
+				return nil, fmt.Errorf("required field 'target_template_version_id' not set")
+			}
+			return c.Playspecs.PreviewTemplateVersionSwitch(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_playspecs_switch_version_preview",
+		mcp.WithDescription("Preview switching a template-backed playspec to another template version"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
+		mcp.WithNumber("target_template_version_id", mcp.Required(), mcp.Description("Target template version ID")),
+		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
+		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate"), mcp.WithStringItems()),
+		mcp.WithBoolean("confirm_warnings", mcp.Description("Preview flag mirrored from API; apply still requires confirmation for warnings")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_playspecs_switch_version", description: "Switch a template-backed playspec to another template version", tier: tierCore,
+		annotations: toolAnnotations{Destructive: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.PlayspecTemplateVersionSwitchParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.TargetTemplateVersionID == 0 {
+				return nil, fmt.Errorf("required field 'target_template_version_id' not set")
+			}
+			return c.Playspecs.SwitchTemplateVersion(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_playspecs_switch_version",
+		mcp.WithDescription("Switch a template-backed playspec to another template version"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
+		mcp.WithNumber("target_template_version_id", mcp.Required(), mcp.Description("Target template version ID")),
+		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
+		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate"), mcp.WithStringItems()),
+		mcp.WithBoolean("confirm_warnings", mcp.Description("Required when preview reports risky changes")),
+		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
+	))
+
+	s.addTool(&toolImpl{
 		name: "fibe_playspecs_mounted_file_add", description: "Attach a local file mount to a playspec blueprint", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {

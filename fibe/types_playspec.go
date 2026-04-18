@@ -7,17 +7,22 @@ import (
 
 // Playspec defines the service composition template.
 type Playspec struct {
-	ID              *int64     `json:"id"`
-	Name            string     `json:"name"`
-	Description     *string    `json:"description"`
-	Locked          *bool      `json:"locked"`
-	PersistVolumes  *bool      `json:"persist_volumes"`
-	JobMode         *bool      `json:"job_mode"`
-	PlaygroundCount *int64     `json:"playground_count"`
-	TriggerEnabled  *bool      `json:"trigger_enabled"`
-	MutiMode        *bool      `json:"muti_mode"`
-	CreatedAt       *time.Time `json:"created_at"`
-	UpdatedAt       *time.Time `json:"updated_at"`
+	ID                        *int64              `json:"id"`
+	Name                      string              `json:"name"`
+	Description               *string             `json:"description"`
+	Locked                    *bool               `json:"locked"`
+	PersistVolumes            *bool               `json:"persist_volumes"`
+	JobMode                   *bool               `json:"job_mode"`
+	PlaygroundCount           *int64              `json:"playground_count"`
+	TriggerEnabled            *bool               `json:"trigger_enabled"`
+	MutiMode                  *bool               `json:"muti_mode"`
+	CreatedAt                 *time.Time          `json:"created_at"`
+	UpdatedAt                 *time.Time          `json:"updated_at"`
+	SourceTemplateVersionID   *int64              `json:"source_template_version_id"`
+	SourceTemplateVersion     *TemplateVersionRef `json:"source_template_version"`
+	SourceTemplate            *TemplateRef        `json:"source_template"`
+	TemplateVersionSwitchable *bool               `json:"template_version_switchable"`
+	SuggestedTemplateVersion  *TemplateVersionRef `json:"suggested_template_version"`
 
 	// Detail fields
 	Services       []any             `json:"services,omitempty"`
@@ -28,6 +33,22 @@ type Playspec struct {
 	ScheduleConfig map[string]any    `json:"schedule_config,omitempty"`
 }
 
+type TemplateRef struct {
+	ID     *int64  `json:"id"`
+	Name   string  `json:"name"`
+	Author *string `json:"author,omitempty"`
+	System *bool   `json:"system,omitempty"`
+}
+
+type TemplateVersionRef struct {
+	ID        *int64       `json:"id"`
+	Version   *int64       `json:"version"`
+	Public    *bool        `json:"public"`
+	Approved  *bool        `json:"approved"`
+	CreatedAt *time.Time   `json:"created_at,omitempty"`
+	Template  *TemplateRef `json:"template,omitempty"`
+}
+
 type MountedFileInfo struct {
 	Filename    string `json:"filename"`
 	ByteSize    int64  `json:"byte_size"`
@@ -35,14 +56,14 @@ type MountedFileInfo struct {
 }
 
 type PlayspecCreateParams struct {
-	Name             string              `json:"name"`
-	Description      *string             `json:"description,omitempty"`
-	BaseComposeYAML  string              `json:"base_compose_yaml"`
-	PersistVolumes   *bool               `json:"persist_volumes,omitempty"`
-	JobMode          *bool               `json:"job_mode,omitempty"`
-	Services         []PlayspecServiceDef `json:"services,omitempty"`
-	TriggerConfig    map[string]any      `json:"trigger_config,omitempty"`
-	MutiConfig       map[string]any      `json:"muti_config,omitempty"`
+	Name            string               `json:"name"`
+	Description     *string              `json:"description,omitempty"`
+	BaseComposeYAML string               `json:"base_compose_yaml"`
+	PersistVolumes  *bool                `json:"persist_volumes,omitempty"`
+	JobMode         *bool                `json:"job_mode,omitempty"`
+	Services        []PlayspecServiceDef `json:"services,omitempty"`
+	TriggerConfig   map[string]any       `json:"trigger_config,omitempty"`
+	MutiConfig      map[string]any       `json:"muti_config,omitempty"`
 }
 
 func (p *PlayspecCreateParams) Validate() error {
@@ -87,14 +108,14 @@ type PlayspecServiceDef struct {
 }
 
 type PlayspecUpdateParams struct {
-	Name             *string             `json:"name,omitempty"`
-	Description      *string             `json:"description,omitempty"`
-	BaseComposeYAML  *string             `json:"base_compose_yaml,omitempty"`
-	PersistVolumes   *bool               `json:"persist_volumes,omitempty"`
-	JobMode          *bool               `json:"job_mode,omitempty"`
-	Services         []PlayspecServiceDef `json:"services,omitempty"`
-	TriggerConfig    map[string]any      `json:"trigger_config,omitempty"`
-	MutiConfig       map[string]any      `json:"muti_config,omitempty"`
+	Name            *string              `json:"name,omitempty"`
+	Description     *string              `json:"description,omitempty"`
+	BaseComposeYAML *string              `json:"base_compose_yaml,omitempty"`
+	PersistVolumes  *bool                `json:"persist_volumes,omitempty"`
+	JobMode         *bool                `json:"job_mode,omitempty"`
+	Services        []PlayspecServiceDef `json:"services,omitempty"`
+	TriggerConfig   map[string]any       `json:"trigger_config,omitempty"`
+	MutiConfig      map[string]any       `json:"muti_config,omitempty"`
 }
 
 type ComposeValidation struct {
@@ -134,6 +155,49 @@ type RegistryCredentialResult struct {
 	Credentials []RegistryCredentialInfo `json:"credentials"`
 }
 
+type PlayspecTemplateVersionSwitchParams struct {
+	TargetTemplateVersionID int64          `json:"target_template_version_id"`
+	Variables               map[string]any `json:"variables,omitempty"`
+	RegenerateVariables     []string       `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings         bool           `json:"confirm_warnings,omitempty"`
+}
+
+type PlayspecTemplateVersionSwitchResult struct {
+	FromTemplateVersion   *TemplateVersionRef          `json:"from_template_version"`
+	TargetTemplateVersion *TemplateVersionRef          `json:"target_template_version"`
+	SuggestedUpgrade      bool                         `json:"suggested_upgrade"`
+	RequiredVariables     []TemplateSwitchVariable     `json:"required_variables"`
+	TargetVariables       []TemplateSwitchVariable     `json:"target_variables"`
+	Warnings              []TemplateSwitchWarning      `json:"warnings"`
+	Diff                  map[string]any               `json:"diff"`
+	PlaygroundRolloutPlan TemplateSwitchPlaygroundPlan `json:"playground_rollout_plan"`
+	NoOp                  bool                         `json:"no_op"`
+	Playspec              *Playspec                    `json:"playspec"`
+}
+
+type PlayspecTemplateVersionSwitchPreview = PlayspecTemplateVersionSwitchResult
+
+type TemplateSwitchVariable struct {
+	Name       string `json:"name"`
+	Label      string `json:"label,omitempty"`
+	Required   bool   `json:"required,omitempty"`
+	Random     bool   `json:"random,omitempty"`
+	HasDefault bool   `json:"has_default,omitempty"`
+	Stored     bool   `json:"stored,omitempty"`
+	Validation string `json:"validation,omitempty"`
+}
+
+type TemplateSwitchWarning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Items   []any  `json:"items,omitempty"`
+}
+
+type TemplateSwitchPlaygroundPlan struct {
+	Blocked   []int64 `json:"blocked"`
+	Rollout   []int64 `json:"rollout"`
+	Unchanged []int64 `json:"unchanged"`
+}
 
 type PlayspecListParams struct {
 	Q             string `url:"q,omitempty"`

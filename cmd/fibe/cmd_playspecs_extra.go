@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -24,6 +25,7 @@ func init() {
 			psRemoveMountedFileCmd(),
 			psAddRegistryCredentialCmd(),
 			psRemoveRegistryCredentialCmd(),
+			psSwitchVersionCmd(),
 		)
 	}
 }
@@ -226,4 +228,129 @@ REQUIRED FLAGS:
 	}
 	cmd.Flags().StringVar(&credentialID, "credential-id", "", "Credential ID to remove (required)")
 	return cmd
+}
+
+func psSwitchVersionCmd() *cobra.Command {
+	var targetID int64
+	var vars []string
+	var regenerate []string
+	var confirmWarnings bool
+	var preview bool
+
+	cmd := &cobra.Command{
+		Use:   "switch-version <id>",
+		Short: "Preview or apply a template version switch for a playspec",
+		Long: `Switch a template-backed playspec to any readable template version in the same fork tree.
+
+REQUIRED FLAGS:
+  --target-template-version-id   Target template version ID
+
+OPTIONAL FLAGS:
+  --var key=value                Override a template variable (repeatable)
+  --regenerate name              Regenerate a random template variable (repeatable)
+  --confirm-warnings             Required when the preview reports risky changes
+  --preview                      Only preview the switch
+
+EXAMPLES:
+  fibe playspecs switch-version 42 --target-template-version-id 123 --preview
+  fibe ps switch-version 42 --target-template-version-id 123 --var app_name=demo --confirm-warnings`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			if targetID == 0 {
+				return fmt.Errorf("required flag --target-template-version-id not set")
+			}
+			parsedVars, err := parseKeyValueFlags(vars)
+			if err != nil {
+				return err
+			}
+
+			params := &fibe.PlayspecTemplateVersionSwitchParams{
+				TargetTemplateVersionID: targetID,
+				Variables:               parsedVars,
+				RegenerateVariables:     regenerate,
+				ConfirmWarnings:         confirmWarnings,
+			}
+
+			c := newClient()
+			var result *fibe.PlayspecTemplateVersionSwitchResult
+			if preview {
+				result, err = c.Playspecs.PreviewTemplateVersionSwitch(ctx(), id, params)
+			} else {
+				result, err = c.Playspecs.SwitchTemplateVersion(ctx(), id, params)
+			}
+			if err != nil {
+				return err
+			}
+
+			if effectiveOutput() != "table" {
+				outputJSON(result)
+				return nil
+			}
+			outputTemplateVersionSwitchTable(result)
+			return nil
+		},
+	}
+
+	cmd.Flags().Int64Var(&targetID, "target-template-version-id", 0, "Target template version ID")
+	cmd.Flags().StringArrayVar(&vars, "var", nil, "Template variable override as key=value (repeatable)")
+	cmd.Flags().StringArrayVar(&regenerate, "regenerate", nil, "Random variable to regenerate (repeatable)")
+	cmd.Flags().BoolVar(&confirmWarnings, "confirm-warnings", false, "Confirm risky switch warnings")
+	cmd.Flags().BoolVar(&preview, "preview", false, "Preview without applying")
+	return cmd
+}
+
+func parseKeyValueFlags(values []string) (map[string]any, error) {
+	out := map[string]any{}
+	for _, raw := range values {
+		key, value, ok := strings.Cut(raw, "=")
+		if !ok || strings.TrimSpace(key) == "" {
+			return nil, fmt.Errorf("invalid --var %q, expected key=value", raw)
+		}
+		out[strings.TrimSpace(key)] = value
+	}
+	return out, nil
+}
+
+func outputTemplateVersionSwitchTable(result *fibe.PlayspecTemplateVersionSwitchResult) {
+	headers := []string{"FIELD", "VALUE"}
+	rows := [][]string{
+		{"From", formatTemplateVersionRef(result.FromTemplateVersion)},
+		{"Target", formatTemplateVersionRef(result.TargetTemplateVersion)},
+		{"Suggested Upgrade", strconv.FormatBool(result.SuggestedUpgrade)},
+		{"Required Variables", strings.Join(templateSwitchVariableNames(result.RequiredVariables), ", ")},
+		{"Warnings", strings.Join(templateSwitchWarningCodes(result.Warnings), ", ")},
+		{"Rollout Playgrounds", strconv.Itoa(len(result.PlaygroundRolloutPlan.Rollout))},
+		{"Unchanged Playgrounds", strconv.Itoa(len(result.PlaygroundRolloutPlan.Unchanged))},
+		{"Blocked Playgrounds", strconv.Itoa(len(result.PlaygroundRolloutPlan.Blocked))},
+		{"No-op", strconv.FormatBool(result.NoOp)},
+	}
+	outputTable(headers, rows)
+}
+
+func formatTemplateVersionRef(ref *fibe.TemplateVersionRef) string {
+	if ref == nil {
+		return ""
+	}
+	template := ""
+	if ref.Template != nil {
+		template = ref.Template.Name + " "
+	}
+	return fmt.Sprintf("%sv%s (%s)", template, fmtInt64Ptr(ref.Version), fmtInt64Ptr(ref.ID))
+}
+
+func templateSwitchVariableNames(vars []fibe.TemplateSwitchVariable) []string {
+	names := make([]string, 0, len(vars))
+	for _, variable := range vars {
+		names = append(names, variable.Name)
+	}
+	return names
+}
+
+func templateSwitchWarningCodes(warnings []fibe.TemplateSwitchWarning) []string {
+	codes := make([]string, 0, len(warnings))
+	for _, warning := range warnings {
+		codes = append(codes, warning.Code)
+	}
+	return codes
 }
