@@ -69,7 +69,7 @@ func TestSecrets_EncryptionVerification(t *testing.T) {
 
 	t.Run("value readable via get", func(t *testing.T) {
 		// Parallel disabled: updates run concurrently will mutate
-		got, err := c.Secrets.Get(ctx(), *s.ID)
+		got, err := c.Secrets.Get(ctx(), *s.ID, true)
 		requireNoError(t, err)
 
 		if got.Value == nil || *got.Value != value {
@@ -85,7 +85,7 @@ func TestSecrets_EncryptionVerification(t *testing.T) {
 		})
 		requireNoError(t, err)
 
-		got, err := c.Secrets.Get(ctx(), *s.ID)
+		got, err := c.Secrets.Get(ctx(), *s.ID, true)
 		requireNoError(t, err)
 		if got.Value == nil || *got.Value != newVal {
 			t.Error("updated value should be readable")

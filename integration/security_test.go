@@ -63,7 +63,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 			t.Cleanup(func() { c.Secrets.Delete(ctx(), *s.ID) })
 
 			// Verify secret can be retrieved intact
-			fetched, err := c.Secrets.Get(ctx(), *s.ID)
+			fetched, err := c.Secrets.Get(ctx(), *s.ID, true)
 			if err != nil {
 				t.Errorf("failed to re-fetch secret after SQL injection payload: %v", err)
 			} else if fetched.Value != nil && *fetched.Value != payload {
@@ -137,7 +137,7 @@ func TestSecurity_IDOR(t *testing.T) {
 		{"agent", func(id int64) error { _, e := c.Agents.Get(ctx(), id); return e }},
 		{"playspec", func(id int64) error { _, e := c.Playspecs.Get(ctx(), id); return e }},
 		{"prop", func(id int64) error { _, e := c.Props.Get(ctx(), id); return e }},
-		{"secret", func(id int64) error { _, e := c.Secrets.Get(ctx(), id); return e }},
+		{"secret", func(id int64) error { _, e := c.Secrets.Get(ctx(), id, false); return e }},
 		{"team", func(id int64) error { _, e := c.Teams.Get(ctx(), id); return e }},
 		{"webhook", func(id int64) error { _, e := c.WebhookEndpoints.Get(ctx(), id); return e }},
 	}

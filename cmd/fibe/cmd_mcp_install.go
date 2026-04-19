@@ -37,7 +37,7 @@ type installOptions struct {
 	APIKey    string   // literal value to inline for FIBE_API_KEY
 	Domain    string   // literal value to inline for FIBE_DOMAIN
 	Env       []string // arbitrary KEY=VALUE pairs to inline
-	ToolSet   string   // "core" | "full" (passed as FIBE_MCP_TOOLS)
+	ToolSet   string   // "full" | "core" (passed as FIBE_MCP_TOOLS)
 	Yolo      bool     // sets FIBE_MCP_YOLO=1
 	AuditLog  string   // sets FIBE_MCP_AUDIT_LOG
 	Transport string   // stdio (default) | streamable-http (URL-backed clients)

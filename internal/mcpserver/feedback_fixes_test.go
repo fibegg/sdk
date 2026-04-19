@@ -47,9 +47,9 @@ func TestEmptyUpdateRejected(t *testing.T) {
 
 	// Explicit nulls and empty strings are still treated as "no fields set".
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_update", map[string]any{
-		"id":           42,
-		"name":         "",
-		"playspec_id":  nil,
+		"id":          42,
+		"name":        "",
+		"playspec_id": nil,
 	})
 	if err == nil || !strings.Contains(err.Error(), "at least one field") {
 		t.Errorf("expected guard to trip on all-nil/empty fields, got: %v", err)
@@ -65,9 +65,9 @@ func TestEmptyUpdateNestedRejected(t *testing.T) {
 	}
 
 	// Only parent_id + id on a nested update → no fields to change.
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_hunks_update", map[string]any{
-		"prop_id": 1,
-		"id":      2,
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_feedbacks_update", map[string]any{
+		"agent_id": 1,
+		"id":       2,
 	})
 	if err == nil || !strings.Contains(err.Error(), "at least one field") {
 		t.Errorf("expected empty-update guard on nested update, got: %v", err)

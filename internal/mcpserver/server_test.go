@@ -51,10 +51,51 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_playgrounds_logs",
 		"fibe_monitor_list",
 		"fibe_monitor_follow",
+		"fibe_agents_start_chat",
+		"fibe_job_env_get",
 		"fibe_launch",
 	} {
 		if _, ok := srv.dispatcher.lookup(essential); !ok {
 			t.Errorf("essential tool %q not registered", essential)
+		}
+	}
+}
+
+func TestDefaultConfigUsesFullToolset(t *testing.T) {
+	cfg := DefaultConfig()
+	if cfg.ToolSet != "full" {
+		t.Fatalf("expected default ToolSet full, got %q", cfg.ToolSet)
+	}
+}
+
+func TestFullModeAdvertisesGAAgentParityTools(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	advertised := advertisedToolNames(srv)
+	for _, name := range []string{
+		"fibe_agents_start_chat",
+		"fibe_job_env_get",
+		"fibe_monitor_list",
+		"fibe_monitor_follow",
+		"fibe_playgrounds_debug",
+		"fibe_playgrounds_logs",
+		"fibe_agents_messages_get",
+		"fibe_agents_activity_get",
+		"fibe_agents_raw_providers_get",
+		"fibe_agents_mounted_file_add",
+		"fibe_secrets_get",
+	} {
+		if !advertised[name] {
+			t.Errorf("%s should be advertised in full mode", name)
+		}
+	}
+
+	for _, experimental := range []string{"fibe_hunks_list", "fibe_mutations_create", "fibe_teams_list"} {
+		if advertised[experimental] {
+			t.Errorf("%s is experimental and should not be advertised for GA parity", experimental)
 		}
 	}
 }

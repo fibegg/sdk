@@ -169,6 +169,28 @@ func TestAgents_Chat(t *testing.T) {
 	}
 }
 
+func TestAgents_StartChat(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/start_chat" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		if body["marquee_id"] != float64(9) {
+			t.Errorf("expected marquee_id 9, got %v", body["marquee_id"])
+		}
+		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "starting"})
+	})
+
+	session, err := c.Agents.StartChat(context.Background(), 5, 9)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if session.ID != 123 || session.Status != "starting" {
+		t.Errorf("unexpected session: %#v", session)
+	}
+}
+
 func TestSecrets_List(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(listEnv([]Secret{{Key: "DB_URL"}}))
@@ -180,6 +202,81 @@ func TestSecrets_List(t *testing.T) {
 	}
 	if len(result.Data) != 1 {
 		t.Errorf("expected 1 secret, got %d", len(result.Data))
+	}
+}
+
+func TestSecrets_GetReveal(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/secrets/42" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("reveal") != "true" {
+			t.Errorf("expected reveal=true, got %q", r.URL.Query().Get("reveal"))
+		}
+		id := int64(42)
+		value := "secret"
+		json.NewEncoder(w).Encode(Secret{ID: &id, Key: "DB_URL", Value: &value})
+	})
+
+	secret, err := c.Secrets.Get(context.Background(), 42, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if secret.Value == nil || *secret.Value != "secret" {
+		t.Errorf("expected revealed value, got %#v", secret.Value)
+	}
+}
+
+func TestJobEnv_GetReveal(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/job_env/7" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("reveal") != "true" {
+			t.Errorf("expected reveal=true, got %q", r.URL.Query().Get("reveal"))
+		}
+		id := int64(7)
+		value := "env-secret"
+		json.NewEncoder(w).Encode(JobEnvEntry{ID: &id, Key: "TOKEN", Value: &value, Secret: true})
+	})
+
+	entry, err := c.JobEnv.Get(context.Background(), 7, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry.Value == nil || *entry.Value != "env-secret" {
+		t.Errorf("expected revealed value, got %#v", entry.Value)
+	}
+}
+
+func TestImportTemplates_SetSourceCIFields(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" || r.URL.Path != "/api/import_templates/11/source" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		source := body["source"]
+		if source["ci_enabled"] != true {
+			t.Errorf("expected ci_enabled=true, got %#v", source["ci_enabled"])
+		}
+		if source["ci_marquee_id"] != float64(22) {
+			t.Errorf("expected ci_marquee_id=22, got %#v", source["ci_marquee_id"])
+		}
+		id := int64(11)
+		json.NewEncoder(w).Encode(ImportTemplate{ID: &id})
+	})
+
+	ciEnabled := true
+	ciMarqueeID := int64(22)
+	_, err := c.ImportTemplates.SetSource(context.Background(), 11, &ImportTemplateSourceParams{
+		SourcePropID: 1,
+		SourcePath:   "fibe-ci.yml",
+		CIEnabled:    &ciEnabled,
+		CIMarqueeID:  &ciMarqueeID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

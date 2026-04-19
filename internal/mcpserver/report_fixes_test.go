@@ -141,6 +141,8 @@ func TestRegistryCredentialTypeEnforced(t *testing.T) {
 }
 
 func TestMutationsCreateAcceptsShaAlias(t *testing.T) {
+	t.Skip("mutations MCP tools are experimental and excluded from GA parity")
+
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)

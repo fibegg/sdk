@@ -129,7 +129,7 @@ Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments
 
 ### Tool surface
 
-The server registers ~100 tools that map 1:1 to CLI leaf commands — `fibe_playgrounds_list`, `fibe_playgrounds_get`, `fibe_launch`, `fibe_tricks_trigger`, etc. Input schemas are derived from the SDK's `*Params` structs so agents get type-checked arguments. Set `FIBE_MCP_TOOLS=core` (the curated default surface, plus always-visible meta tools) or `FIBE_MCP_TOOLS=full` to control the advertised surface.
+The server registers ~100 tools that map 1:1 to CLI leaf commands — `fibe_playgrounds_list`, `fibe_playgrounds_get`, `fibe_launch`, `fibe_tricks_trigger`, etc. Input schemas are derived from the SDK's `*Params` structs so agents get type-checked arguments. `FIBE_MCP_TOOLS=full` is the default parity surface; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
 
 Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` on delete/rollout/hard-restart. Destructive tools require `confirm:true` in their args unless the server is launched with `--yolo` (or `FIBE_MCP_YOLO=1`) for non-interactive environments.
 

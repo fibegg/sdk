@@ -248,9 +248,9 @@ func TestPayload_SecretValueRoundtrip(t *testing.T) {
 		}
 	}
 
-	// Get: value SHOULD be exposed (reveal)
+	// Get: value SHOULD be exposed with explicit reveal
 	if s.ID != nil {
-		got, err := c.Secrets.Get(ctx(), *s.ID)
+		got, err := c.Secrets.Get(ctx(), *s.ID, true)
 		requireNoError(t, err)
 		if got.Value == nil || *got.Value != originalValue {
 			t.Errorf("expected Value to round-trip: want %q, got %v", originalValue, got.Value)

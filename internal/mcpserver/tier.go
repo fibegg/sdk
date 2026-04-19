@@ -28,7 +28,7 @@ func (s *Server) includeTool(t *toolImpl) bool {
 	}
 	tier := s.cfg.ToolSet
 	if tier == "" {
-		tier = "core"
+		tier = "full"
 	}
 	switch tier {
 	case "full":

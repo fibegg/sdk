@@ -215,7 +215,7 @@ func TestE2E_SecretRotation(t *testing.T) {
 	})
 
 	// Read
-	got, err := c.Secrets.Get(ctx(), *s.ID)
+	got, err := c.Secrets.Get(ctx(), *s.ID, true)
 	requireNoError(t, err)
 	if got.Value == nil || *got.Value != original {
 		t.Errorf("expected Value=%q, got %v", original, got.Value)
@@ -227,7 +227,7 @@ func TestE2E_SecretRotation(t *testing.T) {
 	requireNoError(t, err)
 
 	// Read new value
-	got2, err := c.Secrets.Get(ctx(), *s.ID)
+	got2, err := c.Secrets.Get(ctx(), *s.ID, true)
 	requireNoError(t, err)
 	if got2.Value == nil || *got2.Value != rotated {
 		t.Errorf("expected rotated Value=%q, got %v", rotated, got2.Value)

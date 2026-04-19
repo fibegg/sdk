@@ -17,7 +17,7 @@ func jobEnvCmd() *cobra.Command {
 
 Keys must be uppercase letters, numbers, and underscores, and may not use the reserved FIBE_ prefix.`,
 	}
-	cmd.AddCommand(jobEnvListCmd(), jobEnvSetCmd(), jobEnvUpdateCmd(), jobEnvDeleteCmd())
+	cmd.AddCommand(jobEnvListCmd(), jobEnvGetCmd(), jobEnvSetCmd(), jobEnvUpdateCmd(), jobEnvDeleteCmd())
 	return cmd
 }
 
@@ -69,6 +69,43 @@ func jobEnvListCmd() *cobra.Command {
 	}
 	cmd.Flags().Int64Var(&propID, "prop-id", 0, "Filter by Prop ID")
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search key/description")
+	return cmd
+}
+
+func jobEnvGetCmd() *cobra.Command {
+	var reveal bool
+	cmd := &cobra.Command{
+		Use:   "get <id>",
+		Short: "Show a job ENV entry",
+		Long:  "Retrieve a job ENV entry. Secret values are omitted unless --reveal is set.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			entry, err := newClient().JobEnv.Get(ctx(), id, reveal)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(entry)
+				return nil
+			}
+			scope := "global"
+			if entry.PropID != nil {
+				scope = fmt.Sprintf("prop:%d", *entry.PropID)
+			}
+			kind := "variable"
+			if entry.Secret {
+				kind = "secret"
+			}
+			fmt.Printf("ID:      %s\nScope:   %s\nKey:     %s\nKind:    %s\nEnabled: %t\nDesc:    %s\n",
+				fmtInt64Ptr(entry.ID), scope, entry.Key, kind, entry.Enabled, fmtStr(entry.Description))
+			if !entry.Secret || reveal {
+				fmt.Printf("Value:   %s\n", fmtStr(entry.Value))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&reveal, "reveal", false, "Include the plaintext value for secret entries")
 	return cmd
 }
 

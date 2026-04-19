@@ -101,7 +101,7 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 		{"prop get", func() error { _, err := c.Props.Get(ctx(), bogus); return err }},
 		{"playground get", func() error { _, err := c.Playgrounds.Get(ctx(), bogus); return err }},
 		{"marquee get", func() error { _, err := c.Marquees.Get(ctx(), bogus); return err }},
-		{"secret get", func() error { _, err := c.Secrets.Get(ctx(), bogus); return err }},
+		{"secret get", func() error { _, err := c.Secrets.Get(ctx(), bogus, false); return err }},
 		{"webhook get", func() error { _, err := c.WebhookEndpoints.Get(ctx(), bogus); return err }},
 		{"template get", func() error { _, err := c.ImportTemplates.Get(ctx(), bogus); return err }},
 		{"team get", func() error { _, err := c.Teams.Get(ctx(), bogus); return err }},

@@ -15,11 +15,11 @@ func secretsCmd() *cobra.Command {
 		Long: `Manage Fibe secrets — encrypted key-value pairs for environment variables.
 
 Secrets are injected into playgrounds as environment variables.
-Values are encrypted at rest and only revealed via explicit API call.
+Values are encrypted at rest and only revealed with an explicit --reveal flag.
 
 SUBCOMMANDS:
   list              List all secrets (keys only)
-  get <id>          Show secret with value
+  get <id>          Show secret metadata; pass --reveal for plaintext value
   create            Create a new secret
   update <id>       Update secret value
   delete <id>       Delete a secret`,
@@ -32,7 +32,7 @@ func secListCmd() *cobra.Command {
 	var query, key, sort, createdAfter, createdBefore string
 	cmd := &cobra.Command{
 		Use: "list", Short: "List all secrets",
-		Long: `List all secrets. Values are NOT shown — use 'get' to reveal.
+		Long: `List all secrets. Values are NOT shown — use 'get --reveal' to reveal.
 
 FILTERS:
   -q, --query           Search across key, description (substring match)
@@ -106,13 +106,14 @@ EXAMPLES:
 }
 
 func secGetCmd() *cobra.Command {
-	return &cobra.Command{
-		Use: "get <id>", Short: "Show secret with decrypted value", Args: cobra.ExactArgs(1),
-		Long: "Retrieve a secret with its decrypted value.\n\nWARNING: The value will be shown in plaintext.\n\nEXAMPLES:\n  fibe secrets get 10",
+	var reveal bool
+	cmd := &cobra.Command{
+		Use: "get <id>", Short: "Show secret metadata", Args: cobra.ExactArgs(1),
+		Long: "Retrieve a secret. Values are omitted unless --reveal is set.\n\nWARNING: --reveal shows the value in plaintext.\n\nEXAMPLES:\n  fibe secrets get 10\n  fibe secrets get 10 --reveal",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			s, err := c.Secrets.Get(ctx(), id)
+			s, err := c.Secrets.Get(ctx(), id, reveal)
 			if err != nil {
 				return err
 			}
@@ -120,17 +121,22 @@ func secGetCmd() *cobra.Command {
 				outputJSON(s)
 				return nil
 			}
-			fmt.Printf("ID:    %s\nKey:   %s\nValue: %s\nDesc:  %s\n", fmtInt64Ptr(s.ID), s.Key, fmtStr(s.Value), fmtStr(s.Description))
+			fmt.Printf("ID:    %s\nKey:   %s\nDesc:  %s\n", fmtInt64Ptr(s.ID), s.Key, fmtStr(s.Description))
+			if reveal {
+				fmt.Printf("Value: %s\n", fmtStr(s.Value))
+			}
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&reveal, "reveal", false, "Include the plaintext secret value")
+	return cmd
 }
 
 func secCreateCmd() *cobra.Command {
 	var key, value, desc string
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new secret",
-		Long: "Create a new encrypted secret.\n\nSECRET CONSTRAINTS:\n  - Keys MUST only contain alphanumeric characters, dashes, and underscores.\n  - Secrets inject into Playground environments automatically.\n  - 'fibe secrets list' intentionally omits values. Use 'get' to decrypt securely.\n\nREQUIRED FLAGS:\n  --key     Secret key name\n  --value   Secret value\n\nOPTIONAL FLAGS:\n  --description   Description\n\nEXAMPLES:\n  fibe secrets create --key DATABASE_URL --value postgres://...\n  fibe secrets create --key API_TOKEN --value xxx --description \"Third-party API\"",
+		Long: "Create a new encrypted secret.\n\nSECRET CONSTRAINTS:\n  - Keys MUST only contain alphanumeric characters, dashes, and underscores.\n  - Secrets inject into Playground environments automatically.\n  - 'fibe secrets list' and 'fibe secrets get' intentionally omit values. Use 'get --reveal' to decrypt securely.\n\nREQUIRED FLAGS:\n  --key     Secret key name\n  --value   Secret value\n\nOPTIONAL FLAGS:\n  --description   Description\n\nEXAMPLES:\n  fibe secrets create --key DATABASE_URL --value postgres://...\n  fibe secrets create --key API_TOKEN --value xxx --description \"Third-party API\"",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.SecretCreateParams{}

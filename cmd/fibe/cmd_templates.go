@@ -379,9 +379,9 @@ func tplSourceCmd() *cobra.Command {
 }
 
 func tplSourceSetCmd() *cobra.Command {
-	var propID int64
+	var propID, ciMarqueeID, marqueeID int64
 	var path, ref string
-	var autoRefresh, autoUpgrade bool
+	var autoRefresh, autoUpgrade, ciEnabled bool
 	cmd := &cobra.Command{
 		Use:   "set <template-id>",
 		Short: "Track a YAML file from a Prop",
@@ -405,6 +405,14 @@ func tplSourceSetCmd() *cobra.Command {
 			if cmd.Flags().Changed("auto-upgrade") {
 				params.SourceAutoUpgrade = &autoUpgrade
 			}
+			if cmd.Flags().Changed("ci-enabled") || cmd.Flags().Changed("ci") {
+				params.CIEnabled = &ciEnabled
+			}
+			if cmd.Flags().Changed("ci-marquee-id") {
+				params.CIMarqueeID = &ciMarqueeID
+			} else if cmd.Flags().Changed("marquee-id") {
+				params.CIMarqueeID = &marqueeID
+			}
 			result, err := newClient().ImportTemplates.SetSource(ctx(), templateID, params)
 			if err != nil {
 				return err
@@ -418,6 +426,10 @@ func tplSourceSetCmd() *cobra.Command {
 	cmd.Flags().StringVar(&ref, "ref", "", "Source ref/branch")
 	cmd.Flags().BoolVar(&autoRefresh, "auto-refresh", true, "Refresh versions from matching pushes")
 	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Playspecs")
+	cmd.Flags().BoolVar(&ciEnabled, "ci-enabled", false, "Enable CI workflow sync for this template source")
+	cmd.Flags().BoolVar(&ciEnabled, "ci", false, "Alias for --ci-enabled")
+	cmd.Flags().Int64Var(&ciMarqueeID, "ci-marquee-id", 0, "Marquee ID used by CI workflow sync")
+	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Alias for --ci-marquee-id")
 	return cmd
 }
 

@@ -15,9 +15,13 @@ func (s *SecretService) List(ctx context.Context, params *SecretListParams) (*Li
 	return doList[Secret](s.client, ctx, path)
 }
 
-func (s *SecretService) Get(ctx context.Context, id int64) (*Secret, error) {
+func (s *SecretService) Get(ctx context.Context, id int64, reveal bool) (*Secret, error) {
 	var result Secret
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/secrets/%d", id), nil, &result)
+	path := fmt.Sprintf("/api/secrets/%d", id)
+	if reveal {
+		path += "?reveal=true"
+	}
+	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
 	return &result, err
 }
 

@@ -59,9 +59,9 @@ type Config struct {
 	// setting FIBE_MCP_YOLO=1. Use in non-interactive environments (CI).
 	Yolo bool
 
-	// ToolSet selects which tools are advertised. "core" is the curated
-	// default surface for common agent workflows; "full" advertises every
-	// leaf command. Meta tools are always advertised. Default: core.
+	// ToolSet selects which tools are advertised. "full" is the default
+	// parity surface for agent workflows; "core" advertises a smaller
+	// curated subset. Meta tools are always advertised. Default: full.
 	ToolSet string
 
 	// RequireAuth refuses tool calls that could not resolve an API key from
@@ -89,7 +89,7 @@ type Config struct {
 // DefaultConfig returns a Config populated with sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		ToolSet:               "core",
+		ToolSet:               "full",
 		PipelineCacheSize:     256,
 		PipelineCacheEntryMax: 1 << 20, // 1 MiB
 		PipelineMaxSteps:      25,

@@ -48,12 +48,12 @@ func TestSecrets_CRUD(t *testing.T) {
 		}
 	})
 
-	t.Run("get secret reveals value", func(t *testing.T) {
+	t.Run("get secret reveals value when requested", func(t *testing.T) {
 		// Parallel disabled: dependent block
 		if secretID == 0 {
 			t.Skip("no secret created")
 		}
-		s, err := c.Secrets.Get(ctx(), secretID)
+		s, err := c.Secrets.Get(ctx(), secretID, true)
 		requireNoError(t, err)
 
 		if s.Value == nil || *s.Value != "super-secret-value-123" {
@@ -76,7 +76,7 @@ func TestSecrets_CRUD(t *testing.T) {
 			t.Error("expected updated description")
 		}
 
-		got, err := c.Secrets.Get(ctx(), secretID)
+		got, err := c.Secrets.Get(ctx(), secretID, true)
 		requireNoError(t, err)
 		if got.Value == nil || *got.Value != "updated-value" {
 			t.Error("expected updated value")
@@ -94,7 +94,7 @@ func TestSecrets_CRUD(t *testing.T) {
 		err = c.Secrets.Delete(ctx(), *s.ID)
 		requireNoError(t, err)
 
-		_, err = c.Secrets.Get(ctx(), *s.ID)
+		_, err = c.Secrets.Get(ctx(), *s.ID, false)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 }
@@ -130,7 +130,7 @@ func TestSecrets_ScopeIsolation(t *testing.T) {
 			t.Error("expected to see secrets")
 		}
 
-		got, err := readOnly.Secrets.Get(ctx(), *s.ID)
+		got, err := readOnly.Secrets.Get(ctx(), *s.ID, false)
 		requireNoError(t, err)
 		if got.Key == "" {
 			t.Error("expected key name")

@@ -38,6 +38,9 @@ type ImportTemplateSource struct {
 	Ref               string     `json:"ref"`
 	AutoRefresh       *bool      `json:"auto_refresh,omitempty"`
 	AutoUpgrade       *bool      `json:"auto_upgrade,omitempty"`
+	CIEnabled         *bool      `json:"ci_enabled,omitempty"`
+	CIMarqueeID       *int64     `json:"ci_marquee_id,omitempty"`
+	CIMarqueeName     *string    `json:"ci_marquee_name,omitempty"`
 	LastStatus        *string    `json:"last_status,omitempty"`
 	LastCommitSHA     *string    `json:"last_commit_sha,omitempty"`
 	LastContentSHA    *string    `json:"last_content_sha,omitempty"`
@@ -86,6 +89,9 @@ type ImportTemplateSourceParams struct {
 	SourceRef         string `json:"source_ref,omitempty"`
 	SourceAutoRefresh *bool  `json:"source_auto_refresh,omitempty"`
 	SourceAutoUpgrade *bool  `json:"source_auto_upgrade,omitempty"`
+	CIEnabled         *bool  `json:"ci_enabled,omitempty"`
+	CIMarqueeID       *int64 `json:"ci_marquee_id,omitempty"`
+	MarqueeID         *int64 `json:"marquee_id,omitempty"`
 }
 
 type ImportTemplateSourceRefreshResult struct {

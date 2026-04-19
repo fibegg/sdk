@@ -2,8 +2,10 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 // registerGeneratedTools wires the uniform list/get/create/update/delete
@@ -218,10 +220,21 @@ func (s *Server) registerGeneratedTools() {
 		func(ctx context.Context, c *fibe.Client, p *fibe.SecretListParams) (*fibe.ListResult[fibe.Secret], error) {
 			return c.Secrets.List(ctx, p)
 		})
-	registerGet(s, "fibe_secrets_get", "Show metadata for a stored secret", toolOpts{Tier: tierFull},
-		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Secret, error) {
-			return c.Secrets.Get(ctx, id)
-		})
+	s.addTool(&toolImpl{
+		name: "fibe_secrets_get", description: "Show metadata for a stored secret; pass reveal:true to include plaintext value", tier: tierFull,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.Secrets.Get(ctx, id, argBool(args, "reveal"))
+		},
+	}, mcp.NewTool("fibe_secrets_get",
+		mcp.WithDescription("Show metadata for a stored secret; pass reveal:true to include plaintext value"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Secret ID")),
+		mcp.WithBoolean("reveal", mcp.Description("Include the plaintext secret value")),
+	))
 	registerCreate(s, "fibe_secrets_create", "Securely store a new environment secret", toolOpts{Tier: tierFull},
 		func(ctx context.Context, c *fibe.Client, p *fibe.SecretCreateParams) (*fibe.Secret, error) {
 			return c.Secrets.Create(ctx, p)

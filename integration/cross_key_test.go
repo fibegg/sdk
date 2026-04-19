@@ -21,7 +21,7 @@ func TestCrossKey_Isolation(t *testing.T) {
 		t.Parallel()
 		otherKey := createScopedKey(t, c, "same-player", []string{"secrets:read"})
 
-		s, err := otherKey.Secrets.Get(ctx(), *adminSecret.ID)
+		s, err := otherKey.Secrets.Get(ctx(), *adminSecret.ID, false)
 		requireNoError(t, err)
 		if s.Key != adminSecret.Key {
 			t.Error("expected same secret visible from different key")
@@ -32,7 +32,7 @@ func TestCrossKey_Isolation(t *testing.T) {
 		t.Parallel()
 		wrongScope := createScopedKey(t, c, "wrong-scope", []string{"agents:read"})
 
-		_, err := wrongScope.Secrets.Get(ctx(), *adminSecret.ID)
+		_, err := wrongScope.Secrets.Get(ctx(), *adminSecret.ID, false)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 

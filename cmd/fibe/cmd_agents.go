@@ -30,6 +30,7 @@ SUBCOMMANDS:
   update <id>           Update agent settings
   delete <id>           Delete an agent
   duplicate <id>        Clone an agent
+  start-chat <id>       Start an interactive chat session on a Marquee
   chat <id>             Send a chat message
   authenticate <id>     Authenticate agent with provider
   revoke-token <id>     Revoke agent's GitHub token
@@ -50,6 +51,7 @@ SUBCOMMANDS:
 		agUpdateCmd(),
 		agDeleteCmd(),
 		agDuplicateCmd(),
+		agStartChatCmd(),
 		agChatCmd(),
 		agAuthCmd(),
 		agRevokeCmd(),
@@ -380,6 +382,37 @@ EXAMPLES:
 			return nil
 		},
 	}
+}
+
+func agStartChatCmd() *cobra.Command {
+	var marqueeID int64
+	cmd := &cobra.Command{
+		Use:   "start-chat <id>",
+		Short: "Start an interactive chat session for an agent",
+		Long: `Start the agent chat runtime on a target Marquee.
+
+REQUIRED FLAGS:
+  --marquee-id   Target Marquee ID
+
+EXAMPLES:
+  fibe agents start-chat 5 --marquee-id 2
+  fibe ag start-chat 5 --marquee-id 2`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if marqueeID <= 0 {
+				return fmt.Errorf("required field 'marquee-id' not set")
+			}
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			session, err := newClient().Agents.StartChat(ctx(), id, marqueeID)
+			if err != nil {
+				return err
+			}
+			outputJSON(session)
+			return nil
+		},
+	}
+	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target Marquee ID (required)")
+	return cmd
 }
 
 func agChatCmd() *cobra.Command {

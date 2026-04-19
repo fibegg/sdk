@@ -65,6 +65,26 @@ func (s *Server) registerAgentParity() {
 		mcp.WithArray("attachment_filenames", mcp.Description("Optional list of attachment filenames"), mcp.WithStringItems()),
 	))
 
+	s.addTool(&toolImpl{
+		name: "fibe_agents_start_chat", description: "Start an interactive chat session for an agent on a target Marquee", tier: tierCore,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			marqueeID, ok := argInt64(args, "marquee_id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'marquee_id' not set")
+			}
+			return c.Agents.StartChat(ctx, id, marqueeID)
+		},
+	}, mcp.NewTool("fibe_agents_start_chat",
+		mcp.WithDescription("Start an interactive chat session for an agent on a target Marquee"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
+		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target Marquee ID")),
+	))
+
 	// authenticate
 	s.addTool(&toolImpl{
 		name: "fibe_agents_authenticate", description: "Authenticate an agent (OAuth code/token exchange or API key)", tier: tierFull,
@@ -568,6 +588,7 @@ func (s *Server) registerImportTemplateParity() {
 			aliasField(args, "source_prop_id", "prop_id")
 			aliasField(args, "source_path", "path")
 			aliasField(args, "source_ref", "ref")
+			aliasField(args, "ci_marquee_id", "marquee_id")
 			id, ok := argInt64(args, "id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
@@ -592,6 +613,9 @@ func (s *Server) registerImportTemplateParity() {
 		mcp.WithString("source_ref", mcp.Description("Source branch/ref (alias: ref)")),
 		mcp.WithBoolean("source_auto_refresh", mcp.Description("Refresh on matching pushes")),
 		mcp.WithBoolean("source_auto_upgrade", mcp.Description("Auto-upgrade linked job Playspecs")),
+		mcp.WithBoolean("ci_enabled", mcp.Description("Enable CI workflow sync for this template source")),
+		mcp.WithNumber("ci_marquee_id", mcp.Description("Marquee ID used by CI workflow sync (alias: marquee_id)")),
+		mcp.WithNumber("marquee_id", mcp.Description("Alias for ci_marquee_id")),
 	))
 
 	s.addTool(&toolImpl{
@@ -731,6 +755,22 @@ func (s *Server) registerJobEnvParity() {
 		mcp.WithString("q", mcp.Description("Search key/description")),
 		mcp.WithNumber("page", mcp.Description("Page number")),
 		mcp.WithNumber("per_page", mcp.Description("Page size")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_job_env_get", description: "Show a job ENV entry; pass reveal:true to include plaintext value for secret entries", tier: tierFull,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.JobEnv.Get(ctx, id, argBool(args, "reveal"))
+		},
+	}, mcp.NewTool("fibe_job_env_get",
+		mcp.WithDescription("Show a job ENV entry; pass reveal:true to include plaintext value for secret entries"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
+		mcp.WithBoolean("reveal", mcp.Description("Include the plaintext value for secret entries")),
 	))
 
 	s.addTool(&toolImpl{
