@@ -93,6 +93,54 @@ func TestRunMCPInstallCodexWritesTOMLConfig(t *testing.T) {
 	}
 }
 
+func TestRunMCPInstallClaudeCodeProjectWritesMCPJSON(t *testing.T) {
+	home := t.TempDir()
+	project := t.TempDir()
+	t.Setenv("HOME", home)
+
+	opts := installOptions{
+		APIKey: "pk_test_claude",
+		Domain: "next.fibe.live",
+	}
+	if err := runMCPInstall("claude-code", project, false, opts); err != nil {
+		t.Fatalf("install claude-code project config: %v", err)
+	}
+
+	configPath := filepath.Join(project, ".mcp.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".claude", "settings.json")); !os.IsNotExist(err) {
+		t.Fatalf("expected project install not to write .claude/settings.json, stat err: %v", err)
+	}
+
+	cfg, err := parseMCPConfig(data, mcpConfigJSON)
+	if err != nil {
+		t.Fatalf("parse config: %v", err)
+	}
+
+	servers := nestedMap(t, cfg["mcpServers"])
+	entry := nestedMap(t, servers[mcpServerName])
+	if got := entry["type"]; got != "stdio" {
+		t.Fatalf("expected type=stdio, got %#v", got)
+	}
+	if entry["command"] == "" {
+		t.Fatalf("expected command to be populated, got %#v", entry["command"])
+	}
+	if got := toStringSlice(t, entry["args"]); len(got) != 2 || got[0] != "mcp" || got[1] != "serve" {
+		t.Fatalf("unexpected args: %#v", got)
+	}
+
+	env := nestedMap(t, entry["env"])
+	if got := env["FIBE_API_KEY"]; got != "pk_test_claude" {
+		t.Fatalf("expected FIBE_API_KEY=pk_test_claude, got %#v", got)
+	}
+	if got := env["FIBE_DOMAIN"]; got != "next.fibe.live" {
+		t.Fatalf("expected FIBE_DOMAIN=next.fibe.live, got %#v", got)
+	}
+}
+
 func TestRunMCPInstallCodexURLModeWritesURLConfig(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

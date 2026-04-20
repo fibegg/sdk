@@ -51,17 +51,11 @@ func applyAliases(args map[string]any, aliases map[string][]string) {
 func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 	s.dispatcher.register(t)
 
-	// Apply tool annotations after construction (so registration helpers can
-	// override defaults post-hoc).
-	if t.annotations.ReadOnly {
-		mcp.WithReadOnlyHintAnnotation(true)(&tool)
-	}
-	if t.annotations.Destructive {
-		mcp.WithDestructiveHintAnnotation(true)(&tool)
-	}
-	if t.annotations.Idempotent {
-		mcp.WithIdempotentHintAnnotation(true)(&tool)
-	}
+	// Apply every annotation explicitly. mcp-go defaults destructiveHint to
+	// true, which would otherwise make read-only tools look destructive.
+	mcp.WithReadOnlyHintAnnotation(t.annotations.ReadOnly)(&tool)
+	mcp.WithDestructiveHintAnnotation(t.annotations.Destructive)(&tool)
+	mcp.WithIdempotentHintAnnotation(t.annotations.Idempotent)(&tool)
 
 	// Tier gating: core servers hide "full"-tier tools from the advertised
 	// list. Meta tools (pipeline, help, run, auth_set, me, status, schema,

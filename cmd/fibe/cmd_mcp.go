@@ -43,6 +43,7 @@ EXAMPLES:
   FIBE_MCP_TOOLS=full fibe mcp serve --http :8080     # multi-tenant SSE
 
   fibe mcp install --client claude-code               # wire into ~/.claude.json
+  fibe mcp install --client claude-code --project .   # wire into .mcp.json
   fibe mcp install --client codex                     # wire into ~/.codex/config.toml
   fibe mcp config --client claude-desktop             # print config snippet`,
 	}
@@ -168,7 +169,7 @@ func mcpInstallCmd() *cobra.Command {
 		Long: `Write the Fibe MCP server into an MCP client's configuration file.
 
 SUPPORTED CLIENTS:
-  claude-code      ~/.claude.json (or project .claude/settings.json with --project .)
+  claude-code      ~/.claude.json (or project .mcp.json with --project .)
   claude-desktop   ~/Library/Application Support/Claude/claude_desktop_config.json
   cursor           ~/.cursor/mcp.json
   vscode           ~/.vscode/mcp.json (or workspace .vscode/mcp.json with --project .)
@@ -290,7 +291,7 @@ EXAMPLES:
 			}
 			switch client {
 			case "claude-code":
-				fmt.Println(`// Add under "mcpServers" in ~/.claude.json or .claude/settings.json:`)
+				fmt.Println(`// Add under "mcpServers" in ~/.claude.json or project-root .mcp.json:`)
 				snippet := map[string]any{mcpServerName: entry}
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")

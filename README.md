@@ -114,6 +114,7 @@ The same `fibe` binary also runs as a local [Model Context Protocol](https://mod
 ```bash
 # Register Fibe with your MCP client (claude-code | claude-desktop | cursor | vscode | antigravity | codex)
 fibe mcp install --client claude-code
+fibe mcp install --client claude-code --project . # project-root .mcp.json
 
 # Run the server manually (stdio, single-tenant)
 FIBE_API_KEY=pk_live_... fibe mcp serve

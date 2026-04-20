@@ -141,8 +141,8 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 	if len(envVars) > 0 {
 		entry["env_vars"] = envVars
 	}
-	if client == "vscode" {
-		// VS Code's schema uses "type":"stdio" explicitly.
+	if client == "claude-code" || client == "vscode" {
+		// Claude Code and VS Code both emit "type":"stdio" in their current config schemas.
 		entry["type"] = "stdio"
 	}
 	return entry, warnings, nil
@@ -502,7 +502,7 @@ func claudeCodeConfigPath(project string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(abs, ".claude", "settings.json"), nil
+		return filepath.Join(abs, ".mcp.json"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {

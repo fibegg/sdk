@@ -3,32 +3,32 @@ package fibe
 import "time"
 
 type Prop struct {
-	ID                int64      `json:"id"`
-	Name              string     `json:"name"`
-	RepositoryURL     string     `json:"repository_url"`
-	Private           bool       `json:"private"`
-	DefaultBranch     string     `json:"default_branch"`
-	Status            string     `json:"status"`
-	Provider          string     `json:"provider"`
-	LastSyncedAt      *time.Time `json:"last_synced_at"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	ID            int64      `json:"id"`
+	Name          string     `json:"name"`
+	RepositoryURL string     `json:"repository_url"`
+	Private       bool       `json:"private"`
+	DefaultBranch string     `json:"default_branch"`
+	Status        string     `json:"status"`
+	Provider      string     `json:"provider"`
+	LastSyncedAt  *time.Time `json:"last_synced_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 
 	// Detail fields
-	Branches            []string `json:"branches,omitempty"`
-	OriginalRepositoryURL *string `json:"original_repository_url,omitempty"`
-	HasCredentials       *bool   `json:"has_credentials,omitempty"`
-	DockerComposeYAML    *string `json:"docker_compose_yaml,omitempty"`
+	Branches              []string `json:"branches,omitempty"`
+	OriginalRepositoryURL *string  `json:"original_repository_url,omitempty"`
+	HasCredentials        *bool    `json:"has_credentials,omitempty"`
+	DockerComposeYAML     *string  `json:"docker_compose_yaml,omitempty"`
 }
 
 type PropCreateParams struct {
-	RepositoryURL     string  `json:"repository_url"`
-	Name              *string `json:"name,omitempty"`
-	Private           *bool   `json:"private,omitempty"`
-	DefaultBranch     *string `json:"default_branch,omitempty"`
-	Provider          *string `json:"provider,omitempty"`
-	DockerComposeYAML *string `json:"docker_compose_yaml,omitempty"`
-	Credentials       any     `json:"credentials,omitempty"`
+	RepositoryURL     string         `json:"repository_url"`
+	Name              *string        `json:"name,omitempty"`
+	Private           *bool          `json:"private,omitempty"`
+	DefaultBranch     *string        `json:"default_branch,omitempty"`
+	Provider          *string        `json:"provider,omitempty"`
+	DockerComposeYAML *string        `json:"docker_compose_yaml,omitempty"`
+	Credentials       map[string]any `json:"credentials,omitempty"`
 }
 
 func (p *PropCreateParams) Validate() error {
@@ -38,13 +38,13 @@ func (p *PropCreateParams) Validate() error {
 }
 
 type PropUpdateParams struct {
-	Name              *string `json:"name,omitempty"`
-	RepositoryURL     *string `json:"repository_url,omitempty"`
-	Private           *bool   `json:"private,omitempty"`
-	DefaultBranch     *string `json:"default_branch,omitempty"`
-	Provider          *string `json:"provider,omitempty"`
-	DockerComposeYAML *string `json:"docker_compose_yaml,omitempty"`
-	Credentials       any     `json:"credentials,omitempty"`
+	Name              *string        `json:"name,omitempty"`
+	RepositoryURL     *string        `json:"repository_url,omitempty"`
+	Private           *bool          `json:"private,omitempty"`
+	DefaultBranch     *string        `json:"default_branch,omitempty"`
+	Provider          *string        `json:"provider,omitempty"`
+	DockerComposeYAML *string        `json:"docker_compose_yaml,omitempty"`
+	Credentials       map[string]any `json:"credentials,omitempty"`
 }
 
 type PropBranches struct {
@@ -65,7 +65,6 @@ type PropBranch struct {
 type PropEnvDefaults struct {
 	Defaults map[string]string `json:"defaults"`
 }
-
 
 type PropListParams struct {
 	Q             string `url:"q,omitempty"`

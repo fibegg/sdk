@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -101,6 +102,64 @@ func TestFullModeAdvertisesGAAgentParityTools(t *testing.T) {
 		if advertised[experimental] {
 			t.Errorf("%s is experimental and should not be advertised for GA parity", experimental)
 		}
+	}
+}
+
+func TestToolAnnotationsDoNotMarkReadOnlyToolsDestructive(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	tools := srv.mcp.ListTools()
+	readOnlyTool := tools["fibe_me"].Tool
+	if readOnlyTool.Annotations.ReadOnlyHint == nil || !*readOnlyTool.Annotations.ReadOnlyHint {
+		t.Fatalf("fibe_me readOnlyHint = %#v, want true", readOnlyTool.Annotations.ReadOnlyHint)
+	}
+	if readOnlyTool.Annotations.DestructiveHint == nil || *readOnlyTool.Annotations.DestructiveHint {
+		t.Fatalf("fibe_me destructiveHint = %#v, want false", readOnlyTool.Annotations.DestructiveHint)
+	}
+
+	destructiveTool := tools["fibe_playgrounds_rollout"].Tool
+	if destructiveTool.Annotations.DestructiveHint == nil || !*destructiveTool.Annotations.DestructiveHint {
+		t.Fatalf("fibe_playgrounds_rollout destructiveHint = %#v, want true", destructiveTool.Annotations.DestructiveHint)
+	}
+}
+
+func TestAdvertisedToolInputSchemasHaveObjectProperties(t *testing.T) {
+	for _, toolSet := range []string{"core", "full"} {
+		t.Run(toolSet, func(t *testing.T) {
+			srv := New(Config{APIKey: "pk_test", ToolSet: toolSet, PipelineCacheSize: 4})
+			if err := srv.RegisterAll(); err != nil {
+				t.Fatalf("RegisterAll: %v", err)
+			}
+
+			for _, tool := range srv.mcp.ListTools() {
+				data := []byte(tool.Tool.RawInputSchema)
+				if len(data) == 0 {
+					var err error
+					data, err = json.Marshal(tool.Tool.InputSchema)
+					if err != nil {
+						t.Fatalf("%s input schema marshal: %v", tool.Tool.Name, err)
+					}
+				}
+
+				var schema map[string]any
+				if err := json.Unmarshal(data, &schema); err != nil {
+					t.Fatalf("%s input schema unmarshal: %v", tool.Tool.Name, err)
+				}
+
+				props, ok := schema["properties"].(map[string]any)
+				if !ok {
+					t.Fatalf("%s inputSchema.properties is %T, want object", tool.Tool.Name, schema["properties"])
+				}
+				for name, prop := range props {
+					if _, ok := prop.(map[string]any); !ok {
+						t.Fatalf("%s inputSchema.properties.%s is %T (%#v), want object schema", tool.Tool.Name, name, prop, prop)
+					}
+				}
+			}
+		})
 	}
 }
 
