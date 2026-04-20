@@ -25,6 +25,7 @@ you're talking to.`,
 
 			switch effectiveOutput() {
 			case "table":
+				fmt.Printf("Domain:            %s\n", orDash(info.Domain))
 				fmt.Printf("Server time (UTC): %s\n", info.TimeUTC)
 				fmt.Printf("Build time:        %s\n", orDash(info.BuildTime))
 				fmt.Printf("Git commit SHA:    %s\n", orDash(info.GitCommitSHA))

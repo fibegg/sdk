@@ -18,6 +18,7 @@ type ServerInfoService struct {
 // the FIBE_BUILD_TIME / FIBE_BUILD_GIT_COMMIT_SHA build-args (e.g. local dev).
 type ServerInfo struct {
 	Status       string `json:"status"`
+	Domain       string `json:"domain,omitempty"`
 	TimeUTC      string `json:"time_utc"`
 	BuildTime    string `json:"build_time,omitempty"`
 	GitCommitSHA string `json:"git_commit_sha,omitempty"`

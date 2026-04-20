@@ -64,13 +64,13 @@ func (s *Server) registerMetaTools() {
 
 	// ---------- fibe_server_info ----------
 	s.addTool(&toolImpl{
-		name: "fibe_server_info", description: "Display the Fibe server's system time, build version, and active commit SHA", tier: tierCore,
+		name: "fibe_server_info", description: "Display the Fibe server's domain, system time, build version, and active commit SHA", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.ServerInfo.Get(ctx)
 		},
 	}, mcp.NewTool("fibe_server_info",
-		mcp.WithDescription("Display the Fibe server's system time, build version, and active commit SHA"),
+		mcp.WithDescription("Display the Fibe server's domain, system time, build version, and active commit SHA"),
 	))
 
 	// ---------- fibe_doctor ----------
