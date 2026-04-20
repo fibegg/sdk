@@ -7,9 +7,10 @@ const (
 	ProviderClaudeCode  = "claude-code"
 	ProviderOpenAICodex = "openai-codex"
 	ProviderOpenCode    = "opencode"
+	ProviderCursor      = "cursor"
 )
 
-var ValidProviders = []string{ProviderGemini, ProviderClaudeCode, ProviderOpenAICodex, ProviderOpenCode}
+var ValidProviders = []string{ProviderGemini, ProviderClaudeCode, ProviderOpenAICodex, ProviderOpenCode, ProviderCursor}
 
 // Agent represents an AI agent configuration.
 type Agent struct {
@@ -44,7 +45,8 @@ type AgentCreateParams struct {
 	SyscheckEnabled    *bool   `json:"syscheck_enabled,omitempty"`
 	BuildInPublic      *bool   `json:"build_in_public,omitempty"`
 	Description        *string `json:"description,omitempty"`
-	ProviderAPIKeyMode *string `json:"provider_api_key_mode,omitempty"`
+	ProviderAPIKeyMode *bool   `json:"provider_api_key_mode,omitempty"`
+	ModelOptions       *string `json:"model_options,omitempty"`
 	MemoryLimit        *int    `json:"memory_limit,omitempty"`
 	CpuLimit           *int    `json:"cpu_limit,omitempty"`
 }
@@ -64,6 +66,8 @@ type AgentUpdateParams struct {
 	SyscheckEnabled           *bool   `json:"syscheck_enabled,omitempty"`
 	BuildInPublic             *bool   `json:"build_in_public,omitempty"`
 	Description               *string `json:"description,omitempty"`
+	ProviderAPIKeyMode        *bool   `json:"provider_api_key_mode,omitempty"`
+	ModelOptions              *string `json:"model_options,omitempty"`
 	MemoryLimit               *int    `json:"memory_limit,omitempty"`
 	CpuLimit                  *int    `json:"cpu_limit,omitempty"`
 	BuildInPublicPlaygroundID *int64  `json:"build_in_public_playground_id,omitempty"`
@@ -81,6 +85,18 @@ type AgentChatSession struct {
 	ChatURL        *string `json:"chat_url"`
 	Subdomain      string  `json:"subdomain"`
 	ComposeProject string  `json:"compose_project"`
+}
+
+type AgentRuntimeStatus struct {
+	ID               int64   `json:"id"`
+	Status           string  `json:"status"`
+	ChatURL          *string `json:"chat_url"`
+	Subdomain        string  `json:"subdomain"`
+	ComposeProject   string  `json:"compose_project"`
+	RuntimeReachable bool    `json:"runtime_reachable"`
+	Authenticated    bool    `json:"authenticated"`
+	IsProcessing     bool    `json:"is_processing"`
+	QueueCount       int     `json:"queue_count"`
 }
 
 type AgentData struct {

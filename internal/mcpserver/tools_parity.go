@@ -85,6 +85,37 @@ func (s *Server) registerAgentParity() {
 		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target Marquee ID")),
 	))
 
+	s.addTool(&toolImpl{
+		name: "fibe_agents_runtime_status", description: "Get agent chat runtime reachability and processing status", tier: tierCore,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.Agents.RuntimeStatus(ctx, id)
+		},
+	}, mcp.NewTool("fibe_agents_runtime_status",
+		mcp.WithDescription("Get agent chat runtime reachability and processing status"),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_purge_chat", description: "Synchronously purge an agent chat container and volumes", tier: tierFull,
+		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.Agents.PurgeChat(ctx, id)
+		},
+	}, mcp.NewTool("fibe_agents_purge_chat",
+		mcp.WithDescription("Synchronously purge an agent chat container and volumes. Requires confirm:true unless the MCP server runs with yolo enabled."),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
+		mcp.WithBoolean("confirm", mcp.Description("Required because this removes runtime volumes")),
+	))
+
 	// authenticate
 	s.addTool(&toolImpl{
 		name: "fibe_agents_authenticate", description: "Authenticate an agent (OAuth code/token exchange or API key)", tier: tierFull,

@@ -191,6 +191,88 @@ func TestAgents_StartChat(t *testing.T) {
 	}
 }
 
+func TestAgents_RuntimeStatus(t *testing.T) {
+	chatURL := "https://agent.example.test"
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/agents/5/runtime_status" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(AgentRuntimeStatus{
+			ID:               123,
+			Status:           "running",
+			ChatURL:          &chatURL,
+			RuntimeReachable: true,
+			Authenticated:    true,
+			IsProcessing:     false,
+			QueueCount:       0,
+		})
+	})
+
+	status, err := c.Agents.RuntimeStatus(context.Background(), 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.ID != 123 || status.Status != "running" || !status.RuntimeReachable || status.IsProcessing || status.QueueCount != 0 {
+		t.Errorf("unexpected status: %#v", status)
+	}
+	if status.ChatURL == nil || *status.ChatURL != chatURL {
+		t.Errorf("unexpected chat URL: %#v", status.ChatURL)
+	}
+}
+
+func TestAgents_PurgeChat(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/purge_chat" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "stopped"})
+	})
+
+	session, err := c.Agents.PurgeChat(context.Background(), 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if session.ID != 123 || session.Status != "stopped" {
+		t.Errorf("unexpected session: %#v", session)
+	}
+}
+
+func TestAgents_CreateProviderAPIKeyModeJSON(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/agents" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		agent := body["agent"]
+		if agent["provider_api_key_mode"] != true {
+			t.Errorf("expected provider_api_key_mode=true bool, got %#v", agent["provider_api_key_mode"])
+		}
+		if agent["model_options"] != "flash-lite" {
+			t.Errorf("expected model_options flash-lite, got %#v", agent["model_options"])
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Agent{ID: 99, Name: "new-agent", Provider: ProviderGemini})
+	})
+
+	providerAPIKeyMode := true
+	modelOptions := "flash-lite"
+	agent, err := c.Agents.Create(context.Background(), &AgentCreateParams{
+		Name:               "new-agent",
+		Provider:           ProviderGemini,
+		ProviderAPIKeyMode: &providerAPIKeyMode,
+		ModelOptions:       &modelOptions,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if agent.ID != 99 {
+		t.Errorf("expected ID 99, got %d", agent.ID)
+	}
+}
+
 func TestSecrets_List(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(listEnv([]Secret{{Key: "DB_URL"}}))

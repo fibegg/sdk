@@ -70,6 +70,18 @@ func (s *AgentService) StartChat(ctx context.Context, id, marqueeID int64) (*Age
 	return &result, err
 }
 
+func (s *AgentService) RuntimeStatus(ctx context.Context, id int64) (*AgentRuntimeStatus, error) {
+	var result AgentRuntimeStatus
+	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/runtime_status", id), nil, &result)
+	return &result, err
+}
+
+func (s *AgentService) PurgeChat(ctx context.Context, id int64) (*AgentChatSession, error) {
+	var result AgentChatSession
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/purge_chat", id), nil, &result)
+	return &result, err
+}
+
 func (s *AgentService) RevokeGitHubToken(ctx context.Context, id int64) (*Agent, error) {
 	var result Agent
 	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/revoke_github_token", id), nil, &result)

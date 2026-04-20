@@ -52,6 +52,8 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_monitor_list",
 		"fibe_monitor_follow",
 		"fibe_agents_start_chat",
+		"fibe_agents_runtime_status",
+		"fibe_agents_purge_chat",
 		"fibe_job_env_get",
 		"fibe_launch",
 	} {
@@ -82,6 +84,8 @@ func TestFullModeAdvertisesGAAgentParityTools(t *testing.T) {
 		"fibe_monitor_follow",
 		"fibe_playgrounds_debug",
 		"fibe_playgrounds_logs",
+		"fibe_agents_runtime_status",
+		"fibe_agents_purge_chat",
 		"fibe_agents_messages_get",
 		"fibe_agents_activity_get",
 		"fibe_agents_raw_providers_get",

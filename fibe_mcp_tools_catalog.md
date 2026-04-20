@@ -1,6 +1,6 @@
 # Fibe MCP Tools
 
-Total Tools: 171
+Total Tools: 173
 
 ## `fibe_agents_activity_get`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
@@ -98,6 +98,12 @@ Remove an agent's mounted file
 ### Description
 Update an agent's mounted file metadata (accepts 'mount_path' or legacy 'path')
 
+## `fibe_agents_purge_chat`
+**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
+
+### Description
+Synchronously purge an agent chat container and volumes
+
 ## `fibe_agents_raw_providers_get`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
 
@@ -115,6 +121,12 @@ Replace agent raw provider config
 
 ### Description
 Revoke an agent's GitHub token
+
+## `fibe_agents_runtime_status`
+**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+
+### Description
+Get agent chat runtime reachability and processing status
 
 ## `fibe_agents_update`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True

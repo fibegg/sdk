@@ -20,8 +20,7 @@ Agents can be authenticated with GitHub, have mounted files, store messages
 and activity logs, create artefacts, and interact via chat.
 
 PROVIDERS:
-  github     GitHub-based agent
-  gitea      Gitea-based agent
+  gemini, claude-code, openai-codex, opencode, cursor
 
 SUBCOMMANDS:
   list                  List all agents
@@ -31,6 +30,8 @@ SUBCOMMANDS:
   delete <id>           Delete an agent
   duplicate <id>        Clone an agent
   start-chat <id>       Start an interactive chat session on a Marquee
+  runtime-status <id>   Show agent chat runtime status
+  purge-chat <id>       Tear down an agent chat container and volumes
   chat <id>             Send a chat message
   authenticate <id>     Authenticate agent with provider
   revoke-token <id>     Revoke agent's GitHub token
@@ -52,6 +53,8 @@ SUBCOMMANDS:
 		agDeleteCmd(),
 		agDuplicateCmd(),
 		agStartChatCmd(),
+		agRuntimeStatusCmd(),
+		agPurgeChatCmd(),
 		agChatCmd(),
 		agAuthCmd(),
 		agRevokeCmd(),
@@ -76,7 +79,7 @@ func agListCmd() *cobra.Command {
 
 FILTERS:
   -q, --query           Search across name, description (substring match)
-  --provider            Filter by provider. Values: github, gitea
+  --provider            Filter by provider. Values: gemini, claude-code, openai-codex, opencode, cursor
   --status              Filter by exact status. Values: pending, authenticated, error
   --name                Filter by name (substring match)
 
@@ -97,7 +100,7 @@ OUTPUT:
 EXAMPLES:
   fibe agents list
   fibe ag list -q "my-agent" --status authenticated
-  fibe ag list --provider github --sort name_asc
+  fibe ag list --provider gemini --sort name_asc
   fibe ag list --created-after 2026-01-01 -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -149,7 +152,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name, description")
-	cmd.Flags().StringVar(&provider, "provider", "", "Filter by provider (github, gitea)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Filter by provider (gemini, claude-code, openai-codex, opencode, cursor)")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
@@ -193,8 +196,8 @@ EXAMPLES:
 }
 
 func agCreateCmd() *cobra.Command {
-	var name, provider string
-	var syncEnabled, syscheckEnabled bool
+	var name, provider, modelOptions string
+	var syncEnabled, syscheckEnabled, providerAPIKeyMode bool
 	var memoryLimit, cpuLimit int
 
 	cmd := &cobra.Command{
@@ -204,17 +207,20 @@ func agCreateCmd() *cobra.Command {
 
 REQUIRED FLAGS:
   --name       Agent name
-  --provider   Provider type: gemini, claude-code, openai-codex, opencode, aider, custom
+  --provider   Provider type: gemini, claude-code, openai-codex, opencode, cursor
 
 OPTIONAL FLAGS:
   --sync           Enable sync (default: false)
   --syscheck       Enable system checks (default: false)
+  --provider-api-key-mode
+                  Use provider API key authentication instead of subscription/OAuth mode
+  --model-options Pin provider model option for this agent
   --memory-limit   Memory limit in MB
   --cpu-limit      CPU limit in millicores
 
 EXAMPLES:
   fibe agents create --name my-agent --provider claude-code
-  fibe ag create --name builder --provider custom --sync --memory-limit 512` + generateSchemaDoc(&fibe.AgentCreateParams{}),
+  fibe ag create --name builder --provider opencode --provider-api-key-mode --model-options openai/gpt-4.1` + generateSchemaDoc(&fibe.AgentCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AgentCreateParams{}
@@ -233,6 +239,12 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
+			}
+			if cmd.Flags().Changed("provider-api-key-mode") {
+				params.ProviderAPIKeyMode = &providerAPIKeyMode
+			}
+			if cmd.Flags().Changed("model-options") {
+				params.ModelOptions = &modelOptions
 			}
 			if cmd.Flags().Changed("memory-limit") {
 				params.MemoryLimit = &memoryLimit
@@ -259,17 +271,19 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Agent name (required)")
-	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, claude-code, openai-codex, opencode, aider, custom")
+	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, claude-code, openai-codex, opencode, cursor")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
+	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
+	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().IntVar(&memoryLimit, "memory-limit", 0, "Memory limit in MB")
 	cmd.Flags().IntVar(&cpuLimit, "cpu-limit", 0, "CPU limit in millicores")
 	return cmd
 }
 
 func agUpdateCmd() *cobra.Command {
-	var name string
-	var syncEnabled, syscheckEnabled bool
+	var name, modelOptions string
+	var syncEnabled, syscheckEnabled, providerAPIKeyMode bool
 	var memoryLimit, cpuLimit int
 	var buildInPublicPlaygroundID int64
 
@@ -282,6 +296,8 @@ OPTIONAL FLAGS:
   --name                          New agent name
   --sync                          Enable/disable sync
   --syscheck                      Enable/disable system checks
+  --provider-api-key-mode         Enable/disable provider API key auth mode
+  --model-options                 Provider model option
   --memory-limit                  Memory limit in MB
   --cpu-limit                     CPU limit in millicores
   --build-in-public-playground-id Playground ID for public builds
@@ -305,6 +321,12 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
+			}
+			if cmd.Flags().Changed("provider-api-key-mode") {
+				params.ProviderAPIKeyMode = &providerAPIKeyMode
+			}
+			if cmd.Flags().Changed("model-options") {
+				params.ModelOptions = &modelOptions
 			}
 			if cmd.Flags().Changed("memory-limit") {
 				params.MemoryLimit = &memoryLimit
@@ -331,6 +353,8 @@ EXAMPLES:
 	cmd.Flags().StringVar(&name, "name", "", "New agent name")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
+	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
+	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().IntVar(&memoryLimit, "memory-limit", 0, "Memory limit in MB")
 	cmd.Flags().IntVar(&cpuLimit, "cpu-limit", 0, "CPU limit in millicores")
 	cmd.Flags().Int64Var(&buildInPublicPlaygroundID, "build-in-public-playground-id", 0, "Playground ID for public builds")
@@ -413,6 +437,67 @@ EXAMPLES:
 	}
 	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target Marquee ID (required)")
 	return cmd
+}
+
+func agRuntimeStatusCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "runtime-status <id>",
+		Short: "Show agent chat runtime status",
+		Long: `Show the latest chat status for an agent and, when the runtime is running,
+query its authenticated/processing/queue state.
+
+EXAMPLES:
+  fibe agents runtime-status 5
+  fibe ag runtime-status 5 -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			status, err := newClient().Agents.RuntimeStatus(ctx(), id)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(status)
+				return nil
+			}
+			fmt.Printf("ID:                %d\n", status.ID)
+			fmt.Printf("Status:            %s\n", status.Status)
+			fmt.Printf("Chat URL:          %s\n", fmtStr(status.ChatURL))
+			fmt.Printf("Runtime reachable: %s\n", fmtBool(status.RuntimeReachable))
+			fmt.Printf("Authenticated:     %s\n", fmtBool(status.Authenticated))
+			fmt.Printf("Processing:        %s\n", fmtBool(status.IsProcessing))
+			fmt.Printf("Queue count:       %d\n", status.QueueCount)
+			return nil
+		},
+	}
+}
+
+func agPurgeChatCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "purge-chat <id>",
+		Short: "Tear down an agent chat container and volumes",
+		Long: `Synchronously purge the latest agent chat runtime container and persistent volumes.
+
+WARNING: This removes runtime volumes for the agent chat.
+
+EXAMPLES:
+  fibe agents purge-chat 5
+  fibe ag purge-chat 5 -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			session, err := newClient().Agents.PurgeChat(ctx(), id)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(session)
+				return nil
+			}
+			fmt.Printf("Purged chat %d for agent %d (status: %s)\n", session.ID, id, session.Status)
+			return nil
+		},
+	}
 }
 
 func agChatCmd() *cobra.Command {

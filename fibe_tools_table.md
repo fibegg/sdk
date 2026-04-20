@@ -18,9 +18,11 @@
 | `fibe_agents_mounted_file_add` | Attach a file to an agent (accepts 'mount_path' or legacy 'path') |
 | `fibe_agents_mounted_file_remove` | Remove an agent's mounted file |
 | `fibe_agents_mounted_file_update` | Update an agent's mounted file metadata (accepts 'mount_path' or legacy 'path') |
+| `fibe_agents_purge_chat` | Synchronously purge an agent chat container and volumes |
 | `fibe_agents_raw_providers_get` | Get agent raw provider config |
 | `fibe_agents_raw_providers_update` | Replace agent raw provider config |
 | `fibe_agents_revoke_github` | Revoke an agent's GitHub token |
+| `fibe_agents_runtime_status` | Get agent chat runtime reachability and processing status |
 | `fibe_agents_update` | Update agent settings |
 | `fibe_api_keys_create` | Create a new API key |
 | `fibe_api_keys_delete` | Revoke an API key |
