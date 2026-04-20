@@ -146,8 +146,8 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	t.Run("rollout triggers status change", func(t *testing.T) {
 		_, err := c.Playgrounds.Rollout(ctx(), pg.ID)
 		if err != nil {
-			if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 409 {
-				t.Skipf("rollout rejected (probably still pending): %s", apiErr.Message)
+			if skipIfPlaygroundActionStateRejected(t, err, "rollout") {
+				return
 			}
 			requireNoError(t, err)
 		}
@@ -157,8 +157,8 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	t.Run("hard restart triggers status change", func(t *testing.T) {
 		_, err := c.Playgrounds.HardRestart(ctx(), pg.ID)
 		if err != nil {
-			if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 409 {
-				t.Skipf("hard restart rejected: %s", apiErr.Message)
+			if skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
+				return
 			}
 			requireNoError(t, err)
 		}

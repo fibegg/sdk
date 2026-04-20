@@ -11,10 +11,29 @@ func TestPlayspec_WithTriggerConfig(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
 
+	marqueeID := testMarqueeID(t)
+	if marqueeID == 0 {
+		t.Skip("set FIBE_TEST_MARQUEE_ID to test trigger config")
+	}
+
+	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+		RepositoryURL: "https://github.com/octocat/" + uniqueName("Hello-World"),
+		Name:          ptr(uniqueName("trigger-prop")),
+	})
+	requireNoError(t, err)
+	t.Cleanup(func() { c.Props.Delete(ctx(), prop.ID) })
+
+	jm := true
 	spec := seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) {
+		p.JobMode = &jm
+		p.BaseComposeYAML = jobComposeYAML()
+		p.Services = []fibe.PlayspecServiceDef{jobWatchedService("worker")}
 		p.TriggerConfig = map[string]any{
-			"enabled": true,
-			"branch":  "main",
+			"enabled":    true,
+			"event_type": "push",
+			"branch":     "main",
+			"prop_id":    prop.ID,
+			"marquee_id": marqueeID,
 		}
 	})
 

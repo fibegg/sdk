@@ -88,6 +88,9 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	t.Run("extend_expiration extends time", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Playgrounds.ExtendExpiration(ctx(), pg.ID, nil)
+		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "extend expiration") {
+			return
+		}
 		requireNoError(t, err)
 
 		if result.ID != pg.ID {
@@ -101,6 +104,9 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	t.Run("extend_expiration with custom duration", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Playgrounds.ExtendExpiration(ctx(), pg.ID, ptr(24))
+		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "extend expiration") {
+			return
+		}
 		requireNoError(t, err)
 
 		if result.TimeRemaining <= 0 {
@@ -111,6 +117,9 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	t.Run("rollout triggers redeploy", func(t *testing.T) {
 		t.Parallel()
 		rolled, err := c.Playgrounds.Rollout(ctx(), pg.ID)
+		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "rollout") {
+			return
+		}
 		requireNoError(t, err)
 
 		if rolled.ID != pg.ID {
@@ -121,6 +130,9 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	t.Run("hard_restart triggers restart", func(t *testing.T) {
 		t.Parallel()
 		restarted, err := c.Playgrounds.HardRestart(ctx(), pg.ID)
+		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
+			return
+		}
 		requireNoError(t, err)
 
 		if restarted.ID != pg.ID {

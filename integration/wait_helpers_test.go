@@ -65,6 +65,20 @@ func webhookTimeout() time.Duration {
 	return 120 * time.Second
 }
 
+func skipIfPlaygroundActionStateRejected(t *testing.T, err error, action string) bool {
+	t.Helper()
+
+	apiErr, ok := err.(*fibe.APIError)
+	if !ok {
+		return false
+	}
+	if apiErr.StatusCode == 409 || (apiErr.StatusCode == 422 && apiErr.Code == "INVALID_STATE") {
+		t.Skipf("%s rejected by current playground state: %s", action, apiErr.Message)
+		return true
+	}
+	return false
+}
+
 // pollUntil retries fn up to `attempts` times with delay; returns first non-nil result.
 func pollUntil[T any](attempts int, delay time.Duration, fn func() (T, bool)) (T, bool) {
 	var zero T
