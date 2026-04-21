@@ -84,7 +84,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 		)
 		switch kind {
 		case waitResourcePlayground:
-			pg, err := c.Playgrounds.Get(ctx, id)
+			pg, err := c.Playgrounds.Status(ctx, id)
 			fetchErr = err
 			if err == nil {
 				payload = pg

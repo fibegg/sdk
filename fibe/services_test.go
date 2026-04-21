@@ -102,6 +102,55 @@ func TestPlaygrounds_Rollout(t *testing.T) {
 	}
 }
 
+func TestPlaygrounds_RolloutWithParams(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/rollout" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		json.NewEncoder(w).Encode(Playground{ID: 42, Status: "pending"})
+	})
+
+	force := true
+	_, err := c.Playgrounds.RolloutWithParams(context.Background(), 42, &PlaygroundRolloutParams{Force: &force})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if body["force"] != true {
+		t.Fatalf("expected force=true, got %#v", body)
+	}
+}
+
+func TestPlaygrounds_DebugWithParams(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/playgrounds/42/debug" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		query := r.URL.Query()
+		if query.Get("mode") != "summary" || query.Get("refresh") != "true" || query.Get("service") != "web" || query.Get("logs_tail") != "25" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"ok": true})
+	})
+
+	refresh := true
+	result, err := c.Playgrounds.DebugWithParams(context.Background(), 42, &PlaygroundDebugParams{
+		Mode:     "summary",
+		Refresh:  &refresh,
+		Service:  "web",
+		LogsTail: 25,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result["ok"] != true {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
 func TestPlaygrounds_Logs(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/playgrounds/42/logs/web" {

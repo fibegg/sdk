@@ -47,10 +47,27 @@ func (s *Server) registerGeneratedTools() {
 		func(ctx context.Context, c *fibe.Client, id int64) error {
 			return c.Playgrounds.Delete(ctx, id)
 		})
-	registerIDAction(s, "fibe_playgrounds_rollout", "Recreate and redeploy a playground using its latest configuration", toolOpts{Tier: tierFull, Destructive: true},
-		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Playground, error) {
-			return c.Playgrounds.Rollout(ctx, id)
-		})
+	s.addTool(&toolImpl{
+		name: "fibe_playgrounds_rollout", description: "Recreate and redeploy a playground using its latest configuration", tier: tierCore,
+		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.PlaygroundRolloutParams
+			if _, ok := args["force"]; ok {
+				force := argBool(args, "force")
+				p.Force = &force
+			}
+			return c.Playgrounds.RolloutWithParams(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_playgrounds_rollout",
+		mcp.WithDescription("Recreate and redeploy a playground using its latest configuration. Pass force=true for stale in_progress recovery."),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithBoolean("force", mcp.Description("Allow rollout from stale in_progress or otherwise blocked states when Rails permits it")),
+		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
+	))
 	registerIDAction(s, "fibe_playgrounds_hard_restart", "Forcefully restart all running services within a playground", toolOpts{Tier: tierFull, Destructive: true},
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Playground, error) {
 			return c.Playgrounds.HardRestart(ctx, id)
@@ -86,18 +103,45 @@ func (s *Server) registerGeneratedTools() {
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.PlaygroundEnvMetadata, error) {
 			return c.Playgrounds.EnvMetadata(ctx, id)
 		})
-	// Debug returns map[string]any; wrap so it fits registerIDAction's generic signature.
-	type pgDebug struct {
-		Data map[string]any `json:"data"`
+	registerPlaygroundDebugTool := func(name, desc string) {
+		s.addTool(&toolImpl{
+			name: name, description: desc, tier: tierCore,
+			annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+			handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+				id, ok := argInt64(args, "id")
+				if !ok {
+					return nil, fmt.Errorf("required field 'id' not set")
+				}
+				refresh := true
+				if _, ok := args["refresh"]; ok {
+					refresh = argBool(args, "refresh")
+				}
+				mode := argString(args, "mode")
+				if mode == "" {
+					mode = "summary"
+				}
+				logsTail := 0
+				if raw, ok := argInt64(args, "logs_tail"); ok {
+					logsTail = int(raw)
+				}
+				return c.Playgrounds.DebugWithParams(ctx, id, &fibe.PlaygroundDebugParams{
+					Mode:     mode,
+					Refresh:  &refresh,
+					Service:  argString(args, "service"),
+					LogsTail: logsTail,
+				})
+			},
+		}, mcp.NewTool(name,
+			mcp.WithDescription(desc+" Defaults to mode=summary and refresh=true for agent diagnostics."),
+			mcp.WithNumber("id", mcp.Required(), mcp.Description("Playground ID")),
+			mcp.WithString("mode", mcp.Description("summary (default) or full")),
+			mcp.WithBoolean("refresh", mcp.Description("Refresh Docker state before reading diagnostics (default: true)")),
+			mcp.WithString("service", mcp.Description("Optional service filter")),
+			mcp.WithNumber("logs_tail", mcp.Description("Optional log tail count for requested or inferred failed service")),
+		))
 	}
-	registerIDAction(s, "fibe_playgrounds_debug", "Retrieve comprehensive debugging and diagnostic information for a playground", toolOpts{Tier: tierCore},
-		func(ctx context.Context, c *fibe.Client, id int64) (*pgDebug, error) {
-			m, err := c.Playgrounds.Debug(ctx, id)
-			if err != nil {
-				return nil, err
-			}
-			return &pgDebug{Data: m}, nil
-		})
+	registerPlaygroundDebugTool("fibe_playgrounds_debug", "Retrieve debugging and diagnostic information for a playground")
+	registerPlaygroundDebugTool("fibe_playgrounds_diagnose", "Retrieve compact agent-friendly playground diagnostics")
 
 	// ---------- Tricks (job-mode playgrounds) ----------
 	registerList(s, "fibe_tricks_list", "List all background tricks", toolOpts{Tier: tierFull},

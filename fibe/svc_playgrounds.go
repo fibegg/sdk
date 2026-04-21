@@ -43,8 +43,12 @@ func (s *PlaygroundService) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *PlaygroundService) Rollout(ctx context.Context, id int64) (*Playground, error) {
+	return s.RolloutWithParams(ctx, id, nil)
+}
+
+func (s *PlaygroundService) RolloutWithParams(ctx context.Context, id int64, params *PlaygroundRolloutParams) (*Playground, error) {
 	var result Playground
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/rollout", id), nil, &result)
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/rollout", id), params, &result)
 	return &result, err
 }
 
@@ -99,7 +103,11 @@ func (s *PlaygroundService) EnvMetadata(ctx context.Context, id int64) (*Playgro
 }
 
 func (s *PlaygroundService) Debug(ctx context.Context, id int64) (map[string]any, error) {
+	return s.DebugWithParams(ctx, id, nil)
+}
+
+func (s *PlaygroundService) DebugWithParams(ctx context.Context, id int64, params *PlaygroundDebugParams) (map[string]any, error) {
 	var result map[string]any
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/playgrounds/%d/debug", id), nil, &result)
+	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/playgrounds/%d/debug", id)+buildQuery(params), nil, &result)
 	return result, err
 }

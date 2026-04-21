@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -759,10 +760,10 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.PatchPreview(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_patch_preview",
-		mcp.WithDescription("Preview a patch against an existing import template version. Supports patches/edits entries with either {path, op:set, value} or {search, replace}. Creates nothing and switches nothing."),
+		mcp.WithDescription("Preview a patch against an existing import template version. Supports patches/edits entries with {path, op:set|remove, value, expect, create_missing, allow_missing} or {search, replace}. Creates nothing and switches nothing."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
-		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set or exact search/replace")),
+		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing.")),
 		mcp.WithArray("edits", mcp.Description("Alias for patches")),
 		mcp.WithNumber("target_playspec_id", mcp.Description("Optional playspec ID for switch preview")),
 		mcp.WithObject("switch_variables", mcp.Description("Variables to pass to switch preview")),
@@ -792,10 +793,10 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.PatchCreate(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_patch_create",
-		mcp.WithDescription("Create a new template version from patch entries. With auto_switch=true and target_playspec_id, switches the playspec after version creation succeeds."),
+		mcp.WithDescription("Create a new template version from patch entries. Supports YAML path set/remove and search/replace. With auto_switch=true and target_playspec_id, switches the playspec after version creation succeeds."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
-		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set or exact search/replace")),
+		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing.")),
 		mcp.WithArray("edits", mcp.Description("Alias for patches")),
 		mcp.WithBoolean("public", mcp.Description("Make created version public")),
 		mcp.WithString("changelog", mcp.Description("Version changelog")),
@@ -804,6 +805,80 @@ func (s *Server) registerImportTemplateParity() {
 		mcp.WithObject("switch_variables", mcp.Description("Variables to pass to version switch")),
 		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate during switch")),
 		mcp.WithBoolean("confirm_warnings", mcp.Description("Allow switch when warnings are present")),
+		mcp.WithString("response_mode", mcp.Description("summary (default) or full")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_patch_apply", description: "Preview or apply a template patch, switch a target playspec, and optionally wait/diagnose rollout targets", tier: tierCore,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "template_id")
+			if !ok {
+				id, ok = argInt64(args, "id")
+			}
+			if !ok {
+				return nil, fmt.Errorf("required field 'template_id' not set")
+			}
+			var p fibe.TemplateVersionPatchParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.TargetPlayspecID == nil {
+				targetID, ok := argInt64(args, "target_playspec_id")
+				if !ok {
+					return nil, fmt.Errorf("required field 'target_playspec_id' not set")
+				}
+				p.TargetPlayspecID = &targetID
+			}
+			if p.ResponseMode == "" {
+				p.ResponseMode = "summary"
+			}
+
+			if argBool(args, "dry_run") {
+				preview, err := c.ImportTemplates.PatchPreview(ctx, id, &p)
+				if err != nil {
+					return nil, err
+				}
+				return map[string]any{"dry_run": true, "preview": preview}, nil
+			}
+
+			autoSwitch := true
+			p.AutoSwitch = &autoSwitch
+			result, err := c.ImportTemplates.PatchCreate(ctx, id, &p)
+			if err != nil {
+				return nil, err
+			}
+			out := map[string]any{"dry_run": false, "result": result}
+			if argBool(args, "wait") {
+				timeout := parseDuration(argString(args, "wait_timeout"), 2*time.Minute)
+				diagnose := true
+				if _, ok := args["diagnose_on_failure"]; ok {
+					diagnose = argBool(args, "diagnose_on_failure")
+				}
+				waitResults, diagnostics := waitForTemplatePatchRollouts(ctx, c, rolloutIDsFromPatchResult(result), timeout, diagnose)
+				out["wait_results"] = waitResults
+				if len(diagnostics) > 0 {
+					out["diagnostics"] = diagnostics
+				}
+			}
+			return out, nil
+		},
+	}, mcp.NewTool("fibe_templates_patch_apply",
+		mcp.WithDescription("High-level template iteration helper. dry_run=true performs patch+switch preview only. dry_run=false creates a version with auto_switch=true; wait=true polls rollout targets and attaches diagnostics on failure."),
+		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
+		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
+		mcp.WithNumber("target_playspec_id", mcp.Required(), mcp.Description("Playspec ID to preview/switch")),
+		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing.")),
+		mcp.WithArray("edits", mcp.Description("Alias for patches")),
+		mcp.WithString("changelog", mcp.Description("Created version changelog")),
+		mcp.WithBoolean("public", mcp.Description("Make created version public")),
+		mcp.WithObject("switch_variables", mcp.Description("Variables to pass to version switch")),
+		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate during switch")),
+		mcp.WithBoolean("confirm_warnings", mcp.Description("Allow switch when warnings are present")),
+		mcp.WithBoolean("dry_run", mcp.Description("Preview only; creates nothing and switches nothing")),
+		mcp.WithBoolean("wait", mcp.Description("Poll rollout target playgrounds after apply")),
+		mcp.WithString("wait_timeout", mcp.Description("Max wait duration as Go duration string, e.g. 2m")),
+		mcp.WithBoolean("diagnose_on_failure", mcp.Description("Attach fibe_playgrounds_diagnose output on wait failure (default: true)")),
 		mcp.WithString("response_mode", mcp.Description("summary (default) or full")),
 	))
 
@@ -1616,6 +1691,90 @@ func (s *Server) registerGitRepoParity() {
 		func(ctx context.Context, c *fibe.Client, p *fibe.GiteaRepoCreateParams) (*fibe.GiteaRepo, error) {
 			return c.GiteaRepos.Create(ctx, p)
 		})
+}
+
+func rolloutIDsFromPatchResult(result *fibe.TemplateVersionPatchResult) []int64 {
+	if result == nil {
+		return nil
+	}
+	plan, ok := (*result)["playground_rollout_plan"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	return anyInt64Slice(plan["rollout"])
+}
+
+func anyInt64Slice(raw any) []int64 {
+	switch v := raw.(type) {
+	case []any:
+		out := make([]int64, 0, len(v))
+		for _, item := range v {
+			switch x := item.(type) {
+			case float64:
+				out = append(out, int64(x))
+			case int:
+				out = append(out, int64(x))
+			case int64:
+				out = append(out, x)
+			}
+		}
+		return out
+	case []int64:
+		return v
+	case []int:
+		out := make([]int64, 0, len(v))
+		for _, item := range v {
+			out = append(out, int64(item))
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func waitForTemplatePatchRollouts(ctx context.Context, c *fibe.Client, ids []int64, timeout time.Duration, diagnose bool) ([]map[string]any, map[string]any) {
+	results := make([]map[string]any, 0, len(ids))
+	diagnostics := map[string]any{}
+	for _, id := range ids {
+		result := waitForSingleTemplatePatchRollout(ctx, c, id, timeout)
+		results = append(results, result)
+		if diagnose && result["success"] != true {
+			refresh := true
+			debug, err := c.Playgrounds.DebugWithParams(ctx, id, &fibe.PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
+			if err != nil {
+				diagnostics[fmt.Sprintf("%d", id)] = map[string]any{"error": err.Error()}
+			} else {
+				diagnostics[fmt.Sprintf("%d", id)] = debug
+			}
+		}
+	}
+	return results, diagnostics
+}
+
+func waitForSingleTemplatePatchRollout(ctx context.Context, c *fibe.Client, id int64, timeout time.Duration) map[string]any {
+	deadline := time.Now().Add(timeout)
+	var lastStatus string
+	for {
+		status, err := c.Playgrounds.Status(ctx, id)
+		if err != nil {
+			return map[string]any{"id": id, "success": false, "error": err.Error(), "last_status": lastStatus}
+		}
+		lastStatus = status.Status
+		if status.Status == "running" {
+			return map[string]any{"id": id, "success": true, "status": status.Status}
+		}
+		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
+			return map[string]any{"id": id, "success": false, "status": status.Status, "failure_diagnostics": status.FailureDiagnostics}
+		}
+		if time.Now().After(deadline) {
+			return map[string]any{"id": id, "success": false, "status": status.Status, "error": fmt.Sprintf("timeout after %s", timeout)}
+		}
+		select {
+		case <-ctx.Done():
+			return map[string]any{"id": id, "success": false, "status": status.Status, "error": ctx.Err().Error()}
+		case <-time.After(3 * time.Second):
+		}
+	}
 }
 
 // ---------- helpers for file-bearing tools ----------

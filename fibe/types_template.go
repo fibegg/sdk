@@ -87,9 +87,12 @@ type TemplatePatchEdit struct {
 	Path          string `json:"path,omitempty"`
 	Op            string `json:"op,omitempty"`
 	Value         any    `json:"value,omitempty"`
+	Expect        any    `json:"expect,omitempty"`
 	Search        string `json:"search,omitempty"`
 	Replace       string `json:"replace,omitempty"`
 	AllowMultiple *bool  `json:"allow_multiple,omitempty"`
+	CreateMissing *bool  `json:"create_missing,omitempty"`
+	AllowMissing  *bool  `json:"allow_missing,omitempty"`
 }
 
 type TemplateVersionPatchParams struct {

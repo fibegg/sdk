@@ -311,7 +311,7 @@ func TestTemplatePatchCreateForwardsAutoSwitchFields(t *testing.T) {
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_patch_create", map[string]any{
 		"template_id":        690,
 		"base_version_id":    799,
-		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:alpine"}},
+		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:alpine", "expect": "nginx", "create_missing": false}},
 		"auto_switch":        true,
 		"target_playspec_id": 131,
 		"confirm_warnings":   true,
@@ -321,6 +321,145 @@ func TestTemplatePatchCreateForwardsAutoSwitchFields(t *testing.T) {
 	}
 	if requestBody["auto_switch"] != true || requestBody["target_playspec_id"] != float64(131) || requestBody["response_mode"] != "summary" {
 		t.Fatalf("patch fields not forwarded: %#v", requestBody)
+	}
+	patches := requestBody["patches"].([]any)
+	firstPatch := patches[0].(map[string]any)
+	if firstPatch["expect"] != "nginx" || firstPatch["create_missing"] != false {
+		t.Fatalf("new patch fields not forwarded: %#v", firstPatch)
+	}
+}
+
+func TestPlaygroundsDebugAndDiagnoseDefaultToSummaryRefresh(t *testing.T) {
+	seen := map[string]bool{}
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/playgrounds/132/debug" {
+			t.Fatalf("unexpected request: %s", r.URL.String())
+		}
+		if r.URL.Query().Get("mode") != "summary" || r.URL.Query().Get("refresh") != "true" {
+			t.Fatalf("unexpected debug query: %s", r.URL.RawQuery)
+		}
+		seen[r.URL.RawQuery] = true
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"playground":{"id":132}}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	for _, tool := range []string{"fibe_playgrounds_debug", "fibe_playgrounds_diagnose"} {
+		if _, err := srv.dispatcher.dispatch(context.Background(), tool, map[string]any{"id": 132}); err != nil {
+			t.Fatalf("%s dispatch: %v", tool, err)
+		}
+	}
+	if len(seen) != 1 {
+		t.Fatalf("expected both tools to use same summary query, got %#v", seen)
+	}
+}
+
+func TestPlaygroundsWaitPollsStatusEndpoint(t *testing.T) {
+	var hitStatus bool
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/playgrounds/132/status" {
+			t.Fatalf("wait should poll status endpoint, got %s", r.URL.Path)
+		}
+		hitStatus = true
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":132,"status":"running"}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"id": 132, "status": "running", "timeout": "1s"}); err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if !hitStatus {
+		t.Fatal("status endpoint was not hit")
+	}
+}
+
+func TestTemplatesPatchApplyDryRunUsesPatchPreview(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/import_templates/690/versions/patch_preview" {
+			t.Fatalf("unexpected request: %s", r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"validation":{"valid":true},"switch_preview":{"success":true}}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_patch_apply", map[string]any{
+		"template_id":        690,
+		"base_version_id":    799,
+		"target_playspec_id": 131,
+		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
+		"dry_run":            true,
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if requestBody["target_playspec_id"] != float64(131) || requestBody["response_mode"] != "summary" {
+		t.Fatalf("patch apply fields not forwarded: %#v", requestBody)
+	}
+	if result.(map[string]any)["dry_run"] != true {
+		t.Fatalf("expected dry_run result, got %#v", result)
+	}
+}
+
+func TestTemplatesPatchApplyWaitTimeoutAddsDiagnostics(t *testing.T) {
+	paths := map[string]int{}
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/import_templates/690/versions/patch_create":
+			_, _ = w.Write([]byte(`{"template_version":{"id":800},"switch_status":"switched","playground_rollout_plan":{"rollout":[132]}}`))
+		case "/api/playgrounds/132/status":
+			_, _ = w.Write([]byte(`{"id":132,"status":"in_progress"}`))
+		case "/api/playgrounds/132/debug":
+			if r.URL.Query().Get("mode") != "summary" || r.URL.Query().Get("refresh") != "true" {
+				t.Fatalf("unexpected diagnose query: %s", r.URL.RawQuery)
+			}
+			_, _ = w.Write([]byte(`{"playground":{"id":132},"next_actions":["retry current compose"]}`))
+		default:
+			t.Fatalf("unexpected request: %s", r.URL.String())
+		}
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_patch_apply", map[string]any{
+		"template_id":        690,
+		"base_version_id":    799,
+		"target_playspec_id": 131,
+		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
+		"wait":               true,
+		"wait_timeout":       "1ns",
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	out := result.(map[string]any)
+	if len(out["diagnostics"].(map[string]any)) == 0 {
+		t.Fatalf("expected diagnostics on wait timeout: %#v", out)
+	}
+	if paths["/api/playgrounds/132/status"] == 0 || paths["/api/playgrounds/132/debug"] == 0 {
+		t.Fatalf("expected status and debug paths, got %#v", paths)
 	}
 }
 

@@ -135,8 +135,19 @@ type PlaygroundStatus struct {
 	JobResult          *JobResult     `json:"job_result,omitempty"`
 }
 
+type PlaygroundRolloutParams struct {
+	Force *bool `json:"force,omitempty"`
+}
+
 type PlaygroundRetryComposeParams struct {
 	Force *bool `json:"force,omitempty"`
+}
+
+type PlaygroundDebugParams struct {
+	Mode     string `url:"mode,omitempty"`
+	Service  string `url:"service,omitempty"`
+	LogsTail int    `url:"logs_tail,omitempty"`
+	Refresh  *bool  `url:"refresh,omitempty"`
 }
 
 type PlaygroundCompose struct {
