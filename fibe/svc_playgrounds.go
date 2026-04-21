@@ -54,6 +54,12 @@ func (s *PlaygroundService) HardRestart(ctx context.Context, id int64) (*Playgro
 	return &result, err
 }
 
+func (s *PlaygroundService) RetryCompose(ctx context.Context, id int64, params *PlaygroundRetryComposeParams) (*PlaygroundStatus, error) {
+	var result PlaygroundStatus
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/retry_compose", id), params, &result)
+	return &result, err
+}
+
 func (s *PlaygroundService) ExtendExpiration(ctx context.Context, id int64, durationHours *int) (*PlaygroundExtendResult, error) {
 	var result PlaygroundExtendResult
 	var body any

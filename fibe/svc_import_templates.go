@@ -69,6 +69,26 @@ func (s *ImportTemplateService) CreateVersion(ctx context.Context, id int64, par
 	return &result, err
 }
 
+func (s *ImportTemplateService) PatchPreview(ctx context.Context, id int64, params *TemplateVersionPatchParams) (*TemplateVersionPatchResult, error) {
+	var result TemplateVersionPatchResult
+	path := fmt.Sprintf("/api/import_templates/%d/versions/patch_preview", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) PatchCreate(ctx context.Context, id int64, params *TemplateVersionPatchParams) (*TemplateVersionPatchResult, error) {
+	var result TemplateVersionPatchResult
+	path := fmt.Sprintf("/api/import_templates/%d/versions/patch_create", id)
+	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	return &result, err
+}
+
+func (s *ImportTemplateService) Lineage(ctx context.Context, id int64) (*TemplateLineageResult, error) {
+	var result TemplateLineageResult
+	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/import_templates/%d/lineage", id), nil, &result)
+	return &result, err
+}
+
 func (s *ImportTemplateService) SetSource(ctx context.Context, id int64, params *ImportTemplateSourceParams) (*ImportTemplate, error) {
 	var result ImportTemplate
 	body := map[string]any{"source": params}

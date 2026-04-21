@@ -83,6 +83,33 @@ type ImportTemplateVersionCreateParams struct {
 	Changelog    *string `json:"changelog,omitempty"`
 }
 
+type TemplatePatchEdit struct {
+	Path          string `json:"path,omitempty"`
+	Op            string `json:"op,omitempty"`
+	Value         any    `json:"value,omitempty"`
+	Search        string `json:"search,omitempty"`
+	Replace       string `json:"replace,omitempty"`
+	AllowMultiple *bool  `json:"allow_multiple,omitempty"`
+}
+
+type TemplateVersionPatchParams struct {
+	BaseVersionID       int64               `json:"base_version_id"`
+	Patches             []TemplatePatchEdit `json:"patches,omitempty"`
+	Edits               []TemplatePatchEdit `json:"edits,omitempty"`
+	Public              *bool               `json:"public,omitempty"`
+	Changelog           *string             `json:"changelog,omitempty"`
+	TargetPlayspecID    *int64              `json:"target_playspec_id,omitempty"`
+	SwitchVariables     map[string]any      `json:"switch_variables,omitempty"`
+	RegenerateVariables []string            `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings     *bool               `json:"confirm_warnings,omitempty"`
+	AutoSwitch          *bool               `json:"auto_switch,omitempty"`
+	ResponseMode        string              `json:"response_mode,omitempty"`
+}
+
+type TemplateVersionPatchResult map[string]any
+
+type TemplateLineageResult map[string]any
+
 type ImportTemplateSourceParams struct {
 	SourcePropID      int64  `json:"source_prop_id"`
 	SourcePath        string `json:"source_path"`

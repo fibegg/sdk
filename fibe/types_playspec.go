@@ -160,6 +160,8 @@ type PlayspecTemplateVersionSwitchParams struct {
 	Variables               map[string]any `json:"variables,omitempty"`
 	RegenerateVariables     []string       `json:"regenerate_variables,omitempty"`
 	ConfirmWarnings         bool           `json:"confirm_warnings,omitempty"`
+	ResponseMode            string         `json:"response_mode,omitempty"`
+	Summary                 bool           `json:"summary,omitempty"`
 }
 
 type PlayspecTemplateVersionSwitchResult struct {

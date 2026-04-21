@@ -546,9 +546,20 @@ func (s *Server) registerImportTemplateParity() {
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_body", "body")
+			aliasField(args, "template_body_path", "body_path")
 			id, ok := argInt64(args, "id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			if argString(args, "template_body") != "" && argString(args, "template_body_path") != "" {
+				return nil, fmt.Errorf("pass only one of template_body or template_body_path")
+			}
+			if argString(args, "template_body") == "" && argString(args, "template_body_path") != "" {
+				body, err := readInlineOrPathTextArg(args, "template_body", "template_body_path")
+				if err != nil {
+					return nil, err
+				}
+				args["template_body"] = body
 			}
 			var p fibe.ImportTemplateVersionCreateParams
 			if err := bindArgs(args, &p); err != nil {
@@ -562,7 +573,8 @@ func (s *Server) registerImportTemplateParity() {
 	}, mcp.NewTool("fibe_templates_versions_create",
 		mcp.WithDescription("Create a new version iteration for an import template"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
-		mcp.WithString("template_body", mcp.Required(), mcp.Description("Template YAML body (alias: 'body')")),
+		mcp.WithString("template_body", mcp.Description("Template YAML body (alias: 'body')")),
+		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Alias: 'body_path'")),
 		mcp.WithBoolean("public", mcp.Description("Make this version public")),
 	))
 
@@ -709,6 +721,7 @@ func (s *Server) registerImportTemplateParity() {
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
 			}
+			aliasField(args, "marquee_id", "target_marquee_id")
 			var p fibe.ImportTemplateLaunchParams
 			if err := bindArgs(args, &p); err != nil {
 				return nil, err
@@ -719,9 +732,97 @@ func (s *Server) registerImportTemplateParity() {
 		mcp.WithDescription("Bootstrap and launch a new playground directly from an import template"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target marquee ID")),
+		mcp.WithNumber("target_marquee_id", mcp.Description("Alias for marquee_id")),
 		mcp.WithString("name", mcp.Description("Optional playground name override")),
 		mcp.WithNumber("version", mcp.Description("Optional template version to launch")),
 		mcp.WithObject("variables", mcp.Description("Dictionary mapping dynamically evaluated Fibe template parameters smoothly natively")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_versions_patch_preview", description: "Preview small YAML-path or exact search/replace edits to a template version; optionally preview a playspec switch", tier: tierCore,
+		annotations: toolAnnotations{ReadOnly: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "template_id")
+			if !ok {
+				id, ok = argInt64(args, "id")
+			}
+			if !ok {
+				return nil, fmt.Errorf("required field 'template_id' not set")
+			}
+			var p fibe.TemplateVersionPatchParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.ResponseMode == "" {
+				p.ResponseMode = "summary"
+			}
+			return c.ImportTemplates.PatchPreview(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_templates_versions_patch_preview",
+		mcp.WithDescription("Preview a patch against an existing import template version. Supports patches/edits entries with either {path, op:set, value} or {search, replace}. Creates nothing and switches nothing."),
+		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
+		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
+		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set or exact search/replace")),
+		mcp.WithArray("edits", mcp.Description("Alias for patches")),
+		mcp.WithNumber("target_playspec_id", mcp.Description("Optional playspec ID for switch preview")),
+		mcp.WithObject("switch_variables", mcp.Description("Variables to pass to switch preview")),
+		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate during switch preview")),
+		mcp.WithBoolean("confirm_warnings", mcp.Description("Acknowledge switch warnings")),
+		mcp.WithString("response_mode", mcp.Description("summary (default) or full")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_versions_patch_create", description: "Create a new template version from small patches and optionally auto-switch a target playspec", tier: tierCore,
+		annotations: toolAnnotations{Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "template_id")
+			if !ok {
+				id, ok = argInt64(args, "id")
+			}
+			if !ok {
+				return nil, fmt.Errorf("required field 'template_id' not set")
+			}
+			var p fibe.TemplateVersionPatchParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if p.ResponseMode == "" {
+				p.ResponseMode = "summary"
+			}
+			return c.ImportTemplates.PatchCreate(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_templates_versions_patch_create",
+		mcp.WithDescription("Create a new template version from patch entries. With auto_switch=true and target_playspec_id, switches the playspec after version creation succeeds."),
+		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
+		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
+		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set or exact search/replace")),
+		mcp.WithArray("edits", mcp.Description("Alias for patches")),
+		mcp.WithBoolean("public", mcp.Description("Make created version public")),
+		mcp.WithString("changelog", mcp.Description("Version changelog")),
+		mcp.WithBoolean("auto_switch", mcp.Description("Switch target_playspec_id to the created version")),
+		mcp.WithNumber("target_playspec_id", mcp.Description("Target playspec for auto-switch")),
+		mcp.WithObject("switch_variables", mcp.Description("Variables to pass to version switch")),
+		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate during switch")),
+		mcp.WithBoolean("confirm_warnings", mcp.Description("Allow switch when warnings are present")),
+		mcp.WithString("response_mode", mcp.Description("summary (default) or full")),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_templates_lineage", description: "Show latest template version plus template-backed playspec and playground version/status map", tier: tierCore,
+		annotations: toolAnnotations{ReadOnly: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				id, ok = argInt64(args, "template_id")
+			}
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			return c.ImportTemplates.Lineage(ctx, id)
+		},
+	}, mcp.NewTool("fibe_templates_lineage",
+		mcp.WithDescription("Compact lineage/status view for template iteration: latest version, source playspec versions, suggested version, playground statuses."),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 	))
 
 	s.addTool(&toolImpl{
@@ -1002,6 +1103,8 @@ func (s *Server) registerPlayspecParity() {
 		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
 		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate"), mcp.WithStringItems()),
 		mcp.WithBoolean("confirm_warnings", mcp.Description("Preview flag mirrored from API; apply still requires confirmation for warnings")),
+		mcp.WithString("response_mode", mcp.Description("Response detail level: 'summary' for compact agent output or 'full' for complete payload")),
+		mcp.WithBoolean("summary", mcp.Description("Shortcut for response_mode='summary'")),
 	))
 
 	s.addTool(&toolImpl{
@@ -1028,6 +1131,8 @@ func (s *Server) registerPlayspecParity() {
 		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
 		mcp.WithArray("regenerate_variables", mcp.Description("Random variable names to regenerate"), mcp.WithStringItems()),
 		mcp.WithBoolean("confirm_warnings", mcp.Description("Required when preview reports risky changes")),
+		mcp.WithString("response_mode", mcp.Description("Response detail level: 'summary' for compact agent output or 'full' for complete payload")),
+		mcp.WithBoolean("summary", mcp.Description("Shortcut for response_mode='summary'")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 

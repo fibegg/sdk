@@ -4,29 +4,29 @@ import "time"
 
 // Playground represents a running environment instance.
 type Playground struct {
-	ID              int64      `json:"id"`
-	Name            string     `json:"name"`
-	Status          string     `json:"status"`
-	JobMode         bool       `json:"job_mode"`
-	PlayspecID      *int64     `json:"playspec_id"`
-	PlayspecName    *string    `json:"playspec_name"`
-	MarqueeID       *int64     `json:"marquee_id,omitempty"`
+	ID              int64          `json:"id"`
+	Name            string         `json:"name"`
+	Status          string         `json:"status"`
+	JobMode         bool           `json:"job_mode"`
+	PlayspecID      *int64         `json:"playspec_id"`
+	PlayspecName    *string        `json:"playspec_name"`
+	MarqueeID       *int64         `json:"marquee_id,omitempty"`
 	ServiceBranches map[string]any `json:"service_branches"`
-	ExpiresAt       *time.Time `json:"expires_at"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ExpiresAt       *time.Time     `json:"expires_at"`
+	CreatedAt       time.Time      `json:"created_at"`
 
 	// Detail fields (only present on Get, not List)
-	ComposeProject       *string                `json:"compose_project,omitempty"`
-	InternalPassword     *string                `json:"internal_password,omitempty"`
-	EnvOverrides         map[string]string      `json:"env_overrides,omitempty"`
-	LastAppliedAt        *time.Time             `json:"last_applied_at,omitempty"`
-	ErrorMessage         *string                `json:"error_message,omitempty"`
-	NeedsRecreation      *bool                  `json:"needs_recreation,omitempty"`
-	TimeRemaining        *float64               `json:"time_remaining,omitempty"`
-	ExpirationPercentage *float64               `json:"expiration_percentage,omitempty"`
-	BuildWarnings        []string               `json:"build_warnings,omitempty"`
+	ComposeProject       *string                 `json:"compose_project,omitempty"`
+	InternalPassword     *string                 `json:"internal_password,omitempty"`
+	EnvOverrides         map[string]string       `json:"env_overrides,omitempty"`
+	LastAppliedAt        *time.Time              `json:"last_applied_at,omitempty"`
+	ErrorMessage         *string                 `json:"error_message,omitempty"`
+	NeedsRecreation      *bool                   `json:"needs_recreation,omitempty"`
+	TimeRemaining        *float64                `json:"time_remaining,omitempty"`
+	ExpirationPercentage *float64                `json:"expiration_percentage,omitempty"`
+	BuildWarnings        []string                `json:"build_warnings,omitempty"`
 	Services             []PlaygroundServiceInfo `json:"services,omitempty"`
-	JobResult            *JobResult             `json:"job_result,omitempty"`
+	JobResult            *JobResult              `json:"job_result,omitempty"`
 }
 
 type PlaygroundServiceInfo struct {
@@ -36,20 +36,20 @@ type PlaygroundServiceInfo struct {
 }
 
 type JobResult struct {
-	ID             *int64                 `json:"id"`
-	Success        *bool                  `json:"success"`
-	CompletedAt    *time.Time             `json:"completed_at"`
-	ServiceResults map[string]any         `json:"service_results"`
+	ID             *int64         `json:"id"`
+	Success        *bool          `json:"success"`
+	CompletedAt    *time.Time     `json:"completed_at"`
+	ServiceResults map[string]any `json:"service_results"`
 }
 
 type PlaygroundCreateParams struct {
-	Name               string                        `json:"name"`
-	PlayspecID         int64                         `json:"playspec_id"`
-	MarqueeID          *int64                        `json:"marquee_id,omitempty"`
-	ExpiresAt          *time.Time                    `json:"expires_at,omitempty"`
-	NeverExpire        *bool                         `json:"never_expire,omitempty"`
-	Services           map[string]*ServiceConfig     `json:"services,omitempty"`
-	BuildOverridesYAML map[string]any                `json:"build_overrides_yaml,omitempty"`
+	Name               string                    `json:"name"`
+	PlayspecID         int64                     `json:"playspec_id"`
+	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
+	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
+	NeverExpire        *bool                     `json:"never_expire,omitempty"`
+	Services           map[string]*ServiceConfig `json:"services,omitempty"`
+	BuildOverridesYAML map[string]any            `json:"build_overrides_yaml,omitempty"`
 }
 
 func (p *PlaygroundCreateParams) Validate() error {
@@ -116,19 +116,27 @@ type PlaygroundListParams struct {
 }
 
 type PlaygroundUpdateParams struct {
-	Name               *string                       `json:"name,omitempty"`
-	PlayspecID         *int64                        `json:"playspec_id,omitempty"`
-	MarqueeID          *int64                        `json:"marquee_id,omitempty"`
-	ExpiresAt          *time.Time                    `json:"expires_at,omitempty"`
-	NeverExpire        *bool                         `json:"never_expire,omitempty"`
-	Services           map[string]*ServiceConfig     `json:"services,omitempty"`
-	BuildOverridesYAML map[string]any                `json:"build_overrides_yaml,omitempty"`
+	Name               *string                   `json:"name,omitempty"`
+	PlayspecID         *int64                    `json:"playspec_id,omitempty"`
+	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
+	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
+	NeverExpire        *bool                     `json:"never_expire,omitempty"`
+	Services           map[string]*ServiceConfig `json:"services,omitempty"`
+	BuildOverridesYAML map[string]any            `json:"build_overrides_yaml,omitempty"`
 }
 
 type PlaygroundStatus struct {
-	ID        int64      `json:"id"`
-	Status    string     `json:"status"`
-	JobResult *JobResult `json:"job_result,omitempty"`
+	ID                 int64          `json:"id"`
+	Status             string         `json:"status"`
+	ErrorMessage       *string        `json:"error_message,omitempty"`
+	ErrorDetails       map[string]any `json:"error_details,omitempty"`
+	FailureDiagnostics map[string]any `json:"failure_diagnostics,omitempty"`
+	Services           []any          `json:"services,omitempty"`
+	JobResult          *JobResult     `json:"job_result,omitempty"`
+}
+
+type PlaygroundRetryComposeParams struct {
+	Force *bool `json:"force,omitempty"`
 }
 
 type PlaygroundCompose struct {

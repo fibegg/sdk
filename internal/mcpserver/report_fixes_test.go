@@ -3,6 +3,10 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -137,6 +141,219 @@ func TestRegistryCredentialTypeEnforced(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "ghcr") || !strings.Contains(err.Error(), "dockerhub") {
 		t.Errorf("error should enumerate valid types; got: %v", err)
+	}
+}
+
+func TestTemplatesVersionsCreateAcceptsTemplateBodyPath(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/import_templates/690/versions" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":772,"version":38,"template_body":"ok"}`))
+	}))
+	defer api.Close()
+
+	path := filepath.Join(t.TempDir(), "template.yml")
+	if err := os.WriteFile(path, []byte("services:\n  web:\n    image: nginx\n"), 0o600); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
+		"id":                 690,
+		"template_body_path": path,
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if got := requestBody["template_body"]; got != "services:\n  web:\n    image: nginx\n" {
+		t.Fatalf("template_body=%q", got)
+	}
+}
+
+func TestTemplatesVersionsCreateRejectsRelativeTemplateBodyPath(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
+		"id":                 690,
+		"template_body_path": "template.yml",
+	})
+	if err == nil {
+		t.Fatal("expected relative path error")
+	}
+	if !strings.Contains(err.Error(), "content_path must be absolute") {
+		t.Fatalf("expected absolute path error, got %v", err)
+	}
+}
+
+func TestTemplatesVersionsCreateKeepsInlineTemplateBody(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":773,"version":39,"template_body":"ok"}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
+		"id":            690,
+		"template_body": "services: {}\n",
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if got := requestBody["template_body"]; got != "services: {}\n" {
+		t.Fatalf("template_body=%q", got)
+	}
+}
+
+func TestPlayspecSwitchVersionForwardsSummaryMode(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playspecs/131/template_version_switch" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"from_template_version":null,"target_template_version":null,"suggested_upgrade":false,"required_variables":[],"target_variables":[],"warnings":[],"diff":{},"playground_rollout_plan":{"blocked":[],"rollout":[],"unchanged":[]},"no_op":false,"playspec":{"id":131}}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playspecs_switch_version", map[string]any{
+		"id":                         131,
+		"target_template_version_id": 772,
+		"summary":                    true,
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if requestBody["summary"] != true {
+		t.Fatalf("summary was not forwarded: %#v", requestBody)
+	}
+}
+
+func TestTemplatesLaunchAcceptsTargetMarqueeAlias(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/import_templates/690/launch" {
+			t.Fatalf("unexpected request: %s", r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"playspecs_created":131,"playground_id":132}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_launch", map[string]any{
+		"id":                690,
+		"target_marquee_id": 7,
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if requestBody["marquee_id"] != float64(7) {
+		t.Fatalf("marquee_id not canonicalized: %#v", requestBody)
+	}
+}
+
+func TestTemplatePatchCreateForwardsAutoSwitchFields(t *testing.T) {
+	var requestBody map[string]any
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/import_templates/690/versions/patch_create" {
+			t.Fatalf("unexpected request: %s", r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"template_version":{"id":800},"switch_status":"switched"}`))
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_patch_create", map[string]any{
+		"template_id":        690,
+		"base_version_id":    799,
+		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:alpine"}},
+		"auto_switch":        true,
+		"target_playspec_id": 131,
+		"confirm_warnings":   true,
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if requestBody["auto_switch"] != true || requestBody["target_playspec_id"] != float64(131) || requestBody["response_mode"] != "summary" {
+		t.Fatalf("patch fields not forwarded: %#v", requestBody)
+	}
+}
+
+func TestTemplatesLineageAndPlaygroundsRetryComposeCallable(t *testing.T) {
+	paths := map[string]bool{}
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths[r.URL.Path] = true
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/import_templates/690/lineage" {
+			_, _ = w.Write([]byte(`{"template":{"id":690},"playspecs":[]}`))
+			return
+		}
+		if r.URL.Path == "/api/playgrounds/132/retry_compose" {
+			_, _ = w.Write([]byte(`{"id":132,"status":"running"}`))
+			return
+		}
+		t.Fatalf("unexpected request: %s", r.URL.Path)
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_lineage", map[string]any{"id": 690}); err != nil {
+		t.Fatalf("lineage: %v", err)
+	}
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_retry_compose", map[string]any{"id": 132, "force": true}); err != nil {
+		t.Fatalf("retry compose: %v", err)
+	}
+	if !paths["/api/import_templates/690/lineage"] || !paths["/api/playgrounds/132/retry_compose"] {
+		t.Fatalf("missing calls: %#v", paths)
 	}
 }
 

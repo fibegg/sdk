@@ -310,6 +310,56 @@ func TestRunCobraTimeoutAndRecommendation(t *testing.T) {
 	}
 }
 
+func TestRunCobraExecutesEvenWhenDedicatedToolIsRecommended(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	root.PersistentFlags().String("output", "", "")
+	templates := &cobra.Command{Use: "templates"}
+	versions := &cobra.Command{Use: "versions"}
+	var body string
+	var public bool
+	create := &cobra.Command{
+		Use:  "create <template-id>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Printf("created template=%s body=%s public=%t\n", args[0], body, public)
+			return nil
+		},
+	}
+	create.Flags().StringVar(&body, "body", "", "")
+	create.Flags().BoolVar(&public, "public", false, "")
+	versions.AddCommand(create)
+	templates.AddCommand(versions)
+	root.AddCommand(templates)
+	srv.cfg.CobraRoot = root
+
+	path := filepath.Join(t.TempDir(), "template.yml")
+	if err := os.WriteFile(path, []byte("services: {}\n"), 0o600); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"templates", "versions", "create", 690, "--body", "@" + path, "--public"},
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["recommended_tool"] != "fibe_templates_versions_create" {
+		t.Fatalf("expected recommended tool, got %#v", m["recommended_tool"])
+	}
+	if !strings.Contains(m["stdout"].(string), "created template=690") {
+		t.Fatalf("command did not execute, stdout=%q result=%#v", m["stdout"], m)
+	}
+	if !strings.Contains(m["stdout"].(string), "public=true") {
+		t.Fatalf("command flags not preserved, stdout=%q", m["stdout"])
+	}
+}
+
 func findModuleRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

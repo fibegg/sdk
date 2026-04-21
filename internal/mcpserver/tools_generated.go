@@ -55,6 +55,25 @@ func (s *Server) registerGeneratedTools() {
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.Playground, error) {
 			return c.Playgrounds.HardRestart(ctx, id)
 		})
+	s.addTool(&toolImpl{
+		name: "fibe_playgrounds_retry_compose", description: "Retry docker compose up for the current stored compose project and compose file", tier: tierCore,
+		annotations: toolAnnotations{Destructive: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			id, ok := argInt64(args, "id")
+			if !ok {
+				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			var p fibe.PlaygroundRetryComposeParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			return c.Playgrounds.RetryCompose(ctx, id, &p)
+		},
+	}, mcp.NewTool("fibe_playgrounds_retry_compose",
+		mcp.WithDescription("Retry the current generated compose using docker compose -p <compose_project> -f compose.yml up -d. Non-stale in_progress requires force=true."),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithBoolean("force", mcp.Description("Allow retry while deployment is non-stale in_progress")),
+	))
 	registerIDAction(s, "fibe_playgrounds_status", "Check the current operational status and health of a playground", toolOpts{Tier: tierCore},
 		func(ctx context.Context, c *fibe.Client, id int64) (*fibe.PlaygroundStatus, error) {
 			return c.Playgrounds.Status(ctx, id)
