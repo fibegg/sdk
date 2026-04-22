@@ -14,7 +14,7 @@ import (
 // generic CRUD list type.
 func (s *Server) registerMonitorFollowTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_monitor_list", description: "List agent-produced monitor events", tier: tierFull,
+		name: "fibe_monitor_list", description: "[MODE:OVERSEER] List agent-produced monitor events", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runMonitorList(ctx, c, args)
@@ -33,7 +33,7 @@ Use this for request/response mode. Use fibe_monitor_follow when you need to wai
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_monitor_follow", description: "Stream agent-produced events as live MCP progress notifications", tier: tierFull,
+		name: "fibe_monitor_follow", description: "[MODE:OVERSEER] Stream agent-produced events as live MCP progress notifications", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runMonitorFollow(ctx, c, args)

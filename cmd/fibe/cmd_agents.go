@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -34,6 +36,9 @@ SUBCOMMANDS:
   purge-chat <id>       Tear down an agent chat container and volumes
   chat <id>             Send a chat message
   authenticate <id>     Authenticate agent with provider
+  add-mounted-file <id> Attach a mounted file or Artefact snapshot
+  update-mounted-file <id> Update mounted file metadata
+  remove-mounted-file <id> Remove a mounted file
   revoke-token <id>     Revoke agent's GitHub token
   messages <id>         Get agent messages
   set-messages <id>     Replace agent messages content
@@ -57,6 +62,9 @@ SUBCOMMANDS:
 		agPurgeChatCmd(),
 		agChatCmd(),
 		agAuthCmd(),
+		agAddMountedFileCmd(),
+		agUpdateMountedFileCmd(),
+		agRemoveMountedFileCmd(),
 		agRevokeCmd(),
 		agMessagesCmd(),
 		agSetMessagesCmd(),
@@ -196,9 +204,10 @@ EXAMPLES:
 }
 
 func agCreateCmd() *cobra.Command {
-	var name, provider, modelOptions string
-	var syncEnabled, syscheckEnabled, providerAPIKeyMode bool
-	var memoryLimit, cpuLimit int
+	var name, provider, modelOptions, memoryLimit, cpuLimit string
+	var mountFiles, mountArtefacts []string
+	var playgroundCrumbsID int64
+	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -210,13 +219,20 @@ REQUIRED FLAGS:
   --provider   Provider type: gemini, claude-code, openai-codex, opencode, cursor
 
 OPTIONAL FLAGS:
-  --sync           Enable sync (default: false)
-  --syscheck       Enable system checks (default: false)
+  --sync           Enable sync
+  --sync-skills    Enable Fibe system skill sync
+  --syscheck       Enable system checks
   --provider-api-key-mode
                   Use provider API key authentication instead of subscription/OAuth mode
   --model-options Pin provider model option for this agent
-  --memory-limit   Memory limit in MB
-  --cpu-limit      CPU limit in millicores
+  --memory-limit   Memory limit, for example 2G
+  --cpu-limit      CPU limit, for example 1.5
+  --build-in-public
+                  Show the agent on the public profile when enabled
+  --playground-crumbs-id
+                  Playground ID for public timeline crumbs
+  --mount-file     Local file mount as ./path:%{agent_data}/target.ext (repeatable)
+  --mount-artefact Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)
 
 EXAMPLES:
   fibe agents create --name my-agent --provider claude-code
@@ -237,8 +253,17 @@ EXAMPLES:
 			if cmd.Flags().Changed("sync") {
 				params.SyncEnabled = &syncEnabled
 			}
+			if cmd.Flags().Changed("sync-skills") {
+				params.SyncSkillsEnabled = &syncSkillsEnabled
+			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
+			}
+			if cmd.Flags().Changed("build-in-public") {
+				params.BuildInPublic = &buildInPublic
+			}
+			if cmd.Flags().Changed("playground-crumbs-id") {
+				params.BuildInPublicPlaygroundID = &playgroundCrumbsID
 			}
 			if cmd.Flags().Changed("provider-api-key-mode") {
 				params.ProviderAPIKeyMode = &providerAPIKeyMode
@@ -251,6 +276,13 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("cpu-limit") {
 				params.CpuLimit = &cpuLimit
+			}
+			mounts, err := parseAgentCreateMountFlags(mountFiles, mountArtefacts)
+			if err != nil {
+				return err
+			}
+			if len(mounts) > 0 {
+				params.Mounts = mounts
 			}
 
 			if params.Name == "" {
@@ -273,18 +305,22 @@ EXAMPLES:
 	cmd.Flags().StringVar(&name, "name", "", "Agent name (required)")
 	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, claude-code, openai-codex, opencode, cursor")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
+	cmd.Flags().BoolVar(&syncSkillsEnabled, "sync-skills", false, "Enable Fibe system skill sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
+	cmd.Flags().BoolVar(&buildInPublic, "build-in-public", false, "Show this agent on the public profile")
+	cmd.Flags().Int64Var(&playgroundCrumbsID, "playground-crumbs-id", 0, "Playground ID for public timeline crumbs")
 	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
-	cmd.Flags().IntVar(&memoryLimit, "memory-limit", 0, "Memory limit in MB")
-	cmd.Flags().IntVar(&cpuLimit, "cpu-limit", 0, "CPU limit in millicores")
+	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
+	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
+	cmd.Flags().StringArrayVar(&mountFiles, "mount-file", nil, "Local file mount as ./path:%{agent_data}/target.ext (repeatable)")
+	cmd.Flags().StringArrayVar(&mountArtefacts, "mount-artefact", nil, "Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)")
 	return cmd
 }
 
 func agUpdateCmd() *cobra.Command {
-	var name, modelOptions string
-	var syncEnabled, syscheckEnabled, providerAPIKeyMode bool
-	var memoryLimit, cpuLimit int
+	var name, modelOptions, memoryLimit, cpuLimit string
+	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode bool
 	var buildInPublicPlaygroundID int64
 
 	cmd := &cobra.Command{
@@ -295,11 +331,12 @@ func agUpdateCmd() *cobra.Command {
 OPTIONAL FLAGS:
   --name                          New agent name
   --sync                          Enable/disable sync
+  --sync-skills                   Enable/disable Fibe system skill sync
   --syscheck                      Enable/disable system checks
   --provider-api-key-mode         Enable/disable provider API key auth mode
   --model-options                 Provider model option
-  --memory-limit                  Memory limit in MB
-  --cpu-limit                     CPU limit in millicores
+  --memory-limit                  Memory limit, for example 2G
+  --cpu-limit                     CPU limit, for example 1.5
   --build-in-public-playground-id Playground ID for public builds
 
 EXAMPLES:
@@ -318,6 +355,9 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("sync") {
 				params.SyncEnabled = &syncEnabled
+			}
+			if cmd.Flags().Changed("sync-skills") {
+				params.SyncSkillsEnabled = &syncSkillsEnabled
 			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
@@ -352,13 +392,54 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&name, "name", "", "New agent name")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
+	cmd.Flags().BoolVar(&syncSkillsEnabled, "sync-skills", false, "Enable Fibe system skill sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
 	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
-	cmd.Flags().IntVar(&memoryLimit, "memory-limit", 0, "Memory limit in MB")
-	cmd.Flags().IntVar(&cpuLimit, "cpu-limit", 0, "CPU limit in millicores")
+	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
+	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
 	cmd.Flags().Int64Var(&buildInPublicPlaygroundID, "build-in-public-playground-id", 0, "Playground ID for public builds")
 	return cmd
+}
+
+func parseAgentCreateMountFlags(fileSpecs, artefactSpecs []string) ([]fibe.AgentMountSpec, error) {
+	mounts := make([]fibe.AgentMountSpec, 0, len(fileSpecs)+len(artefactSpecs))
+	for _, spec := range fileSpecs {
+		source, target, err := splitMountSpec(spec, "--mount-file")
+		if err != nil {
+			return nil, err
+		}
+		mounts = append(mounts, fibe.AgentMountSpec{
+			SourceType:  "upload",
+			Filename:    filepath.Base(source),
+			ContentPath: source,
+			MountPath:   target,
+		})
+	}
+	for _, spec := range artefactSpecs {
+		source, target, err := splitMountSpec(spec, "--mount-artefact")
+		if err != nil {
+			return nil, err
+		}
+		id, err := strconv.ParseInt(source, 10, 64)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("--mount-artefact source must be a positive artefact id: %s", source)
+		}
+		mounts = append(mounts, fibe.AgentMountSpec{
+			SourceType: "artefact",
+			ArtefactID: &id,
+			MountPath:  target,
+		})
+	}
+	return mounts, nil
+}
+
+func splitMountSpec(spec, flag string) (string, string, error) {
+	parts := strings.SplitN(spec, ":", 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		return "", "", fmt.Errorf("%s must be SOURCE:TARGET_PATH", flag)
+	}
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
 }
 
 func agDeleteCmd() *cobra.Command {

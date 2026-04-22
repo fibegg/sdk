@@ -14,19 +14,27 @@ var ValidProviders = []string{ProviderGemini, ProviderClaudeCode, ProviderOpenAI
 
 // Agent represents an AI agent configuration.
 type Agent struct {
-	ID              int64              `json:"id"`
-	Name            string             `json:"name"`
-	Description     *string            `json:"description"`
-	Provider        string             `json:"provider"`
-	Status          string             `json:"status"`
-	SyncEnabled     bool               `json:"sync_enabled"`
-	SyscheckEnabled bool               `json:"syscheck_enabled"`
-	APIKeyID        *int64             `json:"api_key_id"`
-	CreatedAt       *time.Time         `json:"created_at"`
-	UpdatedAt       *time.Time         `json:"updated_at"`
-	Authenticated   bool               `json:"authenticated"`
-	ProviderLabel   string             `json:"provider_label"`
-	MountedFiles    []MountedFileEntry `json:"mounted_files,omitempty"`
+	ID                        int64              `json:"id"`
+	Name                      string             `json:"name"`
+	Description               *string            `json:"description"`
+	Provider                  string             `json:"provider"`
+	Status                    string             `json:"status"`
+	SyncEnabled               bool               `json:"sync_enabled"`
+	SyncSkillsEnabled         bool               `json:"sync_skills_enabled"`
+	SyscheckEnabled           bool               `json:"syscheck_enabled"`
+	BuildInPublic             bool               `json:"build_in_public"`
+	BuildInPublicPlaygroundID *int64             `json:"build_in_public_playground_id"`
+	ProviderAPIKeyMode        bool               `json:"provider_api_key_mode"`
+	Mode                      string             `json:"mode"`
+	ModelOptions              *string            `json:"model_options"`
+	MemoryLimit               *string            `json:"memory_limit"`
+	CpuLimit                  *string            `json:"cpu_limit"`
+	APIKeyID                  *int64             `json:"api_key_id"`
+	CreatedAt                 *time.Time         `json:"created_at"`
+	UpdatedAt                 *time.Time         `json:"updated_at"`
+	Authenticated             bool               `json:"authenticated"`
+	ProviderLabel             string             `json:"provider_label"`
+	MountedFiles              []MountedFileEntry `json:"mounted_files,omitempty"`
 }
 
 type MountedFileEntry struct {
@@ -38,17 +46,24 @@ type MountedFileEntry struct {
 }
 
 type AgentCreateParams struct {
-	Name               string  `json:"name"`
-	Provider           string  `json:"provider"`
-	APIKeyID           *int64  `json:"api_key_id,omitempty"`
-	SyncEnabled        *bool   `json:"sync_enabled,omitempty"`
-	SyscheckEnabled    *bool   `json:"syscheck_enabled,omitempty"`
-	BuildInPublic      *bool   `json:"build_in_public,omitempty"`
-	Description        *string `json:"description,omitempty"`
-	ProviderAPIKeyMode *bool   `json:"provider_api_key_mode,omitempty"`
-	ModelOptions       *string `json:"model_options,omitempty"`
-	MemoryLimit        *int    `json:"memory_limit,omitempty"`
-	CpuLimit           *int    `json:"cpu_limit,omitempty"`
+	Name                      string           `json:"name"`
+	Provider                  string           `json:"provider"`
+	APIKeyID                  *int64           `json:"api_key_id,omitempty"`
+	SyncEnabled               *bool            `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled         *bool            `json:"sync_skills_enabled,omitempty"`
+	SyscheckEnabled           *bool            `json:"syscheck_enabled,omitempty"`
+	BuildInPublic             *bool            `json:"build_in_public,omitempty"`
+	BuildInPublicPlaygroundID *int64           `json:"build_in_public_playground_id,omitempty"`
+	Description               *string          `json:"description,omitempty"`
+	ProviderAPIKeyMode        *bool            `json:"provider_api_key_mode,omitempty"`
+	Mode                      *string          `json:"mode,omitempty"`
+	ModelOptions              *string          `json:"model_options,omitempty"`
+	MemoryLimit               *string          `json:"memory_limit,omitempty"`
+	CpuLimit                  *string          `json:"cpu_limit,omitempty"`
+	Prompt                    *string          `json:"prompt,omitempty"`
+	MCPJSON                   *string          `json:"mcp_json,omitempty"`
+	PostInitScript            *string          `json:"post_init_script,omitempty"`
+	Mounts                    []AgentMountSpec `json:"mounts,omitempty"`
 }
 
 func (p *AgentCreateParams) Validate() error {
@@ -63,14 +78,31 @@ type AgentUpdateParams struct {
 	Name                      *string `json:"name,omitempty"`
 	APIKeyID                  *int64  `json:"api_key_id,omitempty"`
 	SyncEnabled               *bool   `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled         *bool   `json:"sync_skills_enabled,omitempty"`
 	SyscheckEnabled           *bool   `json:"syscheck_enabled,omitempty"`
 	BuildInPublic             *bool   `json:"build_in_public,omitempty"`
 	Description               *string `json:"description,omitempty"`
 	ProviderAPIKeyMode        *bool   `json:"provider_api_key_mode,omitempty"`
+	Mode                      *string `json:"mode,omitempty"`
 	ModelOptions              *string `json:"model_options,omitempty"`
-	MemoryLimit               *int    `json:"memory_limit,omitempty"`
-	CpuLimit                  *int    `json:"cpu_limit,omitempty"`
+	MemoryLimit               *string `json:"memory_limit,omitempty"`
+	CpuLimit                  *string `json:"cpu_limit,omitempty"`
 	BuildInPublicPlaygroundID *int64  `json:"build_in_public_playground_id,omitempty"`
+	Prompt                    *string `json:"prompt,omitempty"`
+	MCPJSON                   *string `json:"mcp_json,omitempty"`
+	PostInitScript            *string `json:"post_init_script,omitempty"`
+}
+
+type AgentMountSpec struct {
+	SourceType     string   `json:"source_type,omitempty"`
+	Filename       string   `json:"filename,omitempty"`
+	ContentBase64  string   `json:"content_base64,omitempty"`
+	ContentPath    string   `json:"content_path,omitempty"`
+	ContentType    string   `json:"content_type,omitempty"`
+	ArtefactID     *int64   `json:"artefact_id,omitempty"`
+	MountPath      string   `json:"mount_path,omitempty"`
+	TargetServices []string `json:"target_services,omitempty"`
+	ReadOnly       *bool    `json:"readonly,omitempty"`
 }
 
 type AgentChatParams struct {

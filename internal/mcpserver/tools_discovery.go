@@ -25,7 +25,7 @@ import (
 // them regardless of FIBE_MCP_TOOLS=core|full.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_tools_catalog", description: "List all tools registered and available on the Fibe MCP server", tier: tierMeta,
+		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
@@ -96,7 +96,7 @@ FILTERS:
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_call", description: "Dynamically invoke any registered Fibe tool by name", tier: tierMeta,
+		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")

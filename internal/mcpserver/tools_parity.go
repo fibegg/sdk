@@ -41,7 +41,7 @@ func (s *Server) registerParityTools() {
 func (s *Server) registerAgentParity() {
 	// chat
 	s.addTool(&toolImpl{
-		name: "fibe_agents_chat", description: "Send a message to an agent", tier: tierCore,
+		name: "fibe_agents_chat", description: "[MODE:OVERSEER] Send a message to an agent", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "text", "message", "body")
@@ -59,7 +59,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.Chat(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_agents_chat",
-		mcp.WithDescription("Send a message to an agent"),
+		mcp.WithDescription("[MODE:OVERSEER] Send a message to an agent"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("text", mcp.Required(), mcp.Description("Message text (alias: 'message')")),
 		mcp.WithArray("images", mcp.Description("Optional list of image references"), mcp.WithStringItems()),
@@ -67,7 +67,7 @@ func (s *Server) registerAgentParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "Start an interactive chat session for an agent on a target Marquee", tier: tierCore,
+		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start an interactive chat session for an agent on a target Marquee.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -81,13 +81,13 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.StartChat(ctx, id, marqueeID)
 		},
 	}, mcp.NewTool("fibe_agents_start_chat",
-		mcp.WithDescription("Start an interactive chat session for an agent on a target Marquee"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Start an interactive chat session for an agent on a target Marquee."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target Marquee ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_runtime_status", description: "Get agent chat runtime reachability and processing status", tier: tierCore,
+		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Get agent chat runtime reachability and processing status", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -97,12 +97,12 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.RuntimeStatus(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_runtime_status",
-		mcp.WithDescription("Get agent chat runtime reachability and processing status"),
+		mcp.WithDescription("[MODE:OVERSEER] Get agent chat runtime reachability and processing status"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_purge_chat", description: "Synchronously purge an agent chat container and volumes", tier: tierFull,
+		name: "fibe_agents_purge_chat", description: "[MODE:SIDEEFFECTS] Synchronously purge an agent chat container and volumes.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -112,14 +112,14 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.PurgeChat(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_purge_chat",
-		mcp.WithDescription("Synchronously purge an agent chat container and volumes. Requires confirm:true unless the MCP server runs with yolo enabled."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Synchronously purge an agent chat container and volumes."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithBoolean("confirm", mcp.Description("Required because this removes runtime volumes")),
 	))
 
 	// authenticate
 	s.addTool(&toolImpl{
-		name: "fibe_agents_authenticate", description: "Authenticate an agent (OAuth code/token exchange or API key)", tier: tierFull,
+		name: "fibe_agents_authenticate", description: "[MODE:SIDEEFFECTS] Authenticate an agent (OAuth code/token exchange or API key). Useful for granting an agent external access.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -136,7 +136,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.Authenticate(ctx, id, code, token)
 		},
 	}, mcp.NewTool("fibe_agents_authenticate",
-		mcp.WithDescription("Authenticate an agent (OAuth code/token exchange or API key)"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Authenticate an agent (OAuth code/token exchange or API key). Useful for granting an agent external access."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("code", mcp.Description("OAuth authorization code")),
 		mcp.WithString("token", mcp.Description("Raw authentication token")),
@@ -144,7 +144,7 @@ func (s *Server) registerAgentParity() {
 
 	// get/update messages
 	s.addTool(&toolImpl{
-		name: "fibe_agents_messages_get", description: "Fetch the message history for an agent", tier: tierCore,
+		name: "fibe_agents_messages_get", description: "[MODE:OVERSEER] Fetch the message history for an agent", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -154,7 +154,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.GetMessages(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_messages_get",
-		mcp.WithDescription("Fetch the message history for an agent"),
+		mcp.WithDescription("[MODE:OVERSEER] Fetch the message history for an agent"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 	))
 	s.addTool(&toolImpl{
@@ -182,7 +182,7 @@ func (s *Server) registerAgentParity() {
 
 	// get/update activity
 	s.addTool(&toolImpl{
-		name: "fibe_agents_activity_get", description: "Get granular reasoning and thinking activity of an agent", tier: tierCore,
+		name: "fibe_agents_activity_get", description: "[MODE:OVERSEER] Get granular reasoning and thinking activity of an agent", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -192,7 +192,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.GetActivity(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_activity_get",
-		mcp.WithDescription("Get granular reasoning and thinking activity of an agent"),
+		mcp.WithDescription("[MODE:OVERSEER] Get granular reasoning and thinking activity of an agent"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 	))
 	s.addTool(&toolImpl{
@@ -220,7 +220,7 @@ func (s *Server) registerAgentParity() {
 
 	// get/update raw_providers
 	s.addTool(&toolImpl{
-		name: "fibe_agents_raw_providers_get", description: "Retrieve the raw AI provider configuration for an agent", tier: tierFull,
+		name: "fibe_agents_raw_providers_get", description: "[MODE:OVERSEER] Retrieve the raw AI provider configuration for an agent.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -230,7 +230,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.GetRawProviders(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_raw_providers_get",
-		mcp.WithDescription("Retrieve the raw AI provider configuration for an agent"),
+		mcp.WithDescription("[MODE:OVERSEER] Retrieve the raw AI provider configuration for an agent."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 	))
 	s.addTool(&toolImpl{
@@ -258,7 +258,7 @@ func (s *Server) registerAgentParity() {
 
 	// github_token
 	s.addTool(&toolImpl{
-		name: "fibe_agents_github_token", description: "Get the agent's scoped GitHub access token", tier: tierFull,
+		name: "fibe_agents_github_token", description: "[MODE:DIALOG] Get the agent's scoped GitHub access token.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -272,14 +272,14 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.GetGitHubToken(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_github_token",
-		mcp.WithDescription("Get the agent's scoped GitHub access token"),
+		mcp.WithDescription("[MODE:DIALOG] Get the agent's scoped GitHub access token."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("repo", mcp.Description("Optional owner/repo to scope the token")),
 	))
 
 	// gitea_token
 	s.addTool(&toolImpl{
-		name: "fibe_agents_gitea_token", description: "Get the agent's scoped Gitea access token", tier: tierFull,
+		name: "fibe_agents_gitea_token", description: "[MODE:DIALOG] Get the agent's scoped Gitea access token.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -289,19 +289,27 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.GetGiteaToken(ctx, id)
 		},
 	}, mcp.NewTool("fibe_agents_gitea_token",
-		mcp.WithDescription("Get the agent's scoped Gitea access token"),
+		mcp.WithDescription("[MODE:DIALOG] Get the agent's scoped Gitea access token."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 	))
 
 	// mounted_file add/update/remove
 	s.addTool(&toolImpl{
-		name: "fibe_agents_mounted_file_add", description: "Attach a local file mount to an agent", tier: tierFull,
+		name: "fibe_agents_mounted_file_add", description: "[MODE:SIDEEFFECTS] Attach a local file mount to an agent.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "mount_path", "path")
 			id, ok := argInt64(args, "id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
+			}
+			artefactID, hasArtefact := argInt64(args, "artefact_id")
+			var p fibe.MountedFileParams
+			if err := bindArgs(args, &p); err != nil {
+				return nil, err
+			}
+			if hasArtefact && artefactID > 0 {
+				return c.Agents.AddMountedFileFromArtefact(ctx, id, artefactID, &p)
 			}
 			filename := argString(args, "filename")
 			if filename == "" {
@@ -311,16 +319,13 @@ func (s *Server) registerAgentParity() {
 			if err != nil {
 				return nil, err
 			}
-			var p fibe.MountedFileParams
-			if err := bindArgs(args, &p); err != nil {
-				return nil, err
-			}
 			return c.Agents.AddMountedFile(ctx, id, reader, filename, &p)
 		},
 	}, mcp.NewTool("fibe_agents_mounted_file_add",
-		mcp.WithDescription("Attach a local file mount to an agent"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Attach a local file mount to an agent."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
-		mcp.WithString("filename", mcp.Required(), mcp.Description("Target filename")),
+		mcp.WithNumber("artefact_id", mcp.Description("Artefact ID to snapshot instead of uploaded content")),
+		mcp.WithString("filename", mcp.Description("Target filename for uploaded content")),
 		mcp.WithString("content_base64", mcp.Description("Base64-encoded file content (use one of content_base64/content_path)")),
 		mcp.WithString("content_path", mcp.Description("Absolute local file path to read (local MCP only)")),
 		mcp.WithString("mount_path", mcp.Description("Path inside the target container (alias: 'path')")),
@@ -328,7 +333,7 @@ func (s *Server) registerAgentParity() {
 		mcp.WithBoolean("readonly", mcp.Description("Mount as read-only")),
 	))
 	s.addTool(&toolImpl{
-		name: "fibe_agents_mounted_file_update", description: "Update the metadata of an agent's attached file mount", tier: tierFull,
+		name: "fibe_agents_mounted_file_update", description: "[MODE:SIDEEFFECTS] Update the metadata of an agent's attached file mount.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "mount_path", "path")
@@ -346,7 +351,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.UpdateMountedFile(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_agents_mounted_file_update",
-		mcp.WithDescription("Update the metadata of an agent's attached file mount"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Update the metadata of an agent's attached file mount."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Filename of the existing mounted file")),
 		mcp.WithString("mount_path", mcp.Description("Path inside the target container")),
@@ -354,7 +359,7 @@ func (s *Server) registerAgentParity() {
 		mcp.WithBoolean("readonly", mcp.Description("Mount as read-only")),
 	))
 	s.addTool(&toolImpl{
-		name: "fibe_agents_mounted_file_remove", description: "Remove an attached file mount from an agent", tier: tierFull,
+		name: "fibe_agents_mounted_file_remove", description: "[MODE:SIDEEFFECTS] Remove an attached file mount from an agent.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -368,7 +373,7 @@ func (s *Server) registerAgentParity() {
 			return c.Agents.RemoveMountedFile(ctx, id, filename)
 		},
 	}, mcp.NewTool("fibe_agents_mounted_file_remove",
-		mcp.WithDescription("Remove an attached file mount from an agent"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Remove an attached file mount from an agent."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Filename to remove")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
@@ -379,7 +384,7 @@ func (s *Server) registerAgentParity() {
 
 func (s *Server) registerArtefactParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_artefacts_create", description: "Upload and save an artefact for an agent", tier: tierCore,
+		name: "fibe_artefacts_create", description: "[MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "name", "title")
@@ -410,7 +415,7 @@ func (s *Server) registerArtefactParity() {
 			return c.Artefacts.Create(ctx, agentID, &p, reader, filename)
 		},
 	}, mcp.NewTool("fibe_artefacts_create",
-		mcp.WithDescription("Upload and save an artefact for an agent"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly"),
 		mcp.WithNumber("agent_id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithString("name", mcp.Description("Artefact display name (alias: 'title'). Also used as filename fallback.")),
 		mcp.WithString("filename", mcp.Description("Target filename — defaults to 'name' when omitted")),
@@ -420,7 +425,7 @@ func (s *Server) registerArtefactParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_artefacts_download", description: "Download an artefact's contents", tier: tierFull,
+		name: "fibe_artefacts_download", description: "[MODE:DIALOG] Download an artefact's contents. Useful when you need to read the actual file content of an artefact.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			agentID, ok := argInt64(args, "agent_id")
@@ -450,7 +455,7 @@ func (s *Server) registerArtefactParity() {
 			}, nil
 		},
 	}, mcp.NewTool("fibe_artefacts_download",
-		mcp.WithDescription("Download an artefact's contents"),
+		mcp.WithDescription("[MODE:DIALOG] Download an artefact's contents. Useful when you need to read the actual file content of an artefact."),
 		mcp.WithNumber("agent_id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Artefact ID")),
 	))
@@ -507,7 +512,7 @@ func (s *Server) registerHunkParity() {
 
 func (s *Server) registerImportTemplateParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_templates_search", description: "Search through the catalog of available import templates", tier: tierCore,
+		name: "fibe_templates_search", description: "[MODE:GREENFIELD] Search through the catalog of available import templates", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			q := argString(args, "query")
@@ -518,13 +523,13 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.Search(ctx, q, tmplID)
 		},
 	}, mcp.NewTool("fibe_templates_search",
-		mcp.WithDescription("Search through the catalog of available import templates"),
+		mcp.WithDescription("[MODE:GREENFIELD] Search through the catalog of available import templates"),
 		mcp.WithString("query", mcp.Description("Search query")),
 		mcp.WithNumber("template_id", mcp.Description("Optional template ID filter")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_list", description: "List all available versions of an import template", tier: tierFull,
+		name: "fibe_templates_versions_list", description: "[MODE:DIALOG] List all available versions of an import template.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -536,14 +541,14 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.ListVersions(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_list",
-		mcp.WithDescription("List all available versions of an import template"),
+		mcp.WithDescription("[MODE:DIALOG] List all available versions of an import template."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("page", mcp.Description("Page number")),
 		mcp.WithNumber("per_page", mcp.Description("Page size")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_create", description: "Create a new version iteration for an import template", tier: tierCore,
+		name: "fibe_templates_versions_create", description: "[MODE:SIDEEFFECTS] Create a new version iteration for an import template.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_body", "body")
@@ -575,7 +580,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.CreateVersion(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_create",
-		mcp.WithDescription("Create a new version iteration for an import template. Defaults to response_mode=summary to avoid returning large template bodies."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Create a new version iteration for an import template."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithString("template_body", mcp.Description("Template YAML body (alias: 'body')")),
 		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Alias: 'body_path'")),
@@ -585,7 +590,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_toggle_public", description: "Toggle the public visibility state of a specific template version", tier: tierFull,
+		name: "fibe_templates_versions_toggle_public", description: "[MODE:SIDEEFFECTS] Toggle the public visibility state of a specific template version.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_id", "id")
@@ -600,13 +605,13 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.TogglePublic(ctx, tid, vid)
 		},
 	}, mcp.NewTool("fibe_templates_versions_toggle_public",
-		mcp.WithDescription("Toggle the public visibility state of a specific template version"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Toggle the public visibility state of a specific template version."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID (alias: 'id')")),
 		mcp.WithNumber("version_id", mcp.Required(), mcp.Description("Version ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_destroy", description: "Delete a specific version of an import template", tier: tierFull,
+		name: "fibe_templates_versions_destroy", description: "[MODE:SIDEEFFECTS] Delete a specific version of an import template.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_id", "id")
@@ -624,14 +629,14 @@ func (s *Server) registerImportTemplateParity() {
 			return map[string]any{"template_id": tid, "version_id": vid, "deleted": true}, nil
 		},
 	}, mcp.NewTool("fibe_templates_versions_destroy",
-		mcp.WithDescription("Delete a specific version of an import template"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a specific version of an import template."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID (alias: 'id')")),
 		mcp.WithNumber("version_id", mcp.Required(), mcp.Description("Version ID")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_source_set", description: "Set or update a tracked Prop file as an import template source", tier: tierFull,
+		name: "fibe_templates_source_set", description: "[MODE:SIDEEFFECTS] Set or update a tracked Prop file as an import template source.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "source_prop_id", "prop_id")
@@ -655,7 +660,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.SetSource(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_source_set",
-		mcp.WithDescription("Set or update a tracked Prop file as an import template source"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Set or update a tracked Prop file as an import template source."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("source_prop_id", mcp.Required(), mcp.Description("Source Prop ID (alias: prop_id)")),
 		mcp.WithString("source_path", mcp.Required(), mcp.Description("Source YAML path (alias: path)")),
@@ -668,7 +673,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_source_refresh", description: "Refresh an import template from its tracked source file", tier: tierFull,
+		name: "fibe_templates_source_refresh", description: "[MODE:SIDEEFFECTS] Refresh an import template from its tracked source file.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -678,12 +683,12 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.RefreshSource(ctx, id)
 		},
 	}, mcp.NewTool("fibe_templates_source_refresh",
-		mcp.WithDescription("Refresh an import template from its tracked source file"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Refresh an import template from its tracked source file."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_source_clear", description: "Clear tracked source metadata from an import template", tier: tierFull,
+		name: "fibe_templates_source_clear", description: "[MODE:SIDEEFFECTS] Clear tracked source metadata from an import template.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -693,12 +698,12 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.ClearSource(ctx, id)
 		},
 	}, mcp.NewTool("fibe_templates_source_clear",
-		mcp.WithDescription("Clear tracked source metadata from an import template"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Clear tracked source metadata from an import template."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_upgrade_playspecs", description: "Upgrade linked job Playspecs to a target template version", tier: tierFull,
+		name: "fibe_templates_upgrade_playspecs", description: "[MODE:SIDEEFFECTS] Upgrade linked job Playspecs to a target template version.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_id", "id")
@@ -714,13 +719,13 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.UpgradeLinkedPlayspecs(ctx, tid, vid)
 		},
 	}, mcp.NewTool("fibe_templates_upgrade_playspecs",
-		mcp.WithDescription("Upgrade linked job Playspecs to a target template version"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Upgrade linked job Playspecs to a target template version."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID (alias: id)")),
 		mcp.WithNumber("version_id", mcp.Required(), mcp.Description("Target template version ID (alias: target_version_id)")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_launch", description: "Bootstrap and launch a new playground directly from an import template", tier: tierCore,
+		name: "fibe_templates_launch", description: "[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template.", tier: tierCore,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -735,7 +740,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.LaunchWithParams(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_launch",
-		mcp.WithDescription("Bootstrap and launch a new playground directly from an import template"),
+		mcp.WithDescription("[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("marquee_id", mcp.Required(), mcp.Description("Target marquee ID")),
 		mcp.WithNumber("target_marquee_id", mcp.Description("Alias for marquee_id")),
@@ -745,7 +750,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_patch_preview", description: "Preview small YAML-path or exact search/replace edits to a template version; optionally preview a playspec switch", tier: tierCore,
+		name: "fibe_templates_versions_patch_preview", description: "[MODE:DIALOG] Preview small YAML-path or exact search/replace edits to a template version; optionally preview a playspec switch.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "template_id")
@@ -765,7 +770,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.PatchPreview(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_patch_preview",
-		mcp.WithDescription("Preview a patch against an existing import template version. Supports patches/edits entries with {path, op:set|remove, value, expect, create_missing, allow_missing} or {search, replace}. Creates nothing and switches nothing."),
+		mcp.WithDescription("[MODE:DIALOG] Preview small YAML-path or exact search/replace edits to a template version; optionally preview a playspec switch."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
 		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing.")),
@@ -778,7 +783,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_patch_create", description: "Create a new template version from small patches and optionally auto-switch a target playspec", tier: tierCore,
+		name: "fibe_templates_versions_patch_create", description: "[MODE:SIDEEFFECTS] Create a new template version from small patches and optionally auto-switch a target playspec.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "template_id")
@@ -798,7 +803,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.PatchCreate(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_patch_create",
-		mcp.WithDescription("Create a new template version from patch entries. Supports YAML path set/remove and search/replace. With auto_switch=true and target_playspec_id, switches the playspec after version creation succeeds."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Create a new template version from small patches and optionally auto-switch a target playspec."),
 		mcp.WithNumber("template_id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithNumber("base_version_id", mcp.Required(), mcp.Description("Exact template version ID to patch")),
 		mcp.WithArray("patches", mcp.Description("Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing.")),
@@ -888,7 +893,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_lineage", description: "Show latest template version plus template-backed playspec and playground version/status map", tier: tierCore,
+		name: "fibe_templates_lineage", description: "[MODE:DIALOG] Show latest template version plus template-backed playspec and playground version/status map.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -901,12 +906,12 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.Lineage(ctx, id)
 		},
 	}, mcp.NewTool("fibe_templates_lineage",
-		mcp.WithDescription("Compact lineage/status view for template iteration: latest version, source playspec versions, suggested version, playground statuses."),
+		mcp.WithDescription("[MODE:DIALOG] Show latest template version plus template-backed playspec and playground version/status map."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_upload_image", description: "Upload and attach a cover media image to an import template", tier: tierFull,
+		name: "fibe_templates_upload_image", description: "[MODE:SIDEEFFECTS] Upload and attach a cover media image to an import template.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -938,7 +943,7 @@ func (s *Server) registerImportTemplateParity() {
 			return c.ImportTemplates.UploadImage(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_upload_image",
-		mcp.WithDescription("Upload and attach a cover media image to an import template"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Upload and attach a cover media image to an import template."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Image filename")),
 		mcp.WithString("image_data", mcp.Description("Base64-encoded image data")),
@@ -952,7 +957,7 @@ func (s *Server) registerImportTemplateParity() {
 
 func (s *Server) registerJobEnvParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_job_env_list", description: "List global and Prop-scoped job ENV entries", tier: tierFull,
+		name: "fibe_job_env_list", description: "[MODE:DIALOG] List global and Prop-scoped job ENV entries.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.JobEnvListParams
@@ -960,7 +965,7 @@ func (s *Server) registerJobEnvParity() {
 			return c.JobEnv.List(ctx, &p)
 		},
 	}, mcp.NewTool("fibe_job_env_list",
-		mcp.WithDescription("List global and Prop-scoped job ENV entries"),
+		mcp.WithDescription("[MODE:DIALOG] List global and Prop-scoped job ENV entries."),
 		mcp.WithNumber("prop_id", mcp.Description("Optional Prop ID")),
 		mcp.WithBoolean("secret", mcp.Description("Filter by secret flag")),
 		mcp.WithBoolean("enabled", mcp.Description("Filter by enabled flag")),
@@ -970,7 +975,7 @@ func (s *Server) registerJobEnvParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_job_env_get", description: "Show a job ENV entry; pass reveal:true to include plaintext value for secret entries", tier: tierFull,
+		name: "fibe_job_env_get", description: "[MODE:DIALOG] Show a job ENV entry; pass reveal:true to include plaintext value for secret entries.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -980,13 +985,13 @@ func (s *Server) registerJobEnvParity() {
 			return c.JobEnv.Get(ctx, id, argBool(args, "reveal"))
 		},
 	}, mcp.NewTool("fibe_job_env_get",
-		mcp.WithDescription("Show a job ENV entry; pass reveal:true to include plaintext value for secret entries"),
+		mcp.WithDescription("[MODE:DIALOG] Show a job ENV entry; pass reveal:true to include plaintext value for secret entries."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
 		mcp.WithBoolean("reveal", mcp.Description("Include the plaintext value for secret entries")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_job_env_set", description: "Create a global or Prop-scoped job ENV entry", tier: tierFull,
+		name: "fibe_job_env_set", description: "[MODE:SIDEEFFECTS] Create a global or Prop-scoped job ENV entry.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.JobEnvSetParams
@@ -1002,7 +1007,7 @@ func (s *Server) registerJobEnvParity() {
 			return c.JobEnv.Set(ctx, &p)
 		},
 	}, mcp.NewTool("fibe_job_env_set",
-		mcp.WithDescription("Create a global or Prop-scoped job ENV entry"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Create a global or Prop-scoped job ENV entry."),
 		mcp.WithString("key", mcp.Required(), mcp.Description("ENV key")),
 		mcp.WithString("value", mcp.Required(), mcp.Description("ENV value")),
 		mcp.WithNumber("prop_id", mcp.Description("Optional Prop ID")),
@@ -1012,7 +1017,7 @@ func (s *Server) registerJobEnvParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_job_env_update", description: "Update a job ENV entry", tier: tierFull,
+		name: "fibe_job_env_update", description: "[MODE:SIDEEFFECTS] Update a job ENV entry.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1026,7 +1031,7 @@ func (s *Server) registerJobEnvParity() {
 			return c.JobEnv.Update(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_job_env_update",
-		mcp.WithDescription("Update a job ENV entry"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Update a job ENV entry."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
 		mcp.WithString("value", mcp.Description("New value")),
 		mcp.WithBoolean("secret", mcp.Description("Secret flag")),
@@ -1035,7 +1040,7 @@ func (s *Server) registerJobEnvParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_job_env_delete", description: "Delete a job ENV entry", tier: tierFull,
+		name: "fibe_job_env_delete", description: "[MODE:SIDEEFFECTS] Delete a job ENV entry.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1048,7 +1053,7 @@ func (s *Server) registerJobEnvParity() {
 			return map[string]any{"id": id, "deleted": true}, nil
 		},
 	}, mcp.NewTool("fibe_job_env_delete",
-		mcp.WithDescription("Delete a job ENV entry"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a job ENV entry."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Entry ID")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
@@ -1058,7 +1063,7 @@ func (s *Server) registerJobEnvParity() {
 
 func (s *Server) registerInstallationParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_installations_repos", description: "List the GitHub repositories accessible to a specific installation", tier: tierFull,
+		name: "fibe_installations_repos", description: "[MODE:DIALOG] List the GitHub repositories accessible to a specific installation", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1070,7 +1075,7 @@ func (s *Server) registerInstallationParity() {
 			return c.Installations.Repos(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_installations_repos",
-		mcp.WithDescription("List the GitHub repositories accessible to a specific installation"),
+		mcp.WithDescription("[MODE:DIALOG] List the GitHub repositories accessible to a specific installation"),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Installation ID")),
 		mcp.WithInputSchema[fibe.InstallationReposParams](),
 	))
@@ -1080,7 +1085,7 @@ func (s *Server) registerInstallationParity() {
 
 func (s *Server) registerMarqueeParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_marquees_autoconnect_token", description: "Generate an autoconnect token for seamless Marquee integration", tier: tierFull,
+		name: "fibe_marquees_autoconnect_token", description: "[MODE:SIDEEFFECTS] Generate an autoconnect token for seamless Marquee integration.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.AutoconnectTokenParams
@@ -1090,7 +1095,7 @@ func (s *Server) registerMarqueeParity() {
 			return c.Marquees.AutoconnectToken(ctx, &p)
 		},
 	}, mcp.NewTool("fibe_marquees_autoconnect_token",
-		mcp.WithDescription("Generate an autoconnect token for seamless Marquee integration"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Generate an autoconnect token for seamless Marquee integration."),
 		mcp.WithInputSchema[fibe.AutoconnectTokenParams](),
 	))
 }
@@ -1099,7 +1104,7 @@ func (s *Server) registerMarqueeParity() {
 
 func (s *Server) registerMutterParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_mutters_get", description: "Retrieve the full internal muttering transcript of an agent", tier: tierCore,
+		name: "fibe_mutters_get", description: "[MODE:OVERSEER] Retrieve the full internal muttering transcript of an agent.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			agentID, ok := argInt64(args, "agent_id")
@@ -1111,13 +1116,13 @@ func (s *Server) registerMutterParity() {
 			return c.Mutters.Get(ctx, agentID, &p)
 		},
 	}, mcp.NewTool("fibe_mutters_get",
-		mcp.WithDescription("Retrieve the full internal muttering transcript of an agent"),
+		mcp.WithDescription("[MODE:OVERSEER] Retrieve the full internal muttering transcript of an agent."),
 		mcp.WithNumber("agent_id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithInputSchema[fibe.MutterListParams](),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_mutters_create", description: "Append a new entry to an agent's internal muttering transcript", tier: tierCore,
+		name: "fibe_mutters_create", description: "[MODE:SIDEEFFECTS] Store important thoughts, problems encountered, mile-stones achieved etc. Mutters are critical communication channels with Player.", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			agentID, ok := argInt64(args, "agent_id")
@@ -1131,7 +1136,7 @@ func (s *Server) registerMutterParity() {
 			return c.Mutters.CreateItem(ctx, agentID, &p)
 		},
 	}, mcp.NewTool("fibe_mutters_create",
-		mcp.WithDescription("Append a new entry to an agent's internal muttering transcript"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Store important thoughts, problems encountered, mile-stones achieved etc. Mutters are critical communication channels with Player."),
 		mcp.WithNumber("agent_id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithInputSchema[fibe.MutterItemParams](),
 	))
@@ -1141,7 +1146,7 @@ func (s *Server) registerMutterParity() {
 
 func (s *Server) registerPlayspecParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_services", description: "List all individual services defined within a playspec", tier: tierFull,
+		name: "fibe_playspecs_services", description: "[MODE:DIALOG] List all individual services defined within a playspec.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1155,12 +1160,12 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "services": svcs}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_services",
-		mcp.WithDescription("List all individual services defined within a playspec"),
+		mcp.WithDescription("[MODE:DIALOG] List all individual services defined within a playspec."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_switch_version_preview", description: "Preview switching a template-backed playspec to another template version", tier: tierCore,
+		name: "fibe_playspecs_switch_version_preview", description: "[MODE:DIALOG] Preview switching a template-backed playspec to another template version. Read-only dry run.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1177,7 +1182,7 @@ func (s *Server) registerPlayspecParity() {
 			return c.Playspecs.PreviewTemplateVersionSwitch(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_playspecs_switch_version_preview",
-		mcp.WithDescription("Preview switching a template-backed playspec to another template version"),
+		mcp.WithDescription("[MODE:DIALOG] Preview switching a template-backed playspec to another template version. Read-only dry run."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithNumber("target_template_version_id", mcp.Required(), mcp.Description("Target template version ID")),
 		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
@@ -1188,7 +1193,7 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_switch_version", description: "Switch a template-backed playspec to another template version", tier: tierCore,
+		name: "fibe_playspecs_switch_version", description: "[MODE:SIDEEFFECTS] Switch a template-backed playspec to another template version.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1205,7 +1210,7 @@ func (s *Server) registerPlayspecParity() {
 			return c.Playspecs.SwitchTemplateVersion(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_playspecs_switch_version",
-		mcp.WithDescription("Switch a template-backed playspec to another template version"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Switch a template-backed playspec to another template version."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithNumber("target_template_version_id", mcp.Required(), mcp.Description("Target template version ID")),
 		mcp.WithAny("variables", mcp.Description("Template variable overrides as an object")),
@@ -1217,7 +1222,7 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_mounted_file_add", description: "Attach a local file mount to a playspec blueprint", tier: tierFull,
+		name: "fibe_playspecs_mounted_file_add", description: "[MODE:SIDEEFFECTS] Attach a local file mount to a playspec blueprint.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "mount_path", "path")
@@ -1243,7 +1248,7 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "filename": filename, "ok": true}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_mounted_file_add",
-		mcp.WithDescription("Attach a local file mount to a playspec blueprint"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Attach a local file mount to a playspec blueprint."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Target filename")),
 		mcp.WithString("content_base64", mcp.Description("Base64-encoded file content")),
@@ -1254,7 +1259,7 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_mounted_file_update", description: "Update the metadata of an attached file mount on a playspec", tier: tierFull,
+		name: "fibe_playspecs_mounted_file_update", description: "[MODE:SIDEEFFECTS] Update the metadata of an attached file mount on a playspec.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "mount_path", "path")
@@ -1275,7 +1280,7 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "filename": p.Filename, "ok": true}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_mounted_file_update",
-		mcp.WithDescription("Update the metadata of an attached file mount on a playspec"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Update the metadata of an attached file mount on a playspec."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Filename of the existing mounted file")),
 		mcp.WithString("mount_path", mcp.Description("Path inside the target container")),
@@ -1284,7 +1289,7 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_mounted_file_remove", description: "Remove an attached file mount from a playspec", tier: tierFull,
+		name: "fibe_playspecs_mounted_file_remove", description: "[MODE:SIDEEFFECTS] Remove an attached file mount from a playspec.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1301,14 +1306,14 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "filename": filename, "removed": true}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_mounted_file_remove",
-		mcp.WithDescription("Remove an attached file mount from a playspec"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Remove an attached file mount from a playspec."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithString("filename", mcp.Required(), mcp.Description("Filename to remove")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_registry_credential_add", description: "Attach container registry authentication credentials to a playspec", tier: tierFull,
+		name: "fibe_playspecs_registry_credential_add", description: "[MODE:SIDEEFFECTS] Attach container registry authentication credentials to a playspec.", tier: tierFull,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1346,7 +1351,7 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "registry_type": p.RegistryType, "added": true, "credentials": result.Credentials}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_registry_credential_add",
-		mcp.WithDescription("Attach container registry authentication credentials to a playspec"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Attach container registry authentication credentials to a playspec."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithString("registry_type", mcp.Required(),
 			mcp.Description("Registry type — MUST be one of: ghcr, dockerhub, aws_ecr"),
@@ -1357,7 +1362,7 @@ func (s *Server) registerPlayspecParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_playspecs_registry_credential_remove", description: "Remove registry authentication credentials from a playspec", tier: tierFull,
+		name: "fibe_playspecs_registry_credential_remove", description: "[MODE:SIDEEFFECTS] Remove registry authentication credentials from a playspec.", tier: tierFull,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1374,7 +1379,7 @@ func (s *Server) registerPlayspecParity() {
 			return map[string]any{"id": id, "credential_id": credID, "removed": true}, nil
 		},
 	}, mcp.NewTool("fibe_playspecs_registry_credential_remove",
-		mcp.WithDescription("Remove registry authentication credentials from a playspec"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Remove registry authentication credentials from a playspec."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playspec ID")),
 		mcp.WithString("credential_id", mcp.Required(), mcp.Description("Credential ID")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
@@ -1385,7 +1390,7 @@ func (s *Server) registerPlayspecParity() {
 
 func (s *Server) registerPropParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_props_with_docker_compose", description: "List all props that contain a valid Docker Compose configuration", tier: tierFull,
+		name: "fibe_props_with_docker_compose", description: "[MODE:DIALOG] List all props that contain a valid Docker Compose configuration.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.PropListParams
@@ -1393,12 +1398,12 @@ func (s *Server) registerPropParity() {
 			return c.Props.WithDockerCompose(ctx, &p)
 		},
 	}, mcp.NewTool("fibe_props_with_docker_compose",
-		mcp.WithDescription("List all props that contain a valid Docker Compose configuration"),
+		mcp.WithDescription("[MODE:DIALOG] List all props that contain a valid Docker Compose configuration."),
 		mcp.WithInputSchema[fibe.PropListParams](),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_props_mirror", description: "Duplicate an external repository to create a new mirrored prop", tier: tierFull,
+		name: "fibe_props_mirror", description: "[MODE:GREENFIELD] Duplicate an external repository to create a new mirrored prop.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "source_url", "repository_url", "url")
@@ -1409,12 +1414,12 @@ func (s *Server) registerPropParity() {
 			return c.Props.Mirror(ctx, src)
 		},
 	}, mcp.NewTool("fibe_props_mirror",
-		mcp.WithDescription("Duplicate an external repository to create a new mirrored prop"),
+		mcp.WithDescription("[MODE:GREENFIELD] Duplicate an external repository to create a new mirrored prop."),
 		mcp.WithString("source_url", mcp.Required(), mcp.Description("Source repository URL (alias: 'repository_url')")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_props_manual_link", description: "Manually re-link a prop to its source following an OAuth reconnection", tier: tierFull,
+		name: "fibe_props_manual_link", description: "[MODE:SIDEEFFECTS] Manually re-link a prop to its source following an OAuth reconnection.", tier: tierFull,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1424,12 +1429,12 @@ func (s *Server) registerPropParity() {
 			return c.Props.ManualLink(ctx, id)
 		},
 	}, mcp.NewTool("fibe_props_manual_link",
-		mcp.WithDescription("Manually re-link a prop to its source following an OAuth reconnection"),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Manually re-link a prop to its source following an OAuth reconnection."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Prop ID")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_props_env_defaults", description: "Extract and read default environment variables from a prop's branch", tier: tierFull,
+		name: "fibe_props_env_defaults", description: "[MODE:DIALOG] Extract and read default environment variables from a prop's branch.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1441,7 +1446,7 @@ func (s *Server) registerPropParity() {
 			return c.Props.EnvDefaults(ctx, id, branch, envFile)
 		},
 	}, mcp.NewTool("fibe_props_env_defaults",
-		mcp.WithDescription("Extract and read default environment variables from a prop's branch"),
+		mcp.WithDescription("[MODE:DIALOG] Extract and read default environment variables from a prop's branch."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Prop ID")),
 		mcp.WithString("branch", mcp.Description("Branch name (default: default branch)")),
 		mcp.WithString("env_file_path", mcp.Description("Path within the repo (default: .env)")),
@@ -1652,7 +1657,7 @@ func (s *Server) registerTeamParity() {
 
 func (s *Server) registerWebhookParity() {
 	s.addTool(&toolImpl{
-		name: "fibe_webhooks_event_types", description: "List all event types supported by Fibe webhooks", tier: tierFull,
+		name: "fibe_webhooks_event_types", description: "[MODE:DIALOG] List all event types supported by Fibe webhooks.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			types, err := c.WebhookEndpoints.EventTypes(ctx)
@@ -1662,11 +1667,11 @@ func (s *Server) registerWebhookParity() {
 			return map[string]any{"event_types": types}, nil
 		},
 	}, mcp.NewTool("fibe_webhooks_event_types",
-		mcp.WithDescription("List all event types supported by Fibe webhooks"),
+		mcp.WithDescription("[MODE:DIALOG] List all event types supported by Fibe webhooks."),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_webhooks_deliveries_list", description: "List recent event delivery attempts for a webhook endpoint", tier: tierFull,
+		name: "fibe_webhooks_deliveries_list", description: "[MODE:DIALOG] List recent event delivery attempts for a webhook endpoint.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			id, ok := argInt64(args, "id")
@@ -1678,7 +1683,7 @@ func (s *Server) registerWebhookParity() {
 			return c.WebhookEndpoints.ListDeliveries(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_webhooks_deliveries_list",
-		mcp.WithDescription("List recent event delivery attempts for a webhook endpoint"),
+		mcp.WithDescription("[MODE:DIALOG] List recent event delivery attempts for a webhook endpoint."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Webhook endpoint ID")),
 		mcp.WithNumber("page", mcp.Description("Page number")),
 		mcp.WithNumber("per_page", mcp.Description("Page size")),
@@ -1688,11 +1693,11 @@ func (s *Server) registerWebhookParity() {
 // ---------- GitHub / Gitea Repos ----------
 
 func (s *Server) registerGitRepoParity() {
-	registerCreate(s, "fibe_github_repos_create", "Register and connect a new GitHub repository", toolOpts{Tier: tierCore},
+	registerCreate(s, "fibe_github_repos_create", "[MODE:GREENFIELD] Register and connect a new GitHub repository", toolOpts{Tier: tierCore},
 		func(ctx context.Context, c *fibe.Client, p *fibe.GitHubRepoCreateParams) (*fibe.GitHubRepo, error) {
 			return c.GitHubRepos.Create(ctx, p)
 		})
-	registerCreate(s, "fibe_gitea_repos_create", "Register and connect a new Gitea repository", toolOpts{Tier: tierFull},
+	registerCreate(s, "fibe_gitea_repos_create", "[MODE:GREENFIELD] Register and connect a new Gitea repository", toolOpts{Tier: tierCore},
 		func(ctx context.Context, c *fibe.Client, p *fibe.GiteaRepoCreateParams) (*fibe.GiteaRepo, error) {
 			return c.GiteaRepos.Create(ctx, p)
 		})

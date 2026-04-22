@@ -2,10 +2,13 @@ package fibe
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 )
 
 type AgentService struct {
@@ -27,9 +30,13 @@ func (s *AgentService) Create(ctx context.Context, params *AgentCreateParams) (*
 	if err := validateParams(params); err != nil {
 		return nil, err
 	}
+	prepared, err := prepareAgentCreateParams(params)
+	if err != nil {
+		return nil, err
+	}
 	var result Agent
-	body := map[string]any{"agent": params}
-	err := s.client.do(ctx, http.MethodPost, "/api/agents", body, &result)
+	body := map[string]any{"agent": prepared}
+	err = s.client.do(ctx, http.MethodPost, "/api/agents", body, &result)
 	return &result, err
 }
 
@@ -120,6 +127,23 @@ func (s *AgentService) AddMountedFile(ctx context.Context, id int64, file io.Rea
 	return s.Get(ctx, id)
 }
 
+func (s *AgentService) AddMountedFileFromArtefact(ctx context.Context, id int64, artefactID int64, params *MountedFileParams) (*Agent, error) {
+	body := map[string]any{
+		"artefact_id": artefactID,
+		"mount_path":  params.MountPath,
+	}
+	if params.ReadOnly != nil {
+		body["readonly"] = *params.ReadOnly
+	}
+	if len(params.TargetServices) > 0 {
+		body["target_services"] = params.TargetServices
+	}
+	path := fmt.Sprintf("/api/agents/%d/add_mounted_file", id)
+	var result Agent
+	err := s.client.do(ctx, http.MethodPost, path, body, &result)
+	return &result, err
+}
+
 func (s *AgentService) UpdateMountedFile(ctx context.Context, id int64, params *MountedFileUpdateParams) (*Agent, error) {
 	var result Agent
 	path := fmt.Sprintf("/api/agents/%d/update_mounted_file", id)
@@ -182,6 +206,30 @@ func (s *AgentService) GetRawProviders(ctx context.Context, id int64) (*AgentDat
 	var result AgentData
 	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/raw_providers", id), nil, &result)
 	return &result, err
+}
+
+func prepareAgentCreateParams(params *AgentCreateParams) (*AgentCreateParams, error) {
+	prepared := *params
+	if len(params.Mounts) == 0 {
+		return &prepared, nil
+	}
+	prepared.Mounts = make([]AgentMountSpec, len(params.Mounts))
+	for i, mount := range params.Mounts {
+		next := mount
+		if next.ContentPath != "" {
+			data, err := os.ReadFile(next.ContentPath)
+			if err != nil {
+				return nil, fmt.Errorf("read mount content_path %s: %w", next.ContentPath, err)
+			}
+			next.ContentBase64 = base64.StdEncoding.EncodeToString(data)
+			if next.Filename == "" {
+				next.Filename = filepath.Base(next.ContentPath)
+			}
+			next.ContentPath = ""
+		}
+		prepared.Mounts[i] = next
+	}
+	return &prepared, nil
 }
 
 func (s *AgentService) UpdateRawProviders(ctx context.Context, id int64, content any) error {

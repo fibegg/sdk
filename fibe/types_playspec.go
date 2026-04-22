@@ -128,6 +128,7 @@ type MountedFileParams struct {
 	MountPath      string   `json:"mount_path"`
 	TargetServices []string `json:"target_services,omitempty"`
 	ReadOnly       *bool    `json:"readonly,omitempty"`
+	ArtefactID     *int64   `json:"artefact_id,omitempty"`
 }
 
 type MountedFileUpdateParams struct {

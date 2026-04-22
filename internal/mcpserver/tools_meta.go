@@ -20,29 +20,29 @@ import (
 func (s *Server) registerMetaTools() {
 	// ---------- fibe_me ----------
 	s.addTool(&toolImpl{
-		name: "fibe_me", description: "Display the currently authenticated user's profile information", tier: tierMeta,
+		name: "fibe_me", description: "[MODE:DIALOG] Display the currently authenticated user's profile information", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.APIKeys.Me(ctx)
 		},
 	}, mcp.NewTool("fibe_me",
-		mcp.WithDescription("Display the currently authenticated user's profile information"),
+		mcp.WithDescription("[MODE:DIALOG] Display the currently authenticated user's profile information"),
 	))
 
 	// ---------- fibe_status ----------
 	s.addTool(&toolImpl{
-		name: "fibe_status", description: "Display a comprehensive dashboard of resource counts across your account", tier: tierMeta,
+		name: "fibe_status", description: "[MODE:DIALOG] Display a comprehensive dashboard of resource counts across your account.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.Status.Get(ctx)
 		},
 	}, mcp.NewTool("fibe_status",
-		mcp.WithDescription("Display a comprehensive dashboard of resource counts across your account"),
+		mcp.WithDescription("[MODE:DIALOG] Display a comprehensive dashboard of resource counts across your account."),
 	))
 
 	// ---------- fibe_limits ----------
 	s.addTool(&toolImpl{
-		name: "fibe_limits", description: "Display current resource quotas, platform caps, and API rate-limit usage", tier: tierMeta,
+		name: "fibe_limits", description: "[MODE:DIALOG] Display current resource quotas, platform caps, and API rate-limit usage.", tier: tierFull,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			status, err := c.Status.Get(ctx)
@@ -59,23 +59,23 @@ func (s *Server) registerMetaTools() {
 			}, nil
 		},
 	}, mcp.NewTool("fibe_limits",
-		mcp.WithDescription("Display current resource quotas, platform caps, and API rate-limit usage"),
+		mcp.WithDescription("[MODE:DIALOG] Display current resource quotas, platform caps, and API rate-limit usage."),
 	))
 
 	// ---------- fibe_server_info ----------
 	s.addTool(&toolImpl{
-		name: "fibe_server_info", description: "Display the Fibe server's domain, system time, build version, and active commit SHA", tier: tierCore,
+		name: "fibe_server_info", description: "[MODE:DIALOG] Display the Fibe server's domain, system time, build version, and active commit SHA", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.ServerInfo.Get(ctx)
 		},
 	}, mcp.NewTool("fibe_server_info",
-		mcp.WithDescription("Display the Fibe server's domain, system time, build version, and active commit SHA"),
+		mcp.WithDescription("[MODE:DIALOG] Display the Fibe server's domain, system time, build version, and active commit SHA"),
 	))
 
 	// ---------- fibe_doctor ----------
 	s.addTool(&toolImpl{
-		name: "fibe_doctor", description: "Run self-diagnostic checks to verify API validity and system connectivity", tier: tierMeta,
+		name: "fibe_doctor", description: "[MODE:DIALOG] Run self-diagnostic checks to verify API validity and system connectivity", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			me, err := c.APIKeys.Me(ctx)
@@ -99,7 +99,7 @@ func (s *Server) registerMetaTools() {
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_doctor",
-		mcp.WithDescription("Run self-diagnostic checks to verify API validity and system connectivity"),
+		mcp.WithDescription("[MODE:DIALOG] Run self-diagnostic checks to verify API validity and system connectivity"),
 	))
 
 	// ---------- fibe_auth_set ----------
@@ -112,7 +112,7 @@ func (s *Server) registerMetaTools() {
 	// mode where subsequent calls keep returning 401 because a typo'd key
 	// was silently installed. Pass validate:false to skip the ping.
 	s.addTool(&toolImpl{
-		name: "fibe_auth_set", description: "Configure session-scoped authentication credentials for multi-tenant setups", tier: tierMeta,
+		name: "fibe_auth_set", description: "[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			apiKey := argString(args, "api_key")
@@ -172,7 +172,7 @@ is most useful in multi-tenant HTTP deployments.`),
 	// ---------- fibe_help ----------
 	// Returns cobra Long help for any fibe subcommand.
 	s.addTool(&toolImpl{
-		name: "fibe_help", description: "Display detailed CLI help documentation for a specific Fibe command path", tier: tierMeta,
+		name: "fibe_help", description: "[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes.", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			path := argString(args, "path")
@@ -194,14 +194,14 @@ is most useful in multi-tenant HTTP deployments.`),
 			}, nil
 		},
 	}, mcp.NewTool("fibe_help",
-		mcp.WithDescription("Display detailed CLI help documentation for a specific Fibe command path"),
+		mcp.WithDescription("[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes."),
 		mcp.WithString("path", mcp.Description("Space-separated command path, e.g. \"playgrounds create\". Empty = root help.")),
 	))
 
 	// ---------- fibe_run ----------
 	// Escape hatch: invoke any fibe CLI command programmatically.
 	s.addTool(&toolImpl{
-		name: "fibe_run", description: "Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits", tier: tierMeta,
+		name: "fibe_run", description: "[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runCobra(ctx, args)
@@ -223,7 +223,7 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 	// are the machine-facing source of truth; fibe_schema is for agents
 	// that want a consolidated overview.
 	s.addTool(&toolImpl{
-		name: "fibe_schema", description: "Return JSON Schema definitions for Fibe resource creation and updates", tier: tierMeta,
+		name: "fibe_schema", description: "[MODE:DIALOG] Return JSON Schema definitions for Fibe resource creation and updates. Always run this before invoking destructive or complex unadvertised tools via fibe_call.", tier: tierCore,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			resource := argString(args, "resource")
@@ -249,7 +249,7 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 			return schema, nil
 		},
 	}, mcp.NewTool("fibe_schema",
-		mcp.WithDescription("Return JSON Schema definitions for Fibe resource creation and updates"),
+		mcp.WithDescription("[MODE:DIALOG] Return JSON Schema definitions for Fibe resource creation and updates. Always run this before invoking destructive or complex unadvertised tools via fibe_call."),
 		mcp.WithString("resource", mcp.Description("Resource name: playground, agent, playspec, prop, marquee, secret, team, webhook, api_key")),
 		mcp.WithString("operation", mcp.Description("Operation name: create, update (resource-dependent)")),
 	))
