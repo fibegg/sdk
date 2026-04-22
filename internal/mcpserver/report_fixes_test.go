@@ -178,6 +178,9 @@ func TestTemplatesVersionsCreateAcceptsTemplateBodyPath(t *testing.T) {
 	if got := requestBody["template_body"]; got != "services:\n  web:\n    image: nginx\n" {
 		t.Fatalf("template_body=%q", got)
 	}
+	if got := requestBody["response_mode"]; got != "summary" {
+		t.Fatalf("response_mode=%q, want summary", got)
+	}
 }
 
 func TestTemplatesVersionsCreateRejectsRelativeTemplateBodyPath(t *testing.T) {
@@ -223,6 +226,9 @@ func TestTemplatesVersionsCreateKeepsInlineTemplateBody(t *testing.T) {
 	}
 	if got := requestBody["template_body"]; got != "services: {}\n" {
 		t.Fatalf("template_body=%q", got)
+	}
+	if got := requestBody["response_mode"]; got != "summary" {
+		t.Fatalf("response_mode=%q, want summary", got)
 	}
 }
 

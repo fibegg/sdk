@@ -105,6 +105,31 @@ func TestFullModeAdvertisesGAAgentParityTools(t *testing.T) {
 	}
 }
 
+func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "core", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	advertised := advertisedToolNames(srv)
+	for _, name := range []string{
+		"fibe_templates_versions_create",
+		"fibe_templates_versions_patch_preview",
+		"fibe_templates_versions_patch_create",
+		"fibe_templates_patch_apply",
+		"fibe_playgrounds_rollout",
+		"fibe_playgrounds_debug",
+		"fibe_playgrounds_diagnose",
+		"fibe_playgrounds_wait",
+		"fibe_playgrounds_status",
+		"fibe_playgrounds_logs",
+	} {
+		if !advertised[name] {
+			t.Errorf("%s should be advertised in core mode", name)
+		}
+	}
+}
+
 func TestToolAnnotationsDoNotMarkReadOnlyToolsDestructive(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4})
 	if err := srv.RegisterAll(); err != nil {

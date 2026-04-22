@@ -81,6 +81,7 @@ type ImportTemplateVersionCreateParams struct {
 	TemplateBody string  `json:"template_body"`
 	Public       *bool   `json:"public,omitempty"`
 	Changelog    *string `json:"changelog,omitempty"`
+	ResponseMode string  `json:"response_mode,omitempty"`
 }
 
 type TemplatePatchEdit struct {

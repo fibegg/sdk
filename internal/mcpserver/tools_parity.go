@@ -543,7 +543,7 @@ func (s *Server) registerImportTemplateParity() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_versions_create", description: "Create a new version iteration for an import template", tier: tierFull,
+		name: "fibe_templates_versions_create", description: "Create a new version iteration for an import template", tier: tierCore,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			aliasField(args, "template_body", "body")
@@ -569,14 +569,19 @@ func (s *Server) registerImportTemplateParity() {
 			if p.TemplateBody == "" {
 				return nil, fmt.Errorf("required field 'template_body' not set (also accepts 'body' as alias)")
 			}
+			if p.ResponseMode == "" {
+				p.ResponseMode = "summary"
+			}
 			return c.ImportTemplates.CreateVersion(ctx, id, &p)
 		},
 	}, mcp.NewTool("fibe_templates_versions_create",
-		mcp.WithDescription("Create a new version iteration for an import template"),
+		mcp.WithDescription("Create a new version iteration for an import template. Defaults to response_mode=summary to avoid returning large template bodies."),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Template ID")),
 		mcp.WithString("template_body", mcp.Description("Template YAML body (alias: 'body')")),
 		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Alias: 'body_path'")),
 		mcp.WithBoolean("public", mcp.Description("Make this version public")),
+		mcp.WithString("changelog", mcp.Description("Version changelog")),
+		mcp.WithString("response_mode", mcp.Description("summary (default) or full")),
 	))
 
 	s.addTool(&toolImpl{
