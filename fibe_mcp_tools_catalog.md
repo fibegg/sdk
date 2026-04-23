@@ -254,36 +254,6 @@ Register a GitHub repository
 ### Description
 Return extended help (cobra Long) for a fibe command path
 
-## `fibe_hunks_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show a hunk
-
-## `fibe_hunks_ingest`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Trigger hunk ingestion for a prop
-
-## `fibe_hunks_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List hunks for a prop
-
-## `fibe_hunks_next`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Fetch the next hunk awaiting processing (requires processor_name)
-
-## `fibe_hunks_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a hunk
-
 ## `fibe_installations_list`
 **Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
 

@@ -44,11 +44,6 @@
 | `fibe_gitea_repos_create` | Register a Gitea repository |
 | `fibe_github_repos_create` | Register a GitHub repository |
 | `fibe_help` | Return extended help (cobra Long) for a fibe command path |
-| `fibe_hunks_get` | Show a hunk |
-| `fibe_hunks_ingest` | Trigger hunk ingestion for a prop |
-| `fibe_hunks_list` | List hunks for a prop |
-| `fibe_hunks_next` | Fetch the next hunk awaiting processing (requires processor_name) |
-| `fibe_hunks_update` | Update a hunk |
 | `fibe_installations_list` | List GitHub App installations associated with your account |
 | `fibe_installations_repos` | List repositories visible to an installation |
 | `fibe_installations_token` | Get a scoped GitHub token for an installation + repo |

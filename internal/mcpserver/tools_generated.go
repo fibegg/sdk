@@ -433,20 +433,6 @@ func (s *Server) registerGeneratedTools() {
 	// 			return c.Mutations.Update(ctx, propID, id, p)
 	// 		})
 
-	// ---------- Hunks (nested under props) ----------
-	// 	registerListNested(s, "fibe_hunks_list", "List hunks for a prop", "prop_id", toolOpts{Tier: tierFull},
-	// 		func(ctx context.Context, c *fibe.Client, propID int64, p *fibe.HunkListParams) (*fibe.ListResult[fibe.Hunk], error) {
-	// 			return c.Hunks.List(ctx, propID, p)
-	// 		})
-	// 	registerGetNested(s, "fibe_hunks_get", "Show a hunk", "prop_id", toolOpts{Tier: tierFull},
-	// 		func(ctx context.Context, c *fibe.Client, propID, id int64) (*fibe.Hunk, error) {
-	// 			return c.Hunks.Get(ctx, propID, id)
-	// 		})
-	// 	registerUpdateNested(s, "fibe_hunks_update", "Update a hunk", "prop_id", toolOpts{Tier: tierFull},
-	// 		func(ctx context.Context, c *fibe.Client, propID, id int64, p *fibe.HunkUpdateParams) (*fibe.Hunk, error) {
-	// 			return c.Hunks.Update(ctx, propID, id, p)
-	// 		})
-
 	// ---------- Feedbacks (nested under agents) ----------
 	registerListNested(s, "fibe_feedbacks_list", "[MODE:OVERSEER] List all feedback entries associated with an agent.", "agent_id", toolOpts{Tier: tierFull},
 		func(ctx context.Context, c *fibe.Client, agentID int64, p *fibe.FeedbackListParams) (*fibe.ListResult[fibe.Feedback], error) {

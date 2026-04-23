@@ -125,7 +125,6 @@ DOCUMENTATION:
 		templatesCmd(),
 		webhooksCmd(),
 		mutationsCmd(),
-		hunksCmd(),
 		feedbacksCmd(),
 		auditLogsCmd(),
 		monitorCmd(),

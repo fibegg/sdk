@@ -23,7 +23,6 @@ import (
 func (s *Server) registerParityTools() {
 	s.registerAgentParity()
 	s.registerArtefactParity()
-	s.registerHunkParity()
 	s.registerImportTemplateParity()
 	s.registerInstallationParity()
 	s.registerJobEnvParity()
@@ -459,53 +458,6 @@ func (s *Server) registerArtefactParity() {
 		mcp.WithNumber("agent_id", mcp.Required(), mcp.Description("Agent ID")),
 		mcp.WithNumber("id", mcp.Required(), mcp.Description("Artefact ID")),
 	))
-}
-
-// ---------- Hunks ----------
-
-func (s *Server) registerHunkParity() {
-	// 	s.addTool(&toolImpl{
-	// 		name: "fibe_hunks_ingest", description: "Trigger hunk ingestion for a prop", tier: tierFull,
-	// 		annotations: toolAnnotations{Idempotent: true},
-	// 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-	// 			propID, ok := argInt64(args, "prop_id")
-	// 			if !ok {
-	// 				return nil, fmt.Errorf("required field 'prop_id' not set")
-	// 			}
-	// 			force := argBool(args, "force")
-	// 			if err := c.Hunks.Ingest(ctx, propID, force); err != nil {
-	// 				return nil, err
-	// 			}
-	// 			return map[string]any{"prop_id": propID, "ingested": true, "force": force}, nil
-	// 		},
-	// 	}, mcp.NewTool("fibe_hunks_ingest",
-	// 		mcp.WithDescription("Kick off hunk ingestion for a prop. Pass force:true to re-ingest already-processed hunks."),
-	// 		mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
-	// 		mcp.WithBoolean("force", mcp.Description("Force re-ingestion")),
-	// 	))
-
-	//	s.addTool(&toolImpl{
-	//		name: "fibe_hunks_next", description: "Fetch the next hunk awaiting processing (requires processor_name)", tier: tierFull,
-	//		annotations: toolAnnotations{},
-	//		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-	//			aliasField(args, "processor_name", "processor", "worker")
-	//			propID, ok := argInt64(args, "prop_id")
-	//			if !ok {
-	//				return nil, fmt.Errorf("required field 'prop_id' not set")
-	//			}
-	//			proc := argString(args, "processor_name")
-	//			if proc == "" {
-	//				return nil, fmt.Errorf("required field 'processor_name' not set — the worker claiming the hunk must identify itself (alias: 'processor')")
-	//			}
-	//			return c.Hunks.Next(ctx, propID, proc)
-	//		},
-	//	}, mcp.NewTool("fibe_hunks_next",
-	//
-	//	mcp.WithDescription("Claim the next hunk awaiting processing by the named processor. 'processor_name' is REQUIRED — it's the identifier the backend uses to track which worker owns the hunk. Alias 'processor' is accepted."),
-	//	mcp.WithNumber("prop_id", mcp.Required(), mcp.Description("Prop ID")),
-	//	mcp.WithString("processor_name", mcp.Required(), mcp.Description("Processor identifier (required — alias: 'processor')")),
-	//
-	// ))
 }
 
 // ---------- Import Templates ----------

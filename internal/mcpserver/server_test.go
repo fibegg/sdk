@@ -98,7 +98,7 @@ func TestFullModeAdvertisesGAAgentParityTools(t *testing.T) {
 		}
 	}
 
-	for _, experimental := range []string{"fibe_hunks_list", "fibe_mutations_create", "fibe_teams_list"} {
+	for _, experimental := range []string{"fibe_mutations_create", "fibe_teams_list"} {
 		if advertised[experimental] {
 			t.Errorf("%s is experimental and should not be advertised for GA parity", experimental)
 		}

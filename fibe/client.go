@@ -41,7 +41,6 @@ type Client struct {
 	ImportTemplates    *ImportTemplateService
 	WebhookEndpoints   *WebhookEndpointService
 	Mutations          *MutationService
-	Hunks              *HunkService
 	Feedbacks          *FeedbackService
 	Mutters            *MutterService
 	AuditLogs          *AuditLogService
@@ -118,7 +117,6 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.ImportTemplates = &ImportTemplateService{client: c}
 	c.WebhookEndpoints = &WebhookEndpointService{client: c}
 	c.Mutations = &MutationService{client: c}
-	c.Hunks = &HunkService{client: c}
 	c.Feedbacks = &FeedbackService{client: c}
 	c.Mutters = &MutterService{client: c}
 	c.AuditLogs = &AuditLogService{client: c}

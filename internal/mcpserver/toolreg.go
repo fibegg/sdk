@@ -160,7 +160,7 @@ func registerList[P any, R any](s *Server, name, desc string, opts toolOpts,
 }
 
 // registerListNested registers a list endpoint scoped by a parent ID.
-// Example: fibe_hunks_list requires prop_id; fibe_artefacts_list requires agent_id.
+// Example: fibe_mutations_list requires prop_id; fibe_artefacts_list requires agent_id.
 func registerListNested[P any, R any](s *Server, name, desc, parentIDField string, opts toolOpts,
 	fn func(ctx context.Context, c *fibe.Client, parentID int64, params *P) (*fibe.ListResult[R], error)) {
 
@@ -216,7 +216,7 @@ func registerGet[R any](s *Server, name, desc string, opts toolOpts,
 	s.addTool(t, tool)
 }
 
-// registerGetNested: get a resource scoped under a parent (e.g., fibe_hunks_get takes prop_id + id).
+// registerGetNested: get a resource scoped under a parent (e.g., fibe_mutations_get takes prop_id + id).
 func registerGetNested[R any](s *Server, name, desc, parentIDField string, opts toolOpts,
 	fn func(ctx context.Context, c *fibe.Client, parentID, id int64) (*R, error)) {
 

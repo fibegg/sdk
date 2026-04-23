@@ -31,7 +31,6 @@ AVAILABLE SCOPES:
   mutters:read, mutters:write
   feedbacks:read, feedbacks:write, feedbacks:delete
   mutations:read, mutations:write
-  hunks:read, hunks:write
   launch:write
   keys:manage
   webhooks:read, webhooks:write, webhooks:delete
