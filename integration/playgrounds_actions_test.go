@@ -116,7 +116,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 
 	t.Run("rollout triggers redeploy", func(t *testing.T) {
 		t.Parallel()
-		rolled, err := c.Playgrounds.Rollout(ctx(), pg.ID)
+		rolled, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "rollout") {
 			return
 		}
@@ -129,7 +129,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 
 	t.Run("hard_restart triggers restart", func(t *testing.T) {
 		t.Parallel()
-		restarted, err := c.Playgrounds.HardRestart(ctx(), pg.ID)
+		restarted, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
 		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
 			return
 		}
@@ -178,13 +178,13 @@ func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
 
 	t.Run("rollout returns 404", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playgrounds.Rollout(ctx(), badID)
+		_, err := c.Playgrounds.Action(ctx(), badID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
 	t.Run("hard_restart returns 404", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playgrounds.HardRestart(ctx(), badID)
+		_, err := c.Playgrounds.Action(ctx(), badID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
@@ -250,14 +250,14 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 	t.Run("read-only key cannot rollout", func(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "pg-action-rollout", []string{"playgrounds:read"})
-		_, err := readOnly.Playgrounds.Rollout(ctx(), pg.ID)
+		_, err := readOnly.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
 	t.Run("read-only key cannot hard_restart", func(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "pg-action-restart", []string{"playgrounds:read"})
-		_, err := readOnly.Playgrounds.HardRestart(ctx(), pg.ID)
+		_, err := readOnly.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
@@ -278,7 +278,7 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 		_, err = noScope.Playgrounds.Compose(ctx(), pg.ID)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 
-		_, err = noScope.Playgrounds.Rollout(ctx(), pg.ID)
+		_, err = noScope.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 }
@@ -399,7 +399,7 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 
 	t.Run("user B cannot rollout admin playground", func(t *testing.T) {
 		t.Parallel()
-		_, err := userB.Playgrounds.Rollout(ctx(), pg.ID)
+		_, err := userB.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 

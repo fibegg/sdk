@@ -42,25 +42,15 @@ func (s *PlaygroundService) Delete(ctx context.Context, id int64) error {
 	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/playgrounds/%d", id), nil, nil)
 }
 
-func (s *PlaygroundService) Rollout(ctx context.Context, id int64) (*Playground, error) {
-	return s.RolloutWithParams(ctx, id, nil)
-}
-
-func (s *PlaygroundService) RolloutWithParams(ctx context.Context, id int64, params *PlaygroundRolloutParams) (*Playground, error) {
-	var result Playground
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/rollout", id), params, &result)
-	return &result, err
-}
-
-func (s *PlaygroundService) HardRestart(ctx context.Context, id int64) (*Playground, error) {
-	var result Playground
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/hard_restart", id), nil, &result)
-	return &result, err
-}
-
-func (s *PlaygroundService) RetryCompose(ctx context.Context, id int64, params *PlaygroundRetryComposeParams) (*PlaygroundStatus, error) {
+func (s *PlaygroundService) Action(ctx context.Context, id int64, params *PlaygroundActionParams) (*PlaygroundStatus, error) {
+	if params == nil {
+		params = &PlaygroundActionParams{}
+	}
+	if err := validateParams(params); err != nil {
+		return nil, err
+	}
 	var result PlaygroundStatus
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/retry_compose", id), params, &result)
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/playgrounds/%d/action", id), params, &result)
 	return &result, err
 }
 

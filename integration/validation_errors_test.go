@@ -61,10 +61,6 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 			_, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{Label: ""})
 			return err
 		}},
-		{"team empty name", func() error {
-			_, err := c.Teams.Create(ctx(), &fibe.TeamCreateParams{Name: ""})
-			return err
-		}},
 	}
 
 	for _, tc := range cases {
@@ -104,7 +100,6 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 		{"secret get", func() error { _, err := c.Secrets.Get(ctx(), bogus, false); return err }},
 		{"webhook get", func() error { _, err := c.WebhookEndpoints.Get(ctx(), bogus); return err }},
 		{"template get", func() error { _, err := c.ImportTemplates.Get(ctx(), bogus); return err }},
-		{"team get", func() error { _, err := c.Teams.Get(ctx(), bogus); return err }},
 		{"playground status", func() error { _, err := c.Playgrounds.Status(ctx(), bogus); return err }},
 		{"playground compose", func() error { _, err := c.Playgrounds.Compose(ctx(), bogus); return err }},
 		{"playground debug", func() error { _, err := c.Playgrounds.Debug(ctx(), bogus); return err }},

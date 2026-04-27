@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -85,39 +84,130 @@ func TestPlaygrounds_Create(t *testing.T) {
 	}
 }
 
-func TestPlaygrounds_Rollout(t *testing.T) {
+func TestGreenfield_Create(t *testing.T) {
+	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/rollout" {
+		if r.Method != "POST" || r.URL.Path != "/api/greenfield" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(Playground{ID: 42, Status: "pending"})
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		w.WriteHeader(201)
+		json.NewEncoder(w).Encode(GreenfieldResult{
+			Name:        "tower-defence",
+			GitProvider: "gitea",
+			Playground:  &Playground{ID: 77, Name: "tower-defence", Status: "pending"},
+		})
 	})
 
-	pg, err := c.Playgrounds.Rollout(context.Background(), 42)
+	marqueeID := int64(12)
+	result, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+		Name:         "tower-defence",
+		TemplateBody: "services:\n  web:\n    image: nginx\n",
+		GitProvider:  "github",
+		MarqueeID:    &marqueeID,
+		Variables:    map[string]any{"app_name": "Tower"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Playground == nil || result.Playground.ID != 77 {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+	if body["name"] != "tower-defence" || body["git_provider"] != "github" {
+		t.Fatalf("unexpected body: %#v", body)
+	}
+	if body["marquee_id"].(float64) != 12 {
+		t.Fatalf("unexpected marquee id in body: %#v", body)
+	}
+	if body["template_body"] != "services:\n  web:\n    image: nginx\n" {
+		t.Fatalf("unexpected template body in body: %#v", body)
+	}
+	vars := body["variables"].(map[string]any)
+	if vars["app_name"] != "Tower" {
+		t.Fatalf("unexpected variables: %#v", vars)
+	}
+}
+
+func TestGreenfield_CreateRejectsVersionWithoutTemplateID(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("server should not be called")
+	})
+
+	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{Name: "todo", Version: "v1"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestGreenfield_CreateRejectsTemplateBodyWithTemplateID(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("server should not be called")
+	})
+
+	templateID := int64(347)
+	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{Name: "todo", TemplateID: &templateID, TemplateBody: "services: {}\n"})
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+}
+
+func TestGreenfield_CreateWithTemplateID(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/greenfield" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		w.WriteHeader(201)
+		json.NewEncoder(w).Encode(GreenfieldResult{Name: "todo", Playground: &Playground{ID: 77}})
+	})
+
+	marqueeID := int64(12)
+	templateID := int64(347)
+	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+		Name:        "todo",
+		TemplateID:  &templateID,
+		Version:     "v1",
+		GitProvider: "gitea",
+		MarqueeID:   &marqueeID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if body["template_id"].(float64) != 347 || body["version"] != "v1" {
+		t.Fatalf("unexpected template fields: %#v", body)
+	}
+}
+
+func TestPlaygrounds_Action(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/action" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		json.NewEncoder(w).Encode(PlaygroundStatus{ID: 42, Status: "pending"})
+	})
+
+	force := true
+	pg, err := c.Playgrounds.Action(context.Background(), 42, &PlaygroundActionParams{
+		ActionType: PlaygroundActionRollout,
+		Force:      &force,
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if pg.Status != "pending" {
 		t.Errorf("expected status 'pending', got %q", pg.Status)
 	}
-}
-
-func TestPlaygrounds_RolloutWithParams(t *testing.T) {
-	var body map[string]any
-	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/rollout" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode body: %v", err)
-		}
-		json.NewEncoder(w).Encode(Playground{ID: 42, Status: "pending"})
-	})
-
-	force := true
-	_, err := c.Playgrounds.RolloutWithParams(context.Background(), 42, &PlaygroundRolloutParams{Force: &force})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if body["action_type"] != PlaygroundActionRollout {
+		t.Fatalf("expected action_type=%q, got %#v", PlaygroundActionRollout, body)
 	}
 	if body["force"] != true {
 		t.Fatalf("expected force=true, got %#v", body)
@@ -411,6 +501,32 @@ func TestImportTemplates_SetSourceCIFields(t *testing.T) {
 	}
 }
 
+func TestImportTemplates_SearchWithParamsRegex(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/import_templates/search" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if r.URL.Query().Get("q") != "rails-.*" {
+			t.Errorf("expected q=rails-.*, got %q", r.URL.Query().Get("q"))
+		}
+		if r.URL.Query().Get("regex") != "true" {
+			t.Errorf("expected regex=true, got %q", r.URL.Query().Get("regex"))
+		}
+		json.NewEncoder(w).Encode(listEnv([]ImportTemplate{{Name: "rails-starter"}}))
+	})
+
+	result, err := c.ImportTemplates.SearchWithParams(context.Background(), &ImportTemplateSearchParams{
+		Query: "rails-.*",
+		Regex: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Data) != 1 || result.Data[0].Name != "rails-starter" {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
 func TestAPIKeys_Me(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/me" {
@@ -425,45 +541,6 @@ func TestAPIKeys_Me(t *testing.T) {
 	}
 	if player.Username != "testuser" {
 		t.Errorf("expected username 'testuser', got %q", player.Username)
-	}
-}
-
-func TestTeams_CRUD(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/teams", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(listEnv([]Team{{ID: 1, Name: "team-1", MembersCount: 3}}))
-	})
-	mux.HandleFunc("POST /api/teams", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(201)
-		json.NewEncoder(w).Encode(Team{ID: 2, Name: "new-team"})
-	})
-	mux.HandleFunc("DELETE /api/teams/1", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(204)
-	})
-
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	c := NewClient(WithAPIKey("test"), WithBaseURL(srv.URL), WithMaxRetries(0))
-
-	teams, err := c.Teams.List(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if len(teams.Data) != 1 {
-		t.Errorf("expected 1 team, got %d", len(teams.Data))
-	}
-
-	team, err := c.Teams.Create(context.Background(), &TeamCreateParams{Name: "new-team"})
-	if err != nil {
-		t.Fatalf("create: %v", err)
-	}
-	if team.Name != "new-team" {
-		t.Errorf("expected name 'new-team', got %q", team.Name)
-	}
-
-	err = c.Teams.Delete(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("delete: %v", err)
 	}
 }
 
@@ -547,7 +624,6 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 			"playspecs":    4,
 			"marquees":     1,
 			"secrets":      0,
-			"teams":        0,
 			"api_keys":     2,
 			"subscription": map[string]any{"plan": "single", "playground_limit": 1000},
 			"resource_quotas": map[string]any{
@@ -595,7 +671,6 @@ func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
 			"playspecs":    0,
 			"marquees":     0,
 			"secrets":      0,
-			"teams":        0,
 			"api_keys":     0,
 			"subscription": map[string]any{"plan": "free", "playground_limit": 1000},
 		})

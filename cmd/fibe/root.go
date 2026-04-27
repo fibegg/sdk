@@ -42,7 +42,7 @@ func rootCmd() *cobra.Command {
 		Long: `Fibe CLI is the official command-line interface for the Fibe platform API.
 
 It provides complete access to all Fibe resources: playgrounds, tricks, agents,
-playspecs, props (repositories), marquees (servers), secrets, teams, templates,
+playspecs, props (repositories), marquees (servers), secrets, templates,
 webhooks, and more.
 
 CORE ARCHITECTURE:
@@ -61,7 +61,7 @@ EXAMPLES:
   fibe tricks trigger --playspec-id 12       Run a trick
   fibe agents list                           List all agents
   fibe playgrounds logs 42 --service web     Stream logs for a service
-  fibe me                                    Show current user info
+  fibe doctor                                  Check auth and show user info
 
 OUTPUT:
   Default is a human-readable table. Set FIBE_OUTPUT env to change globally.
@@ -111,7 +111,6 @@ DOCUMENTATION:
 	cmd.PersistentFlags().BoolVar(&flagExplainErrors, "explain-errors", false, "Output errors in structured format instead of plain text string")
 
 	cmd.AddCommand(
-		meCmd(),
 		playgroundsCmd(),
 		tricksCmd(),
 		agentsCmd(),
@@ -121,13 +120,12 @@ DOCUMENTATION:
 		secretsCmd(),
 		jobEnvCmd(),
 		apiKeysCmd(),
-		teamsCmd(),
 		templatesCmd(),
 		webhooksCmd(),
-		mutationsCmd(),
 		feedbacksCmd(),
 		auditLogsCmd(),
 		monitorCmd(),
+		greenfieldCmd(),
 		launchCmd(),
 		categoriesCmd(),
 		artefactsCmd(),
@@ -137,7 +135,6 @@ DOCUMENTATION:
 		installationsCmd(),
 		repoStatusCmd(),
 		statusCmd(),
-		limitsCmd(),
 		serverInfoCmd(),
 		schemaCmd(),
 		waitCmd(),
@@ -147,6 +144,7 @@ DOCUMENTATION:
 		mcpCmd(),
 		versionCmd(),
 		completionCmd(),
+		docsCmd(),
 	)
 
 	return cmd

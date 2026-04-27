@@ -3,30 +3,37 @@ package fibe
 import "time"
 
 type ImportTemplate struct {
-	ID          *int64                `json:"id"`
-	Name        string                `json:"name"`
-	Description *string               `json:"description"`
-	System      *bool                 `json:"system"`
-	Author      *string               `json:"author"`
-	Category    *string               `json:"category"`
-	ImageURL    *string               `json:"image_url"`
-	Source      *ImportTemplateSource `json:"source,omitempty"`
-	CreatedAt   *time.Time            `json:"created_at"`
-	UpdatedAt   *time.Time            `json:"updated_at"`
+	ID               *int64                `json:"id"`
+	Name             string                `json:"name"`
+	Description      *string               `json:"description"`
+	System           *bool                 `json:"system"`
+	Author           *string               `json:"author"`
+	Category         *string               `json:"category"`
+	ImageURL         *string               `json:"image_url"`
+	Source           *ImportTemplateSource `json:"source,omitempty"`
+	LatestVersion    *int64                `json:"latest_version,omitempty"`
+	LatestVersionID  *int64                `json:"latest_version_id,omitempty"`
+	LatestVersionTag *string               `json:"latest_version_tag,omitempty"`
+	VersionTags      []string              `json:"version_tags,omitempty"`
+	Variables        map[string]any        `json:"variables,omitempty"`
+	CreatedAt        *time.Time            `json:"created_at"`
+	UpdatedAt        *time.Time            `json:"updated_at"`
 
 	// Detail fields
 	Versions []ImportTemplateVersion `json:"versions,omitempty"`
 }
 
 type ImportTemplateVersion struct {
-	ID           *int64                       `json:"id"`
-	Version      *int64                       `json:"version"`
-	Public       *bool                        `json:"public"`
-	Approved     *bool                        `json:"approved"`
-	TemplateBody string                       `json:"template_body"`
-	Changelog    *string                      `json:"changelog,omitempty"`
-	Source       *ImportTemplateVersionSource `json:"source,omitempty"`
-	CreatedAt    *time.Time                   `json:"created_at"`
+	ID                *int64                       `json:"id"`
+	Version           *int64                       `json:"version"`
+	Public            *bool                        `json:"public"`
+	Approved          *bool                        `json:"approved"`
+	GreenfieldDefault *bool                        `json:"greenfield_default"`
+	TemplateBody      string                       `json:"template_body"`
+	Changelog         *string                      `json:"changelog,omitempty"`
+	Source            *ImportTemplateVersionSource `json:"source,omitempty"`
+	Variables         map[string]any               `json:"variables,omitempty"`
+	CreatedAt         *time.Time                   `json:"created_at"`
 }
 
 type ImportTemplateSource struct {
@@ -98,11 +105,14 @@ type TemplatePatchEdit struct {
 
 type TemplateVersionPatchParams struct {
 	BaseVersionID       int64               `json:"base_version_id"`
+	TemplateBody        string              `json:"template_body,omitempty"`
 	Patches             []TemplatePatchEdit `json:"patches,omitempty"`
 	Edits               []TemplatePatchEdit `json:"edits,omitempty"`
 	Public              *bool               `json:"public,omitempty"`
 	Changelog           *string             `json:"changelog,omitempty"`
 	TargetPlayspecID    *int64              `json:"target_playspec_id,omitempty"`
+	RolloutMode         string              `json:"rollout_mode,omitempty"`
+	TargetPlaygroundID  *int64              `json:"target_playground_id,omitempty"`
 	SwitchVariables     map[string]any      `json:"switch_variables,omitempty"`
 	RegenerateVariables []string            `json:"regenerate_variables,omitempty"`
 	ConfirmWarnings     *bool               `json:"confirm_warnings,omitempty"`
@@ -111,8 +121,6 @@ type TemplateVersionPatchParams struct {
 }
 
 type TemplateVersionPatchResult map[string]any
-
-type TemplateLineageResult map[string]any
 
 type ImportTemplateSourceParams struct {
 	SourcePropID      int64  `json:"source_prop_id"`
@@ -167,6 +175,12 @@ type ImportTemplateListParams struct {
 	Sort       string `url:"sort,omitempty"`
 	Page       int    `url:"page,omitempty"`
 	PerPage    int    `url:"per_page,omitempty"`
+}
+
+type ImportTemplateSearchParams struct {
+	Query      string
+	TemplateID *int64
+	Regex      bool
 }
 
 type TemplateCategory struct {

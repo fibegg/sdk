@@ -138,7 +138,6 @@ func TestSecurity_IDOR(t *testing.T) {
 		{"playspec", func(id int64) error { _, e := c.Playspecs.Get(ctx(), id); return e }},
 		{"prop", func(id int64) error { _, e := c.Props.Get(ctx(), id); return e }},
 		{"secret", func(id int64) error { _, e := c.Secrets.Get(ctx(), id, false); return e }},
-		{"team", func(id int64) error { _, e := c.Teams.Get(ctx(), id); return e }},
 		{"webhook", func(id int64) error { _, e := c.WebhookEndpoints.Get(ctx(), id); return e }},
 	}
 

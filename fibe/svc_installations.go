@@ -55,6 +55,13 @@ func (s *InstallationService) Repos(ctx context.Context, id int64, params *Insta
 	return doList[InstallationRepo](s.client, ctx, path)
 }
 
+// FindGitHubRepos searches across ALL of the player's GitHub App installations.
+// Rails aggregates results in parallel and deduplicates by full_name.
+func (s *InstallationService) FindGitHubRepos(ctx context.Context, params *InstallationReposParams) (*ListResult[InstallationRepo], error) {
+	path := "/api/github_repos/search" + buildQuery(params)
+	return doList[InstallationRepo](s.client, ctx, path)
+}
+
 // Token returns a fresh installation access token. If repo is non-empty, the
 // token is scoped to the specific repository (owner/name format).
 func (s *InstallationService) Token(ctx context.Context, id int64, repo string) (*GitHubToken, error) {
@@ -64,6 +71,17 @@ func (s *InstallationService) Token(ctx context.Context, id int64, repo string) 
 		values.Set("repo", repo)
 		path += "?" + values.Encode()
 	}
+	var result GitHubToken
+	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
+	return &result, err
+}
+
+// GetGitHubToken returns a fresh GitHub token by auto-resolving the correct
+// installation for the given repo. No installation ID needed.
+func (s *InstallationService) GetGitHubToken(ctx context.Context, repo string) (*GitHubToken, error) {
+	values := url.Values{}
+	values.Set("repo", repo)
+	path := "/api/github_token?" + values.Encode()
 	var result GitHubToken
 	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
 	return &result, err

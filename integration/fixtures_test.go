@@ -120,22 +120,6 @@ func seedSecret(t *testing.T, c *fibe.Client, keySuffix string) *fibe.Secret {
 	return s
 }
 
-// seedTeam creates a team (skips test if teams feature disabled) and registers cleanup.
-func seedTeam(t *testing.T, c *fibe.Client) *fibe.Team {
-	t.Helper()
-	team, err := c.Teams.Create(ctx(), &fibe.TeamCreateParams{
-		Name: uniqueName("fx-team"),
-	})
-	if err != nil {
-		if apiErr, ok := err.(*fibe.APIError); ok && apiErr.Code == fibe.ErrCodeFeatureDisabled {
-			t.Skip("teams feature disabled for this account")
-		}
-		requireNoError(t, err, "seed team")
-	}
-	t.Cleanup(func() { c.Teams.Delete(ctx(), team.ID) })
-	return team
-}
-
 // skipIfFeatureDisabled returns true (and skips) if the error is FEATURE_DISABLED.
 func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	t.Helper()

@@ -100,47 +100,19 @@ func TestBindArgsStringifiesStringSliceElements(t *testing.T) {
 	}
 }
 
-// ---------- Tool-level alias wiring ----------
+// ---------- Tool-level field validation ----------
 
-func TestAgentsChatAcceptsMessageAlias(t *testing.T) {
+func TestAgentsSendMessageRequiresCanonicalTextField(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	// Call through dispatcher with legacy "message" field. The dispatcher
-	// will try to hit the network and fail (no real API), but the alias
-	// guard must fire before the dispatch — we assert that the "'text' not
-	// set" error is NOT the message we get back.
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_chat", map[string]any{
-		"id":      42,
-		"message": "hello",
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_send_message", map[string]any{
+		"agent_id": 42,
+		"message":  "hello",
 	})
-	if err == nil {
-		return
-	}
-	if strings.Contains(err.Error(), "'text' not set") {
-		t.Errorf("message alias didn't canonicalize; got: %v", err)
-	}
-}
-
-func TestRegistryCredentialTypeEnforced(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	// Bad enum: "docker" (common mistake) should be rejected with a clear message.
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playspecs_registry_credential_add", map[string]any{
-		"id":            1,
-		"registry_type": "docker",
-		"registry_url":  "https://docker.io",
-		"username":      "u",
-		"secret":        "s",
-	})
-	if err == nil {
-		t.Fatal("expected validation error for wrong registry_type")
-	}
-	if !strings.Contains(err.Error(), "ghcr") || !strings.Contains(err.Error(), "dockerhub") {
-		t.Errorf("error should enumerate valid types; got: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "'text' not set") {
+		t.Fatalf("expected canonical text field error, got %v", err)
 	}
 }
 
@@ -168,9 +140,13 @@ func TestTemplatesVersionsCreateAcceptsTemplateBodyPath(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
-		"id":                 690,
-		"template_body_path": path,
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "template_version",
+		"operation": "create",
+		"payload": map[string]any{
+			"template_id":        690,
+			"template_body_path": path,
+		},
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
@@ -189,9 +165,13 @@ func TestTemplatesVersionsCreateRejectsRelativeTemplateBodyPath(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
-		"id":                 690,
-		"template_body_path": "template.yml",
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "template_version",
+		"operation": "create",
+		"payload": map[string]any{
+			"template_id":        690,
+			"template_body_path": "template.yml",
+		},
 	})
 	if err == nil {
 		t.Fatal("expected relative path error")
@@ -217,9 +197,13 @@ func TestTemplatesVersionsCreateKeepsInlineTemplateBody(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_create", map[string]any{
-		"id":            690,
-		"template_body": "services: {}\n",
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "template_version",
+		"operation": "create",
+		"payload": map[string]any{
+			"template_id":   690,
+			"template_body": "services: {}\n",
+		},
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
@@ -235,6 +219,11 @@ func TestTemplatesVersionsCreateKeepsInlineTemplateBody(t *testing.T) {
 func TestPlayspecSwitchVersionForwardsSummaryMode(t *testing.T) {
 	var requestBody map[string]any
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/131" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":131,"source_template_version_id":799,"source_template":{"id":690},"job_mode":false}`))
+			return
+		}
 		if r.Method != http.MethodPost || r.URL.Path != "/api/playspecs/131/template_version_switch" {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
@@ -251,20 +240,23 @@ func TestPlayspecSwitchVersionForwardsSummaryMode(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playspecs_switch_version", map[string]any{
-		"id":                         131,
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":                "playspec",
+		"target_id":                  131,
+		"mode":                       "apply",
+		"change_type":                "switch_existing",
 		"target_template_version_id": 772,
-		"summary":                    true,
+		"response_mode":              "summary",
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}
-	if requestBody["summary"] != true {
-		t.Fatalf("summary was not forwarded: %#v", requestBody)
+	if requestBody["response_mode"] != "summary" {
+		t.Fatalf("response_mode was not forwarded: %#v", requestBody)
 	}
 }
 
-func TestTemplatesLaunchAcceptsTargetMarqueeAlias(t *testing.T) {
+func TestTemplatesLaunchUsesExplicitTemplateAndMarqueeIDs(t *testing.T) {
 	var requestBody map[string]any
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/import_templates/690/launch" {
@@ -284,20 +276,25 @@ func TestTemplatesLaunchAcceptsTargetMarqueeAlias(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_launch", map[string]any{
-		"id":                690,
-		"target_marquee_id": 7,
+		"template_id": 690,
+		"marquee_id":  7,
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}
 	if requestBody["marquee_id"] != float64(7) {
-		t.Fatalf("marquee_id not canonicalized: %#v", requestBody)
+		t.Fatalf("marquee_id not forwarded: %#v", requestBody)
 	}
 }
 
 func TestTemplatePatchCreateForwardsAutoSwitchFields(t *testing.T) {
 	var requestBody map[string]any
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/131" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":131,"source_template_version_id":799,"source_template":{"id":690},"job_mode":false}`))
+			return
+		}
 		if r.URL.Path != "/api/import_templates/690/versions/patch_create" {
 			t.Fatalf("unexpected request: %s", r.URL.Path)
 		}
@@ -314,13 +311,14 @@ func TestTemplatePatchCreateForwardsAutoSwitchFields(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_versions_patch_create", map[string]any{
-		"template_id":        690,
-		"base_version_id":    799,
-		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:alpine", "expect": "nginx", "create_missing": false}},
-		"auto_switch":        true,
-		"target_playspec_id": 131,
-		"confirm_warnings":   true,
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":      "playspec",
+		"target_id":        131,
+		"mode":             "apply",
+		"change_type":      "patch",
+		"base_version_id":  799,
+		"patches":          []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:alpine", "expect": "nginx", "create_missing": false}},
+		"confirm_warnings": true,
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
@@ -354,13 +352,11 @@ func TestPlaygroundsDebugAndDiagnoseDefaultToSummaryRefresh(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	for _, tool := range []string{"fibe_playgrounds_debug", "fibe_playgrounds_diagnose"} {
-		if _, err := srv.dispatcher.dispatch(context.Background(), tool, map[string]any{"id": 132}); err != nil {
-			t.Fatalf("%s dispatch: %v", tool, err)
-		}
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_debug", map[string]any{"playground_id": 132}); err != nil {
+		t.Fatalf("fibe_playgrounds_debug dispatch: %v", err)
 	}
 	if len(seen) != 1 {
-		t.Fatalf("expected both tools to use same summary query, got %#v", seen)
+		t.Fatalf("expected summary query, got %#v", seen)
 	}
 }
 
@@ -380,7 +376,7 @@ func TestPlaygroundsWaitPollsStatusEndpoint(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"id": 132, "status": "running", "timeout": "1s"}); err != nil {
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"playground_id": 132, "status": "running", "timeout": "1s"}); err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}
 	if !hitStatus {
@@ -391,6 +387,11 @@ func TestPlaygroundsWaitPollsStatusEndpoint(t *testing.T) {
 func TestTemplatesPatchApplyDryRunUsesPatchPreview(t *testing.T) {
 	var requestBody map[string]any
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/131" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":131,"source_template_version_id":799,"source_template":{"id":690},"job_mode":false}`))
+			return
+		}
 		if r.URL.Path != "/api/import_templates/690/versions/patch_preview" {
 			t.Fatalf("unexpected request: %s", r.URL.Path)
 		}
@@ -406,12 +407,13 @@ func TestTemplatesPatchApplyDryRunUsesPatchPreview(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_patch_apply", map[string]any{
-		"template_id":        690,
-		"base_version_id":    799,
-		"target_playspec_id": 131,
-		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
-		"dry_run":            true,
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":     "playspec",
+		"target_id":       131,
+		"mode":            "preview",
+		"change_type":     "patch",
+		"base_version_id": 799,
+		"patches":         []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
@@ -419,8 +421,9 @@ func TestTemplatesPatchApplyDryRunUsesPatchPreview(t *testing.T) {
 	if requestBody["target_playspec_id"] != float64(131) || requestBody["response_mode"] != "summary" {
 		t.Fatalf("patch apply fields not forwarded: %#v", requestBody)
 	}
-	if result.(map[string]any)["dry_run"] != true {
-		t.Fatalf("expected dry_run result, got %#v", result)
+	preview := result.(*fibe.TemplateVersionPatchResult)
+	if (*preview)["validation"] == nil {
+		t.Fatalf("expected preview result, got %#v", result)
 	}
 }
 
@@ -430,10 +433,12 @@ func TestTemplatesPatchApplyWaitTimeoutAddsDiagnostics(t *testing.T) {
 		paths[r.URL.Path]++
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
+		case "/api/playspecs/131":
+			_, _ = w.Write([]byte(`{"id":131,"source_template_version_id":799,"source_template":{"id":690},"job_mode":false}`))
 		case "/api/import_templates/690/versions/patch_create":
 			_, _ = w.Write([]byte(`{"template_version":{"id":800},"switch_status":"switched","playground_rollout_plan":{"rollout":[132]}}`))
 		case "/api/playgrounds/132/status":
-			_, _ = w.Write([]byte(`{"id":132,"status":"in_progress"}`))
+			_, _ = w.Write([]byte(`{"id":132,"status":"error"}`))
 		case "/api/playgrounds/132/debug":
 			if r.URL.Query().Get("mode") != "summary" || r.URL.Query().Get("refresh") != "true" {
 				t.Fatalf("unexpected diagnose query: %s", r.URL.RawQuery)
@@ -449,13 +454,16 @@ func TestTemplatesPatchApplyWaitTimeoutAddsDiagnostics(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_patch_apply", map[string]any{
-		"template_id":        690,
-		"base_version_id":    799,
-		"target_playspec_id": 131,
-		"patches":            []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
-		"wait":               true,
-		"wait_timeout":       "1ns",
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":          "playspec",
+		"target_id":            131,
+		"mode":                 "apply",
+		"change_type":          "patch",
+		"base_version_id":      799,
+		"patches":              []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2"}},
+		"post_apply":           "rollout_all",
+		"wait":                 true,
+		"wait_timeout_seconds": 1,
 	})
 	if err != nil {
 		t.Fatalf("dispatch: %v", err)
@@ -467,61 +475,6 @@ func TestTemplatesPatchApplyWaitTimeoutAddsDiagnostics(t *testing.T) {
 	if paths["/api/playgrounds/132/status"] == 0 || paths["/api/playgrounds/132/debug"] == 0 {
 		t.Fatalf("expected status and debug paths, got %#v", paths)
 	}
-}
-
-func TestTemplatesLineageAndPlaygroundsRetryComposeCallable(t *testing.T) {
-	paths := map[string]bool{}
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		paths[r.URL.Path] = true
-		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/import_templates/690/lineage" {
-			_, _ = w.Write([]byte(`{"template":{"id":690},"playspecs":[]}`))
-			return
-		}
-		if r.URL.Path == "/api/playgrounds/132/retry_compose" {
-			_, _ = w.Write([]byte(`{"id":132,"status":"running"}`))
-			return
-		}
-		t.Fatalf("unexpected request: %s", r.URL.Path)
-	}))
-	defer api.Close()
-
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_lineage", map[string]any{"id": 690}); err != nil {
-		t.Fatalf("lineage: %v", err)
-	}
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_retry_compose", map[string]any{"id": 132, "force": true}); err != nil {
-		t.Fatalf("retry compose: %v", err)
-	}
-	if !paths["/api/import_templates/690/lineage"] || !paths["/api/playgrounds/132/retry_compose"] {
-		t.Fatalf("missing calls: %#v", paths)
-	}
-}
-
-func TestMutationsCreateAcceptsShaAlias(t *testing.T) {
-	t.Skip("mutations MCP tools are experimental and excluded from GA parity")
-
-	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	// Supply the CLI-style "sha" field; the dispatcher should canonicalize
-	// it to "found_commit_sha" before validation.
-	t_impl, ok := srv.dispatcher.lookup("fibe_mutations_create")
-	if !ok {
-		t.Fatal("fibe_mutations_create not registered")
-	}
-	args := map[string]any{"prop_id": 1, "sha": "abc1234", "branch": "main"}
-	// Execute just the alias application step.
-	applyAliases(args, map[string][]string{"found_commit_sha": {"sha", "commit_sha", "commit"}})
-	if args["found_commit_sha"] != "abc1234" {
-		t.Errorf("expected sha -> found_commit_sha aliasing, got %#v", args["found_commit_sha"])
-	}
-	_ = t_impl
 }
 
 // ---------- Props attach: URL-to-short-form parsing ----------
@@ -595,7 +548,7 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	}
 }
 
-// ---------- fibe_launch returns both playspec_id and playground_id ----------
+// ---------- fibe launch returns both playspec_id and playground_id ----------
 
 func TestLaunchSurfacesBothIDs(t *testing.T) {
 	// We can't hit the real Rails API in a unit test, but we can verify the

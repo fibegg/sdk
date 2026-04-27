@@ -128,19 +128,44 @@ type PlaygroundUpdateParams struct {
 type PlaygroundStatus struct {
 	ID                 int64          `json:"id"`
 	Status             string         `json:"status"`
+	CreationStep       *string        `json:"creation_step,omitempty"`
+	CreationStepLabel  *string        `json:"creation_step_label,omitempty"`
 	ErrorMessage       *string        `json:"error_message,omitempty"`
+	ErrorStep          *string        `json:"error_step,omitempty"`
+	ErrorStepLabel     *string        `json:"error_step_label,omitempty"`
 	ErrorDetails       map[string]any `json:"error_details,omitempty"`
 	FailureDiagnostics map[string]any `json:"failure_diagnostics,omitempty"`
+	NeedsRecreation    *bool          `json:"needs_recreation,omitempty"`
 	Services           []any          `json:"services,omitempty"`
 	JobResult          *JobResult     `json:"job_result,omitempty"`
 }
 
-type PlaygroundRolloutParams struct {
-	Force *bool `json:"force,omitempty"`
+const (
+	PlaygroundActionRollout      = "rollout"
+	PlaygroundActionHardRestart  = "hard_restart"
+	PlaygroundActionStop         = "stop"
+	PlaygroundActionStart        = "start"
+	PlaygroundActionRetryCompose = "retry_compose"
+)
+
+var ValidPlaygroundActions = []string{
+	PlaygroundActionRollout,
+	PlaygroundActionHardRestart,
+	PlaygroundActionStop,
+	PlaygroundActionStart,
+	PlaygroundActionRetryCompose,
 }
 
-type PlaygroundRetryComposeParams struct {
-	Force *bool `json:"force,omitempty"`
+type PlaygroundActionParams struct {
+	ActionType string `json:"action_type"`
+	Force      *bool  `json:"force,omitempty"`
+}
+
+func (p *PlaygroundActionParams) Validate() error {
+	v := &validator{}
+	v.required("action_type", p.ActionType)
+	v.oneOf("action_type", p.ActionType, ValidPlaygroundActions)
+	return v.err()
 }
 
 type PlaygroundDebugParams struct {

@@ -1,1023 +1,255 @@
 # Fibe MCP Tools
 
-Total Tools: 173
-
-## `fibe_agents_activity_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get agent activity
-
-## `fibe_agents_activity_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Replace agent activity
-
-## `fibe_agents_authenticate`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Authenticate an agent (OAuth code/token exchange)
-
-## `fibe_agents_chat`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Send a message to an agent (accepts 'text' or legacy 'message')
-
-## `fibe_agents_create`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a new agent
-
-## `fibe_agents_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete an agent
+Total Tools: 42
 
 ## `fibe_agents_duplicate`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** overseer | **Destructive:** False | **Idempotent:** True
 
 ### Description
-Duplicate an agent
-
-## `fibe_agents_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed agent information
-
-## `fibe_agents_gitea_token`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get agent's Gitea token
-
-## `fibe_agents_github_token`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get agent's GitHub token (optionally for a specific repo)
-
-## `fibe_agents_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all agents
-
-## `fibe_agents_messages_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get agent messages
-
-## `fibe_agents_messages_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Replace agent messages
-
-## `fibe_agents_mounted_file_add`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Attach a file to an agent (accepts 'mount_path' or legacy 'path')
-
-## `fibe_agents_mounted_file_remove`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Remove an agent's mounted file
-
-## `fibe_agents_mounted_file_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update an agent's mounted file metadata (accepts 'mount_path' or legacy 'path')
-
-## `fibe_agents_purge_chat`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Synchronously purge an agent chat container and volumes
-
-## `fibe_agents_raw_providers_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get agent raw provider config
-
-## `fibe_agents_raw_providers_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Replace agent raw provider config
-
-## `fibe_agents_revoke_github`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Revoke an agent's GitHub token
+[MODE:OVERSEER] Duplicate an agent configuration.
 
 ## `fibe_agents_runtime_status`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** overseer | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Get agent chat runtime reachability and processing status
+[MODE:OVERSEER] Check agent runtime reachability, authentication, queue, and processing state.
 
-## `fibe_agents_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update agent settings
-
-## `fibe_api_keys_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+## `fibe_agents_send_message`
+**Tier:** overseer | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Create a new API key
+[MODE:OVERSEER] Send one text message to an agent runtime chat.
 
-## `fibe_api_keys_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Revoke an API key
-
-## `fibe_api_keys_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_agents_start_chat`
+**Tier:** overseer | **Destructive:** False | **Idempotent:** False
 
 ### Description
-List API keys
-
-## `fibe_artefacts_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Upload an artefact for an agent (accepts 'name' or legacy 'title'; 'content_base64' or legacy 'content')
-
-## `fibe_artefacts_download`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Download an artefact (returns base64-encoded content)
-
-## `fibe_artefacts_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show an artefact
-
-## `fibe_artefacts_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List artefacts for an agent
-
-## `fibe_audit_logs_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List audit logs
+[MODE:SIDEEFFECTS] Start or reconnect an agent runtime chat on the current Marquee.
 
 ## `fibe_auth_set`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** other | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Set session-scoped API key and/or domain (multi-tenant HTTP server)
+[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations
 
 ## `fibe_call`
-**Tier:** meta | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** meta | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Invoke any registered tool by name (including tools not advertised in the current tier)
-
-## `fibe_categories_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List template categories
+[MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools
 
 ## `fibe_doctor`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Run self-diagnostic checks (API key validity, connectivity, version)
-
-## `fibe_feedbacks_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create feedback for an agent. Required: source_type (e.g. "Artefact"), source_id (int64), selected_text, selection_start, selection_end. source_type is the polymorphic class name from the Rails side — known values include "Artefact". Comment/body goes in 'comment'.
-
-## `fibe_feedbacks_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete feedback
+[MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile
 
 ## `fibe_feedbacks_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Show a feedback
+[MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters.
 
 ## `fibe_feedbacks_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-List feedbacks for an agent
+[MODE:OVERSEER] List all feedback entries associated with an agent.
 
-## `fibe_feedbacks_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_find_github_repos`
+**Tier:** other | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Update feedback
+[MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results.
+
+## `fibe_get_github_token`
+**Tier:** other | **Destructive:** False | **Idempotent:** True
+
+### Description
+[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct installation.
 
 ## `fibe_gitea_repos_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** other | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Register a Gitea repository
+[MODE:GREENFIELD] Register and connect a new Gitea repository
 
 ## `fibe_github_repos_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** other | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Register a GitHub repository
+[MODE:GREENFIELD] Register and connect a new GitHub repository
+
+## `fibe_greenfield_create`
+**Tier:** greenfield | **Destructive:** False | **Idempotent:** False
+
+### Description
+[MODE:GREENFIELD] Create a new repository, Prop, app-owned template version, deployed playground, wait for running, and link it locally.
 
 ## `fibe_help`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Return extended help (cobra Long) for a fibe command path
+[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes.
 
-## `fibe_installations_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List GitHub App installations associated with your account
-
-## `fibe_installations_repos`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_local_playgrounds_info`
+**Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-List repositories visible to an installation
+[MODE:BROWNFIELD] Get info about a local playground.
 
-## `fibe_installations_token`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get a scoped GitHub token for an installation + repo
-
-## `fibe_launch`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_local_playgrounds_link`
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True
 
 ### Description
-One-shot: compose YAML → playspec → playground. Response surfaces playspec_id and playground_id so pipelines can chain off them.
+[MODE:BROWNFIELD] Link local playground mounts into a working directory.
 
-## `fibe_limits`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show current quotas, per-parent caps, and API-key rate-limit usage
-
-## `fibe_marquees_autoconnect_token`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+## `fibe_local_playgrounds_list`
+**Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Generate a marquee autoconnect token
+[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT.
 
-## `fibe_marquees_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Register a new marquee
-
-## `fibe_marquees_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
+## `fibe_local_playgrounds_urls`
+**Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Delete a marquee
-
-## `fibe_marquees_generate_ssh_key`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Generate SSH key for a marquee
-
-## `fibe_marquees_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed marquee information
-
-## `fibe_marquees_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all marquees (servers)
-
-## `fibe_marquees_test_connection`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Test connectivity to a marquee
-
-## `fibe_marquees_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a marquee
-
-## `fibe_me`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show the authenticated user's profile
-
-## `fibe_monitor_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List agent-produced monitor events
+[MODE:BROWNFIELD] Get URLs of a local playground.
 
 ## `fibe_monitor_follow`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** overseer | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Stream agent-produced events as MCP progress notifications
+[MODE:OVERSEER] Stream agent-produced events as live MCP progress notifications
 
-## `fibe_mutations_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a mutation for a prop. Required: branch, found_commit_sha (CLI flag --sha is accepted as an alias).
-
-## `fibe_mutations_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_monitor_list`
+**Tier:** overseer | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-List mutations for a prop
+[MODE:OVERSEER] List agent-produced monitor events
 
-## `fibe_mutations_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a mutation
-
-## `fibe_mutters_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+## `fibe_mutter`
+**Tier:** base | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Append an item to an agent's mutter
+[MODE:SIDEEFFECTS] Create one short mutter for an agent: a visible internal note used for progress, proof, blocker, or problem updates.
 
 ## `fibe_mutters_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** overseer | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Get an agent's mutter transcript
+[MODE:OVERSEER] Retrieve an agent's mutter stream by agent_id, with optional query/status/severity/playground filters.
 
 ## `fibe_pipeline`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** meta | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Compose multiple fibe_* tool calls in a single round-trip with JSONPath bindings
+[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.
 
 ## `fibe_pipeline_result`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Look up a cached pipeline result by pipeline_id and JSONPath
+[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution
 
-## `fibe_playgrounds_compose`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get playground docker-compose configuration
-
-## `fibe_playgrounds_create`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+## `fibe_playgrounds_action`
+**Tier:** brownfield | **Destructive:** True | **Idempotent:** True
 
 ### Description
-Deploy a playspec blueprint as a running playground
+[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, or retry_compose.
 
 ## `fibe_playgrounds_debug`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Get comprehensive debug information
-
-## `fibe_playgrounds_delete`
-**Tier:** core | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a playground (destructive, irreversible)
-
-## `fibe_playgrounds_env`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get playground environment metadata
-
-## `fibe_playgrounds_extend`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Extend playground expiration time
-
-## `fibe_playgrounds_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed playground information
-
-## `fibe_playgrounds_hard_restart`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Hard restart all playground services
-
-## `fibe_playgrounds_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all playgrounds (excludes tricks)
+[MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment.
 
 ## `fibe_playgrounds_logs`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Get service logs from a playground
+[MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors.
 
 ## `fibe_playgrounds_logs_follow`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Stream playground service logs as MCP progress notifications
-
-## `fibe_playgrounds_rollout`
-**Tier:** core | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Recreate playground with latest configuration
-
-## `fibe_playgrounds_status`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Check playground status
-
-## `fibe_playgrounds_update`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update playground settings
+[MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications
 
 ## `fibe_playgrounds_wait`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Poll a playground until it reaches a target status
-
-## `fibe_playspecs_create`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a new playspec
-
-## `fibe_playspecs_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a playspec
-
-## `fibe_playspecs_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed playspec information
-
-## `fibe_playspecs_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all playspecs
-
-## `fibe_playspecs_mounted_file_add`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Attach a file to a playspec (accepts 'mount_path' or legacy 'path')
-
-## `fibe_playspecs_mounted_file_remove`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Remove a playspec mounted file
-
-## `fibe_playspecs_mounted_file_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update playspec mounted file metadata (accepts 'mount_path' or legacy 'path')
-
-## `fibe_playspecs_registry_credential_add`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Add a registry credential to a playspec (registry_type must be one of: ghcr, dockerhub, aws_ecr)
-
-## `fibe_playspecs_registry_credential_remove`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Remove a registry credential from a playspec
-
-## `fibe_playspecs_services`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List services defined in a playspec
-
-## `fibe_playspecs_switch_version`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** False
-
-### Description
-Switch a template-backed playspec to another template version
-
-## `fibe_playspecs_switch_version_preview`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Preview switching a template-backed playspec to another template version
-
-## `fibe_playspecs_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a playspec
-
-## `fibe_playspecs_validate_compose`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Validate a docker-compose YAML as a Fibe playspec
-
-## `fibe_props_attach`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Attach an existing GitHub repository to your account as a prop (accepts 'repo_full_name' or 'repository_url')
-
-## `fibe_props_branches`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List branches for a prop, optionally filtered by query
-
-## `fibe_props_create`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Register a new prop (git repository)
-
-## `fibe_props_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a prop
-
-## `fibe_props_env_defaults`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Read default environment variables from a prop branch
-
-## `fibe_props_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed prop information
-
-## `fibe_props_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all props (source code repositories)
-
-## `fibe_props_manual_link`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Manually link a prop after OAuth reconnection
-
-## `fibe_props_mirror`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Create a prop by mirroring an external repository (accepts 'source_url' or legacy 'repository_url')
-
-## `fibe_props_sync`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Sync a prop with its git remote
-
-## `fibe_props_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a prop
-
-## `fibe_props_with_docker_compose`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List props that ship a docker-compose file
+[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)
 
 ## `fibe_repo_status_check`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** other | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Check Fibe's view of multiple GitHub repository URLs (accepts 'github_urls' or legacy 'urls')
+[MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs.
+
+## `fibe_resource_delete`
+**Tier:** base | **Destructive:** True | **Idempotent:** True
+
+### Description
+[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID.
+
+## `fibe_resource_get`
+**Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
+
+### Description
+[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment to download an artefact's single attached file.
+
+## `fibe_resource_list`
+**Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
+
+### Description
+[MODE:DIALOG] List a supported flat Fibe resource. Use fibe_schema with resource=list to discover resource names, aliases, and list params.
+
+## `fibe_resource_mutate`
+**Tier:** base | **Destructive:** False | **Idempotent:** False
+
+### Description
+[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request.
 
 ## `fibe_run`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** False
+**Tier:** meta | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Escape hatch: invoke any fibe CLI command programmatically
+[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.
 
 ## `fibe_schema`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Return JSON Schema hints for create/update params of a Fibe resource
-
-## `fibe_secrets_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a secret
-
-## `fibe_secrets_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a secret
-
-## `fibe_secrets_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show secret metadata (value is redacted)
-
-## `fibe_secrets_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all secrets
-
-## `fibe_secrets_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a secret
-
-## `fibe_job_env_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a job ENV entry
-
-## `fibe_job_env_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List global and Prop-scoped job ENV entries
-
-## `fibe_job_env_set`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a global or Prop-scoped job ENV entry
-
-## `fibe_job_env_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Update a job ENV entry
-
-## `fibe_server_info`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show Fibe server UTC time, build time, and git commit SHA
+[MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog.
 
 ## `fibe_status`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Show account status dashboard (counts across all resources in one request)
+[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.
 
-## `fibe_teams_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a team
-
-## `fibe_teams_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
+## `fibe_templates_develop`
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** False
 
 ### Description
-Delete a team
-
-## `fibe_teams_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show team details
-
-## `fibe_teams_leave`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Leave a team (accepts 'id' or 'team_id' for consistency with fibe_teams_members_* tools)
-
-## `fibe_teams_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List teams
-
-## `fibe_teams_members_accept`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Accept a pending team invite
-
-## `fibe_teams_members_decline`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Decline a pending team invite
-
-## `fibe_teams_members_invite`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Invite a user to a team
-
-## `fibe_teams_members_remove`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Remove a member from a team
-
-## `fibe_teams_members_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a team member's role
-
-## `fibe_teams_resources_contribute`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Contribute a resource to a team
-
-## `fibe_teams_resources_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List resources owned by a team
-
-## `fibe_teams_resources_remove`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Remove a shared team resource
-
-## `fibe_teams_transfer_leadership`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Transfer team leadership to another member (accepts 'id' or 'team_id')
-
-## `fibe_teams_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a team
-
-## `fibe_templates_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create an import template
-
-## `fibe_templates_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete an import template
-
-## `fibe_templates_fork`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Fork an import template
-
-## `fibe_templates_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show import template details
+[MODE:BROWNFIELD] Preview or apply template changes, switch playspecs/playgrounds/tricks, and optionally roll out or trigger a fresh trick run.
 
 ## `fibe_templates_launch`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** greenfield | **Destructive:** False | **Idempotent:** True
 
 ### Description
-Launch a playground from an import template
-
-## `fibe_templates_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List import templates
+[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template.
 
 ## `fibe_templates_search`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** greenfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-Search import templates
-
-## `fibe_templates_source_clear`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Clear tracked source metadata from an import template
-
-## `fibe_templates_source_refresh`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Refresh an import template from its tracked source file
-
-## `fibe_templates_source_set`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Set or update a tracked Prop file as an import template source
-
-## `fibe_templates_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update an import template
-
-## `fibe_templates_upgrade_playspecs`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Upgrade linked job Playspecs to a target template version
-
-## `fibe_templates_upload_image`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Upload a cover image for an import template (required: id, filename, image_data OR content_path)
-
-## `fibe_templates_versions_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a new template version (accepts 'template_body' or legacy 'body')
-
-## `fibe_templates_versions_destroy`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a template version
-
-## `fibe_templates_versions_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List versions of an import template
-
-## `fibe_templates_versions_toggle_public`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Toggle public visibility of a template version (accepts 'id' or 'template_id' for the template)
+[MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering.
 
 ## `fibe_tools_catalog`
-**Tier:** meta | **Advertised:** True | **Destructive:** False | **Idempotent:** True
+**Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-List every tool registered on the Fibe MCP server (including tools not advertised in the current tier)
-
-## `fibe_tricks_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a trick
-
-## `fibe_tricks_get`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show detailed trick information
-
-## `fibe_tricks_list`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List all tricks (job-mode playgrounds)
-
-## `fibe_tricks_logs`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Get service logs from a trick
-
-## `fibe_tricks_logs_follow`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Stream trick service logs as MCP progress notifications
-
-## `fibe_tricks_rerun`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Re-run a completed or failed trick
-
-## `fibe_tricks_status`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Check trick status and job result
-
-## `fibe_tricks_trigger`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Run a new trick from a job-mode playspec
-
-## `fibe_tricks_wait`
-**Tier:** core | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Poll a trick until it reaches a target status (e.g., completed)
-
-## `fibe_webhooks_create`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** False
-
-### Description
-Create a webhook endpoint. events[] must contain exact event identifiers (e.g. agent.created, playground.running, trick.completed) — call fibe_webhooks_event_types first if you're not sure which strings are valid.
-
-## `fibe_webhooks_delete`
-**Tier:** full | **Advertised:** True | **Destructive:** True | **Idempotent:** True
-
-### Description
-Delete a webhook endpoint
-
-## `fibe_webhooks_deliveries_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List recent deliveries for a webhook endpoint
-
-## `fibe_webhooks_event_types`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List webhook event types
-
-## `fibe_webhooks_get`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Show webhook endpoint details
-
-## `fibe_webhooks_list`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-List webhook endpoints
-
-## `fibe_webhooks_test`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Send a test event to a webhook endpoint
-
-## `fibe_webhooks_update`
-**Tier:** full | **Advertised:** True | **Destructive:** False | **Idempotent:** True
-
-### Description
-Update a webhook endpoint
+[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds

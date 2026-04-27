@@ -19,6 +19,7 @@ type Prop struct {
 	OriginalRepositoryURL *string  `json:"original_repository_url,omitempty"`
 	HasCredentials        *bool    `json:"has_credentials,omitempty"`
 	DockerComposeYAML     *string  `json:"docker_compose_yaml,omitempty"`
+	ServiceNames          []string `json:"service_names,omitempty"`
 }
 
 type PropCreateParams struct {

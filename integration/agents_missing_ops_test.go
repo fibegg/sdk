@@ -17,9 +17,9 @@ const (
 	agentChatHealthProbeTimeout  = 3 * time.Second
 	// Must exceed the Rails AgentChatService reachability window
 	// (45 attempts * 2s delay) so the SDK doesn't give up first.
-	agentChatProbeAttempts       = 50
-	agentChatProbeDelay          = 2 * time.Second
-	agentChatProbeTimeout        = 5 * time.Second
+	agentChatProbeAttempts = 50
+	agentChatProbeDelay    = 2 * time.Second
+	agentChatProbeTimeout  = 5 * time.Second
 )
 
 func isTransientAgentChatError(err error) bool {
@@ -157,23 +157,6 @@ func TestAgents_Chat(t *testing.T) {
 			t.Error("expected error for empty text")
 		}
 	})
-
-	t.Run("chat with attachment filenames list accepted", func(t *testing.T) {
-		t.Parallel()
-		ag := seedAgent(t, c, fibe.ProviderGemini)
-		_, err := c.Agents.Chat(ctx(), ag.ID, &fibe.AgentChatParams{
-			Text:                "please see attachments",
-			AttachmentFilenames: []string{"nonexistent.txt"},
-		})
-		// Backend may reject because attachment file isn't uploaded yet — accept gracefully
-		if err != nil {
-			if apiErr, ok := err.(*fibe.APIError); ok {
-				if apiErr.StatusCode >= 400 && apiErr.StatusCode < 500 {
-					return // acceptable
-				}
-			}
-		}
-	})
 }
 
 func TestAgents_Authenticate(t *testing.T) {
@@ -224,38 +207,6 @@ func TestAgents_RevokeGitHubToken(t *testing.T) {
 					t.Errorf("expected 2xx/4xx, got 5xx: %v", err)
 				}
 			}
-		}
-	})
-}
-
-func TestAgents_RawProviders(t *testing.T) {
-	t.Parallel()
-	c := adminClient(t)
-
-	ag := seedAgent(t, c, fibe.ProviderGemini)
-
-	t.Run("get raw_providers on fresh agent returns empty content", func(t *testing.T) {
-		t.Parallel()
-		data, err := c.Agents.GetRawProviders(ctx(), ag.ID)
-		requireNoError(t, err)
-		if data == nil {
-			t.Error("expected non-nil AgentData response")
-		}
-	})
-
-	t.Run("update raw_providers with JSON array and read back", func(t *testing.T) {
-		// Not parallel: mutates agent state before next subtest
-		payload := []map[string]any{
-			{"name": "openai", "base_url": "https://api.openai.com"},
-			{"name": "anthropic", "base_url": "https://api.anthropic.com"},
-		}
-		err := c.Agents.UpdateRawProviders(ctx(), ag.ID, payload)
-		requireNoError(t, err)
-		data, err := c.Agents.GetRawProviders(ctx(), ag.ID)
-		requireNoError(t, err)
-		arr, ok := data.Content.([]any)
-		if !ok || len(arr) != 2 {
-			t.Errorf("expected 2-element array back, got %#v", data.Content)
 		}
 	})
 }

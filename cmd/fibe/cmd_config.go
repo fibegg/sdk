@@ -30,12 +30,24 @@ Available settings:
 			if outFormat == "" {
 				outFormat = "table"
 			}
+			maskedAPIKey := ""
+			if apiKey != "" {
+				mask := len(apiKey) - 4
+				if mask < 0 {
+					mask = 0
+				}
+				prefixLen := 8
+				if len(apiKey) < prefixLen {
+					prefixLen = len(apiKey)
+				}
+				maskedAPIKey = apiKey[:prefixLen] + "***" + apiKey[mask:]
+			}
 
 			if effectiveOutput() != "table" {
 				outputJSON(map[string]string{
-					"api_key": apiKey,
-					"domain":  domain,
-					"output":  outFormat,
+					"api_key_masked": maskedAPIKey,
+					"domain":         domain,
+					"output":         outFormat,
 				})
 				return
 			}
@@ -44,11 +56,7 @@ Available settings:
 			if apiKey == "" {
 				fmt.Println("FIBE_API_KEY: not set")
 			} else {
-				mask := len(apiKey) - 4
-				if mask < 0 {
-					mask = 0
-				}
-				fmt.Printf("FIBE_API_KEY: %s***%s\n", apiKey[:8], apiKey[mask:])
+				fmt.Printf("FIBE_API_KEY: %s\n", maskedAPIKey)
 			}
 			fmt.Printf("FIBE_DOMAIN:  %s\n", domain)
 			fmt.Printf("FIBE_OUTPUT:  %s\n", outFormat)

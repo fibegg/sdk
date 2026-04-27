@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
 
@@ -40,23 +41,27 @@ Examples:
 			switch resource {
 			case "playground", "pg":
 				for {
-					pg, err := c.Playgrounds.Get(ctx(), id)
+					status, err := c.Playgrounds.Status(ctx(), id)
 					if err != nil {
 						return err
 					}
 
-					current := pg.Status
+					current := status.Status
 
 					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
 
 					if current == targetStatus {
+						pg, err := c.Playgrounds.Get(ctx(), id)
+						if err != nil {
+							return err
+						}
 						output(pg)
 						return nil
 					}
 
 					// Terminal failure states
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fmt.Errorf("resource reached terminal state: %s", current)
+						return fmt.Errorf("%s", fibe.PlaygroundTerminalStateError(status))
 					}
 
 					select {

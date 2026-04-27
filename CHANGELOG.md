@@ -10,10 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **MCP server (`fibe mcp`)**: The `fibe` binary now doubles as a local [Model Context Protocol](https://modelcontextprotocol.io) server so LLM agents can drive Fibe without paying the `fork+exec` cost of invoking the CLI per operation.
   - **`fibe mcp serve`** — stdio transport (default), SSE (`--http :port`), or streamable-HTTP (`--http :port --streamable`).
-  - **159 tools total** (~40 in the `core` tier, every leaf command in `full`). Set `FIBE_MCP_TOOLS=full` to expose the complete surface.
+  - **136 tools total** with a curated agent workflow surface. Set `FIBE_MCP_TOOLS=full` to expose the complete registered catalog.
   - **`fibe_pipeline`** — compose multiple tool calls in one round-trip with JSONPath bindings, `parallel` blocks, `for_each` fanout, `dry_run` validation. Results cached per session for 5 minutes under a `pipeline_id`; re-query via `fibe_pipeline_result` with a JSONPath projection.
   - **`idempotency_key`** on `fibe_pipeline` is threaded into per-step SDK contexts (sha256 of `key:step_id`) so destructive pipeline retries hit the server-side 24-hour idempotency cache.
-  - **Streaming**: `fibe_playgrounds_wait` / `fibe_tricks_wait` emit MCP progress notifications per poll tick; `fibe_playgrounds_logs_follow` streams new log lines as notifications.
+  - **Streaming**: `fibe_playgrounds_wait` emits MCP progress notifications per poll tick; `fibe_playgrounds_logs_follow` streams new log lines as notifications.
   - **`--yolo` / `FIBE_MCP_YOLO=1`** skips the `confirm:true` gate on destructive tools for non-interactive (CI) use.
   - **Multi-tenant auth** (HTTP transport): resolves API key from `Authorization: Bearer …`, `X-Fibe-API-Key`, a prior `fibe_auth_set` tool call, or the server-wide default. Each session gets its own `*fibe.Client` with isolated circuit-breaker state.
   - **Structured errors**: `*fibe.APIError` (`code`, `status`, `message`, `request_id`, `details`, `retry_after_seconds`, `idempotent_replayed`) survives intact through MCP tool-error results.

@@ -38,9 +38,9 @@ func TestStdoutIsolation(t *testing.T) {
 		t.Fatalf("go build fibe: %v\n%s", err, out)
 	}
 
-	// fibe_run with a harmless command exercises the cobra path most likely
-	// to emit stray fmt.Println: `doctor` prints ASCII art. If stdout
-	// isolation works, none of those bytes reach the JSON-RPC pipe.
+	// fibe_run with a local command exercises the cobra path that can emit
+	// stray fmt.Println output. If stdout isolation works, none of those
+	// bytes reach the JSON-RPC pipe.
 	cmd := exec.Command(bin, "mcp", "serve")
 	cmd.Env = append(os.Environ(), "FIBE_API_KEY=pk_test_invalid_on_purpose")
 	stdin, err := cmd.StdinPipe()
@@ -68,10 +68,10 @@ func TestStdoutIsolation(t *testing.T) {
 	// 1. Handshake.
 	sendJSON(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}`)
 	sendJSON(`{"jsonrpc":"2.0","method":"notifications/initialized"}`)
-	// 2. Call fibe_run doctor — deliberately triggers stray stdout writes
-	//    from the cobra command, which bypass cobra's SetOut and hit the
-	//    global os.Stdout. The pipe hijack must redirect them.
-	sendJSON(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"fibe_run","arguments":{"args":["doctor"]}}}`)
+	// 2. Call fibe_run schema --list. printJSON uses fmt.Println, bypassing
+	//    cobra's SetOut and hitting the global os.Stdout. The pipe hijack
+	//    must redirect those bytes without waiting on network I/O.
+	sendJSON(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"fibe_run","arguments":{"args":["schema","--list"]}}}`)
 	// 3. Call fibe_auth_set with a clearly bogus key and validate:false so
 	//    we skip the ping path that would produce an expected HTTP error.
 	sendJSON(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"fibe_auth_set","arguments":{"api_key":"pk_test_totally_invalid","validate":false}}}`)
@@ -283,19 +283,21 @@ func TestRunCobraTimeoutAndRecommendation(t *testing.T) {
 	}
 
 	root := &cobra.Command{Use: "fibe"}
-	launch := &cobra.Command{
-		Use: "launch",
+	playgrounds := &cobra.Command{Use: "playgrounds"}
+	wait := &cobra.Command{
+		Use: "wait",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			<-cmd.Context().Done()
 			return cmd.Context().Err()
 		},
 	}
 	root.PersistentFlags().String("output", "", "")
-	root.AddCommand(launch)
+	playgrounds.AddCommand(wait)
+	root.AddCommand(playgrounds)
 	srv.cfg.CobraRoot = root
 
 	result, err := srv.runCobra(context.Background(), map[string]any{
-		"args":       []any{"launch"},
+		"args":       []any{"playgrounds", "wait"},
 		"timeout_ms": 10,
 	})
 	if err != nil {
@@ -305,8 +307,8 @@ func TestRunCobraTimeoutAndRecommendation(t *testing.T) {
 	if m["timed_out"] != true {
 		t.Fatalf("expected timed_out=true, got %#v", m["timed_out"])
 	}
-	if m["recommended_tool"] != "fibe_launch" {
-		t.Fatalf("expected recommended_tool=fibe_launch, got %#v", m["recommended_tool"])
+	if m["recommended_tool"] != "fibe_playgrounds_wait" {
+		t.Fatalf("expected recommended_tool=fibe_playgrounds_wait, got %#v", m["recommended_tool"])
 	}
 }
 
@@ -349,7 +351,7 @@ func TestRunCobraExecutesEvenWhenDedicatedToolIsRecommended(t *testing.T) {
 		t.Fatalf("runCobra: %v", err)
 	}
 	m := result.(map[string]any)
-	if m["recommended_tool"] != "fibe_templates_versions_create" {
+	if m["recommended_tool"] != "fibe_resource_mutate" {
 		t.Fatalf("expected recommended tool, got %#v", m["recommended_tool"])
 	}
 	if !strings.Contains(m["stdout"].(string), "created template=690") {

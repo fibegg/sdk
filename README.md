@@ -130,7 +130,7 @@ Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments
 
 ### Tool surface
 
-The server registers ~100 tools that map 1:1 to CLI leaf commands — `fibe_playgrounds_list`, `fibe_playgrounds_get`, `fibe_launch`, `fibe_tricks_trigger`, etc. Input schemas are derived from the SDK's `*Params` structs so agents get type-checked arguments. `FIBE_MCP_TOOLS=full` is the default parity surface; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
+The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, and `fibe_resource_mutate` plus high-value actions such as `fibe_greenfield_create` and `fibe_templates_launch`. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls. `FIBE_MCP_TOOLS=full` exposes the full registered catalog; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
 
 Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` on delete/rollout/hard-restart. Destructive tools require `confirm:true` in their args unless the server is launched with `--yolo` (or `FIBE_MCP_YOLO=1`) for non-interactive environments.
 
@@ -141,7 +141,7 @@ Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` o
 ```json
 {
   "steps": [
-    {"id": "pg",   "tool": "fibe_playgrounds_create", "args": {"name": "ci", "playspec_id": 5}},
+    {"id": "pg",   "tool": "fibe_resource_mutate", "args": {"resource": "playground", "operation": "create", "payload": {"name": "ci", "playspec_id": 5}}},
     {"id": "wait", "tool": "fibe_playgrounds_wait",   "args": {"id": "$.pg.id", "status": "running"}},
     {"id": "logs", "tool": "fibe_playgrounds_logs",   "args": {"id": "$.pg.id", "service": "web", "tail": 100}}
   ],

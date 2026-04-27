@@ -105,16 +105,36 @@ EXAMPLES:
 			c := newClient()
 			f := false
 			params := &fibe.PlaygroundListParams{JobMode: &f}
-			if query != "" { params.Q = query }
-			if status != "" { params.Status = status }
-			if name != "" { params.Name = name }
-			if playspecID > 0 { params.PlayspecID = playspecID }
-			if marqueeID > 0 { params.MarqueeID = marqueeID }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if playspecID > 0 {
+				params.PlayspecID = playspecID
+			}
+			if marqueeID > 0 {
+				params.MarqueeID = marqueeID
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			pgs, err := c.Playgrounds.List(ctx(), params)
 			if err != nil {
 				return err
@@ -287,9 +307,15 @@ EXAMPLES:
 			if err := applyFromFile(params); err != nil {
 				return err
 			}
-			if cmd.Flags().Changed("name") { params.Name = &name }
-			if cmd.Flags().Changed("playspec-id") { params.PlayspecID = &playspecID }
-			if cmd.Flags().Changed("marquee-id") { params.MarqueeID = &marqueeID }
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("playspec-id") {
+				params.PlayspecID = &playspecID
+			}
+			if cmd.Flags().Changed("marquee-id") {
+				params.MarqueeID = &marqueeID
+			}
 			pg, err := c.Playgrounds.Update(ctx(), id, params)
 			if err != nil {
 				return err
@@ -336,7 +362,8 @@ EXAMPLES:
 }
 
 func pgRolloutCmd() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+	cmd := &cobra.Command{
 		Use:   "rollout <id>",
 		Short: "Recreate playground with latest configuration",
 		Long: `Trigger a rollout to recreate the playground with the latest playspec configuration.
@@ -352,7 +379,11 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			pg, err := c.Playgrounds.Rollout(ctx(), id)
+			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout}
+			if cmd.Flags().Changed("force") {
+				params.Force = &force
+			}
+			pg, err := c.Playgrounds.Action(ctx(), id, params)
 			if err != nil {
 				return err
 			}
@@ -360,10 +391,13 @@ EXAMPLES:
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	return cmd
 }
 
 func pgHardRestartCmd() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+	cmd := &cobra.Command{
 		Use:   "hard-restart <id>",
 		Short: "Hard restart all playground services",
 		Long: `Perform a hard restart of all services in the playground.
@@ -377,7 +411,11 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			pg, err := c.Playgrounds.HardRestart(ctx(), id)
+			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart}
+			if cmd.Flags().Changed("force") {
+				params.Force = &force
+			}
+			pg, err := c.Playgrounds.Action(ctx(), id, params)
 			if err != nil {
 				return err
 			}
@@ -385,6 +423,8 @@ EXAMPLES:
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	return cmd
 }
 
 func pgExtendCmd() *cobra.Command {

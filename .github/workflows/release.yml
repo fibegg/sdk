@@ -41,3 +41,57 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL is not set; skipping Slack notification."
+            exit 0
+          fi
+
+          node <<'NODE'
+          const tag = process.env.GITHUB_REF_NAME;
+          const sha = process.env.GITHUB_SHA || '';
+          const shortSha = sha.slice(0, 12);
+          const repo = process.env.GITHUB_REPOSITORY;
+          const server = process.env.GITHUB_SERVER_URL || 'https://github.com';
+          const releaseUrl = `${server}/${repo}/releases/tag/${tag}`;
+          const commitUrl = `${server}/${repo}/commit/${sha}`;
+          const payload = {
+            text: `[${repo}] SDK release ${tag} is ready: ${releaseUrl}`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*[${repo}]* SDK release \`${tag}\` is ready`,
+                },
+              },
+              {
+                type: 'section',
+                fields: [
+                  { type: 'mrkdwn', text: `*Version*\n\`${tag}\`` },
+                  { type: 'mrkdwn', text: `*Commit*\n<${commitUrl}|\`${shortSha}\`>` },
+                  { type: 'mrkdwn', text: `*Binaries*\n<${releaseUrl}|Download release assets>` },
+                  { type: 'mrkdwn', text: '*Homebrew*\n`brew install fibegg/sdk/fibe`' },
+                ],
+              },
+              {
+                type: 'context',
+                elements: [
+                  { type: 'mrkdwn', text: 'linux · darwin · windows · amd64 · arm64' },
+                ],
+              },
+            ],
+          };
+
+          const response = await fetch(process.env.SLACK_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) {
+            console.log(`::warning::Failed to notify Slack webhook: ${response.status} ${response.statusText}`);
+          }
+          NODE

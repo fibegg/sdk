@@ -40,7 +40,7 @@ func TestProps_Mirror(t *testing.T) {
 
 	t.Run("mirror with invalid URL returns 400", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Props.Mirror(ctx(), "not-a-url")
+		_, err := c.Props.Mirror(ctx(), "not-a-url", "")
 		if err == nil {
 			t.Error("expected validation error for invalid URL")
 		}
@@ -53,29 +53,9 @@ func TestProps_Mirror(t *testing.T) {
 
 	t.Run("mirror with empty URL returns error", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Props.Mirror(ctx(), "")
+		_, err := c.Props.Mirror(ctx(), "", "")
 		if err == nil {
 			t.Error("expected error for empty URL")
-		}
-	})
-}
-
-func TestProps_ManualLink(t *testing.T) {
-	t.Parallel()
-	c := adminClient(t)
-
-	t.Run("manual_link nonexistent prop returns 4xx", func(t *testing.T) {
-		t.Parallel()
-		_, err := c.Props.ManualLink(ctx(), 999999999)
-		if err == nil {
-			t.Skip("manual_link unexpectedly succeeded for nonexistent ID")
-		}
-		apiErr, ok := err.(*fibe.APIError)
-		if !ok {
-			t.Fatalf("expected APIError, got %T", err)
-		}
-		if apiErr.StatusCode < 400 || apiErr.StatusCode >= 500 {
-			t.Errorf("expected 4xx, got %d", apiErr.StatusCode)
 		}
 	})
 }

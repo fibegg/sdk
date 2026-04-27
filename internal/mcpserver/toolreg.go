@@ -7,8 +7,97 @@ import (
 	"time"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
+
+// withSchemaAndExtras generates a JSON schema from struct P via the jsonschema
+// package, then injects extra properties (e.g. "id") into the raw schema.
+// This is necessary because mcp.WithInputSchema sets RawInputSchema which
+// completely replaces any properties added via WithNumber/WithString.
+func withSchemaAndExtras[P any](extras map[string]map[string]any, required ...string) mcp.ToolOption {
+	return func(t *mcp.Tool) {
+		schema, err := jsonschema.For[P](&jsonschema.ForOptions{IgnoreInvalidTypes: true})
+		if err != nil {
+			return
+		}
+		raw, err := json.Marshal(schema)
+		if err != nil {
+			return
+		}
+		var m map[string]any
+		if err := json.Unmarshal(raw, &m); err != nil {
+			return
+		}
+		props, _ := m["properties"].(map[string]any)
+		if props == nil {
+			props = map[string]any{}
+			m["properties"] = props
+		}
+		for k, v := range extras {
+			props[k] = v
+		}
+		if len(required) > 0 {
+			existing, _ := m["required"].([]any)
+			for _, r := range required {
+				existing = append(existing, r)
+			}
+			m["required"] = existing
+		}
+		patched, err := json.Marshal(m)
+		if err != nil {
+			return
+		}
+		t.InputSchema.Type = ""
+		t.RawInputSchema = json.RawMessage(patched)
+	}
+}
+
+// withSchemaEnum injects an "enum" array into a specific property in the RawInputSchema.
+// This allows strongly-typed structs to have enum constraints in the MCP schema.
+func withSchemaEnum(property string, values []string) mcp.ToolOption {
+	return func(t *mcp.Tool) {
+		if t.RawInputSchema == nil {
+			return
+		}
+		var m map[string]any
+		if err := json.Unmarshal(t.RawInputSchema, &m); err != nil {
+			return
+		}
+		props, ok := m["properties"].(map[string]any)
+		if !ok || props == nil {
+			return
+		}
+		prop, ok := props[property].(map[string]any)
+		if !ok || prop == nil {
+			return
+		}
+
+		enumList := make([]any, len(values))
+		for i, v := range values {
+			enumList[i] = v
+		}
+		prop["enum"] = enumList
+		prop["type"] = "string" // Gemini requires exact "string" type for enums, no nulls allowed
+
+		patched, err := json.Marshal(m)
+		if err != nil {
+			return
+		}
+		t.RawInputSchema = json.RawMessage(patched)
+	}
+}
+
+func withRawInputSchema(schema map[string]any) mcp.ToolOption {
+	return func(t *mcp.Tool) {
+		raw, err := json.Marshal(schema)
+		if err != nil {
+			return
+		}
+		t.InputSchema.Type = ""
+		t.RawInputSchema = json.RawMessage(raw)
+	}
+}
 
 // This file holds the generic registration helpers. Each resource file
 // (tools_playgrounds.go, tools_tricks.go, ...) calls into these helpers so
@@ -20,6 +109,8 @@ type toolOpts struct {
 	ReadOnly    bool
 	Destructive bool
 	Idempotent  bool
+	Hidden      bool
+	IDField     string
 	// ExtraSchemaProps lets a caller add extra input properties on top of
 	// the ones derived from the generic parameter type (e.g., confirm:true
 	// for destructive ops).
@@ -40,14 +131,21 @@ func applyAliases(args map[string]any, aliases map[string][]string) {
 	}
 }
 
+func toolIDField(opts toolOpts) string {
+	if opts.IDField != "" {
+		return opts.IDField
+	}
+	return "id"
+}
+
 // addTool wires a toolImpl into both the dispatcher and the mcp-go server.
 // All registration helpers funnel through here so the MCP ↔ dispatcher
 // plumbing is in one place.
 //
-// Tools are always registered on the dispatcher so fibe_pipeline steps can
-// reference any tool by name regardless of the configured tier. The mcp-go
-// tool registry is filtered by tier so the toolset advertised to clients
-// respects FIBE_MCP_TOOLS=core|full.
+// Tools are always registered on the dispatcher so fibe_pipeline and
+// fibe_call can reference any tool by name regardless of the configured
+// advertised surface. The mcp-go tool registry is filtered by tier so the
+// toolset advertised to clients respects FIBE_MCP_TOOLS.
 func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 	s.dispatcher.register(t)
 
@@ -56,11 +154,13 @@ func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 	mcp.WithReadOnlyHintAnnotation(t.annotations.ReadOnly)(&tool)
 	mcp.WithDestructiveHintAnnotation(t.annotations.Destructive)(&tool)
 	mcp.WithIdempotentHintAnnotation(t.annotations.Idempotent)(&tool)
+	enrichToolInputSchema(t.name, &tool)
+	if schema, ok := toolInputSchemaToMap(tool).(map[string]any); ok {
+		s.toolSchemas[t.name] = schema
+	}
 
-	// Tier gating: core servers hide "full"-tier tools from the advertised
-	// list. Meta tools (pipeline, help, run, auth_set, me, status, schema,
-	// doctor) always show up regardless of tier because they're the
-	// essential surface for agent journeys.
+	// Tier gating: hidden or non-selected tier tools remain dispatcher
+	// reachable but are not advertised natively to the MCP client.
 	if !s.includeTool(t) {
 		return
 	}
@@ -141,6 +241,7 @@ func registerList[P any, R any](s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -152,99 +253,15 @@ func registerList[P any, R any](s *Server, name, desc string, opts toolOpts,
 		},
 	}
 
-	tool := mcp.NewTool(name,
+	mcpOpts := []mcp.ToolOption{
 		mcp.WithDescription(desc),
 		mcp.WithInputSchema[P](),
-	)
-	s.addTool(t, tool)
-}
-
-// registerListNested registers a list endpoint scoped by a parent ID.
-// Example: fibe_mutations_list requires prop_id; fibe_artefacts_list requires agent_id.
-func registerListNested[P any, R any](s *Server, name, desc, parentIDField string, opts toolOpts,
-	fn func(ctx context.Context, c *fibe.Client, parentID int64, params *P) (*fibe.ListResult[R], error)) {
-
-	t := &toolImpl{
-		name:        name,
-		description: desc,
-		tier:        opts.Tier,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
-			pid, ok := argInt64(args, parentIDField)
-			if !ok {
-				return nil, fmt.Errorf("required field %q not set", parentIDField)
-			}
-			var p P
-			if err := bindArgs(args, &p); err != nil {
-				return nil, err
-			}
-			return fn(ctx, c, pid, &p)
-		},
 	}
-
-	tool := mcp.NewTool(name,
-		mcp.WithDescription(desc),
-		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description("Parent resource ID")),
-	)
+	mcpOpts = append(mcpOpts, opts.ExtraSchemaProps...)
+	tool := mcp.NewTool(name, mcpOpts...)
 	s.addTool(t, tool)
 }
 
-// registerGet registers a get-by-id endpoint.
-func registerGet[R any](s *Server, name, desc string, opts toolOpts,
-	fn func(ctx context.Context, c *fibe.Client, id int64) (*R, error)) {
-
-	t := &toolImpl{
-		name:        name,
-		description: desc,
-		tier:        opts.Tier,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
-			id, ok := argInt64(args, "id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
-			}
-			return fn(ctx, c, id)
-		},
-	}
-
-	tool := mcp.NewTool(name,
-		mcp.WithDescription(desc),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
-	)
-	s.addTool(t, tool)
-}
-
-// registerGetNested: get a resource scoped under a parent (e.g., fibe_mutations_get takes prop_id + id).
-func registerGetNested[R any](s *Server, name, desc, parentIDField string, opts toolOpts,
-	fn func(ctx context.Context, c *fibe.Client, parentID, id int64) (*R, error)) {
-
-	t := &toolImpl{
-		name:        name,
-		description: desc,
-		tier:        opts.Tier,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			pid, ok := argInt64(args, parentIDField)
-			if !ok {
-				return nil, fmt.Errorf("required field %q not set", parentIDField)
-			}
-			id, ok := argInt64(args, "id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
-			}
-			return fn(ctx, c, pid, id)
-		},
-	}
-
-	tool := mcp.NewTool(name,
-		mcp.WithDescription(desc),
-		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description("Parent resource ID")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
-	)
-	s.addTool(t, tool)
-}
 
 // registerCreate registers a create endpoint that takes only the params.
 func registerCreate[P any, R any](s *Server, name, desc string, opts toolOpts,
@@ -254,6 +271,7 @@ func registerCreate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: opts.Idempotent},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -265,10 +283,12 @@ func registerCreate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		},
 	}
 
-	tool := mcp.NewTool(name,
+	mcpOpts := []mcp.ToolOption{
 		mcp.WithDescription(desc),
 		mcp.WithInputSchema[P](),
-	)
+	}
+	mcpOpts = append(mcpOpts, opts.ExtraSchemaProps...)
+	tool := mcp.NewTool(name, mcpOpts...)
 	s.addTool(t, tool)
 }
 
@@ -280,6 +300,7 @@ func registerCreateNested[P any, R any](s *Server, name, desc, parentIDField str
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: opts.Idempotent},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -297,7 +318,7 @@ func registerCreateNested[P any, R any](s *Server, name, desc, parentIDField str
 
 	tool := mcp.NewTool(name,
 		mcp.WithDescription(desc),
-		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description("Parent resource ID")),
+		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description(idDescription(parentIDField))),
 	)
 	s.addTool(t, tool)
 }
@@ -310,6 +331,7 @@ func registerUpdate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -331,10 +353,14 @@ func registerUpdate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		},
 	}
 
-	tool := mcp.NewTool(name,
+	mcpOpts := []mcp.ToolOption{
 		mcp.WithDescription(desc),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
-	)
+		withSchemaAndExtras[P](map[string]map[string]any{
+			"id": {"type": "number", "description": idDescription("id")},
+		}, "id"),
+	}
+	mcpOpts = append(mcpOpts, opts.ExtraSchemaProps...)
+	tool := mcp.NewTool(name, mcpOpts...)
 	s.addTool(t, tool)
 }
 
@@ -346,6 +372,7 @@ func registerUpdateNested[P any, R any](s *Server, name, desc, parentIDField str
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -370,8 +397,10 @@ func registerUpdateNested[P any, R any](s *Server, name, desc, parentIDField str
 
 	tool := mcp.NewTool(name,
 		mcp.WithDescription(desc),
-		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description("Parent resource ID")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
+		withSchemaAndExtras[P](map[string]map[string]any{
+			parentIDField: {"type": "number", "description": idDescription(parentIDField)},
+			"id":          {"type": "number", "description": idDescription("id")},
+		}, parentIDField, "id"),
 	)
 	s.addTool(t, tool)
 }
@@ -385,6 +414,7 @@ func registerDelete(s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
@@ -401,7 +431,7 @@ func registerDelete(s *Server, name, desc string, opts toolOpts,
 
 	tool := mcp.NewTool(name,
 		mcp.WithDescription(desc),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
+		mcp.WithNumber("id", mcp.Required(), mcp.Description(idDescription("id"))),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	)
 	s.addTool(t, tool)
@@ -415,27 +445,31 @@ func registerDeleteNested(s *Server, name, desc, parentIDField string, opts tool
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			applyAliases(args, opts.Aliases)
 			pid, ok := argInt64(args, parentIDField)
 			if !ok {
 				return nil, fmt.Errorf("required field %q not set", parentIDField)
 			}
-			id, ok := argInt64(args, "id")
+			idField := toolIDField(opts)
+			id, ok := argInt64(args, idField)
 			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
+				return nil, fmt.Errorf("required field %q not set", idField)
 			}
 			if err := fn(ctx, c, pid, id); err != nil {
 				return nil, err
 			}
-			return map[string]any{parentIDField: pid, "id": id, "deleted": true}, nil
+			return map[string]any{parentIDField: pid, idField: id, "deleted": true}, nil
 		},
 	}
+	idField := toolIDField(opts)
 
 	tool := mcp.NewTool(name,
 		mcp.WithDescription(desc),
-		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description("Parent resource ID")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
+		mcp.WithNumber(parentIDField, mcp.Required(), mcp.Description(idDescription(parentIDField))),
+		mcp.WithNumber(idField, mcp.Required(), mcp.Description(idDescription(idField))),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	)
 	s.addTool(t, tool)
@@ -451,20 +485,23 @@ func registerIDAction[R any](s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: opts.Destructive, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
-			id, ok := argInt64(args, "id")
+			idField := toolIDField(opts)
+			id, ok := argInt64(args, idField)
 			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
+				return nil, fmt.Errorf("required field %q not set", idField)
 			}
 			return fn(ctx, c, id)
 		},
 	}
+	idField := toolIDField(opts)
 
 	toolOpts := []mcp.ToolOption{
 		mcp.WithDescription(desc),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
+		mcp.WithNumber(idField, mcp.Required(), mcp.Description(idDescription(idField))),
 	}
 	if opts.Destructive {
 		toolOpts = append(toolOpts, mcp.WithBoolean("confirm",
@@ -483,23 +520,26 @@ func registerIDActionNoReturn(s *Server, name, desc string, opts toolOpts,
 		name:        name,
 		description: desc,
 		tier:        opts.Tier,
+		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: opts.Destructive, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			applyAliases(args, opts.Aliases)
-			id, ok := argInt64(args, "id")
+			idField := toolIDField(opts)
+			id, ok := argInt64(args, idField)
 			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
+				return nil, fmt.Errorf("required field %q not set", idField)
 			}
 			if err := fn(ctx, c, id); err != nil {
 				return nil, err
 			}
-			return map[string]any{"id": id, "ok": true}, nil
+			return map[string]any{idField: id, "ok": true}, nil
 		},
 	}
+	idField := toolIDField(opts)
 
 	toolOpts := []mcp.ToolOption{
 		mcp.WithDescription(desc),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Resource ID")),
+		mcp.WithNumber(idField, mcp.Required(), mcp.Description(idDescription(idField))),
 	}
 	if opts.Destructive {
 		toolOpts = append(toolOpts, mcp.WithBoolean("confirm",
@@ -510,8 +550,8 @@ func registerIDActionNoReturn(s *Server, name, desc string, opts toolOpts,
 }
 
 // registerCustom registers a fully custom tool with a hand-written handler
-// and schema. Use this for tools that don't fit the CRUD molds (fibe_launch,
-// fibe_playgrounds_wait, fibe_pipeline, etc.).
+// and schema. Use this for tools that don't fit the CRUD molds
+// (fibe_playgrounds_wait, fibe_pipeline, etc.).
 func registerCustom(s *Server, t *toolImpl, tool mcp.Tool) {
 	s.addTool(t, tool)
 }

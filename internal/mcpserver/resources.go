@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -53,10 +54,10 @@ func (s *Server) registerStaticResources() {
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://schema",
 		"All JSON Schema hints",
-		mcp.WithResourceDescription("The full Fibe resource schema registry (playground, agent, playspec, prop, marquee, secret, team, webhook, api_key)."),
+		mcp.WithResourceDescription("The full Fibe resource schema registry, including generic resource list/get/delete schemas."),
 		mcp.WithMIMEType("application/json"),
 	), func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		return jsonResource(req.Params.URI, schemaRegistry), nil
+		return jsonResource(req.Params.URI, resourceschema.Registry()), nil
 	})
 
 	// fibe://pipeline/schema — how to write a fibe_pipeline request
@@ -81,12 +82,15 @@ func (s *Server) registerResourceTemplates() {
 	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
 		"fibe://schema/{resource}",
 		"Fibe schema per resource",
-		mcp.WithTemplateDescription("JSON Schema for create/update params of a specific Fibe resource."),
+		mcp.WithTemplateDescription("JSON Schema for operations of a specific Fibe resource. Use fibe://schema/list for the generic resource catalog."),
 		mcp.WithTemplateMIMEType("application/json"),
 	), func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		resource, _ := parseURIPath(req.Params.URI, "fibe://schema/")
 		if resource == "" {
 			return nil, fmt.Errorf("missing resource in URI %q", req.Params.URI)
+		}
+		if resourceschema.NormalizeResource(resource) == "list" {
+			return jsonResource(req.Params.URI, resourceschema.CatalogResponse()), nil
 		}
 		// Allow nested op: fibe://schema/<resource>/<op>
 		op := ""
@@ -94,14 +98,14 @@ func (s *Server) registerResourceTemplates() {
 			op = resource[slash+1:]
 			resource = resource[:slash]
 		}
-		schemas, ok := schemaRegistry[resource]
+		schemas, canonical, ok := resourceschema.SchemasFor(resource)
 		if !ok {
 			return nil, fmt.Errorf("unknown resource %q", resource)
 		}
 		if op != "" {
-			entry, ok := schemas[op]
+			entry, _, op, ok := resourceschema.SchemaFor(canonical, op)
 			if !ok {
-				return nil, fmt.Errorf("unknown operation %q for resource %q", op, resource)
+				return nil, fmt.Errorf("unknown operation %q for resource %q", op, canonical)
 			}
 			return jsonResource(req.Params.URI, entry), nil
 		}
@@ -191,11 +195,11 @@ var pipelineDSLSchema = map[string]any{
 			"items": map[string]any{
 				"oneOf": []any{
 					map[string]any{
-						"title":       "ToolCall",
-						"required":    []string{"tool"},
+						"title":    "ToolCall",
+						"required": []string{"tool"},
 						"properties": map[string]any{
 							"id":          map[string]any{"type": "string", "description": "Step ID used as reference prefix in later JSONPath expressions ($.<id>.<field>)."},
-							"tool":        map[string]any{"type": "string", "description": "A registered tool name, e.g. fibe_playgrounds_get. fibe_pipeline is not callable here."},
+							"tool":        map[string]any{"type": "string", "description": "A registered tool name, e.g. fibe_resource_get. fibe_pipeline is not callable here."},
 							"args":        map[string]any{"type": "object", "description": "Tool args. String values starting with \"$.\" are JSONPath expressions."},
 							"on_error":    map[string]any{"type": "string", "enum": []string{"abort", "continue"}, "description": "Default: abort."},
 							"input_path":  map[string]any{"type": "string", "description": "Optional JSONPath to narrow args before dispatch."},
@@ -232,9 +236,9 @@ var pipelineDSLSchema = map[string]any{
 		map[string]any{
 			"description": "Create, wait, fetch logs — one round-trip.",
 			"steps": []map[string]any{
-				{"id": "pg", "tool": "fibe_playgrounds_create", "args": map[string]any{"name": "ci-test", "playspec_id": 5}},
-				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"id": "$.pg.id", "status": "running"}},
-				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"id": "$.pg.id", "service": "web", "tail": 100}},
+				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id": 5}}},
+				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"playground_id": "$.pg.id", "status": "running"}},
+				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"playground_id": "$.pg.id", "service": "web", "tail": 100}},
 			},
 			"return": "$.logs.lines",
 		},

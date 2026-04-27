@@ -17,10 +17,19 @@ func (s *ImportTemplateService) List(ctx context.Context, params *ImportTemplate
 }
 
 func (s *ImportTemplateService) Search(ctx context.Context, query string, templateID *int64) (*ListResult[ImportTemplate], error) {
+	return s.SearchWithParams(ctx, &ImportTemplateSearchParams{Query: query, TemplateID: templateID})
+}
+
+func (s *ImportTemplateService) SearchWithParams(ctx context.Context, params *ImportTemplateSearchParams) (*ListResult[ImportTemplate], error) {
 	values := url.Values{}
-	values.Set("q", query)
-	if templateID != nil {
-		values.Set("template_id", fmt.Sprintf("%d", *templateID))
+	if params != nil {
+		values.Set("q", params.Query)
+		if params.TemplateID != nil {
+			values.Set("template_id", fmt.Sprintf("%d", *params.TemplateID))
+		}
+		if params.Regex {
+			values.Set("regex", "true")
+		}
 	}
 	path := "/api/import_templates/search?" + values.Encode()
 	return doList[ImportTemplate](s.client, ctx, path)
@@ -57,6 +66,10 @@ func (s *ImportTemplateService) Delete(ctx context.Context, id int64) error {
 	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/import_templates/%d", id), nil, nil)
 }
 
+func (s *ImportTemplateService) DestroyVersion(ctx context.Context, templateID, versionID int64) error {
+	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/import_template_versions/%d", versionID), nil, nil)
+}
+
 func (s *ImportTemplateService) ListVersions(ctx context.Context, id int64, params *ListParams) (*ListResult[ImportTemplateVersion], error) {
 	path := fmt.Sprintf("/api/import_templates/%d/versions", id) + buildQuery(params)
 	return doList[ImportTemplateVersion](s.client, ctx, path)
@@ -80,12 +93,6 @@ func (s *ImportTemplateService) PatchCreate(ctx context.Context, id int64, param
 	var result TemplateVersionPatchResult
 	path := fmt.Sprintf("/api/import_templates/%d/versions/patch_create", id)
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
-	return &result, err
-}
-
-func (s *ImportTemplateService) Lineage(ctx context.Context, id int64) (*TemplateLineageResult, error) {
-	var result TemplateLineageResult
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/import_templates/%d/lineage", id), nil, &result)
 	return &result, err
 }
 
@@ -121,12 +128,6 @@ func (s *ImportTemplateService) TogglePublic(ctx context.Context, templateID, ve
 	body := map[string]any{"version_id": versionID}
 	err := s.client.do(ctx, http.MethodPatch, path, body, &result)
 	return &result, err
-}
-
-func (s *ImportTemplateService) DestroyVersion(ctx context.Context, templateID, versionID int64) error {
-	path := fmt.Sprintf("/api/import_templates/%d/destroy_version", templateID)
-	body := map[string]any{"version_id": versionID}
-	return s.client.do(ctx, http.MethodDelete, path, body, nil)
 }
 
 func (s *ImportTemplateService) Launch(ctx context.Context, id int64) (*LaunchResult, error) {

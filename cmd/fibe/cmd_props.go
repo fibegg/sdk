@@ -374,11 +374,15 @@ func propMirrorCmd() *cobra.Command {
 REQUIRED FLAGS:
   --url   GitHub repository URL
 
+OPTIONAL FLAGS:
+  --name  Name for the mirrored repository
+
 EXAMPLES:
   fibe props mirror --url https://github.com/org/repo`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			prop, err := c.Props.Mirror(ctx(), sourceURL)
+			nameFlag, _ := cmd.Flags().GetString("name")
+			prop, err := c.Props.Mirror(ctx(), sourceURL, nameFlag)
 			if err != nil {
 				return err
 			}
@@ -388,6 +392,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&sourceURL, "url", "", "Source GitHub URL (required)")
+	cmd.Flags().String("name", "", "Name for the mirrored repository (optional)")
 	cmd.MarkFlagRequired("url")
 	return cmd
 }

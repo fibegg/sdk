@@ -50,9 +50,21 @@ func (s *PlayspecService) Services(ctx context.Context, id int64) ([]any, error)
 }
 
 func (s *PlayspecService) ValidateCompose(ctx context.Context, composeYAML string) (*ComposeValidation, error) {
+	return s.ValidateComposeWithParams(ctx, &ComposeValidateParams{ComposeYAML: composeYAML})
+}
+
+func (s *PlayspecService) ValidateComposeWithParams(ctx context.Context, params *ComposeValidateParams) (*ComposeValidation, error) {
+	if params == nil {
+		params = &ComposeValidateParams{}
+	}
+	if errors, err := s.validateComposeSchema(ctx, params.ComposeYAML); err != nil {
+		return nil, err
+	} else if len(errors) > 0 {
+		return &ComposeValidation{Valid: false, Errors: errors}, nil
+	}
+
 	var result ComposeValidation
-	body := map[string]any{"compose_yaml": composeYAML}
-	err := s.client.do(ctx, http.MethodPost, "/api/playspecs/validate_compose", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/playspecs/validate_compose", params, &result)
 	return &result, err
 }
 

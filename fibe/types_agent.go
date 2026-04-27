@@ -106,9 +106,7 @@ type AgentMountSpec struct {
 }
 
 type AgentChatParams struct {
-	Text                string   `json:"text"`
-	Images              []string `json:"images,omitempty"`
-	AttachmentFilenames []string `json:"attachment_filenames,omitempty"`
+	Text string `json:"text"`
 }
 
 type AgentChatSession struct {

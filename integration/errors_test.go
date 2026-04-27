@@ -40,13 +40,7 @@ func TestErrors_NotFound(t *testing.T) {
 
 	t.Run("nonexistent secret", func(t *testing.T) {
 		t.Parallel()
-	_, err := c.Secrets.Get(ctx(), 999999999, false)
-		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
-	})
-
-	t.Run("nonexistent team", func(t *testing.T) {
-		t.Parallel()
-		_, err := c.Teams.Get(ctx(), 999999999)
+		_, err := c.Secrets.Get(ctx(), 999999999, false)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 

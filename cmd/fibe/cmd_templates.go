@@ -240,12 +240,24 @@ func tplDeleteCmd() *cobra.Command {
 
 func tplSearchCmd() *cobra.Command {
 	var query string
+	var regex bool
 	cmd := &cobra.Command{
 		Use: "search", Short: "Search templates",
-		Long: "Search templates by name or description.\n\nREQUIRED FLAGS:\n  --query   Search query\n\nEXAMPLES:\n  fibe templates search --query node",
+		Long: `Search templates by name or description.
+
+Use --regex to treat --query as a PostgreSQL regex. Regex search requires
+at least one literal token with 3+ characters so the server can prefilter
+with indexed text search before applying regex.
+
+REQUIRED FLAGS:
+  --query   Search query
+
+EXAMPLES:
+  fibe templates search --query node
+  fibe templates search --query 'rails-.*' --regex`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			results, err := c.ImportTemplates.Search(ctx(), query, nil)
+			results, err := c.ImportTemplates.SearchWithParams(ctx(), &fibe.ImportTemplateSearchParams{Query: query, Regex: regex})
 			if err != nil {
 				return err
 			}
@@ -254,6 +266,7 @@ func tplSearchCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (required)")
+	cmd.Flags().BoolVar(&regex, "regex", false, "Treat query as PostgreSQL regex; requires a 3+ character literal token")
 	cmd.MarkFlagRequired("query")
 	return cmd
 }
@@ -505,7 +518,7 @@ EXAMPLES:
 			c := newClient()
 			templateID, _ := strconv.ParseInt(args[0], 10, 64)
 			versionID, _ := strconv.ParseInt(args[1], 10, 64)
-			if err := c.ImportTemplates.DestroyVersion(ctx(), templateID, versionID); err != nil {
+			if err := c.ImportTemplateVersions.Delete(ctx(), versionID); err != nil {
 				return err
 			}
 			fmt.Printf("Version %d deleted from template %d\n", versionID, templateID)
@@ -663,5 +676,4 @@ EXAMPLES:
 }
 
 // =============================================================================
-// Teams: missing member/resource management commands
 // =============================================================================

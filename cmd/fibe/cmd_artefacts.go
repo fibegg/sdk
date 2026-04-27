@@ -30,14 +30,16 @@ SUBCOMMANDS:
 }
 
 func artListCmd() *cobra.Command {
-	var query, name, playgroundID, contentType, createdAfter, createdBefore, sort string
+	var query, name, agentIDFlag, playgroundID, contentType, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
-		Use: "list <agent-id>", Short: "List agent artefacts", Args: cobra.ExactArgs(1),
-		Long: `List artefacts for an agent.
+		Use: "list [agent-id]", Short: "List artefacts", Args: cobra.MaximumNArgs(1),
+		Long: `List artefacts. When agent-id is provided, lists artefacts for that agent.
+When omitted, lists all artefacts accessible by the current player.
 
 FILTERS:
   -q, --query           Search across name, description (substring match)
   --name                Filter by name (substring match)
+  --agent-id            Filter by agent ID (when listing all)
   --playground-id       Filter by playground ID
   --content-type        Filter by content type
 
@@ -52,12 +54,12 @@ SORTING:
                         Default: created_at_desc
 
 EXAMPLES:
+  fibe artefacts list
   fibe artefacts list 5
-  fibe artefacts list 5 -q "report" --sort name_asc
-  fibe artefacts list 5 --content-type application/pdf -o json`,
+  fibe artefacts list -q "report" --sort name_asc
+  fibe artefacts list --agent-id 5 --content-type application/pdf -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ArtefactListParams{}
 			if query != "" { params.Query = query }
 			if name != "" { params.Name = name }
@@ -68,14 +70,24 @@ EXAMPLES:
 			if sort != "" { params.Sort = sort }
 			if flagPage > 0 { params.Page = flagPage }
 			if flagPerPage > 0 { params.PerPage = flagPerPage }
-			arts, err := c.Artefacts.List(ctx(), agentID, params)
-			if err != nil { return err }
-			outputJSON(arts)
+
+			if len(args) > 0 {
+				agentID, _ := strconv.ParseInt(args[0], 10, 64)
+				arts, err := c.Artefacts.List(ctx(), agentID, params)
+				if err != nil { return err }
+				outputJSON(arts)
+			} else {
+				if agentIDFlag != "" { params.AgentID = agentIDFlag }
+				arts, err := c.Artefacts.ListAll(ctx(), params)
+				if err != nil { return err }
+				outputJSON(arts)
+			}
 			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name, description")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
+	cmd.Flags().StringVar(&agentIDFlag, "agent-id", "", "Filter by agent ID (when listing all)")
 	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID")
 	cmd.Flags().StringVar(&contentType, "content-type", "", "Filter by content type")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")

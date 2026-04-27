@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/resourceschema"
 )
 
 // ---------- Fix 1: empty updates rejected locally ----------
 
 // TestEmptyUpdateRejected reproduces the Rails 400 ParameterMissing case
-// the user hit on fibe_playgrounds_update. With only "id" in args, the
+// the user hit on playground.update. With only "playground_id" in the payload, the
 // outbound body would be {"playground": {}} which Rails treats as blank
 // and rejects. We now short-circuit with a clear message before the HTTP
 // round-trip.
@@ -23,9 +24,13 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Only id → no updatable fields.
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_update", map[string]any{
-		"id": 42,
+	// Only playground_id -> no updatable fields.
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "playground",
+		"operation": "update",
+		"payload": map[string]any{
+			"playground_id": 42,
+		},
 	})
 	if err == nil {
 		t.Fatal("expected error for empty update, got nil")
@@ -34,43 +39,33 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Errorf("expected 'at least one field' message, got: %v", err)
 	}
 
-	// id + a real field → passes the guard (and will then fail client-side
+	// playground_id + a real field -> passes the guard (and will then fail client-side
 	// on transport because we have no real server, which is fine for this
 	// test — we only care that the guard didn't block it).
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_update", map[string]any{
-		"id":   42,
-		"name": "renamed",
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "playground",
+		"operation": "update",
+		"payload": map[string]any{
+			"playground_id": 42,
+			"name":          "renamed",
+		},
 	})
 	if err != nil && strings.Contains(err.Error(), "at least one field") {
 		t.Errorf("guard tripped on non-empty update: %v", err)
 	}
 
 	// Explicit nulls and empty strings are still treated as "no fields set".
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_update", map[string]any{
-		"id":          42,
-		"name":        "",
-		"playspec_id": nil,
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "playground",
+		"operation": "update",
+		"payload": map[string]any{
+			"playground_id": 42,
+			"name":          "",
+			"playspec_id":   nil,
+		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "at least one field") {
 		t.Errorf("expected guard to trip on all-nil/empty fields, got: %v", err)
-	}
-}
-
-// TestEmptyUpdateNestedRejected mirrors TestEmptyUpdateRejected for the
-// nested (prop_id / agent_id scoped) update helpers.
-func TestEmptyUpdateNestedRejected(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-
-	// Only parent_id + id on a nested update → no fields to change.
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_feedbacks_update", map[string]any{
-		"agent_id": 1,
-		"id":       2,
-	})
-	if err == nil || !strings.Contains(err.Error(), "at least one field") {
-		t.Errorf("expected empty-update guard on nested update, got: %v", err)
 	}
 }
 
@@ -192,29 +187,12 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 	}
 }
 
-// ---------- Fix 3: webhook event-type hint in description/schema ----------
-
-func TestWebhookEnumHintInToolDescription(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	tool, ok := srv.dispatcher.lookup("fibe_webhooks_create")
-	if !ok {
-		t.Fatal("fibe_webhooks_create not registered")
-	}
-	if !strings.Contains(tool.description, "fibe_webhooks_event_types") {
-		t.Errorf("expected description to reference fibe_webhooks_event_types, got: %s", tool.description)
-	}
-	if !strings.Contains(tool.description, "agent.created") {
-		t.Errorf("expected description to cite at least one concrete event type, got: %s", tool.description)
-	}
-}
+// ---------- Fix 3: webhook event-type hint in schema ----------
 
 func TestWebhookEnumHintInSchemaRegistry(t *testing.T) {
-	hook, ok := schemaRegistry["webhook"]
+	hook, _, ok := resourceschema.SchemasFor("webhook")
 	if !ok {
-		t.Fatal("webhook entry missing from schemaRegistry")
+		t.Fatal("webhook entry missing from resource schema registry")
 	}
 	create, ok := hook["create"].(map[string]any)
 	if !ok {
@@ -223,8 +201,8 @@ func TestWebhookEnumHintInSchemaRegistry(t *testing.T) {
 	props := create["properties"].(map[string]any)
 	events := props["events"].(map[string]any)
 	desc := events["description"].(string)
-	if !strings.Contains(desc, "fibe_webhooks_event_types") {
-		t.Errorf("events description should point to fibe_webhooks_event_types, got: %s", desc)
+	if !strings.Contains(desc, "fibe_schema") {
+		t.Errorf("events description should point to fibe_schema event_types, got: %s", desc)
 	}
 	// Examples should include canonical event identifiers.
 	examples, ok := events["examples"].([]string)

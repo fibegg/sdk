@@ -6,9 +6,10 @@
 //
 // Design:
 //
-//   - Each leaf CLI command corresponds to an MCP tool (fibe_playgrounds_list,
-//     fibe_playgrounds_get, ...). Tool descriptions come from the cobra Short
-//     help text so agents see the same documentation the CLI already ships.
+//   - Generic flat resource reads/deletes are exposed through
+//     fibe_resource_list/get/delete. Create/update and custom domain actions
+//     remain concrete MCP tools, matching the CLI where those workflows need
+//     richer input shapes.
 //
 //   - All tool invocations route through a single dispatcher that enforces
 //     destructive-op gating, --yolo bypass, per-session authentication, and
@@ -25,12 +26,14 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"sync"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 )
@@ -59,9 +62,9 @@ type Config struct {
 	// setting FIBE_MCP_YOLO=1. Use in non-interactive environments (CI).
 	Yolo bool
 
-	// ToolSet selects which tools are advertised. "full" is the default
-	// parity surface for agent workflows; "core" advertises a smaller
-	// curated subset. Meta tools are always advertised. Default: full.
+	// ToolSet selects which tools are advertised. "full" exposes every tier;
+	// "core" expands to meta+base+greenfield+brownfield; comma-separated
+	// named tiers such as "other,meta" are also accepted. Default: full.
 	ToolSet string
 
 	// RequireAuth refuses tool calls that could not resolve an API key from
@@ -113,7 +116,12 @@ type Server struct {
 	// safety/auth/idempotency checks. Populated during RegisterAll.
 	dispatcher *dispatcher
 
-	// runMu serializes fibe_run calls so concurrent cobra-tree mutations
+	// toolSchemas stores enriched input schemas for every registered tool,
+	// including full/hidden tools that may not be advertised by mcp-go in
+	// the current tier.
+	toolSchemas map[string]map[string]any
+
+	// runMu serializes fibe_run calls so concurrent cobra-tree edits
 	// (flag state) don't race. Stdio transport is effectively single-tenant
 	// but HTTP/SSE may see concurrent fibe_run invocations.
 	runMu sync.Mutex
@@ -137,6 +145,7 @@ func New(cfg Config) *Server {
 	s.cache = newPipelineCache(cfg.PipelineCacheSize, cfg.PipelineCacheEntryMax)
 	s.sessions = newSessionRegistry()
 	s.dispatcher = newDispatcher(s)
+	s.toolSchemas = map[string]map[string]any{}
 	s.audit = newAuditLog()
 
 	opts := []mcpserver.ServerOption{
@@ -232,4 +241,76 @@ func (s *Server) buildBaseClient() *fibe.Client {
 		opts = append(opts, fibe.WithDebug())
 	}
 	return fibe.NewClient(opts...)
+}
+
+// ToolInfo is the public view of a registered MCP tool.
+type ToolInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Tier        string `json:"tier"`
+	ReadOnly    bool   `json:"read_only,omitempty"`
+	Destructive bool   `json:"destructive,omitempty"`
+	Idempotent  bool   `json:"idempotent,omitempty"`
+	InputSchema any    `json:"input_schema,omitempty"`
+}
+
+// AllTools returns metadata for every registered tool regardless of tier.
+// Used by `fibe mcp docs` to dump the full catalog without starting a server.
+//
+// It merges dispatcher metadata (tier, annotations) with the mcp-go tool
+// registry (input schema with property names, types, descriptions, and
+// required fields) so the output is complete enough for an LLM to know
+// exactly what tool to call and how.
+func (s *Server) AllTools() []ToolInfo {
+	var out []ToolInfo
+	for _, name := range s.dispatcher.names() {
+		t, ok := s.dispatcher.lookup(name)
+		if !ok {
+			continue
+		}
+		info := ToolInfo{
+			Name:        t.name,
+			Description: t.description,
+			Tier:        tierToString(t.tier),
+			ReadOnly:    t.annotations.ReadOnly,
+			Destructive: t.annotations.Destructive,
+			Idempotent:  t.annotations.Idempotent,
+		}
+		if schema := schemaForTool(s, name); schema != nil {
+			info.InputSchema = schema
+		}
+		out = append(out, info)
+	}
+	return out
+}
+
+// toolInputSchemaToMap extracts the input schema from an mcp.Tool as a
+// plain map[string]any suitable for JSON marshaling. It handles both the
+// structured InputSchema path and the RawInputSchema path.
+func toolInputSchemaToMap(tool mcp.Tool) any {
+	// The mcp.Tool has a custom MarshalJSON that resolves InputSchema vs
+	// RawInputSchema. We marshal the whole tool, then pull out inputSchema.
+	data, err := json.Marshal(tool)
+	if err != nil {
+		return nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil
+	}
+	schema, ok := m["inputSchema"]
+	if !ok {
+		return nil
+	}
+	// Skip empty schemas (just {"type":"object"} or {"type":"object","properties":{}}).
+	if sm, ok := schema.(map[string]any); ok {
+		props, hasProps := sm["properties"]
+		if !hasProps {
+			return nil
+		}
+		if pm, ok := props.(map[string]any); ok && len(pm) == 0 {
+			return nil
+		}
+	}
+	return schema
 }

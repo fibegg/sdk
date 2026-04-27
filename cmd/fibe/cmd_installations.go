@@ -19,15 +19,16 @@ An installation is the link between a Fibe player and a GitHub account/org
 where the Fibe GitHub App has been installed. Each installation grants
 access to a set of repositories.
 
-This is the canonical way to obtain GitHub installation tokens — the
-older 'fibe agents github-token' is a backwards-compatibility alias.
+This is the canonical way to interact with GitHub App installations.
 
 SUBCOMMANDS:
   list                List your installations
-  repos <id>          List repositories accessible through an installation
-  token <id>          Get an installation access token`,
+  find-repos          Search repos across ALL installations
+  get-token           Get a GitHub token for a repo (auto-resolves installation)
+  repos <id>          List repositories for a specific installation
+  token <id>          Get an installation access token (explicit ID)`,
 	}
-	cmd.AddCommand(instListCmd(), instReposCmd(), instTokenCmd())
+	cmd.AddCommand(instListCmd(), instFindReposCmd(), instGetTokenCmd(), instReposCmd(), instTokenCmd())
 	return cmd
 }
 
@@ -178,5 +179,95 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVar(&repo, "repo", "", "Scope token to a specific repository (owner/name)")
+	return cmd
+}
+
+func instFindReposCmd() *cobra.Command {
+	var query string
+	cmd := &cobra.Command{
+		Use:   "find-repos",
+		Short: "Search repos across ALL installations",
+		Long: `Search GitHub repositories across all connected installations.
+
+Results are aggregated from all GitHub App installations linked to the
+authenticated player and deduplicated by full_name.
+
+FILTERS:
+  -q, --query           Search query (repo name substring)
+
+PAGINATION:
+  --page                Page number (default: 1)
+  --per-page            Items per page (default: 30, max: 100)
+
+EXAMPLES:
+  fibe installations find-repos
+  fibe installations find-repos -q myproject
+  fibe inst find-repos -q api -o json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			params := &fibe.InstallationReposParams{}
+			if query != "" {
+				params.Q = query
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
+			result, err := c.Installations.FindGitHubRepos(ctx(), params)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(result)
+				return nil
+			}
+			headers := []string{"ID", "FULL_NAME", "PRIVATE", "DEFAULT_BRANCH"}
+			rows := make([][]string, len(result.Data))
+			for i, r := range result.Data {
+				rows[i] = []string{
+					fmtInt64(r.ID),
+					r.FullName,
+					fmt.Sprintf("%t", r.Private),
+					r.DefaultBranch,
+				}
+			}
+			outputTable(headers, rows)
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (repo name substring)")
+	return cmd
+}
+
+func instGetTokenCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get-token <repo>",
+		Short: "Get a GitHub token for a repo (auto-resolves installation)",
+		Long: `Get a fresh GitHub access token for a repository.
+
+Automatically resolves the correct GitHub App installation that has
+access to the specified repository. No installation ID needed.
+
+EXAMPLES:
+  fibe installations get-token myorg/myrepo
+  fibe inst get-token owner/repo -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			token, err := c.Installations.GetGitHubToken(ctx(), args[0])
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(token)
+				return nil
+			}
+			fmt.Printf("Token:      %s\n", token.Token)
+			fmt.Printf("Expires in: %d seconds\n", token.ExpiresIn)
+			return nil
+		},
+	}
 	return cmd
 }

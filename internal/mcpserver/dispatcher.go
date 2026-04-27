@@ -51,7 +51,8 @@ type toolImpl struct {
 	name        string
 	description string
 	annotations toolAnnotations
-	tier        toolTier // core | full — used by FIBE_MCP_TOOLS gating
+	tier        toolTier // used by FIBE_MCP_TOOLS gating
+	hidden      bool     // registered for dispatcher/catalog, never advertised natively
 
 	// handler performs the tool's work. It receives a live *fibe.Client
 	// already resolved for this session, and the raw tool args. It must
@@ -68,9 +69,13 @@ type toolAnnotations struct {
 type toolTier int
 
 const (
-	tierCore toolTier = iota
-	tierFull
-	tierMeta // pipeline, help, run, auth_set — always registered regardless of tier
+	tierMeta toolTier = iota
+	tierBase
+	tierGreenfield
+	tierBrownfield
+	tierOverseer
+	tierLocal
+	tierOther
 )
 
 // toolHandler is the internal handler signature. args is the raw map from
@@ -118,12 +123,15 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 			return nil, &confirmRequiredError{tool: name}
 		}
 	}
-	// Strip confirm so non-meta handlers don't have to ignore it.
-	// Meta tools (fibe_call, fibe_pipeline) need to read and forward
-	// confirm into nested invocations, so we leave their args untouched.
-	if t.tier != tierMeta {
+	// Strip confirm so normal handlers don't have to ignore it.
+	// fibe_call and fibe_pipeline need to read and forward confirm into
+	// nested invocations, so we leave their args untouched.
+	if !preservesConfirmArgs(t.name) {
 		if _, ok := args["confirm"]; ok {
 			delete(args, "confirm")
+		}
+		if err := validatePositiveIDArgs(args); err != nil {
+			return nil, err
 		}
 	}
 
@@ -132,6 +140,43 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 		return nil, err
 	}
 	return t.handler(ctx, c, args)
+}
+
+func validatePositiveIDArgs(args map[string]any) error {
+	for key, value := range args {
+		if !isIDFieldName(key) || value == nil {
+			continue
+		}
+		n, ok := valueAsInt64(value)
+		if !ok {
+			continue
+		}
+		if n <= 0 {
+			return fmt.Errorf("field %q must be greater than zero", key)
+		}
+	}
+	return nil
+}
+
+func valueAsInt64(v any) (int64, bool) {
+	switch x := v.(type) {
+	case float64:
+		return int64(x), true
+	case int:
+		return int64(x), true
+	case int64:
+		return x, true
+	case json.Number:
+		n, err := x.Int64()
+		return n, err == nil
+	case string:
+		if x == "" {
+			return 0, false
+		}
+		n, err := strconv.ParseInt(x, 10, 64)
+		return n, err == nil
+	}
+	return 0, false
 }
 
 // confirmRequiredError is returned when a destructive tool is invoked without

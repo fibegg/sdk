@@ -477,28 +477,32 @@ func TestPipelineStructPointerNormalization(t *testing.T) {
 
 	// Fake tool that mirrors the SDK shape: returns a typed struct pointer.
 	srv.dispatcher.register(&toolImpl{
-		name: "test_get_team",
+		name: "test_get_record",
 		tier: tierMeta,
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return &fibe.Team{ID: 123, Name: "Acme"}, nil
+			type record struct {
+				ID   int64  `json:"id"`
+				Name string `json:"name"`
+			}
+			return &record{ID: 123, Name: "Acme"}, nil
 		},
 	})
 	// Second fake tool that echoes its args — we'll assert it receives the
-	// resolved team ID instead of failing at ref resolution.
+	// resolved numeric ID instead of failing at ref resolution.
 	srv.dispatcher.register(&toolImpl{
-		name: "test_use_team",
+		name: "test_use_record",
 		tier: tierMeta,
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return map[string]any{"echoed_id": args["team_id"], "echoed_name": args["team_name"]}, nil
+			return map[string]any{"echoed_id": args["record_id"], "echoed_name": args["record_name"]}, nil
 		},
 	})
 
 	result, err := srv.runPipeline(context.Background(), map[string]any{
 		"steps": []any{
-			map[string]any{"id": "tm", "tool": "test_get_team", "args": map[string]any{}},
-			map[string]any{"id": "next", "tool": "test_use_team", "args": map[string]any{
-				"team_id":   "$.tm.id",
-				"team_name": "$.tm.name",
+			map[string]any{"id": "record", "tool": "test_get_record", "args": map[string]any{}},
+			map[string]any{"id": "next", "tool": "test_use_record", "args": map[string]any{
+				"record_id":   "$.record.id",
+				"record_name": "$.record.name",
 			}},
 		},
 		"return": "$.next",

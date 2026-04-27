@@ -36,15 +36,15 @@ type Client struct {
 	Marquees           *MarqueeService
 	Secrets            *SecretService
 	JobEnv             *JobEnvService
-	APIKeys            *APIKeyService
-	Teams              *TeamService
-	ImportTemplates    *ImportTemplateService
-	WebhookEndpoints   *WebhookEndpointService
-	Mutations          *MutationService
-	Feedbacks          *FeedbackService
+	APIKeys                *APIKeyService
+	ImportTemplates        *ImportTemplateService
+	ImportTemplateVersions *ImportTemplateVersionService
+	WebhookEndpoints       *WebhookEndpointService
+	Feedbacks              *FeedbackService
 	Mutters            *MutterService
 	AuditLogs          *AuditLogService
 	Monitor            *MonitorService
+	Greenfield         *GreenfieldService
 	GitHubRepos        *GitHubRepoService
 	GiteaRepos         *GiteaRepoService
 	Installations      *InstallationService
@@ -113,14 +113,14 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.Secrets = &SecretService{client: c}
 	c.JobEnv = &JobEnvService{client: c}
 	c.APIKeys = &APIKeyService{client: c}
-	c.Teams = &TeamService{client: c}
 	c.ImportTemplates = &ImportTemplateService{client: c}
+	c.ImportTemplateVersions = &ImportTemplateVersionService{client: c}
 	c.WebhookEndpoints = &WebhookEndpointService{client: c}
-	c.Mutations = &MutationService{client: c}
 	c.Feedbacks = &FeedbackService{client: c}
 	c.Mutters = &MutterService{client: c}
 	c.AuditLogs = &AuditLogService{client: c}
 	c.Monitor = &MonitorService{client: c}
+	c.Greenfield = &GreenfieldService{client: c}
 	c.GitHubRepos = &GitHubRepoService{client: c}
 	c.GiteaRepos = &GiteaRepoService{client: c}
 	c.Installations = &InstallationService{client: c}

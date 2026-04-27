@@ -16,14 +16,12 @@ type APIKey struct {
 }
 
 type APIKeyCreateParams struct {
-	Label                string              `json:"label"`
-	ExpiresAt            *time.Time          `json:"expires_at,omitempty"`
-	AgentAccessible      *bool               `json:"agent_accessible,omitempty"`
-	RateLimitRPHOverride *int64              `json:"rate_limit_rph_override,omitempty"`
-	Scopes               []string            `json:"scopes,omitempty"`
-	GranularScopes       map[string][]int64  `json:"granular_scopes,omitempty"`
+	Label           string             `json:"label"`
+	ExpiresAt       *time.Time         `json:"expires_at,omitempty"`
+	AgentAccessible *bool              `json:"agent_accessible,omitempty"`
+	Scopes          []string           `json:"scopes,omitempty"`
+	GranularScopes  map[string][]int64 `json:"granular_scopes,omitempty"`
 }
-
 
 type Player struct {
 	ID           int64    `json:"id"`
@@ -34,7 +32,6 @@ type Player struct {
 	APIKeyScopes []string `json:"api_key_scopes,omitempty"`
 }
 
-
 type APIKeyListParams struct {
 	Q       string `url:"q,omitempty"`
 	Label   string `url:"label,omitempty"`
@@ -42,4 +39,3 @@ type APIKeyListParams struct {
 	Page    int    `url:"page,omitempty"`
 	PerPage int    `url:"per_page,omitempty"`
 }
-

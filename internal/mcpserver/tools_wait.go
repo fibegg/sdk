@@ -11,53 +11,33 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 )
 
-// registerWaitTool wires fibe_playgrounds_wait and fibe_tricks_wait. These
-// tools poll a resource until it reaches a target status, emitting progress
-// notifications on each tick so hosts can display live updates.
+// registerWaitTool wires fibe_playgrounds_wait. It polls until the playground
+// reaches a target status, emitting progress notifications on each tick so
+// hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)", tier: tierCore,
+		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return s.runWait(ctx, c, args, waitResourcePlayground)
+			return s.runWait(ctx, c, args)
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
 		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)"),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Playground ID")),
-		mcp.WithString("status", mcp.Required(), mcp.Description("Target status: running, stopped, has_changes, etc.")),
+		mcp.WithNumber("playground_id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithString("status", mcp.Required(), mcp.Description("Target playground status, for example running, stopped, or has_changes.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
 		mcp.WithString("interval", mcp.Description("Polling interval as Go duration string (default: 3s)")),
 	))
 
-	s.addTool(&toolImpl{
-		name: "fibe_tricks_wait", description: "[MODE:DIALOG] Block and poll until a background trick completes its execution.", tier: tierFull,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return s.runWait(ctx, c, args, waitResourceTrick)
-		},
-	}, mcp.NewTool("fibe_tricks_wait",
-		mcp.WithDescription("[MODE:DIALOG] Block and poll until a background trick completes its execution."),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("Trick ID")),
-		mcp.WithString("status", mcp.Required(), mcp.Description("Target status: completed, error, running, etc.")),
-		mcp.WithString("timeout", mcp.Description("Max wait duration (default: 10m)")),
-		mcp.WithString("interval", mcp.Description("Polling interval (default: 3s)")),
-	))
 }
 
-type waitResource int
-
-const (
-	waitResourcePlayground waitResource = iota
-	waitResourceTrick
-)
-
-// runWait implements the polling loop shared by playground_wait and
-// trick_wait. Emits notifications/progress on every tick so hosts see
-// status transitions without the agent having to loop.
-func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]any, kind waitResource) (any, error) {
-	id, ok := argInt64(args, "id")
+// runWait implements the polling loop for playground_wait. It emits
+// notifications/progress on every tick so hosts see status transitions
+// without the agent having to loop.
+func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	id, ok := argInt64(args, "playground_id")
 	if !ok {
-		return nil, fmt.Errorf("required field 'id' not set")
+		return nil, fmt.Errorf("required field 'playground_id' not set")
 	}
 	target := argString(args, "status")
 	if target == "" {
@@ -82,33 +62,15 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			terminal  bool
 			terminalE string
 		)
-		switch kind {
-		case waitResourcePlayground:
-			pg, err := c.Playgrounds.Status(ctx, id)
-			fetchErr = err
-			if err == nil {
-				payload = pg
-				status = pg.Status
-				if status == "error" || status == "failed" || status == "destroyed" {
-					if status != target {
-						terminal = true
-						terminalE = status
-					}
-				}
-			}
-		case waitResourceTrick:
-			pg, err := c.Tricks.Get(ctx, id)
-			fetchErr = err
-			if err == nil {
-				payload = pg
-				status = pg.Status
-				if status == "completed" && target != "completed" {
+		pg, err := c.Playgrounds.Status(ctx, id)
+		fetchErr = err
+		if err == nil {
+			payload = pg
+			status = pg.Status
+			if status == "error" || status == "failed" || status == "destroyed" {
+				if status != target {
 					terminal = true
-					terminalE = status
-				}
-				if status == "error" || status == "failed" || status == "destroyed" {
-					terminal = true
-					terminalE = status
+					terminalE = fibe.PlaygroundTerminalStateError(pg)
 				}
 			}
 		}
@@ -125,7 +87,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			return payload, nil
 		}
 		if terminal {
-			return nil, fmt.Errorf("resource reached terminal state: %s", terminalE)
+			return nil, fmt.Errorf("%s", terminalE)
 		}
 
 		select {

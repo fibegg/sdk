@@ -15,6 +15,7 @@ var rawPayload []byte
 func applyFromFile(dest any) error {
 	var data []byte
 	var err error
+	rawPayload = nil
 
 	if flagFromFile != "" {
 		if flagFromFile == "-" {

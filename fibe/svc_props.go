@@ -44,19 +44,16 @@ func (s *PropService) Attach(ctx context.Context, repoFullName string) (*Prop, e
 	return &result, err
 }
 
-func (s *PropService) Mirror(ctx context.Context, sourceURL string) (*Prop, error) {
+func (s *PropService) Mirror(ctx context.Context, sourceURL string, name string) (*Prop, error) {
 	var result Prop
 	body := map[string]any{"source_url": sourceURL}
+	if name != "" {
+		body["name"] = name
+	}
 	err := s.client.do(ctx, http.MethodPost, "/api/props/mirror", body, &result)
 	return &result, err
 }
 
-func (s *PropService) ManualLink(ctx context.Context, propID int64) (*Prop, error) {
-	var result Prop
-	body := map[string]any{"prop_id": propID}
-	err := s.client.do(ctx, http.MethodPost, "/api/props/manual_link", body, &result)
-	return &result, err
-}
 
 func (s *PropService) Update(ctx context.Context, id int64, params *PropUpdateParams) (*Prop, error) {
 	var result Prop

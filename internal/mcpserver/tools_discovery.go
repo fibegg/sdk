@@ -10,8 +10,8 @@ import (
 )
 
 // registerDiscoveryTools wires the two meta-tools that make the full tool
-// surface reachable from core mode without loading all 159 descriptions
-// into the agent's context:
+// surface reachable from narrower tool surfaces without loading every
+// description into the agent's context:
 //
 //	fibe_tools_catalog  — list every registered tool (name, description,
 //	                      annotations, optional input schema), filterable
@@ -21,16 +21,24 @@ import (
 //	                      destructive gating, auth, and idempotency still
 //	                      apply
 //
-// Both live in the meta tier (always advertised) so agents can rely on
-// them regardless of FIBE_MCP_TOOLS=core|full.
+// Both live in the meta tier so agents can include them explicitly via
+// FIBE_MCP_TOOLS=meta, use the core shortcut, or load every tier via full.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds", tier: tierCore,
+		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
 			pattern := strings.ToLower(argString(args, "name_pattern"))
 			includeSchema := argBool(args, "include_schema")
+			var tierFilterSet map[toolTier]bool
+			if strings.TrimSpace(tierFilter) != "" {
+				var err error
+				tierFilterSet, err = parseToolTierSelection(tierFilter)
+				if err != nil {
+					return nil, err
+				}
+			}
 
 			advertisedSet := advertisedToolNames(s)
 
@@ -39,6 +47,7 @@ func (s *Server) registerDiscoveryTools() {
 				Description string         `json:"description"`
 				Tier        string         `json:"tier"`
 				Advertised  bool           `json:"advertised"`
+				Hidden      bool           `json:"hidden,omitempty"`
 				ReadOnly    bool           `json:"read_only,omitempty"`
 				Destructive bool           `json:"destructive,omitempty"`
 				Idempotent  bool           `json:"idempotent,omitempty"`
@@ -52,7 +61,7 @@ func (s *Server) registerDiscoveryTools() {
 					continue
 				}
 				tierName := tierToString(t.tier)
-				if tierFilter != "" && tierFilter != "all" && tierFilter != tierName {
+				if tierFilterSet != nil && !tierFilterSet[t.tier] {
 					continue
 				}
 				if pattern != "" && !strings.Contains(strings.ToLower(name), pattern) {
@@ -63,6 +72,7 @@ func (s *Server) registerDiscoveryTools() {
 					Description: t.description,
 					Tier:        tierName,
 					Advertised:  advertisedSet[name],
+					Hidden:      t.hidden,
 					ReadOnly:    t.annotations.ReadOnly,
 					Destructive: t.annotations.Destructive,
 					Idempotent:  t.annotations.Idempotent,
@@ -84,19 +94,19 @@ func (s *Server) registerDiscoveryTools() {
 	}, mcp.NewTool("fibe_tools_catalog",
 		mcp.WithDescription(`List every tool registered on the Fibe MCP server, including tools not advertised in the current tier.
 
-Use this to discover the full capability surface when the server is running in core mode. Prefer calling the concrete tool directly once you know its name. Use fibe_call(tool=<name>, args=...) only when the target tool is not currently advertised.
+Use this to discover the full capability surface when the server advertises a narrowed tool surface. Prefer calling the concrete tool directly once you know its name. Use fibe_call(tool=<name>, args=...) only when the target tool is not currently advertised.
 
 FILTERS:
-  tier           "core" | "full" | "meta" | "all" (default: all)
+  tier           "meta" | "base" | "greenfield" | "brownfield" | "overseer" | "local" | "other" | "core" | "full" | "all" (default: all)
   name_pattern   Case-insensitive substring match on tool name
   include_schema Include each tool's input JSON schema (bloats output; default: false)`),
-		mcp.WithString("tier", mcp.Description("Filter by tier: core, full, meta, all")),
+		mcp.WithString("tier", mcp.Enum("meta", "base", "greenfield", "brownfield", "overseer", "local", "other", "core", "full", "all"), mcp.Description("Filter by named tool tier or shortcut. core means meta, base, greenfield, and brownfield; full/all means every tier.")),
 		mcp.WithString("name_pattern", mcp.Description("Substring to match in tool name")),
 		mcp.WithBoolean("include_schema", mcp.Description("Include input schemas (larger response)")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools", tier: tierCore,
+		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")
@@ -129,7 +139,7 @@ FILTERS:
 			return s.dispatcher.dispatch(ctx, name, subArgs)
 		},
 	}, mcp.NewTool("fibe_call",
-		mcp.WithDescription(`Invoke any registered Fibe tool by name. Useful in core mode to reach tools that are registered but not currently advertised.
+		mcp.WithDescription(`Invoke any registered Fibe tool by name. Useful with narrowed tool surfaces to reach tools that are registered but not currently advertised.
 
 Prefer calling the concrete tool directly whenever you already know it. Use fibe_call when the tool name is dynamic or when the concrete tool is hidden by the current tool tier.
 
@@ -157,25 +167,13 @@ func advertisedToolNames(s *Server) map[string]bool {
 	return out
 }
 
-func tierToString(t toolTier) string {
-	switch t {
-	case tierCore:
-		return "core"
-	case tierFull:
-		return "full"
-	case tierMeta:
-		return "meta"
-	default:
-		return "unknown"
-	}
-}
-
 // schemaForTool reaches into the tool registry via a round-trip through the
 // MCP server. The mcp-go server doesn't expose a direct accessor, so we
 // fall back to nil for now — the catalog's include_schema flag will be a
 // no-op until we wire a cleaner path (tracked as a follow-up).
 func schemaForTool(s *Server, name string) map[string]any {
-	_ = s
-	_ = name
-	return nil
+	if s == nil || s.toolSchemas == nil {
+		return nil
+	}
+	return s.toolSchemas[name]
 }

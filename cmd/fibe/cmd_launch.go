@@ -8,6 +8,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func launchCmd() *cobra.Command {
 	var name, compose string
 	var jobMode, createPlayground, noCreatePlayground bool
@@ -43,9 +44,15 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.LaunchParams{}
-			if err := applyFromFile(params); err != nil { return err }
-			if cmd.Flags().Changed("name") { params.Name = name }
-			if cmd.Flags().Changed("compose") { params.ComposeYAML = resolveStringValue(compose) }
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				params.Name = name
+			}
+			if cmd.Flags().Changed("compose") {
+				params.ComposeYAML = resolveStringValue(compose)
+			}
 			if cmd.Flags().Changed("job-mode") && jobMode {
 				t := true
 				params.JobMode = &t
@@ -67,7 +74,10 @@ EXAMPLES:
 				for _, v := range launchVars {
 					parts := strings.SplitN(v, "=", 2)
 					if len(parts) == 2 {
-						params.Variables[parts[0]] = parts[1]
+						key := normalizeVariableFlagKey(parts[0])
+						if key != "" {
+							params.Variables[key] = parts[1]
+						}
 					}
 				}
 			}
@@ -87,14 +97,20 @@ EXAMPLES:
 				params.ComposeYAML = string(rawPayload)
 			}
 
-			if params.Name == "" { return fmt.Errorf("required field 'name' not set") }
-			if params.ComposeYAML == "" { return fmt.Errorf("required field 'compose' not set") }
+			if params.Name == "" {
+				return fmt.Errorf("required field 'name' not set")
+			}
+			if params.ComposeYAML == "" {
+				return fmt.Errorf("required field 'compose' not set")
+			}
 			if params.JobMode != nil && *params.JobMode && params.MarqueeID == nil {
 				return fmt.Errorf("--job-mode requires --marquee-id (a trick has no marquee to run on otherwise)")
 			}
 
 			result, err := c.Launch.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(result)
 			return nil
 		},
@@ -109,4 +125,3 @@ EXAMPLES:
 	cmd.Flags().StringSliceVar(&launchProps, "prop", nil, "Map private Git repository to Prop ID (e.g., --prop https://github.com/fibegg/fibe.git=123)")
 	return cmd
 }
-

@@ -21,8 +21,8 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 
 	// Top-level confirm should be forwarded into args.
 	_, err := srv.dispatcher.dispatch(ctx, "fibe_call", map[string]any{
-		"tool":    "fibe_playgrounds_delete",
-		"args":    map[string]any{"id": 42},
+		"tool":    "fibe_resource_delete",
+		"args":    map[string]any{"resource": "audit_log", "id": 42},
 		"confirm": true,
 	})
 	if err != nil {
@@ -36,8 +36,8 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 
 	// confirm inside args should also work.
 	_, err = srv.dispatcher.dispatch(ctx, "fibe_call", map[string]any{
-		"tool": "fibe_playgrounds_delete",
-		"args": map[string]any{"id": 42, "confirm": true},
+		"tool": "fibe_resource_delete",
+		"args": map[string]any{"resource": "audit_log", "id": 42, "confirm": true},
 	})
 	if err != nil {
 		if _, ok := err.(*confirmRequiredError); ok {
@@ -47,8 +47,8 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 
 	// Without confirm anywhere, gate must trip.
 	_, err = srv.dispatcher.dispatch(ctx, "fibe_call", map[string]any{
-		"tool": "fibe_playgrounds_delete",
-		"args": map[string]any{"id": 42},
+		"tool": "fibe_resource_delete",
+		"args": map[string]any{"resource": "audit_log", "id": 42},
 	})
 	if err == nil {
 		t.Fatalf("fibe_call without confirm on a destructive tool should error")
@@ -81,27 +81,7 @@ func TestRun2_TemplatesVersionsHelpResolvesCreate(t *testing.T) {
 	}
 }
 
-// TestRun2_TemplatesVersionsDestroyAcceptsIDAlias verifies that
-// aliasField copies 'id' into 'template_id' the way the
-// fibe_templates_versions_destroy handler does. Regression for Run 2 P-2.
-func TestRun2_TemplatesVersionsDestroyAcceptsIDAlias(t *testing.T) {
-	args := map[string]any{"id": 5, "version_id": 12}
-	aliasField(args, "template_id", "id")
-	if args["template_id"] != 5 {
-		t.Fatalf("expected template_id=5 after alias, got %v", args["template_id"])
-	}
-	tid, ok := argInt64(args, "template_id")
-	if !ok || tid != 5 {
-		t.Fatalf("expected argInt64 to read template_id=5, got tid=%d ok=%v", tid, ok)
-	}
 
-	// Existing canonical wins.
-	args = map[string]any{"id": 99, "template_id": 5, "version_id": 12}
-	aliasField(args, "template_id", "id")
-	if args["template_id"] != 5 {
-		t.Fatalf("canonical template_id should win, got %v", args["template_id"])
-	}
-}
 
 func buildRootForHelpTest(t *testing.T) *cobra.Command {
 	t.Helper()

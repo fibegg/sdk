@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/fibegg/sdk/internal/localplaygrounds"
 	"github.com/spf13/cobra"
 )
 
@@ -390,65 +391,32 @@ By default links to /app/playground. Use --link-dir to specify a different targe
 			}
 
 			fmt.Printf("Linking %s...\n", pg.DirName)
-
-			// Clean up existing target
-			if info, err := os.Lstat(targetDir); err == nil {
-				if info.Mode()&os.ModeSymlink != 0 {
-					os.Remove(targetDir)
-				} else {
-					os.RemoveAll(targetDir)
+			lp := &localplaygrounds.Playground{
+				DirName:  pg.DirName,
+				Playspec: pg.Playspec,
+				Services: make(map[string]*localplaygrounds.Service, len(pg.Services)),
+			}
+			for name, svc := range pg.Services {
+				lp.Services[name] = &localplaygrounds.Service{
+					Name:      svc.Name,
+					Image:     svc.Image,
+					Traefik:   svc.Traefik,
+					Expose:    svc.Expose,
+					Subdomain: svc.Subdomain,
+					StartCmd:  svc.StartCmd,
+					HostMount: svc.HostMount,
+					Prop:      svc.Prop,
+					Branch:    svc.Branch,
 				}
 			}
-			if err := os.MkdirAll(targetDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create target directory: %w", err)
+			result, err := localplaygrounds.LinkPlayground(lp, targetDir)
+			if err != nil {
+				return err
 			}
-
-			// Collect mountable services
-			var mountable []*localService
-			for _, svc := range pg.Services {
-				if svc.HostMount != "" {
-					mountable = append(mountable, svc)
-				}
+			for _, link := range result.Links {
+				fmt.Printf("Created symlink: %s -> %s\n", link.Path, link.Target)
 			}
-
-			// Check if multiple branches exist
-			branches := make(map[string]bool)
-			for _, svc := range mountable {
-				branches[svc.Branch] = true
-			}
-			appendBranch := len(branches) > 1
-
-			created := make(map[string]bool)
-			for _, svc := range mountable {
-				if created[svc.HostMount] {
-					continue
-				}
-				created[svc.HostMount] = true
-
-				symlinkName := svc.Prop
-				if symlinkName == "" {
-					symlinkName = "default"
-				}
-				if appendBranch && svc.Branch != "" {
-					symlinkName = symlinkName + "-" + svc.Branch
-				}
-				symlinkPath := filepath.Join(targetDir, symlinkName)
-
-				// Remove existing
-				os.RemoveAll(symlinkPath)
-
-				if err := os.Symlink(svc.HostMount, symlinkPath); err != nil {
-					return fmt.Errorf("failed to create symlink %s -> %s: %w", symlinkPath, svc.HostMount, err)
-				}
-				fmt.Printf("Created symlink: %s -> %s\n", symlinkPath, svc.HostMount)
-			}
-
-			// Write state file
-			stateFile := filepath.Join(targetDir, ".current_playground")
-			if err := os.WriteFile(stateFile, []byte(pg.DirName), 0o644); err != nil {
-				return fmt.Errorf("failed to write state file: %w", err)
-			}
-			fmt.Printf("State saved in %s\n", stateFile)
+			fmt.Printf("State saved in %s\n", result.StateFile)
 
 			return nil
 		},

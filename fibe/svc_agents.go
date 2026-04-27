@@ -89,12 +89,6 @@ func (s *AgentService) PurgeChat(ctx context.Context, id int64) (*AgentChatSessi
 	return &result, err
 }
 
-func (s *AgentService) RevokeGitHubToken(ctx context.Context, id int64) (*Agent, error) {
-	var result Agent
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/revoke_github_token", id), nil, &result)
-	return &result, err
-}
-
 func (s *AgentService) Duplicate(ctx context.Context, id int64) (*Agent, error) {
 	var result Agent
 	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/duplicate", id), nil, &result)
@@ -181,31 +175,24 @@ func (s *AgentService) UpdateActivity(ctx context.Context, id int64, content any
 	return s.client.do(ctx, http.MethodPut, fmt.Sprintf("/api/agents/%d/activity", id), body, nil)
 }
 
-func (s *AgentService) GetGitHubToken(ctx context.Context, id int64) (*GitHubToken, error) {
-	var result GitHubToken
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/github_token", id), nil, &result)
-	return &result, err
-}
-
-func (s *AgentService) GetGitHubTokenForRepo(ctx context.Context, id int64, repo string) (*GitHubToken, error) {
-	var result GitHubToken
-	values := url.Values{}
-	values.Set("repo", repo)
-	path := fmt.Sprintf("/api/agents/%d/github_token?%s", id, values.Encode())
-	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
-	return &result, err
-}
-
 func (s *AgentService) GetGiteaToken(ctx context.Context, id int64) (*GiteaToken, error) {
 	var result GiteaToken
 	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/gitea_token", id), nil, &result)
 	return &result, err
 }
 
-func (s *AgentService) GetRawProviders(ctx context.Context, id int64) (*AgentData, error) {
-	var result AgentData
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/raw_providers", id), nil, &result)
+func (s *AgentService) GetGitHubTokenForRepo(ctx context.Context, id int64, repo string) (*GitHubToken, error) {
+	values := url.Values{}
+	values.Set("repo", repo)
+	var result GitHubToken
+	err := s.client.do(ctx, http.MethodGet, "/api/github_token?"+values.Encode(), nil, &result)
 	return &result, err
+}
+
+func (s *AgentService) RevokeGitHubToken(ctx context.Context, id int64) (map[string]any, error) {
+	var result map[string]any
+	err := s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/agents/%d/github_token", id), nil, &result)
+	return result, err
 }
 
 func prepareAgentCreateParams(params *AgentCreateParams) (*AgentCreateParams, error) {
@@ -230,9 +217,4 @@ func prepareAgentCreateParams(params *AgentCreateParams) (*AgentCreateParams, er
 		prepared.Mounts[i] = next
 	}
 	return &prepared, nil
-}
-
-func (s *AgentService) UpdateRawProviders(ctx context.Context, id int64, content any) error {
-	body := map[string]any{"content": content}
-	return s.client.do(ctx, http.MethodPut, fmt.Sprintf("/api/agents/%d/raw_providers", id), body, nil)
 }

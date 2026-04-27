@@ -120,8 +120,15 @@ type PlayspecUpdateParams struct {
 
 type ComposeValidation struct {
 	Valid    bool     `json:"valid"`
+	Services []any    `json:"services,omitempty"`
 	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
+}
+
+type ComposeValidateParams struct {
+	ComposeYAML string `json:"compose_yaml"`
+	TargetType  string `json:"target_type,omitempty"`
+	JobMode     *bool  `json:"job_mode,omitempty"`
 }
 
 type MountedFileParams struct {
@@ -161,6 +168,8 @@ type PlayspecTemplateVersionSwitchParams struct {
 	Variables               map[string]any `json:"variables,omitempty"`
 	RegenerateVariables     []string       `json:"regenerate_variables,omitempty"`
 	ConfirmWarnings         bool           `json:"confirm_warnings,omitempty"`
+	RolloutMode             string         `json:"rollout_mode,omitempty"`
+	TargetPlaygroundID      *int64         `json:"target_playground_id,omitempty"`
 	ResponseMode            string         `json:"response_mode,omitempty"`
 	Summary                 bool           `json:"summary,omitempty"`
 }

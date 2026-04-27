@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 
 	"github.com/fibegg/sdk/internal/mcpserver"
@@ -33,12 +34,13 @@ ENV VARS:
   FIBE_API_KEY              Default API key when per-session auth not set
   FIBE_DOMAIN               API domain override
   FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
-  FIBE_MCP_TOOLS=full|core  Tool surface. full=default parity surface, core=curated subset
+  FIBE_MCP_TOOLS            Tool surface: full, core, or comma tiers (e.g. other,meta)
   FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
 
 EXAMPLES:
-  fibe mcp serve                                      # stdio, full parity toolset
-  fibe mcp serve --tools core                         # curated subset
+  fibe mcp serve                                      # stdio, full toolset
+  fibe mcp serve --tools core                         # meta+base+greenfield+brownfield
+  fibe mcp serve --tools other,meta                   # selected named tiers
   fibe mcp serve --yolo                               # skip destructive confirm gate
   FIBE_MCP_TOOLS=full fibe mcp serve --http :8080     # multi-tenant SSE
 
@@ -52,6 +54,7 @@ EXAMPLES:
 		mcpInstallCmd(),
 		mcpUninstallCmd(),
 		mcpConfigCmd(),
+		mcpDocsCmd(),
 	)
 	return cmd
 }
@@ -77,8 +80,9 @@ spawned by MCP clients like Claude Code). Use --http to serve multiple
 tenants over SSE.
 
 TOOL SURFACE:
-  --tools full   Default parity surface; every GA API capability exposed
-  --tools core   Curated subset + always-visible meta tools
+  --tools full             Complete registered tool surface
+  --tools core             meta+base+greenfield+brownfield
+  --tools other,meta       Comma-separated named tiers
 
 SAFETY:
   --yolo         Skip the confirm:true gate on destructive tools
@@ -149,7 +153,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&httpAddr, "http", "", "Listen on host:port for SSE transport (default: stdio)")
 	cmd.Flags().BoolVar(&streamableHTTP, "streamable", false, "Use streamable-HTTP transport instead of SSE (requires --http)")
-	cmd.Flags().StringVar(&toolSet, "tools", "", "Tool surface: full|core (env: FIBE_MCP_TOOLS, default: full)")
+	cmd.Flags().StringVar(&toolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta (env: FIBE_MCP_TOOLS, default: full)")
 	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip confirm:true gate on destructive tools (env: FIBE_MCP_YOLO)")
 	cmd.Flags().BoolVar(&requireAuth, "require-auth", false, "Reject requests with no resolved API key (multi-tenant)")
 	cmd.Flags().IntVar(&cacheSize, "pipeline-cache-size", 0, "Max cached pipeline results (env: FIBE_MCP_PIPELINE_CACHE_SIZE)")
@@ -208,9 +212,9 @@ ENV VARS:
   --api-key to inline any value explicitly.
 
 TOOL TIERS:
-  --tools full   Expose the full parity surface up front (default).
-  --tools core   Expose a curated subset. Additional tools remain reachable
-                 via fibe_call / fibe_tools_catalog.
+  --tools full             Expose the complete registered tool surface up front (default).
+  --tools core             Expose meta+base+greenfield+brownfield.
+  --tools other,meta       Expose only the selected named tiers.
 
 EXAMPLES:
   fibe mcp install --client claude-code
@@ -232,7 +236,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
 	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
-	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full|core")
+	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
 	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Install transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
@@ -342,7 +346,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
 	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
-	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full|core")
+	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
 	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
@@ -392,4 +396,38 @@ func envInt(key string) int {
 		return 0
 	}
 	return n
+}
+
+func mcpDocsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "docs",
+		Short: "Print full MCP tool catalog as JSON",
+		Long: `Print metadata for every registered MCP tool as a single JSON document.
+
+Useful for generating documentation, feeding into search indexes, or
+inspecting the full tool surface without starting an MCP server.
+
+The output includes all tools regardless of tier (meta, base, greenfield,
+brownfield, overseer, local, other).`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := mcpserver.DefaultConfig()
+			cfg.CobraRoot = cmd.Root()
+			srv := mcpserver.New(cfg)
+			if err := srv.RegisterAll(); err != nil {
+				return fmt.Errorf("register: %w", err)
+			}
+
+			tools := srv.AllTools()
+			sort.Slice(tools, func(i, j int) bool {
+				return tools[i].Name < tools[j].Name
+			})
+
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			return enc.Encode(map[string]any{
+				"count": len(tools),
+				"tools": tools,
+			})
+		},
+	}
 }

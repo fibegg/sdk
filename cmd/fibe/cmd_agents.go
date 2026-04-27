@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -39,15 +38,11 @@ SUBCOMMANDS:
   add-mounted-file <id> Attach a mounted file or Artefact snapshot
   update-mounted-file <id> Update mounted file metadata
   remove-mounted-file <id> Remove a mounted file
-  revoke-token <id>     Revoke agent's GitHub token
   messages <id>         Get agent messages
   set-messages <id>     Replace agent messages content
   activity <id>         Get agent activity
   set-activity <id>     Replace agent activity content
-  github-token <id>     Get agent's GitHub token (prefer 'fibe installations token')
-  gitea-token <id>      Get agent's Gitea token
-  raw-providers <id>    Get agent's raw provider config
-  set-raw-providers <id> Update agent's raw provider config`,
+  gitea-token <id>      Get agent's Gitea token`,
 	}
 
 	cmd.AddCommand(
@@ -60,20 +55,16 @@ SUBCOMMANDS:
 		agStartChatCmd(),
 		agRuntimeStatusCmd(),
 		agPurgeChatCmd(),
-		agChatCmd(),
+		agSendMessageCmd(),
 		agAuthCmd(),
 		agAddMountedFileCmd(),
 		agUpdateMountedFileCmd(),
 		agRemoveMountedFileCmd(),
-		agRevokeCmd(),
 		agMessagesCmd(),
 		agSetMessagesCmd(),
 		agActivityCmd(),
 		agSetActivityCmd(),
-		agGitHubTokenCmd(),
 		agGiteaTokenCmd(),
-		agRawProvidersCmd(),
-		agSetRawProvidersCmd(),
 	)
 	return cmd
 }
@@ -581,13 +572,13 @@ EXAMPLES:
 	}
 }
 
-func agChatCmd() *cobra.Command {
+func agSendMessageCmd() *cobra.Command {
 	var text string
-	var images, attachments []string
 
 	cmd := &cobra.Command{
-		Use:   "chat <id>",
-		Short: "Send a chat message to an agent",
+		Use:     "send-message <id>",
+		Aliases: []string{"chat"},
+		Short:   "Send a message to an agent",
 		Long: `Send a text message to an agent and receive a response.
 
 The agent processes the message asynchronously (status: 202 Accepted).
@@ -595,17 +586,11 @@ The agent processes the message asynchronously (status: 202 Accepted).
 REQUIRED FLAGS:
   --text                  Message text to send
 
-OPTIONAL FLAGS:
-  --image                 Image data URI or URL (repeatable)
-  --attachment-filename   Pre-uploaded artefact filename (repeatable)
-
 EXAMPLES:
-  fibe agents chat 5 --text "Fix the failing tests"
-  fibe ag chat 5 --text "Deploy to staging"
-  fibe agents chat 5 --text "Look at this" --image data:image/png;base64,...
-  fibe agents chat 5 --text "Use these" --attachment-filename report.pdf --attachment-filename log.txt
-  echo '{"text": "Debug the build output"}' | fibe agents chat 5 -f -
-  fibe agents chat 5 -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
+  fibe agents send-message 5 --text "Fix the failing tests"
+  fibe ag send-message 5 --text "Deploy to staging"
+  echo '{"text": "Debug the build output"}' | fibe agents send-message 5 -f -
+  fibe agents send-message 5 -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -616,12 +601,6 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("text") {
 				params.Text = text
-			}
-			if len(images) > 0 {
-				params.Images = images
-			}
-			if len(attachments) > 0 {
-				params.AttachmentFilenames = attachments
 			}
 			if params.Text == "" {
 				return fmt.Errorf("required field 'text' not set")
@@ -636,8 +615,6 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&text, "text", "", "Chat message text (required)")
-	cmd.Flags().StringArrayVar(&images, "image", nil, "Image data URI or URL (repeatable)")
-	cmd.Flags().StringArrayVar(&attachments, "attachment-filename", nil, "Pre-uploaded artefact filename (repeatable)")
 	return cmd
 }
 
@@ -681,30 +658,6 @@ EXAMPLES:
 	cmd.Flags().StringVar(&code, "code", "", "OAuth code")
 	cmd.Flags().StringVar(&token, "token", "", "Access token")
 	return cmd
-}
-
-func agRevokeCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "revoke-token <id>",
-		Short: "Revoke agent's GitHub token",
-		Long: `Revoke the GitHub access token associated with this agent.
-
-After revocation, the agent will need to be re-authenticated.
-
-EXAMPLES:
-  fibe agents revoke-token 5`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			_, err := c.Agents.RevokeGitHubToken(ctx(), id)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("GitHub token revoked for agent %d\n", id)
-			return nil
-		},
-	}
 }
 
 func agMessagesCmd() *cobra.Command {
@@ -756,58 +709,6 @@ EXAMPLES:
 	}
 }
 
-func agGitHubTokenCmd() *cobra.Command {
-	var repo string
-	cmd := &cobra.Command{
-		Use:   "github-token <id>",
-		Short: "Get agent's GitHub installation token (prefer 'fibe installations token')",
-		Long: `Get a fresh GitHub App installation token via an agent's owner.
-
-PREFER: 'fibe installations token <installation-id>' which is the
-canonical way to obtain installation tokens. This agent-scoped variant
-is kept for backwards compatibility — the token actually belongs to the
-agent's owner (player), not the agent itself.
-
-Returns a short-lived token suitable for Git operations.
-Requires the agent owner to have the GitHub App installed.
-
-OPTIONAL FLAGS:
-  --repo    Scope token to a specific repository (owner/name format)
-
-EXAMPLES:
-  fibe agents github-token 5
-  fibe agents github-token 5 --repo myorg/myrepo
-
-SEE ALSO:
-  fibe installations list
-  fibe installations token <id>`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			var token *fibe.GitHubToken
-			var err error
-			if repo != "" {
-				token, err = c.Agents.GetGitHubTokenForRepo(ctx(), id, repo)
-			} else {
-				token, err = c.Agents.GetGitHubToken(ctx(), id)
-			}
-			if err != nil {
-				return err
-			}
-			if effectiveOutput() != "table" {
-				outputJSON(token)
-				return nil
-			}
-			fmt.Printf("Token:      %s\n", token.Token)
-			fmt.Printf("Expires in: %d seconds\n", token.ExpiresIn)
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&repo, "repo", "", "Scope token to a specific repository (owner/name)")
-	return cmd
-}
-
 func agGiteaTokenCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "gitea-token <id>",
@@ -838,60 +739,6 @@ EXAMPLES:
 	}
 }
 
-func agRawProvidersCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "raw-providers <id>",
-		Short: "Get agent's raw provider config",
-		Long: `Get the raw provider configuration for an agent.
-
-EXAMPLES:
-  fibe agents raw-providers 5
-  fibe agents raw-providers 5 -o json`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			data, err := c.Agents.GetRawProviders(ctx(), id)
-			if err != nil {
-				return err
-			}
-			outputJSON(data)
-			return nil
-		},
-	}
-}
-
-func agSetRawProvidersCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "set-raw-providers <id>",
-		Short: "Update agent's raw provider config",
-		Long: `Update the raw provider configuration for an agent.
-
-Reads JSON content from STDIN or the --from-file flag.
-
-EXAMPLES:
-  echo '["provider1"]' | fibe agents set-raw-providers 5 -f -
-  fibe agents set-raw-providers 5 -f providers.json`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if len(rawPayload) == 0 {
-				return fmt.Errorf("provide content via --from-file or STDIN")
-			}
-			var content any
-			if err := json.Unmarshal(rawPayload, &content); err != nil {
-				return fmt.Errorf("invalid JSON: %w", err)
-			}
-			err := c.Agents.UpdateRawProviders(ctx(), id, content)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Raw providers updated")
-			return nil
-		},
-	}
-}
 func agSetMessagesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "set-messages <id>",

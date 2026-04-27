@@ -25,7 +25,6 @@ type Status struct {
 	Playspecs    int `json:"playspecs"`
 	Marquees     int `json:"marquees"`
 	Secrets      int `json:"secrets"`
-	Teams        int `json:"teams"`
 	APIKeys      int `json:"api_keys"`
 	Subscription struct {
 		Plan            string `json:"plan"`

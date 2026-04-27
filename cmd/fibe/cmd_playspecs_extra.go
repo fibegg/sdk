@@ -13,7 +13,7 @@ import (
 )
 
 // cmd_playspecs_extra.go registers subcommands that close the
-// cmd/fibe ↔ svc_playspecs.go parity gap: mounted files + registry credentials.
+// Extra playspec commands for mounted files and registry credentials.
 // These are wired into the playspecs parent command via initPlayspecExtras in
 // init.
 
@@ -304,10 +304,11 @@ func parseKeyValueFlags(values []string) (map[string]any, error) {
 	out := map[string]any{}
 	for _, raw := range values {
 		key, value, ok := strings.Cut(raw, "=")
-		if !ok || strings.TrimSpace(key) == "" {
+		key = normalizeVariableFlagKey(key)
+		if !ok || key == "" {
 			return nil, fmt.Errorf("invalid --var %q, expected key=value", raw)
 		}
-		out[strings.TrimSpace(key)] = value
+		out[key] = value
 	}
 	return out, nil
 }

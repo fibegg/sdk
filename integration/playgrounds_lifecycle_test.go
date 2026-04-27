@@ -144,7 +144,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 9. Rollout should transition status (async)
 	t.Run("rollout triggers status change", func(t *testing.T) {
-		_, err := c.Playgrounds.Rollout(ctx(), pg.ID)
+		_, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		if err != nil {
 			if skipIfPlaygroundActionStateRejected(t, err, "rollout") {
 				return
@@ -155,7 +155,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 10. HardRestart
 	t.Run("hard restart triggers status change", func(t *testing.T) {
-		_, err := c.Playgrounds.HardRestart(ctx(), pg.ID)
+		_, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
 		if err != nil {
 			if skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
 				return

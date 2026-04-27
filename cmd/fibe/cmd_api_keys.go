@@ -17,7 +17,7 @@ func apiKeysCmd() *cobra.Command {
 		Short:   "Manage API keys",
 		Long: `Manage Fibe API keys for programmatic access.
 
-API keys support granular scopes, expiration dates, and per-key rate limits.
+API keys support granular scopes and expiration dates.
 The token is only shown once at creation time.
 
 AVAILABLE SCOPES:
@@ -30,11 +30,9 @@ AVAILABLE SCOPES:
   artefacts:read, artefacts:write, artefacts:delete
   mutters:read, mutters:write
   feedbacks:read, feedbacks:write, feedbacks:delete
-  mutations:read, mutations:write
   launch:write
   keys:manage
   webhooks:read, webhooks:write, webhooks:delete
-  teams:read, teams:write, teams:delete
   mcp:access
   secrets:read, secrets:write, secrets:delete, secrets:manage
   * (full access)

@@ -9,11 +9,11 @@ import (
 )
 
 // TestE2E_PlayspecToPlayground exercises the primary user flow:
-//   1. Create playspec with real compose
-//   2. Deploy playground from that playspec on the shared marquee
-//   3. Verify status polling works
-//   4. Verify compose reflects the playspec
-//   5. Clean up
+//  1. Create playspec with real compose
+//  2. Deploy playground from that playspec on the shared marquee
+//  3. Verify status polling works
+//  4. Verify compose reflects the playspec
+//  5. Clean up
 func TestE2E_PlayspecToPlayground(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
@@ -142,59 +142,6 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 		n, _ := body.Read(buf)
 		if n == 0 {
 			t.Error("expected non-empty download content")
-		}
-	}
-}
-
-// TestE2E_TeamContribution creates a team, contributes a resource, verifies membership & resources,
-// then removes the resource and confirms it's gone.
-func TestE2E_TeamContribution(t *testing.T) {
-	t.Parallel()
-	c := adminClient(t)
-
-	team := seedTeam(t, c)
-	spec := seedPlayspec(t, c)
-
-	// Contribute the playspec with read permission
-	tr, err := c.Teams.ContributeResource(ctx(), team.ID, &fibe.TeamResourceParams{
-		ResourceType:    "Playspec",
-		ResourceID:      *spec.ID,
-		PermissionLevel: "read",
-	})
-	requireNoError(t, err)
-	if tr.ResourceType != "Playspec" {
-		t.Errorf("expected ResourceType=Playspec, got %s", tr.ResourceType)
-	}
-	if tr.ResourceID != *spec.ID {
-		t.Errorf("expected ResourceID=%d, got %d", *spec.ID, tr.ResourceID)
-	}
-
-	// List must include it
-	resList, err := c.Teams.ListResources(ctx(), team.ID, nil)
-	requireNoError(t, err)
-	found := false
-	for _, r := range resList.Data {
-		if r.ID == tr.ID {
-			found = true
-			if r.PermissionLevel != "read" {
-				t.Errorf("expected PermissionLevel=read, got %s", r.PermissionLevel)
-			}
-		}
-	}
-	if !found {
-		t.Error("contributed resource not found in team resources list")
-	}
-
-	// Remove
-	err = c.Teams.RemoveResource(ctx(), team.ID, tr.ID)
-	requireNoError(t, err)
-
-	// List again — should NOT include removed resource
-	resList2, err := c.Teams.ListResources(ctx(), team.ID, nil)
-	requireNoError(t, err)
-	for _, r := range resList2.Data {
-		if r.ID == tr.ID {
-			t.Error("removed resource still in list")
 		}
 	}
 }
