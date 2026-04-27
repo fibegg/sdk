@@ -45,7 +45,7 @@ func (s *PlayspecService) validateComposeSchema(ctx context.Context, composeYAML
 func (s *PlayspecService) fetchComposeSchema(ctx context.Context) (any, string, error) {
 	schemaURL := os.Getenv("FIBE_SCHEMA_URL")
 	if schemaURL == "" {
-		schemaURL = defaultFibeSchemaURL
+		schemaURL = s.client.cfg.baseURL() + "/schema.json"
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, schemaURL, nil)

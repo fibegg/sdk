@@ -60,7 +60,7 @@ func Test() error {
 }
 
 func IntegrationTest() error {
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./integration/...", "./internal/mcpserver/...", "-v", "-count=1", "-timeout", "600s", "-parallel", "8")
+	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
 }
 
 // ChatE2E runs provider chat runtime E2E tests.
@@ -71,7 +71,6 @@ func ChatE2E() error {
 		"--",
 		"./integration/...",
 		"-run", "TestAgentRuntimeMatrix",
-		"-v",
 		"-count=1",
 		"-timeout", "1800s",
 		"-parallel", "1",
