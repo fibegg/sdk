@@ -42,6 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
       - name: Notify Slack
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
@@ -50,48 +51,63 @@ jobs:
             exit 0
           fi
 
-          node <<'NODE'
-          const tag = process.env.GITHUB_REF_NAME;
-          const sha = process.env.GITHUB_SHA || '';
-          const shortSha = sha.slice(0, 12);
-          const repo = process.env.GITHUB_REPOSITORY;
-          const server = process.env.GITHUB_SERVER_URL || 'https://github.com';
-          const releaseUrl = `${server}/${repo}/releases/tag/${tag}`;
-          const commitUrl = `${server}/${repo}/commit/${sha}`;
-          const payload = {
-            text: `[${repo}] SDK release ${tag} is ready: ${releaseUrl}`,
-            blocks: [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*[${repo}]* SDK release \`${tag}\` is ready`,
-                },
-              },
-              {
-                type: 'section',
-                fields: [
-                  { type: 'mrkdwn', text: `*Version*\n\`${tag}\`` },
-                  { type: 'mrkdwn', text: `*Commit*\n<${commitUrl}|\`${shortSha}\`>` },
-                  { type: 'mrkdwn', text: `*Binaries*\n<${releaseUrl}|Download release assets>` },
-                  { type: 'mrkdwn', text: '*Homebrew*\n`brew install fibegg/sdk/fibe`' },
-                ],
-              },
-              {
-                type: 'context',
-                elements: [
-                  { type: 'mrkdwn', text: 'linux · darwin · windows · amd64 · arm64' },
-                ],
-              },
-            ],
-          };
+          if [ "${GITHUB_REF_TYPE:-}" != "tag" ] || [ -z "${GITHUB_REF_NAME:-}" ]; then
+            echo "No release tag is assigned to this run; skipping Slack notification."
+            exit 0
+          fi
 
-          const response = await fetch(process.env.SLACK_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (!response.ok) {
-            console.log(`::warning::Failed to notify Slack webhook: ${response.status} ${response.statusText}`);
-          }
-          NODE
+          tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
+          repo="$GITHUB_REPOSITORY"
+          server="${GITHUB_SERVER_URL:-https://github.com}"
+          release_url="$server/$repo/releases/tag/$tag"
+          download_url="$server/$repo/releases/download/$tag"
+          sha="${GITHUB_SHA:-}"
+          short_sha="${sha:0:12}"
+          commit_url="$server/$repo/commit/$sha"
+          artifact_links="- <$download_url/fibe_${version}_linux_amd64.tar.gz|fibe_${version}_linux_amd64.tar.gz>
+          - <$download_url/fibe_${version}_linux_arm64.tar.gz|fibe_${version}_linux_arm64.tar.gz>
+          - <$download_url/fibe_${version}_darwin_amd64.tar.gz|fibe_${version}_darwin_amd64.tar.gz>
+          - <$download_url/fibe_${version}_darwin_arm64.tar.gz|fibe_${version}_darwin_arm64.tar.gz>
+          - <$download_url/fibe_${version}_windows_amd64.zip|fibe_${version}_windows_amd64.zip>
+          - <$download_url/checksums.txt|checksums.txt>"
+
+          payload="$(jq -n \
+            --arg repo "$repo" \
+            --arg tag "$tag" \
+            --arg short_sha "$short_sha" \
+            --arg commit_url "$commit_url" \
+            --arg release_url "$release_url" \
+            --arg artifact_links "$artifact_links" \
+            '{
+              text: ("[" + $repo + "] SDK release " + $tag + " is ready: " + $release_url),
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: ("*[" + $repo + "]* SDK release `" + $tag + "` is ready")
+                  }
+                },
+                {
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: ("*Version*\n`" + $tag + "`") },
+                    { type: "mrkdwn", text: ("*Commit*\n<" + $commit_url + "|`" + $short_sha + "`>") },
+                    { type: "mrkdwn", text: ("*Release*\n<" + $release_url + "|GitHub release>") },
+                    { type: "mrkdwn", text: "*Homebrew*\n`brew install fibegg/sdk/fibe`" }
+                  ]
+                },
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: ("*Artifacts*\n" + $artifact_links)
+                  }
+                }
+              ]
+            }')"
+
+          if ! curl -fsS -X POST -H 'Content-Type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL" >/dev/null; then
+            echo "::warning::Failed to notify Slack webhook."
+          fi
