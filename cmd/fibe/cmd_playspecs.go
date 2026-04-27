@@ -248,6 +248,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(spec)
+				return nil
+			}
 			fmt.Printf("Created playspec %s (%s)\n", fmtInt64Ptr(spec.ID), spec.Name)
 			return nil
 		},
@@ -311,6 +315,10 @@ EXAMPLES:
 			spec, err := c.Playspecs.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(spec)
+				return nil
 			}
 			fmt.Printf("Updated playspec %s\n", fmtInt64Ptr(spec.ID))
 			return nil

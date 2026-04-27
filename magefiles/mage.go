@@ -56,11 +56,11 @@ func BuildAll() error {
 }
 
 func Test() error {
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "-count=1", "-timeout", "30s")
+	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s")
 }
 
 func IntegrationTest() error {
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
+	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "-tags=integration", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
 }
 
 // ChatE2E runs provider chat runtime E2E tests.

@@ -33,14 +33,16 @@ func (s *Server) registerGreenfieldTools() {
 				return nil, fmt.Errorf("greenfield create did not return a playground id")
 			}
 
-			waitArgs := map[string]any{
-				"playground_id": result.Playground.ID,
-				"status":        "running",
-				"timeout":       waitTimeout.String(),
-				"interval":      "3s",
-			}
-			if _, err := s.runWait(ctx, c, waitArgs); err != nil {
-				return nil, err
+			if waitTimeout > 0 {
+				waitArgs := map[string]any{
+					"playground_id": result.Playground.ID,
+					"status":        "running",
+					"timeout":       waitTimeout.String(),
+					"interval":      "3s",
+				}
+				if _, err := s.runWait(ctx, c, waitArgs); err != nil {
+					return nil, err
+				}
 			}
 			pg, err := c.Playgrounds.Get(ctx, result.Playground.ID)
 			if err != nil {
@@ -50,9 +52,10 @@ func (s *Server) registerGreenfieldTools() {
 
 			link, err := localplaygrounds.Link(greenfieldTarget(result), greenfieldDefaultLinkDir)
 			if err != nil {
-				return nil, err
+				result.Link = nil
+			} else {
+				result.Link = link
 			}
-			result.Link = link
 
 			return result, nil
 		},

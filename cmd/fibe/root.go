@@ -35,7 +35,7 @@ var (
 	commandCtx        context.Context
 )
 
-func rootCmd() *cobra.Command {
+func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fibe",
 		Short: "Fibe CLI — manage playgrounds, agents, and infrastructure",
@@ -140,6 +140,7 @@ DOCUMENTATION:
 		waitCmd(),
 		doctorCmd(),
 		configCmd(),
+		authCmd(),
 		localPlaygroundsCmd(),
 		mcpCmd(),
 		versionCmd(),

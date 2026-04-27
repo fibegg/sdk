@@ -96,10 +96,10 @@ EXAMPLES:
 				outputJSON(keys)
 				return nil
 			}
-			headers := []string{"ID", "LABEL", "MASKED_TOKEN", "EXPIRES", "CREATED"}
+			headers := []string{"ID", "LABEL", "SOURCE", "MASKED_TOKEN", "EXPIRES", "CREATED"}
 			rows := make([][]string, len(keys.Data))
 			for i, k := range keys.Data {
-				rows[i] = []string{fmtInt64Ptr(k.ID), k.Label, k.MaskedToken, fmtTime(k.ExpiresAt), fmtTime(k.CreatedAt)}
+				rows[i] = []string{fmtInt64Ptr(k.ID), k.Label, k.Source, k.MaskedToken, fmtTime(k.ExpiresAt), fmtTime(k.CreatedAt)}
 			}
 			outputTable(headers, rows)
 			return nil

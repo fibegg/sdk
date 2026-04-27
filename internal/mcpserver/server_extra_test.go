@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -148,29 +147,20 @@ func TestPipelineIdempotencyKey(t *testing.T) {
 	}
 }
 
-// idempotencyKeyFromCtxForTest recreates the SDK's unexported accessor using
-// a dummy request. Since the key is injected via context.WithValue using a
-// package-private sentinel, we can't read it directly — but we can detect
-// whether it's present by consulting fibe's public round-trip via a
-// test-scoped HTTP handler.
-//
-// For now, we hash a fingerprint of the ctx and compare values; test passes
-// when the values differ per step, which is enough to prove the threading
-// works.
 func idempotencyKeyFromCtxForTest(ctx context.Context) string {
 	// Send through a no-op request via a stub client so the SDK header
-	// populates an observed request. Easier: use a local httptest server
-	// as a sentinel endpoint.
+	// populates an observed request. We use WithRequestHook to abort
+	// the request before it hits the network while still capturing the header.
 	var captured string
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		captured = r.Header.Get("Idempotency-Key")
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte(`{}`))
-	})
-	srv := httptest.NewServer(h)
-	defer srv.Close()
-
-	client := fibe.NewClient(fibe.WithDomain(srv.URL), fibe.WithAPIKey("pk_test"))
+	client := fibe.NewClient(
+		fibe.WithDomain("http://127.0.0.1:65535"),
+		fibe.WithAPIKey("pk_test"),
+		fibe.WithRequestHook(func(req *http.Request) error {
+			captured = req.Header.Get("Idempotency-Key")
+			// Return a dummy error to short-circuit the actual roundtrip.
+			return fmt.Errorf("aborted_by_test")
+		}),
+	)
 	_, _ = client.APIKeys.Me(ctx)
 	return captured
 }

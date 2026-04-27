@@ -57,11 +57,6 @@ func (s *Server) registerMetaTools() {
 				}
 			}
 
-			if cfg, err := s.runCobraArgs(ctx, "config"); err == nil {
-				if cfgStr, ok := cfg.(string); ok {
-					result["config"] = cfgStr
-				}
-			}
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_doctor",

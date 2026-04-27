@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
@@ -82,6 +83,14 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
+			
+			if typ == "" {
+				return fmt.Errorf("required field 'type' not set")
+			}
+			if body == "" {
+				return fmt.Errorf("required field 'body' not set")
+			}
+			
 			params := &fibe.MutterItemParams{Type: typ, Body: body}
 			if cmd.Flags().Changed("playground-id") { params.PlaygroundID = &playgroundID }
 			mutter, err := c.Mutters.CreateItem(ctx(), agentID, params)

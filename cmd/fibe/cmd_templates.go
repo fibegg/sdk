@@ -186,6 +186,10 @@ func tplCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(tpl)
+				return nil
+			}
 			fmt.Printf("Created template %s (%s)\n", fmtInt64Ptr(tpl.ID), tpl.Name)
 			return nil
 		},
@@ -211,9 +215,13 @@ func tplUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("name") {
 				params.Name = &name
 			}
-			_, err := c.ImportTemplates.Update(ctx(), id, params)
+			tpl, err := c.ImportTemplates.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(tpl)
+				return nil
 			}
 			fmt.Printf("Updated template %d\n", id)
 			return nil

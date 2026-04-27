@@ -236,6 +236,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(prop)
+				return nil
+			}
 			fmt.Printf("Created prop %d (%s)\n", prop.ID, prop.Name)
 			return nil
 		},
@@ -300,6 +304,10 @@ EXAMPLES:
 			prop, err := c.Props.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(prop)
+				return nil
 			}
 			fmt.Printf("Updated prop %d (%s)\n", prop.ID, prop.Name)
 			return nil

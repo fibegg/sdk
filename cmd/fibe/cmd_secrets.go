@@ -164,6 +164,10 @@ func secCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(s)
+				return nil
+			}
 			fmt.Printf("Created secret %s (%s)\n", fmtInt64Ptr(s.ID), s.Key)
 			return nil
 		},
@@ -194,6 +198,10 @@ func secUpdateCmd() *cobra.Command {
 			s, err := c.Secrets.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(s)
+				return nil
 			}
 			fmt.Printf("Updated secret %s\n", fmtInt64Ptr(s.ID))
 			return nil

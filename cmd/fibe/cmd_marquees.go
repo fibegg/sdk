@@ -187,6 +187,10 @@ func mqCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(mq)
+				return nil
+			}
 			fmt.Printf("Created marquee %d (%s)\n", mq.ID, mq.Name)
 			return nil
 		},
@@ -225,6 +229,10 @@ func mqUpdateCmd() *cobra.Command {
 			mq, err := c.Marquees.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(mq)
+				return nil
 			}
 			fmt.Printf("Updated marquee %d\n", mq.ID)
 			return nil

@@ -12,6 +12,7 @@ type APIKey struct {
 	RateLimitRPHOverride *int64     `json:"rate_limit_rph_override"`
 	MaskedToken          string     `json:"masked_token"`
 	AgentAccessible      bool       `json:"agent_accessible"`
+	Source               string     `json:"source"`
 	Token                *string    `json:"token,omitempty"`
 }
 

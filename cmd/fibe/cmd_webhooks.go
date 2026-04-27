@@ -228,6 +228,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(ep)
+				return nil
+			}
 			fmt.Printf("Created webhook endpoint %s\n", fmtInt64Ptr(ep.ID))
 			return nil
 		},
@@ -330,9 +334,13 @@ EXAMPLES:
 					params.ToolFilters[name] = tools
 				}
 			}
-			_, err := c.WebhookEndpoints.Update(ctx(), id, params)
+			ep, err := c.WebhookEndpoints.Update(ctx(), id, params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(ep)
+				return nil
 			}
 			fmt.Printf("Updated webhook endpoint %d\n", id)
 			return nil

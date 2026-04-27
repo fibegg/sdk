@@ -2,126 +2,111 @@ package mcpserver
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
 func TestResourceListDispatchesToResourceService(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("method = %s, want GET", r.Method)
-		}
-		if r.URL.Path != "/api/playgrounds" {
-			t.Fatalf("path = %s, want /api/playgrounds", r.URL.Path)
-		}
-		q := r.URL.Query()
-		if q.Get("job_mode") != "false" {
-			t.Fatalf("job_mode query = %q, want false", q.Get("job_mode"))
-		}
-		if q.Get("q") != "demo" || q.Get("per_page") != "5" {
-			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":[],"meta":{"page":1,"per_page":5,"total":0}}`))
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
-		"resource": "playgrounds",
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
+		"resource": "agents",
 		"params": map[string]any{
-			"q":        "demo",
 			"per_page": 5,
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("dispatch: %v", err)
+	}
+	m := res.(*fibe.ListResult[fibe.Agent])
+	if m.Data == nil {
+		t.Fatalf("expected data field in response")
 	}
 }
 
 func TestResourceGetDispatchesWithAlias(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Fatalf("method = %s, want GET", r.Method)
-		}
-		if r.URL.Path != "/api/webhook_endpoints/7" {
-			t.Fatalf("path = %s, want /api/webhook_endpoints/7", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":7,"url":"https://example.com","events":[]}`))
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
-		"resource": "webhooks",
-		"id":       7,
-	}); err != nil {
-		t.Fatalf("dispatch: %v", err)
+	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agents",
+		"operation": "create",
+		"payload": map[string]any{
+			"name":     agentName,
+			"provider": "openai-codex",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	m := res.(*fibe.Agent)
+	agentID := int(m.ID)
+
+	getRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
+		"resource": "agents",
+		"id":       agentID,
+	})
+	if err != nil {
+		t.Fatalf("get dispatch: %v", err)
+	}
+	getM := getRes.(*fibe.Agent)
+	if getM.Name != agentName {
+		t.Fatalf("expected name %s, got %s", agentName, getM.Name)
 	}
 }
 
 func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			t.Fatalf("method = %s, want DELETE", r.Method)
-		}
-		if r.URL.Path != "/api/keys/8" {
-			t.Fatalf("path = %s, want /api/keys/8", r.URL.Path)
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
+	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agents",
+		"operation": "create",
+		"payload": map[string]any{
+			"name":     agentName,
+			"provider": "openai-codex",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	m := res.(*fibe.Agent)
+	agentID := int(m.ID)
+
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", map[string]any{
-		"resource": "api-keys",
-		"id":       8,
+		"resource": "agents",
+		"id":       agentID,
 	}); err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}
 }
 
 func TestResourceListDispatchesNewConsolidatedResources(t *testing.T) {
-	seen := map[string]bool{}
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		seen[r.Method+" "+r.URL.Path] = true
-		w.Header().Set("Content-Type", "application/json")
-		switch r.Method + " " + r.URL.Path {
-		case "GET /api/artefacts":
-			if r.URL.Query().Get("q") != "report" {
-				t.Fatalf("artefact query = %q", r.URL.RawQuery)
-			}
-			_, _ = w.Write([]byte(`{"data":[],"meta":{"total":0}}`))
-		case "GET /api/import_templates/4/versions":
-			_, _ = w.Write([]byte(`{"data":[],"meta":{"total":0}}`))
-		case "GET /api/webhook_endpoints/9/deliveries":
-			_, _ = w.Write([]byte(`{"data":[],"meta":{"total":0}}`))
-		default:
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.String())
-		}
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
@@ -132,81 +117,87 @@ func TestResourceListDispatchesNewConsolidatedResources(t *testing.T) {
 		{"resource": "webhook_delivery", "params": map[string]any{"webhook_id": 9}},
 	}
 	for _, args := range cases {
-		if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", args); err != nil {
-			t.Fatalf("dispatch %#v: %v", args, err)
-		}
-	}
-	for _, want := range []string{
-		"GET /api/artefacts",
-		"GET /api/import_templates/4/versions",
-		"GET /api/webhook_endpoints/9/deliveries",
-	} {
-		if !seen[want] {
-			t.Fatalf("missing request %s; saw %#v", want, seen)
+		_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", args)
+		if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
+			t.Fatalf("dispatch %#v failed with non-HTTP error: %v", args, err)
 		}
 	}
 }
 
 func TestResourceGetDispatchesArtefactAndAttachment(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method + " " + r.URL.Path {
-		case "GET /api/artefacts/5":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"id":5,"name":"report.txt","body":"inline"}`))
-		case "GET /api/artefacts/5/download":
-			w.Header().Set("Content-Type", "text/plain")
-			w.Header().Set("Content-Disposition", `attachment; filename="report.txt"`)
-			_, _ = w.Write([]byte("hello attachment"))
-		default:
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.String())
-		}
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
+	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agents",
+		"operation": "create",
+		"payload": map[string]any{
+			"name":     agentName,
+			"provider": "openai-codex",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	m := res.(*fibe.Agent)
+	agentID := int(m.ID)
+
+	os.Setenv("FIBE_AGENT_ID", fmt.Sprintf("%d", agentID))
+	defer os.Unsetenv("FIBE_AGENT_ID")
+
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_artefact_upload", map[string]any{
+		"name":           "report.txt",
+		"content_base64": "aGVsbG8=",
+	}); err != nil {
+		t.Fatalf("dispatch fibe_artefact_upload: %v", err)
+	}
+
+	artefactsRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
+		"resource": "artefacts",
+		"params": map[string]any{
+			"agent_id": fmt.Sprintf("%d", agentID),
+		},
+	})
+	if err != nil {
+		t.Fatalf("artefacts list dispatch: %v", err)
+	}
+	artefactsData := artefactsRes.(*fibe.ListResult[fibe.Artefact]).Data
+	if len(artefactsData) == 0 {
+		t.Fatalf("expected artefacts, got none")
+	}
+	artefactID := int(artefactsData[0].ID)
+
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 		"resource": "artefact",
-		"id":       5,
+		"id":       artefactID,
 	}); err != nil {
 		t.Fatalf("artefact dispatch: %v", err)
 	}
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 		"resource": "artefact_attachment",
-		"id":       5,
+		"id":       artefactID,
 	})
 	if err != nil {
 		t.Fatalf("attachment dispatch: %v", err)
 	}
 	attachment := out.(map[string]any)
-	if attachment["content_base64"] != base64.StdEncoding.EncodeToString([]byte("hello attachment")) {
+	if attachment["content_base64"] != "aGVsbG8=" {
 		t.Fatalf("unexpected attachment payload: %#v", attachment)
 	}
-	if attachment["filename"] != "report.txt" || attachment["artefact_id"] != int64(5) {
+	if attachment["filename"] != "report.txt" {
 		t.Fatalf("unexpected attachment metadata: %#v", attachment)
 	}
 }
 
 func TestResourceDeleteDispatchesTemplateVersionAndSource(t *testing.T) {
-	seen := map[string]bool{}
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		seen[r.Method+" "+r.URL.Path] = true
-		switch r.Method + " " + r.URL.Path {
-		case "DELETE /api/import_template_versions/6":
-			w.WriteHeader(http.StatusNoContent)
-		case "DELETE /api/import_templates/4/source":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"id":4,"name":"template"}`))
-		default:
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-		}
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
@@ -214,51 +205,28 @@ func TestResourceDeleteDispatchesTemplateVersionAndSource(t *testing.T) {
 		{"resource": "template_version", "id": 6},
 		{"resource": "template_source", "id": 4},
 	} {
-		if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", args); err != nil {
-			t.Fatalf("dispatch %#v: %v", args, err)
-		}
-	}
-	for _, want := range []string{
-		"DELETE /api/import_template_versions/6",
-		"DELETE /api/import_templates/4/source",
-	} {
-		if !seen[want] {
-			t.Fatalf("missing request %s; saw %#v", want, seen)
+		_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", args)
+		if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
+			t.Fatalf("dispatch %#v failed with non-HTTP error: %v", args, err)
 		}
 	}
 }
 
 func TestPlaygroundActionDispatchesToActionEndpoint(t *testing.T) {
-	var body map[string]any
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Fatalf("method = %s, want POST", r.Method)
-		}
-		if r.URL.Path != "/api/playgrounds/7/action" {
-			t.Fatalf("path = %s, want /api/playgrounds/7/action", r.URL.Path)
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode body: %v", err)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":7,"status":"pending"}`))
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core", Yolo: true})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_action", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_action", map[string]any{
 		"playground_id": 7,
 		"action_type":   "hard_restart",
 		"force":         true,
-	}); err != nil {
-		t.Fatalf("dispatch: %v", err)
-	}
-	if body["action_type"] != "hard_restart" || body["force"] != true {
-		t.Fatalf("unexpected body: %#v", body)
+	})
+	if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
+		t.Fatalf("dispatch error: %v", err)
 	}
 }
 

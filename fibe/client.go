@@ -73,6 +73,14 @@ func NewClient(opts ...Option) *Client {
 		}
 	}
 
+	// Lowest priority: credential store from `fibe auth login`
+	if cfg.apiKey == "" {
+		store := NewCredentialStore(DefaultCredentialPath())
+		if entry, err := store.Get(cfg.domain); err == nil && entry != nil {
+			cfg.apiKey = entry.APIKey
+		}
+	}
+
 	if cfg.httpClient == nil {
 		cfg.httpClient = &http.Client{Timeout: cfg.timeout}
 	}

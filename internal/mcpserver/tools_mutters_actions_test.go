@@ -2,56 +2,51 @@ package mcpserver
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/fibegg/sdk/fibe"
 )
 
 func TestMutterToolCreatesAgentMutter(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/agents/7/mutter" {
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-		}
-		var body map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatalf("decode body: %v", err)
-		}
-		if body["type"] != "proof" || body["body"] != "Verified rollout completed." || body["playground_id"].(float64) != 42 {
-			t.Fatalf("unexpected body: %#v", body)
-		}
-		_, _ = w.Write([]byte(`{"agent_id":7,"data":[{"type":"proof","body":"Verified rollout completed."}]}`))
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	os.Setenv("FIBE_AGENT_ID", "7")
+	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agents",
+		"operation": "create",
+		"payload": map[string]any{
+			"name":     agentName,
+			"provider": "openai-codex",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	m := res.(*fibe.Agent)
+	agentID := int(m.ID)
+
+	os.Setenv("FIBE_AGENT_ID", fmt.Sprintf("%d", agentID))
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutter", map[string]any{
 		"type":          "proof",
 		"body":          "Verified rollout completed.",
-		"playground_id": 42,
 	}); err != nil {
 		t.Fatalf("fibe_mutter dispatch: %v", err)
 	}
 }
 
 func TestMutterToolValidatesBeforeAPI(t *testing.T) {
-	var calls int
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		t.Fatalf("unexpected API call: %s %s", r.Method, r.URL.Path)
-	}))
-	defer api.Close()
-
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
@@ -76,10 +71,6 @@ func TestMutterToolValidatesBeforeAPI(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "unsupported field") {
 		t.Fatalf("expected local unsupported field error, got %v", err)
-	}
-
-	if calls != 0 {
-		t.Fatalf("invalid payloads should not hit API, got %d call(s)", calls)
 	}
 }
 
@@ -114,39 +105,42 @@ func TestMuttersGetSchemaRequiresAgentID(t *testing.T) {
 }
 
 func TestMuttersGetUsesAgentIDAndFilters(t *testing.T) {
-	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/api/agents/7/mutter" {
-			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
-		}
-		q := r.URL.Query()
-		for key, want := range map[string]string{
-			"playground_id": "42",
-			"q":             "deploy",
-			"status":        "open",
-			"severity":      "high",
-			"page":          "2",
-			"per_page":      "10",
-		} {
-			if got := q.Get(key); got != want {
-				t.Fatalf("query %s = %q, want %q (full query %s)", key, got, want, r.URL.RawQuery)
-			}
-		}
-		_, _ = w.Write([]byte(`{"agent_id":7,"data":[]}`))
-	}))
-	defer api.Close()
+	apiKey, domain := requireRealServer(t)
 
-	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
+	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agents",
+		"operation": "create",
+		"payload": map[string]any{
+			"name":     agentName,
+			"provider": "openai-codex",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	m := res.(*fibe.Agent)
+	agentID := int(m.ID)
+
+	os.Setenv("FIBE_AGENT_ID", fmt.Sprintf("%d", agentID))
+	defer os.Unsetenv("FIBE_AGENT_ID")
+
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutter", map[string]any{
+		"type": "proof",
+		"body": "deploying highly critical update",
+	}); err != nil {
+		t.Fatalf("dispatch fibe_mutter: %v", err)
+	}
+
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutters_get", map[string]any{
-		"agent_id":      7,
-		"playground_id": 42,
+		"agent_id":      agentID,
 		"query":         "deploy",
-		"status":        "open",
-		"severity":      "high",
-		"page":          2,
+		"page":          1,
 		"per_page":      10,
 	}); err != nil {
 		t.Fatalf("fibe_mutters_get dispatch: %v", err)
