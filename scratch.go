@@ -1,3 +1,5 @@
+//go:build ignore
+
 package main
 
 import (
@@ -9,7 +11,7 @@ import (
 )
 
 func main() {
-	client := fibe.NewClient(os.Getenv("FIBE_API_KEY"), fibe.WithDomain(os.Getenv("FIBE_DOMAIN")))
+	client := fibe.NewClient(fibe.WithAPIKey(os.Getenv("FIBE_API_KEY")), fibe.WithDomain(os.Getenv("FIBE_DOMAIN")))
 
 	res, err := client.ImportTemplates.List(context.Background(), &fibe.ImportTemplateListParams{})
 	if err != nil {

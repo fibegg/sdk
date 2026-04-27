@@ -11,10 +11,10 @@ func TestPlayspec_WithTriggerConfig(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
 
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test trigger config")
-	}
+	marquee, err := c.Marquees.Create(ctx(), testMarqueeParams("trigger-mq"))
+	requireNoError(t, err)
+	t.Cleanup(func() { c.Marquees.Delete(ctx(), marquee.ID) })
+	marqueeID := marquee.ID
 
 	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
 		RepositoryURL: "https://github.com/octocat/" + uniqueName("Hello-World"),

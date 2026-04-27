@@ -51,6 +51,22 @@ func TestSchemaResourceUpdateOperation(t *testing.T) {
 	}
 }
 
+func TestSchemaResourceOperationFlags(t *testing.T) {
+	out, err := captureStdout(func() error {
+		cmd := schemaCmd()
+		cmd.SetArgs([]string{"--resource", "agent", "--operation", "create"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("schema --resource agent --operation create: %v", err)
+	}
+	for _, want := range []string{`"agent.create"`, `"name"`, `"provider"`} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("expected %s in schema output, got:\n%s", want, out)
+		}
+	}
+}
+
 func TestSchemaCustomCreateOperations(t *testing.T) {
 	for _, tc := range []struct {
 		args []string

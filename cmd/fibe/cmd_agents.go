@@ -474,6 +474,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(agent)
+				return nil
+			}
 			fmt.Printf("Duplicated agent %d → new agent %d (%s)\n", id, agent.ID, agent.Name)
 			return nil
 		},

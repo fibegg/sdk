@@ -436,8 +436,9 @@ func mutterCreateSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"type", "body"},
+		"required":             []string{"agent_id", "type", "body"},
 		"properties": map[string]any{
+			"agent_id":      map[string]any{"type": "integer", "description": "Agent ID that owns the mutter.", "minimum": 1},
 			"type":          map[string]any{"type": "string", "description": "Mutter type label. Common values are info, warning, error, and success; Server accepts arbitrary strings."},
 			"body":          map[string]any{"type": "string", "description": "Mutter body text."},
 			"playground_id": map[string]any{"type": "integer", "description": "Optional playground ID to associate with the mutter.", "minimum": 1},

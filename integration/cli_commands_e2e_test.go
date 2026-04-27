@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -134,7 +135,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 			createCmd := append([]string{tc.resource, tc.createCmdName}, tc.createArgs...)
 			out, err = runCompiledCLI(t, createCmd...)
 			require.NoError(t, err, "failed to create: %s", out)
-			
+
 			id := parseResourceID(t, out)
 
 			// Happy Path: Get
@@ -172,7 +173,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 
 	t.Run("playgrounds", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Negative: no name
 		out, err := runCompiledCLI(t, "playgrounds", "create")
 		require.Error(t, err)
@@ -201,7 +202,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to debug playground: %s", out)
 
 		// Playgrounds logs
-		out, err = runCompiledCLI(t, "playgrounds", "logs", strconv.FormatInt(id, 10), "--service", "app")
+		out, err = runCompiledCLI(t, "playgrounds", "logs", strconv.FormatInt(id, 10), "--service", "web")
 		require.NoError(t, err, "failed to get logs: %s", out)
 
 		// Delete
@@ -211,7 +212,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 
 	t.Run("playspecs", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Negative: no name
 		out, err := runCompiledCLI(t, "playspecs", "create")
 		require.Error(t, err)
@@ -246,7 +247,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 
 	t.Run("props", func(t *testing.T) {
 		t.Parallel()
-		
+
 		// Negative: no repo url
 		out, err := runCompiledCLI(t, "props", "create")
 		require.Error(t, err)
@@ -321,7 +322,8 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.Error(t, err) // missing text
 
 		out, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10), "--text", "hello")
-		require.NoError(t, err, "failed to send message to agent: %s", out)
+		require.Error(t, err, "non-running agents should reject chat sends")
+		assert.Contains(t, out, "AGENT_COMMUNICATION_FAILED")
 
 		// Delete
 		out, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(id, 10))
@@ -342,7 +344,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to create artefact: %s", out)
 		artID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(artID, 10))
+		out, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(agentID, 10), strconv.FormatInt(artID, 10))
 		require.NoError(t, err)
 
 		out, err = runCompiledCLI(t, "artefacts", "list", strconv.FormatInt(agentID, 10))
@@ -374,13 +376,23 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		t.Parallel()
 		psName := uniqueName("cli-e2e-job")
 		tmpFile := filepath.Join(t.TempDir(), "job.json")
-		os.WriteFile(tmpFile, []byte("{\"name\":\""+psName+"\",\"base_compose_yaml\":\"version: '3'\",\"job_mode\":true,\"services\":[{\"name\":\"app\",\"type\":\"static\"}]}"), 0644)
-		
+		payload := &fibe.PlayspecCreateParams{
+			Name:            psName,
+			BaseComposeYAML: jobComposeYAML(),
+			JobMode:         ptr(true),
+			Services:        []fibe.PlayspecServiceDef{jobWatchedService("worker")},
+		}
+		b, _ := json.Marshal(payload)
+		os.WriteFile(tmpFile, b, 0644)
+
 		out, err := runCompiledCLI(t, "playspecs", "create", "--from-file", tmpFile)
 		require.NoError(t, err)
 		psID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "tricks", "trigger", "--playspec-id", strconv.FormatInt(psID, 10))
+		if marqueeID == 0 {
+			t.Skip("set FIBE_TEST_MARQUEE_ID to trigger tricks")
+		}
+		out, err = runCompiledCLI(t, "tricks", "trigger", "--playspec-id", strconv.FormatInt(psID, 10), "--marquee-id", strconv.FormatInt(marqueeID, 10))
 		require.NoError(t, err, "failed to trigger trick: %s", out)
 		trickID := parseResourceID(t, out)
 

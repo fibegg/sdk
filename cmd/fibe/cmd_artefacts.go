@@ -9,6 +9,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func artefactsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "artefacts",
@@ -61,25 +62,49 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ArtefactListParams{}
-			if query != "" { params.Query = query }
-			if name != "" { params.Name = name }
-			if playgroundID != "" { params.PlaygroundID = playgroundID }
-			if contentType != "" { params.ContentType = contentType }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Query = query
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if playgroundID != "" {
+				params.PlaygroundID = playgroundID
+			}
+			if contentType != "" {
+				params.ContentType = contentType
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 
 			if len(args) > 0 {
 				agentID, _ := strconv.ParseInt(args[0], 10, 64)
 				arts, err := c.Artefacts.List(ctx(), agentID, params)
-				if err != nil { return err }
+				if err != nil {
+					return err
+				}
 				outputJSON(arts)
 			} else {
-				if agentIDFlag != "" { params.AgentID = agentIDFlag }
+				if agentIDFlag != "" {
+					params.AgentID = agentIDFlag
+				}
 				arts, err := c.Artefacts.ListAll(ctx(), params)
-				if err != nil { return err }
+				if err != nil {
+					return err
+				}
 				outputJSON(arts)
 			}
 			return nil
@@ -104,7 +129,9 @@ func artGetCmd() *cobra.Command {
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
 			art, err := c.Artefacts.Get(ctx(), agentID, id)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(art)
 			return nil
 		},
@@ -141,8 +168,14 @@ func artCreateCmd() *cobra.Command {
 				return fmt.Errorf("required flag --file not provided")
 			}
 
-			_, err = c.Artefacts.Create(ctx(), agentID, params, fileReader, fileName)
-			if err != nil { return err }
+			art, err := c.Artefacts.Create(ctx(), agentID, params, fileReader, fileName)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(art)
+				return nil
+			}
 			fmt.Printf("Uploaded artefact\n")
 			return nil
 		},
