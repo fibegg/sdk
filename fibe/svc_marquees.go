@@ -2,6 +2,7 @@ package fibe
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -26,15 +27,21 @@ func (s *MarqueeService) Create(ctx context.Context, params *MarqueeCreateParams
 		return nil, err
 	}
 	var result Marquee
-	body := map[string]any{"marquee": params}
-	err := s.client.do(ctx, http.MethodPost, "/api/marquees", body, &result)
+	body, err := marqueeRequestBody(params)
+	if err != nil {
+		return nil, err
+	}
+	err = s.client.do(ctx, http.MethodPost, "/api/marquees", body, &result)
 	return &result, err
 }
 
 func (s *MarqueeService) Update(ctx context.Context, id int64, params *MarqueeUpdateParams) (*Marquee, error) {
 	var result Marquee
-	body := map[string]any{"marquee": params}
-	err := s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/marquees/%d", id), body, &result)
+	body, err := marqueeRequestBody(params)
+	if err != nil {
+		return nil, err
+	}
+	err = s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/marquees/%d", id), body, &result)
 	return &result, err
 }
 
@@ -58,4 +65,23 @@ func (s *MarqueeService) AutoconnectToken(ctx context.Context, params *Autoconne
 	var result AutoconnectTokenResult
 	err := s.client.do(ctx, http.MethodPost, "/api/marquees/autoconnect_token", params, &result)
 	return &result, err
+}
+
+func marqueeRequestBody(params any) (map[string]any, error) {
+	data, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	var marquee map[string]any
+	if err := json.Unmarshal(data, &marquee); err != nil {
+		return nil, err
+	}
+	if creds, ok := marquee["dns_credentials"]; ok && creds != nil {
+		encoded, err := json.Marshal(creds)
+		if err != nil {
+			return nil, err
+		}
+		marquee["dns_credentials"] = string(encoded)
+	}
+	return map[string]any{"marquee": marquee}, nil
 }

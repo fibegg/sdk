@@ -214,6 +214,41 @@ func TestPlaygrounds_Action(t *testing.T) {
 	}
 }
 
+func TestMarquees_UpdateSerializesDnsCredentialsForRails(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" || r.URL.Path != "/api/marquees/1" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		json.NewEncoder(w).Encode(Marquee{ID: 1, Name: "Elastic"})
+	})
+
+	provider := "cloudflare"
+	_, err := c.Marquees.Update(context.Background(), 1, &MarqueeUpdateParams{
+		DnsProvider:    &provider,
+		DnsCredentials: map[string]string{"CF_DNS_API_TOKEN": "secret-token"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	marquee := body["marquee"].(map[string]any)
+	raw, ok := marquee["dns_credentials"].(string)
+	if !ok {
+		t.Fatalf("dns_credentials = %T (%#v), want JSON string", marquee["dns_credentials"], marquee["dns_credentials"])
+	}
+	var decoded map[string]string
+	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+		t.Fatalf("dns_credentials should contain JSON object text: %v", err)
+	}
+	if decoded["CF_DNS_API_TOKEN"] != "secret-token" {
+		t.Fatalf("unexpected dns_credentials payload: %#v", decoded)
+	}
+}
+
 func TestPlaygrounds_DebugWithParams(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/api/playgrounds/42/debug" {
