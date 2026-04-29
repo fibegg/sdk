@@ -114,6 +114,7 @@ DOCUMENTATION:
 		playgroundsCmd(),
 		tricksCmd(),
 		agentsCmd(),
+		agentDefaultsCmd(),
 		playspecsCmd(),
 		propsCmd(),
 		marqueesCmd(),

@@ -47,6 +47,9 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_resource_get",
 		"fibe_resource_delete",
 		"fibe_resource_mutate",
+		"fibe_agent_defaults_get",
+		"fibe_agent_defaults_update",
+		"fibe_agent_defaults_reset",
 		"fibe_mutter",
 		"fibe_templates_develop",
 		"fibe_playgrounds_wait",
@@ -113,6 +116,9 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 		"fibe_playgrounds_debug",
 		"fibe_playgrounds_wait",
 		"fibe_playgrounds_logs",
+		"fibe_agent_defaults_get",
+		"fibe_agent_defaults_update",
+		"fibe_agent_defaults_reset",
 	} {
 		if !advertised[name] {
 			t.Errorf("%s should be advertised in core mode", name)

@@ -196,6 +196,8 @@ EXAMPLES:
 
 func agCreateCmd() *cobra.Command {
 	var name, provider, modelOptions, memoryLimit, cpuLimit string
+	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
+	var skillToggleFlags []string
 	var mountFiles, mountArtefacts []string
 	var playgroundCrumbsID int64
 	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
@@ -218,6 +220,14 @@ OPTIONAL FLAGS:
   --model-options Pin provider model option for this agent
   --memory-limit   Memory limit, for example 2G
   --cpu-limit      CPU limit, for example 1.5
+  --prompt         Agent-specific system prompt override
+  --mcp-json       MCP configuration JSON for the runtime
+  --post-init-script
+                  Shell script run after agent initialization
+  --custom-env     KEY=VALUE lines injected into the agent runtime
+  --cli-version    Fibe CLI version pin for this agent
+  --provider-args  Provider CLI flags, for example "--bare --max-tokens 4096"
+  --skill-toggle   Skill toggle as filename=true|false (repeatable)
   --build-in-public
                   Show the agent on the public profile when enabled
   --playground-crumbs-id
@@ -268,6 +278,31 @@ EXAMPLES:
 			if cmd.Flags().Changed("cpu-limit") {
 				params.CpuLimit = &cpuLimit
 			}
+			if cmd.Flags().Changed("prompt") {
+				params.Prompt = &prompt
+			}
+			if cmd.Flags().Changed("mcp-json") {
+				params.MCPJSON = &mcpJSON
+			}
+			if cmd.Flags().Changed("post-init-script") {
+				params.PostInitScript = &postInitScript
+			}
+			if cmd.Flags().Changed("custom-env") {
+				params.CustomEnv = &customEnv
+			}
+			if cmd.Flags().Changed("cli-version") {
+				params.CLIVersion = &cliVersion
+			}
+			if cmd.Flags().Changed("provider-args") {
+				params.ProviderArgsCLI = &providerArgs
+			}
+			toggles, err := parseSkillToggleFlags(skillToggleFlags)
+			if err != nil {
+				return err
+			}
+			if len(toggles) > 0 {
+				params.SkillToggles = toggles
+			}
 			mounts, err := parseAgentCreateMountFlags(mountFiles, mountArtefacts)
 			if err != nil {
 				return err
@@ -304,6 +339,13 @@ EXAMPLES:
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
 	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
+	cmd.Flags().StringVar(&prompt, "prompt", "", "Agent-specific system prompt override")
+	cmd.Flags().StringVar(&mcpJSON, "mcp-json", "", "MCP configuration JSON")
+	cmd.Flags().StringVar(&postInitScript, "post-init-script", "", "Shell script run after agent initialization")
+	cmd.Flags().StringVar(&customEnv, "custom-env", "", "KEY=VALUE lines injected into the agent runtime")
+	cmd.Flags().StringVar(&cliVersion, "cli-version", "", "Fibe CLI version pin")
+	cmd.Flags().StringVar(&providerArgs, "provider-args", "", "Provider CLI flags, for example \"--bare --max-tokens 4096\"")
+	cmd.Flags().StringArrayVar(&skillToggleFlags, "skill-toggle", nil, "Skill toggle as filename=true|false (repeatable)")
 	cmd.Flags().StringArrayVar(&mountFiles, "mount-file", nil, "Local file mount as ./path:%{agent_data}/target.ext (repeatable)")
 	cmd.Flags().StringArrayVar(&mountArtefacts, "mount-artefact", nil, "Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)")
 	return cmd
@@ -311,6 +353,8 @@ EXAMPLES:
 
 func agUpdateCmd() *cobra.Command {
 	var name, modelOptions, memoryLimit, cpuLimit string
+	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
+	var skillToggleFlags []string
 	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode bool
 	var buildInPublicPlaygroundID int64
 
@@ -328,6 +372,13 @@ OPTIONAL FLAGS:
   --model-options                 Provider model option
   --memory-limit                  Memory limit, for example 2G
   --cpu-limit                     CPU limit, for example 1.5
+  --prompt                        Agent-specific system prompt override
+  --mcp-json                      MCP configuration JSON for the runtime
+  --post-init-script              Shell script run after agent initialization
+  --custom-env                    KEY=VALUE lines injected into the agent runtime
+  --cli-version                   Fibe CLI version pin for this agent
+  --provider-args                 Provider CLI flags, for example "--bare --max-tokens 4096"
+  --skill-toggle                  Skill toggle as filename=true|false (repeatable)
   --build-in-public-playground-id Playground ID for public builds
 
 EXAMPLES:
@@ -368,6 +419,31 @@ EXAMPLES:
 			if cmd.Flags().Changed("build-in-public-playground-id") {
 				params.BuildInPublicPlaygroundID = &buildInPublicPlaygroundID
 			}
+			if cmd.Flags().Changed("prompt") {
+				params.Prompt = &prompt
+			}
+			if cmd.Flags().Changed("mcp-json") {
+				params.MCPJSON = &mcpJSON
+			}
+			if cmd.Flags().Changed("post-init-script") {
+				params.PostInitScript = &postInitScript
+			}
+			if cmd.Flags().Changed("custom-env") {
+				params.CustomEnv = &customEnv
+			}
+			if cmd.Flags().Changed("cli-version") {
+				params.CLIVersion = &cliVersion
+			}
+			if cmd.Flags().Changed("provider-args") {
+				params.ProviderArgsCLI = &providerArgs
+			}
+			toggles, err := parseSkillToggleFlags(skillToggleFlags)
+			if err != nil {
+				return err
+			}
+			if len(toggles) > 0 {
+				params.SkillToggles = toggles
+			}
 			agent, err := c.Agents.Update(ctx(), id, params)
 			if err != nil {
 				return err
@@ -389,8 +465,33 @@ EXAMPLES:
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
 	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
+	cmd.Flags().StringVar(&prompt, "prompt", "", "Agent-specific system prompt override")
+	cmd.Flags().StringVar(&mcpJSON, "mcp-json", "", "MCP configuration JSON")
+	cmd.Flags().StringVar(&postInitScript, "post-init-script", "", "Shell script run after agent initialization")
+	cmd.Flags().StringVar(&customEnv, "custom-env", "", "KEY=VALUE lines injected into the agent runtime")
+	cmd.Flags().StringVar(&cliVersion, "cli-version", "", "Fibe CLI version pin")
+	cmd.Flags().StringVar(&providerArgs, "provider-args", "", "Provider CLI flags, for example \"--bare --max-tokens 4096\"")
+	cmd.Flags().StringArrayVar(&skillToggleFlags, "skill-toggle", nil, "Skill toggle as filename=true|false (repeatable)")
 	cmd.Flags().Int64Var(&buildInPublicPlaygroundID, "build-in-public-playground-id", 0, "Playground ID for public builds")
 	return cmd
+}
+
+func parseSkillToggleFlags(flags []string) (map[string]bool, error) {
+	toggles := map[string]bool{}
+	for _, raw := range flags {
+		name, value, ok := strings.Cut(raw, "=")
+		name = strings.TrimSpace(name)
+		value = strings.TrimSpace(value)
+		if !ok || name == "" || value == "" {
+			return nil, fmt.Errorf("--skill-toggle must be filename=true|false")
+		}
+		enabled, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, fmt.Errorf("--skill-toggle %q has invalid boolean value: %w", raw, err)
+		}
+		toggles[name] = enabled
+	}
+	return toggles, nil
 }
 
 func parseAgentCreateMountFlags(fileSpecs, artefactSpecs []string) ([]fibe.AgentMountSpec, error) {

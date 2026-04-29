@@ -25,12 +25,13 @@ type APIKeyCreateParams struct {
 }
 
 type Player struct {
-	ID           int64    `json:"id"`
-	Username     string   `json:"username"`
-	GithubHandle *string  `json:"github_handle"`
-	Email        *string  `json:"email"`
-	AvatarURL    *string  `json:"avatar_url"`
-	APIKeyScopes []string `json:"api_key_scopes,omitempty"`
+	ID            int64         `json:"id"`
+	Username      string        `json:"username"`
+	GithubHandle  *string       `json:"github_handle"`
+	Email         *string       `json:"email"`
+	AvatarURL     *string       `json:"avatar_url"`
+	AgentDefaults AgentDefaults `json:"agent_defaults,omitempty"`
+	APIKeyScopes  []string      `json:"api_key_scopes,omitempty"`
 }
 
 type APIKeyListParams struct {

@@ -420,9 +420,23 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("fibe_schema agent update: %v", err)
 	}
 	updateProps := updateSchema.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"agent_id", "name", "mode", "model_options"} {
+	for _, want := range []string{"agent_id", "name", "mode", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
 		if _, ok := updateProps[want]; !ok {
 			t.Fatalf("expected %s in agent.update schema, got %#v", want, updateProps)
+		}
+	}
+
+	createSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
+		"resource":  "agent",
+		"operation": "create",
+	})
+	if err != nil {
+		t.Fatalf("fibe_schema agent create: %v", err)
+	}
+	createProps := createSchema.(map[string]any)["properties"].(map[string]any)
+	for _, want := range []string{"name", "provider", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
+		if _, ok := createProps[want]; !ok {
+			t.Fatalf("expected %s in agent.create schema, got %#v", want, createProps)
 		}
 	}
 

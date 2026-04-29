@@ -26,9 +26,25 @@ type Agent struct {
 	BuildInPublicPlaygroundID *int64             `json:"build_in_public_playground_id"`
 	ProviderAPIKeyMode        bool               `json:"provider_api_key_mode"`
 	Mode                      string             `json:"mode"`
+	Settings                  map[string]any     `json:"settings,omitempty"`
+	Prompt                    *string            `json:"prompt"`
+	MCPJSON                   *string            `json:"mcp_json"`
+	PostInitScript            *string            `json:"post_init_script"`
+	CustomEnv                 *string            `json:"custom_env"`
+	CLIVersion                *string            `json:"cli_version"`
+	ProviderArgs              map[string]any     `json:"provider_args,omitempty"`
+	SkillToggles              map[string]any     `json:"skill_toggles,omitempty"`
 	ModelOptions              *string            `json:"model_options"`
 	MemoryLimit               *string            `json:"memory_limit"`
 	CpuLimit                  *string            `json:"cpu_limit"`
+	EffectivePrompt           *string            `json:"effective_prompt"`
+	EffectiveModelOptions     *string            `json:"effective_model_options"`
+	EffectiveMemoryLimit      *string            `json:"effective_memory_limit"`
+	EffectiveCpuLimit         *string            `json:"effective_cpu_limit"`
+	EffectivePostInitScript   *string            `json:"effective_post_init_script"`
+	EffectiveCLIVersion       *string            `json:"effective_cli_version"`
+	EffectiveProviderArgs     map[string]any     `json:"effective_provider_args,omitempty"`
+	EffectiveSkillToggles     map[string]any     `json:"effective_skill_toggles,omitempty"`
 	APIKeyID                  *int64             `json:"api_key_id"`
 	CreatedAt                 *time.Time         `json:"created_at"`
 	UpdatedAt                 *time.Time         `json:"updated_at"`
@@ -60,9 +76,15 @@ type AgentCreateParams struct {
 	ModelOptions              *string          `json:"model_options,omitempty"`
 	MemoryLimit               *string          `json:"memory_limit,omitempty"`
 	CpuLimit                  *string          `json:"cpu_limit,omitempty"`
+	Settings                  map[string]any   `json:"settings,omitempty"`
 	Prompt                    *string          `json:"prompt,omitempty"`
 	MCPJSON                   *string          `json:"mcp_json,omitempty"`
 	PostInitScript            *string          `json:"post_init_script,omitempty"`
+	CustomEnv                 *string          `json:"custom_env,omitempty"`
+	CLIVersion                *string          `json:"cli_version,omitempty"`
+	ProviderArgs              map[string]any   `json:"provider_args,omitempty"`
+	ProviderArgsCLI           *string          `json:"provider_args_cli,omitempty"`
+	SkillToggles              map[string]bool  `json:"skill_toggles,omitempty"`
 	Mounts                    []AgentMountSpec `json:"mounts,omitempty"`
 }
 
@@ -75,22 +97,28 @@ func (p *AgentCreateParams) Validate() error {
 }
 
 type AgentUpdateParams struct {
-	Name                      *string `json:"name,omitempty"`
-	APIKeyID                  *int64  `json:"api_key_id,omitempty"`
-	SyncEnabled               *bool   `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled         *bool   `json:"sync_skills_enabled,omitempty"`
-	SyscheckEnabled           *bool   `json:"syscheck_enabled,omitempty"`
-	BuildInPublic             *bool   `json:"build_in_public,omitempty"`
-	Description               *string `json:"description,omitempty"`
-	ProviderAPIKeyMode        *bool   `json:"provider_api_key_mode,omitempty"`
-	Mode                      *string `json:"mode,omitempty"`
-	ModelOptions              *string `json:"model_options,omitempty"`
-	MemoryLimit               *string `json:"memory_limit,omitempty"`
-	CpuLimit                  *string `json:"cpu_limit,omitempty"`
-	BuildInPublicPlaygroundID *int64  `json:"build_in_public_playground_id,omitempty"`
-	Prompt                    *string `json:"prompt,omitempty"`
-	MCPJSON                   *string `json:"mcp_json,omitempty"`
-	PostInitScript            *string `json:"post_init_script,omitempty"`
+	Name                      *string         `json:"name,omitempty"`
+	APIKeyID                  *int64          `json:"api_key_id,omitempty"`
+	SyncEnabled               *bool           `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled         *bool           `json:"sync_skills_enabled,omitempty"`
+	SyscheckEnabled           *bool           `json:"syscheck_enabled,omitempty"`
+	BuildInPublic             *bool           `json:"build_in_public,omitempty"`
+	Description               *string         `json:"description,omitempty"`
+	ProviderAPIKeyMode        *bool           `json:"provider_api_key_mode,omitempty"`
+	Mode                      *string         `json:"mode,omitempty"`
+	ModelOptions              *string         `json:"model_options,omitempty"`
+	MemoryLimit               *string         `json:"memory_limit,omitempty"`
+	CpuLimit                  *string         `json:"cpu_limit,omitempty"`
+	BuildInPublicPlaygroundID *int64          `json:"build_in_public_playground_id,omitempty"`
+	Settings                  map[string]any  `json:"settings,omitempty"`
+	Prompt                    *string         `json:"prompt,omitempty"`
+	MCPJSON                   *string         `json:"mcp_json,omitempty"`
+	PostInitScript            *string         `json:"post_init_script,omitempty"`
+	CustomEnv                 *string         `json:"custom_env,omitempty"`
+	CLIVersion                *string         `json:"cli_version,omitempty"`
+	ProviderArgs              map[string]any  `json:"provider_args,omitempty"`
+	ProviderArgsCLI           *string         `json:"provider_args_cli,omitempty"`
+	SkillToggles              map[string]bool `json:"skill_toggles,omitempty"`
 }
 
 type AgentMountSpec struct {

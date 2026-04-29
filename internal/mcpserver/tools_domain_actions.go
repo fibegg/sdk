@@ -7,6 +7,7 @@ package mcpserver
 
 func (s *Server) registerDomainActionTools() {
 	s.registerAgentActionTools()
+	s.registerAgentDefaultsTools()
 	s.registerImportTemplateActionTools()
 	s.registerTemplateDevelopTools()
 	s.registerInstallationActionTools()

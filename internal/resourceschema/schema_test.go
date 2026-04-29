@@ -158,9 +158,20 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("agent.update schema missing")
 	}
 	props := agentUpdate.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"agent_id", "name", "mode", "model_options"} {
+	for _, want := range []string{"agent_id", "name", "mode", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
 		if _, ok := props[want]; !ok {
 			t.Fatalf("agent.update missing property %q: %#v", want, props)
+		}
+	}
+
+	agentCreate, _, op, ok := SchemaFor("agent", "create")
+	if !ok || op != "create" {
+		t.Fatalf("agent.create schema missing")
+	}
+	createProps := agentCreate.(map[string]any)["properties"].(map[string]any)
+	for _, want := range []string{"name", "provider", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
+		if _, ok := createProps[want]; !ok {
+			t.Fatalf("agent.create missing property %q: %#v", want, createProps)
 		}
 	}
 
