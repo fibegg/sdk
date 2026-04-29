@@ -56,7 +56,7 @@ func BuildAll() error {
 }
 
 func Test() error {
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s")
+	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s", "-short")
 }
 
 func IntegrationTest() error {

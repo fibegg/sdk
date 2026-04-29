@@ -7,6 +7,9 @@ import (
 
 func requireRealServer(t *testing.T) (string, string) {
 	t.Helper()
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
 	apiKey := os.Getenv("FIBE_API_KEY")
 	domain := os.Getenv("FIBE_DOMAIN")
 	if apiKey == "" || domain == "" {

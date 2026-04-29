@@ -13,7 +13,7 @@ import (
 
 func (s *Server) registerMutterActionTools() {
 	mutterCreateSchema, _, _, _ := resourceschema.SchemaFor("mutter", "create")
-	mutterCreateInputSchema, _ := mutterCreateSchema.(map[string]any)
+	mutterCreateInputSchema := cloneSchemaAndRemoveAgentID(mutterCreateSchema)
 
 	s.addTool(&toolImpl{
 		name:        "fibe_mutter",
@@ -21,13 +21,20 @@ func (s *Server) registerMutterActionTools() {
 		tier:        tierBase,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if _, _, err := resourceschema.ValidatePayload("mutter", "create", args); err != nil {
-				return nil, err
-			}
 			agentIDStr := os.Getenv("FIBE_AGENT_ID")
 			agentID, err := strconv.ParseInt(agentIDStr, 10, 64)
 			if err != nil || agentID <= 0 {
 				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing or invalid")
+			}
+
+			// Inject ambient agent_id into payload before schema validation
+			if args == nil {
+				args = make(map[string]any)
+			}
+			args["agent_id"] = agentID
+
+			if _, _, err := resourceschema.ValidatePayload("mutter", "create", args); err != nil {
+				return nil, err
 			}
 			var p fibe.MutterItemParams
 			if err := bindArgs(args, &p); err != nil {
@@ -104,4 +111,41 @@ func mutterGetInputSchema() map[string]any {
 			},
 		},
 	}
+}
+
+func cloneSchemaAndRemoveAgentID(schema any) map[string]any {
+	m, ok := schema.(map[string]any)
+	if !ok {
+		return map[string]any{}
+	}
+
+	// Create a shallow copy of the top-level map
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+
+	// Copy properties and remove agent_id
+	if props, ok := out["properties"].(map[string]any); ok {
+		newProps := make(map[string]any, len(props))
+		for k, v := range props {
+			if k != "agent_id" {
+				newProps[k] = v
+			}
+		}
+		out["properties"] = newProps
+	}
+
+	// Remove agent_id from required list
+	if reqs, ok := out["required"].([]string); ok {
+		newReqs := make([]string, 0, len(reqs))
+		for _, r := range reqs {
+			if r != "agent_id" {
+				newReqs = append(newReqs, r)
+			}
+		}
+		out["required"] = newReqs
+	}
+
+	return out
 }

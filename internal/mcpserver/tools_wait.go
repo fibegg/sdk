@@ -144,7 +144,7 @@ func parseDuration(raw string, def time.Duration) time.Duration {
 		raw = raw + "s"
 	}
 	d, err := time.ParseDuration(raw)
-	if err != nil || d <= 0 {
+	if err != nil || d < 0 {
 		return def
 	}
 	return d
