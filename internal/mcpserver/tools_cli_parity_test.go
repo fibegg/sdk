@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/fibe"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
-	"github.com/fibegg/sdk/fibe"
 )
 
 // requireRealServer returns the active test credentials.
@@ -43,9 +43,9 @@ func TestCLIParity_ListTools(t *testing.T) {
 	}
 
 	tests := []struct {
-		mcpTool  string
-		mcpArgs  map[string]any
-		cliArgs  []string
+		mcpTool string
+		mcpArgs map[string]any
+		cliArgs []string
 	}{
 		{
 			mcpTool: "fibe_resource_list",
@@ -190,17 +190,17 @@ func TestCLIParity_ListTools(t *testing.T) {
 		{
 			mcpTool: "fibe_local_playgrounds_list",
 			mcpArgs: map[string]any{},
-			cliArgs: []string{"local-playgrounds", "list", "--output", "json"},
+			cliArgs: []string{"local", "playgrounds", "list", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_local_playgrounds_info",
 			mcpArgs: map[string]any{"playground": "nonexistent_dir_for_test"},
-			cliArgs: []string{"local-playgrounds", "info", "nonexistent_dir_for_test", "--output", "json"},
+			cliArgs: []string{"local", "playgrounds", "info", "nonexistent_dir_for_test", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_local_playgrounds_urls",
 			mcpArgs: map[string]any{"playground": "nonexistent_dir_for_test"},
-			cliArgs: []string{"local-playgrounds", "urls", "nonexistent_dir_for_test", "--output", "json"},
+			cliArgs: []string{"local", "playgrounds", "urls", "nonexistent_dir_for_test", "--output", "json"},
 		},
 	}
 
@@ -347,12 +347,12 @@ func TestCLIParity_GetTools(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to fetch list for %s: %v", res, err)
 			}
-			
+
 			// We need to extract the ID. The result is typically a fibe.ListResult[T] or map[string]any.
 			listBytes, _ := json.Marshal(listResRaw)
 			var listMap map[string]any
 			json.Unmarshal(listBytes, &listMap)
-			
+
 			var id any
 			var agentID any
 			if data, ok := listMap["Data"].([]any); ok && len(data) > 0 {
@@ -361,11 +361,11 @@ func TestCLIParity_GetTools(t *testing.T) {
 					agentID = item["agent_id"]
 				}
 			}
-			
+
 			if id == nil {
 				t.Skipf("No %s found to test GET", res)
 			}
-			
+
 			// Convert ID to float64 or string appropriately
 			var idVal any
 			switch v := id.(type) {
@@ -454,7 +454,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 			if mcpErr == nil {
 				t.Fatalf("Expected MCP tool to fail for invalid ID %d", invalidID)
 			}
-			
+
 			// Format mcpErr the same way outputError does for JSON
 			mcpErrMap := map[string]any{
 				"error": map[string]any{
@@ -525,7 +525,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 						errMap["message"] = "normalized"
 					}
 				}
-				
+
 				if !reflect.DeepEqual(mcpObj, cliObj) {
 					t.Errorf("Mismatch for %s GET (Not Found).\nMCP: %v\nCLI: %v", res, mcpObj, cliObj)
 				}

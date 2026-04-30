@@ -129,6 +129,30 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("template.update content_type enum missing: %#v", templateProps["content_type"])
 	}
 
+	memoryMemorize, _, op, ok := SchemaFor("memory", "memorize")
+	if !ok || op != "memorize" {
+		t.Fatalf("memory.memorize schema missing")
+	}
+	memoryProps := memoryMemorize.(map[string]any)["properties"].(map[string]any)
+	for _, want := range []string{"conversation_id", "content", "tags", "confidence", "groundings"} {
+		if _, ok := memoryProps[want]; !ok {
+			t.Fatalf("memory.memorize missing property %q: %#v", want, memoryProps)
+		}
+	}
+	for _, disallowed := range []string{"conversation", "messages", "raw_content", "provider", "output_path"} {
+		if _, ok := memoryProps[disallowed]; ok {
+			t.Fatalf("memory.memorize should not expose %q: %#v", disallowed, memoryProps)
+		}
+	}
+	if _, _, err := ValidatePayload("memory", "memorize", map[string]any{
+		"conversation_id": "source-1",
+		"content":         "Use refresh-token rotation.",
+		"tags":            []any{"auth", "decision"},
+		"groundings":      []any{map[string]any{"message_position": 0, "start_character": 4, "end_character": 25}},
+	}); err != nil {
+		t.Fatalf("memory.memorize should validate: %v", err)
+	}
+
 	templateDevelop, _, op, ok := SchemaFor("template", "develop")
 	if !ok || op != "develop" {
 		t.Fatalf("template.develop schema missing")

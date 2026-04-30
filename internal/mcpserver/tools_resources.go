@@ -313,6 +313,17 @@ func flatResourceTools() map[string]flatResourceTool {
 				return c.AuditLogs.List(ctx, p)
 			}),
 		},
+		"memory": {
+			list: listResource[fibe.MemoryListParams](func(ctx context.Context, c *fibe.Client, p *fibe.MemoryListParams) (any, error) {
+				return c.Memories.List(ctx, p)
+			}),
+			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+				return c.Memories.Get(ctx, id)
+			},
+			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+				return c.Memories.Delete(ctx, id)
+			},
+		},
 		"category": {
 			list: listResource[fibe.ListParams](func(ctx context.Context, c *fibe.Client, p *fibe.ListParams) (any, error) {
 				return c.TemplateCategories.List(ctx, p)

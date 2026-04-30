@@ -45,6 +45,7 @@ var flatResources = []resourceDef{
 	{name: "template_source", aliases: []string{"template_sources"}, operations: []string{"delete"}, delete: true},
 	{name: "job_env", aliases: []string{"job_envs", "job_environment", "job_environments"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.JobEnvListParams](), get: true, delete: true},
 	{name: "audit_log", aliases: []string{"audit_logs"}, operations: []string{"list"}, listSchema: listParamsSchema[fibe.AuditLogListParams]()},
+	{name: "memory", aliases: []string{"memories"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.MemoryListParams](), get: true, delete: true},
 	{name: "category", aliases: []string{"categories", "template_category", "template_categories"}, operations: []string{"list"}, listSchema: listParamsSchema[fibe.ListParams]()},
 }
 
@@ -377,6 +378,7 @@ func buildRegistry() map[string]map[string]any {
 	out["trick"]["rerun"] = resourceActionIDSchema("trick_id", "Source trick ID to rerun.")
 	out["job_env"]["create"] = paramsSchema[fibe.JobEnvSetParams]("key", "value")
 	out["job_env"]["update"] = updateParamsSchemaFor[fibe.JobEnvUpdateParams]("job_env_id")
+	out["memory"]["memorize"] = MemoryMemorizeSchema()
 
 	for _, r := range flatResources {
 		if r.listSchema != nil {
@@ -543,6 +545,106 @@ func resourceActionIDSchema(idField, description string) map[string]any {
 		"required":             []string{idField},
 		"properties": map[string]any{
 			idField: map[string]any{"type": "integer", "description": description, "minimum": 1},
+		},
+	}
+}
+
+func MemoryMemorizeSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"conversation_id", "content"},
+		"properties": map[string]any{
+			"conversation_id": map[string]any{
+				"type":        "string",
+				"minLength":   1,
+				"description": "Stable local source conversation UUID. This is not a Rails database ID.",
+			},
+			"content": map[string]any{
+				"type":        "string",
+				"minLength":   1,
+				"description": "Durable memory text.",
+			},
+			"agent_id": map[string]any{
+				"type":        "integer",
+				"minimum":     1,
+				"description": "Optional Rails Agent ID that created the memory. fibe_memorize fills this from FIBE_AGENT_ID when available.",
+			},
+			"tags": map[string]any{
+				"type":        "array",
+				"description": "Memory tags. The server normalizes tags to lowercase slug-like strings.",
+				"items":       map[string]any{"type": "string"},
+			},
+			"confidence": map[string]any{
+				"type":        "number",
+				"minimum":     0,
+				"maximum":     1,
+				"description": "Confidence from 0 to 1.",
+			},
+			"memory_key": map[string]any{
+				"type":        "string",
+				"description": "Optional exact idempotency key. Omit this and Rails computes one from content, tags, conversation_id, and groundings.",
+			},
+			"metadata": map[string]any{
+				"type":        "object",
+				"description": "Optional memory metadata.",
+			},
+			"groundings": memoryGroundingsSchema(),
+		},
+	}
+}
+
+func memoryGroundingsSchema() map[string]any {
+	return map[string]any{
+		"type":        "array",
+		"description": "Proof references into normalized messages or raw provider events.",
+		"items": map[string]any{
+			"type":                 "object",
+			"additionalProperties": false,
+			"properties": map[string]any{
+				"message_position": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "Zero-based source message position.",
+				},
+				"provider_message_uuid": map[string]any{
+					"type":        "string",
+					"description": "Provider message UUID when available.",
+				},
+				"raw_event_index": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "Zero-based raw event index when grounding points to raw events.",
+				},
+				"start_character": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "Start character offset within the normalized message content.",
+				},
+				"end_character": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "End character offset within the normalized message content.",
+				},
+				"raw_start_character": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "Start character offset within raw content or raw event text.",
+				},
+				"raw_end_character": map[string]any{
+					"type":        "integer",
+					"minimum":     0,
+					"description": "End character offset within raw content or raw event text.",
+				},
+				"quote": map[string]any{
+					"type":        "string",
+					"description": "Short proof excerpt. Maximum 2000 characters on the server.",
+				},
+				"metadata": map[string]any{
+					"type":        "object",
+					"description": "Optional grounding metadata.",
+				},
+			},
 		},
 	}
 }

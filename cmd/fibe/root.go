@@ -142,7 +142,7 @@ DOCUMENTATION:
 		doctorCmd(),
 		configCmd(),
 		authCmd(),
-		localPlaygroundsCmd(),
+		localCmd(),
 		mcpCmd(),
 		versionCmd(),
 		completionCmd(),
@@ -205,11 +205,31 @@ func projectForOutput(v any, fields []string) any {
 		return v
 	}
 
-	var raw map[string]any
+	var raw any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return v
 	}
 
+	return projectRawForOutput(raw, set)
+}
+
+func projectRawForOutput(raw any, set map[string]bool) any {
+	switch value := raw.(type) {
+	case []any:
+		for i, item := range value {
+			if m, ok := item.(map[string]any); ok {
+				value[i] = projectMapForOutput(m, set)
+			}
+		}
+		return value
+	case map[string]any:
+		return projectMapEnvelopeForOutput(value, set)
+	default:
+		return raw
+	}
+}
+
+func projectMapEnvelopeForOutput(raw map[string]any, set map[string]bool) map[string]any {
 	var dataKey string
 	if _, ok := raw["data"]; ok {
 		dataKey = "data"
@@ -221,24 +241,26 @@ func projectForOutput(v any, fields []string) any {
 		if dataSlice, ok := raw[dataKey].([]any); ok {
 			for i, item := range dataSlice {
 				if m, ok := item.(map[string]any); ok {
-					for key := range m {
-						if !set[key] {
-							delete(m, key)
-						}
-					}
-					dataSlice[i] = m
+					dataSlice[i] = projectMapForOutput(m, set)
 				}
 			}
 			raw[dataKey] = dataSlice
+			return raw
 		}
-	} else {
-		for key := range raw {
-			if !set[key] {
-				delete(raw, key)
-			}
+		if dataMap, ok := raw[dataKey].(map[string]any); ok {
+			raw[dataKey] = projectMapForOutput(dataMap, set)
+			return raw
 		}
 	}
+	return projectMapForOutput(raw, set)
+}
 
+func projectMapForOutput(raw map[string]any, set map[string]bool) map[string]any {
+	for key := range raw {
+		if !set[key] {
+			delete(raw, key)
+		}
+	}
 	return raw
 }
 

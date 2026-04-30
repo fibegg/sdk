@@ -117,6 +117,12 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 		return nil, fmt.Errorf("unknown tool %q", name)
 	}
 
+	shape, err := parseResponseShape(args)
+	if err != nil {
+		return nil, err
+	}
+	handlerArgs := stripResponseShapeArgs(args)
+
 	yolo := d.srv.cfg.Yolo || yoloFromContext(ctx)
 	if t.annotations.Destructive && !yolo {
 		if !argBool(args, "confirm") {
@@ -127,10 +133,10 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	// fibe_call and fibe_pipeline need to read and forward confirm into
 	// nested invocations, so we leave their args untouched.
 	if !preservesConfirmArgs(t.name) {
-		if _, ok := args["confirm"]; ok {
-			delete(args, "confirm")
+		if _, ok := handlerArgs["confirm"]; ok {
+			delete(handlerArgs, "confirm")
 		}
-		if err := validatePositiveIDArgs(args); err != nil {
+		if err := validatePositiveIDArgs(handlerArgs); err != nil {
 			return nil, err
 		}
 	}
@@ -139,7 +145,11 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	if err != nil {
 		return nil, err
 	}
-	return t.handler(ctx, c, args)
+	result, err := t.handler(ctx, c, handlerArgs)
+	if err != nil {
+		return nil, err
+	}
+	return applyResponseShape(result, shape)
 }
 
 func validatePositiveIDArgs(args map[string]any) error {

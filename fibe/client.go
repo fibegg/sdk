@@ -27,33 +27,34 @@ type Client struct {
 	retry         *retryPolicy
 	lastRequestID atomic.Value // stores string
 
-	Playgrounds        *PlaygroundService
-	Tricks             *TrickService
-	Agents             *AgentService
-	AgentDefaults      *AgentDefaultsService
-	Artefacts          *ArtefactService
-	Playspecs          *PlayspecService
-	Props              *PropService
-	Marquees           *MarqueeService
-	Secrets            *SecretService
-	JobEnv             *JobEnvService
+	Playgrounds            *PlaygroundService
+	Tricks                 *TrickService
+	Agents                 *AgentService
+	AgentDefaults          *AgentDefaultsService
+	Artefacts              *ArtefactService
+	Playspecs              *PlayspecService
+	Props                  *PropService
+	Marquees               *MarqueeService
+	Secrets                *SecretService
+	JobEnv                 *JobEnvService
 	APIKeys                *APIKeyService
 	ImportTemplates        *ImportTemplateService
 	ImportTemplateVersions *ImportTemplateVersionService
 	WebhookEndpoints       *WebhookEndpointService
 	Feedbacks              *FeedbackService
-	Mutters            *MutterService
-	AuditLogs          *AuditLogService
-	Monitor            *MonitorService
-	Greenfield         *GreenfieldService
-	GitHubRepos        *GitHubRepoService
-	GiteaRepos         *GiteaRepoService
-	Installations      *InstallationService
-	Launch             *LaunchService
-	RepoStatus         *RepoStatusService
-	TemplateCategories *TemplateCategoryService
-	Status             *StatusService
-	ServerInfo         *ServerInfoService
+	Mutters                *MutterService
+	Memories               *MemoryService
+	AuditLogs              *AuditLogService
+	Monitor                *MonitorService
+	Greenfield             *GreenfieldService
+	GitHubRepos            *GitHubRepoService
+	GiteaRepos             *GiteaRepoService
+	Installations          *InstallationService
+	Launch                 *LaunchService
+	RepoStatus             *RepoStatusService
+	TemplateCategories     *TemplateCategoryService
+	Status                 *StatusService
+	ServerInfo             *ServerInfoService
 }
 
 func NewClient(opts ...Option) *Client {
@@ -128,6 +129,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.WebhookEndpoints = &WebhookEndpointService{client: c}
 	c.Feedbacks = &FeedbackService{client: c}
 	c.Mutters = &MutterService{client: c}
+	c.Memories = &MemoryService{client: c}
 	c.AuditLogs = &AuditLogService{client: c}
 	c.Monitor = &MonitorService{client: c}
 	c.Greenfield = &GreenfieldService{client: c}

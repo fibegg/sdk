@@ -135,7 +135,7 @@ is most useful in multi-tenant HTTP deployments.`),
 		name: "fibe_local_playgrounds_list", description: "[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT.", tier: tierLocal,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return s.runCobraArgs(ctx, "local-playgrounds", "list")
+			return s.runCobraArgs(ctx, "local", "playgrounds", "list")
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_list",
 		mcp.WithDescription("[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT."),
@@ -149,7 +149,7 @@ is most useful in multi-tenant HTTP deployments.`),
 			if name == "" {
 				return nil, fmt.Errorf("required field 'playground' not set")
 			}
-			return s.runCobraArgs(ctx, "local-playgrounds", "info", name)
+			return s.runCobraArgs(ctx, "local", "playgrounds", "info", name)
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_info",
 		mcp.WithDescription("[MODE:BROWNFIELD] Get info about a local playground."),
@@ -164,7 +164,7 @@ is most useful in multi-tenant HTTP deployments.`),
 			if name == "" {
 				return nil, fmt.Errorf("required field 'playground' not set")
 			}
-			return s.runCobraArgs(ctx, "local-playgrounds", "urls", name)
+			return s.runCobraArgs(ctx, "local", "playgrounds", "urls", name)
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_urls",
 		mcp.WithDescription("[MODE:BROWNFIELD] Get URLs of a local playground."),
@@ -179,7 +179,7 @@ is most useful in multi-tenant HTTP deployments.`),
 			if name == "" {
 				return nil, fmt.Errorf("required field 'playground' not set")
 			}
-			cliArgs := []any{"local-playgrounds", "link", name}
+			cliArgs := []any{"local", "playgrounds", "link", name}
 			if linkDir := argString(args, "link_dir"); linkDir != "" {
 				cliArgs = append(cliArgs, "--link-dir", linkDir)
 			}

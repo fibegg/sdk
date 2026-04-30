@@ -16,6 +16,7 @@ func enrichToolInputSchema(toolName string, tool *mcp.Tool) {
 	if !ok {
 		return
 	}
+	injectGlobalResponseShapeProperties(toolName, m)
 	enrichSchemaProperties(toolName, m)
 	data, err := json.Marshal(m)
 	if err != nil {
@@ -23,6 +24,41 @@ func enrichToolInputSchema(toolName string, tool *mcp.Tool) {
 	}
 	tool.InputSchema.Type = ""
 	tool.RawInputSchema = data
+}
+
+func injectGlobalResponseShapeProperties(toolName string, schema map[string]any) {
+	props, _ := schema["properties"].(map[string]any)
+	if props == nil {
+		props = map[string]any{}
+		schema["properties"] = props
+	}
+	if _, exists := props[responseOnlyArg]; !exists {
+		props[responseOnlyArg] = map[string]any{
+			"type":        "array",
+			"description": `Return only these top-level fields from each result item. Example: only: ["uuid","title","project"] on local conversations keeps envelope metadata but trims each conversation.`,
+			"items": map[string]any{
+				"type": "string",
+			},
+		}
+	}
+	if suppressOutputPath(toolName) {
+		return
+	}
+	if _, exists := props[responseOutputPathArg]; !exists {
+		props[responseOutputPathArg] = map[string]any{
+			"type":        "string",
+			"description": `JSONPath into the tool result, not a filesystem path. Example: "$.conversations[0].uuid" returns the first UUID; "$.conversations" returns only the array.`,
+		}
+	}
+}
+
+func suppressOutputPath(toolName string) bool {
+	switch toolName {
+	case "fibe_local_conversations_get_message", "fibe_memorize":
+		return true
+	default:
+		return false
+	}
 }
 
 func enrichSchemaProperties(toolName string, schema map[string]any) {

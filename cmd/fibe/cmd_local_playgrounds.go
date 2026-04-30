@@ -171,7 +171,7 @@ func findPlayground(playgrounds []localPlayground, target string) *localPlaygrou
 
 func localPlaygroundsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "local-playgrounds",
+		Use:     "playgrounds",
 		Aliases: []string{"lp"},
 		Short:   "Explore local playgrounds on this machine",
 		Long: `A CLI utility to explore local Playgrounds.
@@ -184,10 +184,10 @@ Environment Variables:
   MARQUEE_ROOT_DOMAIN   Base domain for URLs (default: phoenix.test)
 
 Examples:
-  fibe local-playgrounds list                    List all playgrounds
-  fibe local-playgrounds info my-app             Show extended info
-  fibe local-playgrounds urls my-app             Output service URLs
-  fibe local-playgrounds link my-app             Map playground into /app/playground`,
+  fibe local playgrounds list                    List all playgrounds
+  fibe local playgrounds info my-app             Show extended info
+  fibe local playgrounds urls my-app             Output service URLs
+  fibe local playgrounds link my-app             Map playground into /app/playground`,
 	}
 
 	cmd.AddCommand(
