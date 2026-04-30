@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type ImportTemplate struct {
 	ID               *int64                `json:"id"`
@@ -23,6 +26,22 @@ type ImportTemplate struct {
 	Versions []ImportTemplateVersion `json:"versions,omitempty"`
 }
 
+func (t *ImportTemplate) UnmarshalJSON(data []byte) error {
+	cleaned, parsedTimes, err := stripFlexibleTimeFields(data, "created_at", "updated_at")
+	if err != nil {
+		return err
+	}
+	type alias ImportTemplate
+	var out alias
+	if err := json.Unmarshal(cleaned, &out); err != nil {
+		return err
+	}
+	out.CreatedAt = parsedTimes["created_at"]
+	out.UpdatedAt = parsedTimes["updated_at"]
+	*t = ImportTemplate(out)
+	return nil
+}
+
 type ImportTemplateVersion struct {
 	ID                *int64                       `json:"id"`
 	Version           *int64                       `json:"version"`
@@ -34,6 +53,21 @@ type ImportTemplateVersion struct {
 	Source            *ImportTemplateVersionSource `json:"source,omitempty"`
 	Variables         map[string]any               `json:"variables,omitempty"`
 	CreatedAt         *time.Time                   `json:"created_at"`
+}
+
+func (v *ImportTemplateVersion) UnmarshalJSON(data []byte) error {
+	cleaned, parsedTimes, err := stripFlexibleTimeFields(data, "created_at")
+	if err != nil {
+		return err
+	}
+	type alias ImportTemplateVersion
+	var out alias
+	if err := json.Unmarshal(cleaned, &out); err != nil {
+		return err
+	}
+	out.CreatedAt = parsedTimes["created_at"]
+	*v = ImportTemplateVersion(out)
+	return nil
 }
 
 type ImportTemplateSource struct {
@@ -53,6 +87,21 @@ type ImportTemplateSource struct {
 	LastContentSHA    *string    `json:"last_content_sha,omitempty"`
 	LastRefreshedAt   *time.Time `json:"last_refreshed_at,omitempty"`
 	LastError         *string    `json:"last_error,omitempty"`
+}
+
+func (s *ImportTemplateSource) UnmarshalJSON(data []byte) error {
+	cleaned, parsedTimes, err := stripFlexibleTimeFields(data, "last_refreshed_at")
+	if err != nil {
+		return err
+	}
+	type alias ImportTemplateSource
+	var out alias
+	if err := json.Unmarshal(cleaned, &out); err != nil {
+		return err
+	}
+	out.LastRefreshedAt = parsedTimes["last_refreshed_at"]
+	*s = ImportTemplateSource(out)
+	return nil
 }
 
 type ImportTemplateVersionSource struct {

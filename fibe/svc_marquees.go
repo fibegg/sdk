@@ -55,9 +55,12 @@ func (s *MarqueeService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyR
 	return &result, err
 }
 
+// TestConnection tests SSH connectivity to the marquee host.
+// The API returns 202 Accepted; this method auto-polls for the result.
 func (s *MarqueeService) TestConnection(ctx context.Context, id int64) (*ConnectionTestResult, error) {
 	var result ConnectionTestResult
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/marquees/%d/test_connection", id), nil, &result)
+	statusFmt := fmt.Sprintf("/api/marquees/%d/test_connection/%%s", id)
+	err := s.client.doAsync(ctx, http.MethodPost, fmt.Sprintf("/api/marquees/%d/test_connection", id), statusFmt, nil, &result)
 	return &result, err
 }
 
