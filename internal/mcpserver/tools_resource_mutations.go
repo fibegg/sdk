@@ -70,12 +70,15 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Agents.Create(ctx, &p)
 	case "agent.update":
-		id, _ := argInt64(payload, "agent_id")
+		identifier, err := requiredIdentifier(payload, "agent_id", "")
+		if err != nil {
+			return nil, err
+		}
 		var p fibe.AgentUpdateParams
 		if err := bindIdentifierArgs(payload, &p, "build_in_public_playground_id"); err != nil {
 			return nil, err
 		}
-		return c.Agents.Update(ctx, id, &p)
+		return c.Agents.UpdateByIdentifier(ctx, identifier, &p)
 	case "api_key.create":
 		var p fibe.APIKeyCreateParams
 		if err := bindArgs(payload, &p); err != nil {

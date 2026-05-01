@@ -9,10 +9,20 @@ import (
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee":
+	case "playground", "trick", "playspec", "prop", "marquee", "agent":
 		return true
 	default:
 		return false
+	}
+}
+
+func identifierInputProperty(description string) map[string]any {
+	return map[string]any{
+		"oneOf": []any{
+			map[string]any{"type": "integer", "minimum": 1},
+			map[string]any{"type": "string", "minLength": 1},
+		},
+		"description": description,
 	}
 }
 

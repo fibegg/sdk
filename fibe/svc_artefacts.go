@@ -26,7 +26,11 @@ func (s *ArtefactService) GetByID(ctx context.Context, id int64) (*Artefact, err
 }
 
 func (s *ArtefactService) List(ctx context.Context, agentID int64, params *ArtefactListParams) (*ListResult[Artefact], error) {
-	path := fmt.Sprintf("/api/agents/%d/artefacts", agentID)
+	return s.ListByAgentIdentifier(ctx, int64Identifier(agentID), params)
+}
+
+func (s *ArtefactService) ListByAgentIdentifier(ctx context.Context, agentIdentifier string, params *ArtefactListParams) (*ListResult[Artefact], error) {
+	path := identifierPath("/api/agents", agentIdentifier) + "/artefacts"
 	if params != nil {
 		path += buildQuery(params)
 	}
@@ -34,13 +38,21 @@ func (s *ArtefactService) List(ctx context.Context, agentID int64, params *Artef
 }
 
 func (s *ArtefactService) Get(ctx context.Context, agentID, id int64) (*Artefact, error) {
+	return s.GetByAgentIdentifier(ctx, int64Identifier(agentID), id)
+}
+
+func (s *ArtefactService) GetByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64) (*Artefact, error) {
 	var result Artefact
-	path := fmt.Sprintf("/api/agents/%d/artefacts/%d", agentID, id)
+	path := fmt.Sprintf("%s/artefacts/%d", identifierPath("/api/agents", agentIdentifier), id)
 	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
 	return &result, err
 }
 
 func (s *ArtefactService) Create(ctx context.Context, agentID int64, params *ArtefactCreateParams, file io.Reader, fileName string) (*Artefact, error) {
+	return s.CreateByAgentIdentifier(ctx, int64Identifier(agentID), params, file, fileName)
+}
+
+func (s *ArtefactService) CreateByAgentIdentifier(ctx context.Context, agentIdentifier string, params *ArtefactCreateParams, file io.Reader, fileName string) (*Artefact, error) {
 	fields := map[string]string{
 		"name": params.Name,
 	}
@@ -50,7 +62,10 @@ func (s *ArtefactService) Create(ctx context.Context, agentID int64, params *Art
 	if params.PlaygroundID != nil {
 		fields["playground_id"] = fmt.Sprintf("%d", *params.PlaygroundID)
 	}
-	path := fmt.Sprintf("/api/agents/%d/artefacts", agentID)
+	if params.PlaygroundIdentifier != "" {
+		fields["playground_id"] = params.PlaygroundIdentifier
+	}
+	path := identifierPath("/api/agents", agentIdentifier) + "/artefacts"
 	var result Artefact
 	err := s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, &result)
 	if err != nil {
@@ -60,7 +75,11 @@ func (s *ArtefactService) Create(ctx context.Context, agentID int64, params *Art
 }
 
 func (s *ArtefactService) Download(ctx context.Context, agentID, id int64) (io.ReadCloser, string, string, error) {
-	path := fmt.Sprintf("/api/agents/%d/artefacts/%d/download", agentID, id)
+	return s.DownloadByAgentIdentifier(ctx, int64Identifier(agentID), id)
+}
+
+func (s *ArtefactService) DownloadByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64) (io.ReadCloser, string, string, error) {
+	path := fmt.Sprintf("%s/artefacts/%d/download", identifierPath("/api/agents", agentIdentifier), id)
 	return s.client.doDownload(ctx, path)
 }
 

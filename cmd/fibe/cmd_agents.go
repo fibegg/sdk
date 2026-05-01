@@ -25,24 +25,24 @@ PROVIDERS:
 
 SUBCOMMANDS:
   list                  List all agents
-  get <id>              Show agent details
+  get <id-or-name>      Show agent details
   create                Create a new agent
-  update <id>           Update agent settings
-  delete <id>           Delete an agent
-  duplicate <id>        Clone an agent
-  start-chat <id>       Start an interactive chat session on a Marquee
-  runtime-status <id>   Show agent chat runtime status
-  purge-chat <id>       Tear down an agent chat container and volumes
-  chat <id>             Send a chat message
-  authenticate <id>     Authenticate agent with provider
-  add-mounted-file <id> Attach a mounted file or Artefact snapshot
-  update-mounted-file <id> Update mounted file metadata
-  remove-mounted-file <id> Remove a mounted file
-  messages <id>         Get agent messages
-  set-messages <id>     Replace agent messages content
-  activity <id>         Get agent activity
-  set-activity <id>     Replace agent activity content
-  gitea-token <id>      Get agent's Gitea token
+  update <id-or-name>   Update agent settings
+  delete <id-or-name>   Delete an agent
+  duplicate <id-or-name> Clone an agent
+  start-chat <id-or-name> Start an interactive chat session on a Marquee
+  runtime-status <id-or-name> Show agent chat runtime status
+  purge-chat <id-or-name> Tear down agent chat container and volumes
+  chat <id-or-name>     Send a chat message
+  authenticate <id-or-name> Authenticate agent with provider
+  add-mounted-file <id-or-name> Attach a mounted file or Artefact snapshot
+  update-mounted-file <id-or-name> Update mounted file metadata
+  remove-mounted-file <id-or-name> Remove a mounted file
+  messages <id-or-name> Get agent messages
+  set-messages <id-or-name> Replace agent messages content
+  activity <id-or-name> Get agent activity
+  set-activity <id-or-name> Replace agent activity content
+  gitea-token <id-or-name> Get agent's Gitea token
   defaults              Manage player-level agent defaults`,
 	}
 
@@ -164,18 +164,17 @@ EXAMPLES:
 
 func agGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <id>",
+		Use:   "get <id-or-name>",
 		Short: "Show agent details",
 		Long: `Get detailed information about a specific agent.
 
 EXAMPLES:
   fibe agents get 5
-  fibe ag get 5 --output json`,
+  fibe ag get my-agent --output json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			agent, err := c.Agents.Get(ctx(), id)
+			agent, err := c.Agents.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -361,7 +360,7 @@ func agUpdateCmd() *cobra.Command {
 	var buildInPublicPlaygroundID string
 
 	cmd := &cobra.Command{
-		Use:   "update <id>",
+		Use:   "update <id-or-name>",
 		Short: "Update agent settings",
 		Long: `Update an existing agent's configuration.
 
@@ -385,11 +384,10 @@ OPTIONAL FLAGS:
 
 EXAMPLES:
   fibe agents update 5 --name new-name
-  fibe ag update 5 --sync=false --memory-limit 1024` + generateSchemaDoc(&fibe.AgentUpdateParams{}),
+  fibe ag update my-agent --sync=false --memory-limit 1024` + generateSchemaDoc(&fibe.AgentUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.AgentUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -446,7 +444,7 @@ EXAMPLES:
 			if len(toggles) > 0 {
 				params.SkillToggles = toggles
 			}
-			agent, err := c.Agents.Update(ctx(), id, params)
+			agent, err := c.Agents.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -538,22 +536,21 @@ func splitMountSpec(spec, flag string) (string, string, error) {
 
 func agDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <id>",
+		Use:   "delete <id-or-name>",
 		Short: "Delete an agent",
 		Long: `Delete an agent and all its associated data (messages, artefacts, etc.).
 
 WARNING: This action is irreversible.
 
 EXAMPLES:
-  fibe agents delete 5`,
+  fibe agents delete my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Agents.Delete(ctx(), id); err != nil {
+			if err := c.Agents.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Agent %d deleted\n", id)
+			fmt.Printf("Agent %s deleted\n", args[0])
 			return nil
 		},
 	}
@@ -561,19 +558,18 @@ EXAMPLES:
 
 func agDuplicateCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "duplicate <id>",
+		Use:   "duplicate <id-or-name>",
 		Short: "Clone an existing agent",
 		Long: `Create a copy of an existing agent with all its configuration.
 
 The new agent will have a different ID but identical settings.
 
 EXAMPLES:
-  fibe agents duplicate 5`,
+  fibe agents duplicate my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			agent, err := c.Agents.Duplicate(ctx(), id)
+			agent, err := c.Agents.DuplicateByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -581,7 +577,7 @@ EXAMPLES:
 				outputJSON(agent)
 				return nil
 			}
-			fmt.Printf("Duplicated agent %d → new agent %d (%s)\n", id, agent.ID, agent.Name)
+			fmt.Printf("Duplicated agent %s -> new agent %d (%s)\n", args[0], agent.ID, agent.Name)
 			return nil
 		},
 	}
@@ -590,7 +586,7 @@ EXAMPLES:
 func agStartChatCmd() *cobra.Command {
 	var marqueeID string
 	cmd := &cobra.Command{
-		Use:   "start-chat <id>",
+		Use:   "start-chat <id-or-name>",
 		Short: "Start an interactive chat session for an agent",
 		Long: `Start the agent chat runtime on a target Marquee.
 
@@ -599,14 +595,13 @@ REQUIRED FLAGS:
 
 EXAMPLES:
   fibe agents start-chat 5 --marquee-id 2
-  fibe ag start-chat 5 --marquee-id 2`,
+  fibe ag start-chat my-agent --marquee-id my-marquee`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if marqueeID == "" {
 				return fmt.Errorf("required field 'marquee-id' not set")
 			}
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			session, err := newClient().Agents.StartChatByIdentifier(ctx(), id, marqueeID)
+			session, err := newClient().Agents.StartChatByAgentIdentifier(ctx(), args[0], marqueeID)
 			if err != nil {
 				return err
 			}
@@ -620,18 +615,17 @@ EXAMPLES:
 
 func agRuntimeStatusCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "runtime-status <id>",
+		Use:   "runtime-status <id-or-name>",
 		Short: "Show agent chat runtime status",
 		Long: `Show the latest chat status for an agent and, when the runtime is running,
 query its authenticated/processing/queue state.
 
 EXAMPLES:
   fibe agents runtime-status 5
-  fibe ag runtime-status 5 -o json`,
+  fibe ag runtime-status my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			status, err := newClient().Agents.RuntimeStatus(ctx(), id)
+			status, err := newClient().Agents.RuntimeStatusByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -653,7 +647,7 @@ EXAMPLES:
 
 func agPurgeChatCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "purge-chat <id>",
+		Use:   "purge-chat <id-or-name>",
 		Short: "Tear down an agent chat container and volumes",
 		Long: `Synchronously purge the latest agent chat runtime container and persistent volumes.
 
@@ -661,11 +655,10 @@ WARNING: This removes runtime volumes for the agent chat.
 
 EXAMPLES:
   fibe agents purge-chat 5
-  fibe ag purge-chat 5 -o json`,
+  fibe ag purge-chat my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			session, err := newClient().Agents.PurgeChat(ctx(), id)
+			session, err := newClient().Agents.PurgeChatByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -673,7 +666,7 @@ EXAMPLES:
 				outputJSON(session)
 				return nil
 			}
-			fmt.Printf("Purged chat %d for agent %d (status: %s)\n", session.ID, id, session.Status)
+			fmt.Printf("Purged chat %d for agent %s (status: %s)\n", session.ID, args[0], session.Status)
 			return nil
 		},
 	}
@@ -683,7 +676,7 @@ func agSendMessageCmd() *cobra.Command {
 	var text string
 
 	cmd := &cobra.Command{
-		Use:     "send-message <id>",
+		Use:     "send-message <id-or-name>",
 		Aliases: []string{"chat"},
 		Short:   "Send a message to an agent",
 		Long: `Send a text message to an agent and receive a response.
@@ -695,13 +688,12 @@ REQUIRED FLAGS:
 
 EXAMPLES:
   fibe agents send-message 5 --text "Fix the failing tests"
-  fibe ag send-message 5 --text "Deploy to staging"
-  echo '{"text": "Debug the build output"}' | fibe agents send-message 5 -f -
-  fibe agents send-message 5 -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
+  fibe ag send-message my-agent --text "Deploy to staging"
+  echo '{"text": "Debug the build output"}' | fibe agents send-message my-agent -f -
+  fibe agents send-message my-agent -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.AgentChatParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -712,7 +704,7 @@ EXAMPLES:
 			if params.Text == "" {
 				return fmt.Errorf("required field 'text' not set")
 			}
-			result, err := c.Agents.Chat(ctx(), id, params)
+			result, err := c.Agents.ChatByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -729,7 +721,7 @@ func agAuthCmd() *cobra.Command {
 	var code, token string
 
 	cmd := &cobra.Command{
-		Use:   "authenticate <id>",
+		Use:   "authenticate <id-or-name>",
 		Short: "Authenticate agent with its provider",
 		Long: `Authenticate an agent with GitHub or Gitea.
 
@@ -741,11 +733,10 @@ OPTIONAL FLAGS:
 
 EXAMPLES:
   fibe agents authenticate 5 --token ghp_xxxx
-  fibe ag authenticate 5 --code abc123`,
+  fibe ag authenticate my-agent --code abc123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			var codePtr, tokenPtr *string
 			if code != "" {
 				codePtr = &code
@@ -753,7 +744,7 @@ EXAMPLES:
 			if token != "" {
 				tokenPtr = &token
 			}
-			agent, err := c.Agents.Authenticate(ctx(), id, codePtr, tokenPtr)
+			agent, err := c.Agents.AuthenticateByIdentifier(ctx(), args[0], codePtr, tokenPtr)
 			if err != nil {
 				return err
 			}
@@ -769,19 +760,18 @@ EXAMPLES:
 
 func agMessagesCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "messages <id>",
+		Use:   "messages <id-or-name>",
 		Short: "Get agent messages",
 		Long: `Retrieve the stored messages for an agent.
 
 Messages are agent conversation history stored as JSON.
 
 EXAMPLES:
-  fibe agents messages 5`,
+  fibe agents messages my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			data, err := c.Agents.GetMessages(ctx(), id)
+			data, err := c.Agents.GetMessagesByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -793,7 +783,7 @@ EXAMPLES:
 
 func agActivityCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "activity <id>",
+		Use:   "activity <id-or-name>",
 		Short: "Get agent activity log",
 		Long: `Retrieve the activity log for an agent.
 
@@ -801,12 +791,11 @@ Activity logs track what the agent has done, including actions taken
 and their outcomes.
 
 EXAMPLES:
-  fibe agents activity 5`,
+  fibe agents activity my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			data, err := c.Agents.GetActivity(ctx(), id)
+			data, err := c.Agents.GetActivityByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -818,19 +807,18 @@ EXAMPLES:
 
 func agGiteaTokenCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "gitea-token <id>",
+		Use:   "gitea-token <id-or-name>",
 		Short: "Get agent's Gitea access token",
 		Long: `Get a Gitea access token for an agent.
 
 Returns the token, Gitea host, and username.
 
 EXAMPLES:
-  fibe agents gitea-token 5`,
+  fibe agents gitea-token my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			token, err := c.Agents.GetGiteaToken(ctx(), id)
+			token, err := c.Agents.GetGiteaTokenByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -848,23 +836,22 @@ EXAMPLES:
 
 func agSetMessagesCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "set-messages <id>",
+		Use:   "set-messages <id-or-name>",
 		Short: "Replace agent messages content",
 		Long: `Replace the messages content for an agent.
 
 Reads JSON content from STDIN or the --from-file flag.
 
 EXAMPLES:
-  echo '[{"role":"user","content":"hi"}]' | fibe agents set-messages 5 -f -
-  fibe agents set-messages 5 -f messages.json`,
+  echo '[{"role":"user","content":"hi"}]' | fibe agents set-messages my-agent -f -
+  fibe agents set-messages my-agent -f messages.json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if len(rawPayload) == 0 {
 				return fmt.Errorf("provide content via --from-file or STDIN")
 			}
-			err := c.Agents.UpdateMessages(ctx(), id, string(rawPayload))
+			err := c.Agents.UpdateMessagesByIdentifier(ctx(), args[0], string(rawPayload))
 			if err != nil {
 				return err
 			}
@@ -876,23 +863,22 @@ EXAMPLES:
 
 func agSetActivityCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "set-activity <id>",
+		Use:   "set-activity <id-or-name>",
 		Short: "Replace agent activity content",
 		Long: `Replace the activity log content for an agent.
 
 Reads JSON content from STDIN or the --from-file flag.
 
 EXAMPLES:
-  cat activity.json | fibe agents set-activity 5 -f -
-  fibe agents set-activity 5 -f activity.json`,
+  cat activity.json | fibe agents set-activity my-agent -f -
+  fibe agents set-activity my-agent -f activity.json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if len(rawPayload) == 0 {
 				return fmt.Errorf("provide content via --from-file or STDIN")
 			}
-			err := c.Agents.UpdateActivity(ctx(), id, string(rawPayload))
+			err := c.Agents.UpdateActivityByIdentifier(ctx(), args[0], string(rawPayload))
 			if err != nil {
 				return err
 			}

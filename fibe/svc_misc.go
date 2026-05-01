@@ -2,7 +2,6 @@ package fibe
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 )
 
@@ -11,7 +10,11 @@ type MutterService struct {
 }
 
 func (s *MutterService) Get(ctx context.Context, agentID int64, params *MutterListParams) (*Mutter, error) {
-	path := fmt.Sprintf("/api/agents/%d/mutter", agentID)
+	return s.GetByAgentIdentifier(ctx, int64Identifier(agentID), params)
+}
+
+func (s *MutterService) GetByAgentIdentifier(ctx context.Context, agentIdentifier string, params *MutterListParams) (*Mutter, error) {
+	path := identifierPath("/api/agents", agentIdentifier) + "/mutter"
 	if params != nil {
 		path += buildQuery(params)
 	}
@@ -21,7 +24,11 @@ func (s *MutterService) Get(ctx context.Context, agentID int64, params *MutterLi
 }
 
 func (s *MutterService) CreateItem(ctx context.Context, agentID int64, params *MutterItemParams) (*Mutter, error) {
-	path := fmt.Sprintf("/api/agents/%d/mutter", agentID)
+	return s.CreateItemByAgentIdentifier(ctx, int64Identifier(agentID), params)
+}
+
+func (s *MutterService) CreateItemByAgentIdentifier(ctx context.Context, agentIdentifier string, params *MutterItemParams) (*Mutter, error) {
+	path := identifierPath("/api/agents", agentIdentifier) + "/mutter"
 	var result Mutter
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err

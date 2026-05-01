@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -17,18 +16,17 @@ func agAddMountedFileCmd() *cobra.Command {
 	var targetServices []string
 	var readOnly bool
 	cmd := &cobra.Command{
-		Use:   "add-mounted-file <id>",
+		Use:   "add-mounted-file <id-or-name>",
 		Short: "Attach a file or Artefact snapshot to an agent",
 		Long: `Attach a mounted file to an agent.
 
 Use --file to upload a local file, or --artefact-id to snapshot an existing Artefact.
 
 EXAMPLES:
-  fibe agents add-mounted-file 5 --file ./prod.env --mount-path '%{agent_data}/.env'
-  fibe agents add-mounted-file 5 --artefact-id 123 --mount-path '%{workspace}/docs/context.md'`,
+  fibe agents add-mounted-file my-agent --file ./prod.env --mount-path '%{agent_data}/.env'
+  fibe agents add-mounted-file my-agent --artefact-id 123 --mount-path '%{workspace}/docs/context.md'`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filePath == "" && artefactID == 0 {
 				return fmt.Errorf("one of --file or --artefact-id is required")
 			}
@@ -41,13 +39,13 @@ EXAMPLES:
 			var agent *fibe.Agent
 			var err error
 			if artefactID != 0 {
-				agent, err = c.Agents.AddMountedFileFromArtefact(ctx(), id, artefactID, p)
+				agent, err = c.Agents.AddMountedFileFromArtefactByIdentifier(ctx(), args[0], artefactID, p)
 			} else {
 				data, readErr := os.ReadFile(filePath)
 				if readErr != nil {
 					return fmt.Errorf("read %s: %w", filePath, readErr)
 				}
-				agent, err = c.Agents.AddMountedFile(ctx(), id, bytes.NewReader(data), filepath.Base(filePath), p)
+				agent, err = c.Agents.AddMountedFileByIdentifier(ctx(), args[0], bytes.NewReader(data), filepath.Base(filePath), p)
 			}
 			if err != nil {
 				return err
@@ -69,15 +67,14 @@ func agUpdateMountedFileCmd() *cobra.Command {
 	var targetServices []string
 	var readOnly bool
 	cmd := &cobra.Command{
-		Use:   "update-mounted-file <id>",
+		Use:   "update-mounted-file <id-or-name>",
 		Short: "Update an agent mounted file",
 		Long: `Update metadata on an existing agent mounted file.
 
 EXAMPLES:
-  fibe agents update-mounted-file 5 --filename prod.env --mount-path '%{agent_data}/config/prod.env'`,
+  fibe agents update-mounted-file my-agent --filename prod.env --mount-path '%{agent_data}/config/prod.env'`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filename == "" {
 				return fmt.Errorf("required flag --filename not set")
 			}
@@ -85,7 +82,7 @@ EXAMPLES:
 			if cmd.Flags().Changed("readonly") {
 				p.ReadOnly = &readOnly
 			}
-			agent, err := newClient().Agents.UpdateMountedFile(ctx(), id, p)
+			agent, err := newClient().Agents.UpdateMountedFileByIdentifier(ctx(), args[0], p)
 			if err != nil {
 				return err
 			}
@@ -103,19 +100,18 @@ EXAMPLES:
 func agRemoveMountedFileCmd() *cobra.Command {
 	var filename string
 	cmd := &cobra.Command{
-		Use:   "remove-mounted-file <id>",
+		Use:   "remove-mounted-file <id-or-name>",
 		Short: "Remove an agent mounted file",
 		Long: `Remove a mounted file from an agent.
 
 EXAMPLES:
-  fibe agents remove-mounted-file 5 --filename prod.env`,
+  fibe agents remove-mounted-file my-agent --filename prod.env`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filename == "" {
 				return fmt.Errorf("required flag --filename not set")
 			}
-			agent, err := newClient().Agents.RemoveMountedFile(ctx(), id, filename)
+			agent, err := newClient().Agents.RemoveMountedFileByIdentifier(ctx(), args[0], filename)
 			if err != nil {
 				return err
 			}

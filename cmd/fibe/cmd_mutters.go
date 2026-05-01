@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -19,8 +18,8 @@ Mutters capture structured observations from agent runs, including
 status updates, severity markers, and playground-scoped data.
 
 SUBCOMMANDS:
-  get <agent-id>        Get agent mutters
-  create <agent-id>     Create a mutter item`,
+  get <agent-id-or-name>        Get agent mutters
+  create <agent-id-or-name>     Create a mutter item`,
 	}
 	cmd.AddCommand(mutterGetCmd(), mutterCreateCmd())
 	return cmd
@@ -29,7 +28,7 @@ SUBCOMMANDS:
 func mutterGetCmd() *cobra.Command {
 	var playgroundID, query, status, severity string
 	cmd := &cobra.Command{
-		Use: "get <agent-id>", Short: "Get agent mutters", Args: cobra.ExactArgs(1),
+		Use: "get <agent-id-or-name>", Short: "Get agent mutters", Args: cobra.ExactArgs(1),
 		Long: `Get mutters for an agent with optional filters.
 
 FILTERS:
@@ -39,12 +38,11 @@ FILTERS:
   --severity            Filter by severity
 
 EXAMPLES:
-  fibe mutters get 5
-  fibe mutters get 5 --playground-id 42
-  fibe mutters get 5 --status error --severity high -o json`,
+  fibe mutters get my-agent
+  fibe mutters get my-agent --playground-id 42
+  fibe mutters get my-agent --status error --severity high -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.MutterListParams{}
 			if playgroundID != "" {
 				params.PlaygroundID = playgroundID
@@ -64,7 +62,7 @@ EXAMPLES:
 			if flagPerPage > 0 {
 				params.PerPage = flagPerPage
 			}
-			mutter, err := c.Mutters.Get(ctx(), agentID, params)
+			mutter, err := c.Mutters.GetByAgentIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -83,7 +81,7 @@ func mutterCreateCmd() *cobra.Command {
 	var typ, body string
 	var playgroundID string
 	cmd := &cobra.Command{
-		Use: "create <agent-id>", Short: "Create a mutter item", Args: cobra.ExactArgs(1),
+		Use: "create <agent-id-or-name>", Short: "Create a mutter item", Args: cobra.ExactArgs(1),
 		Long: `Create a new mutter item for an agent.
 
 REQUIRED FLAGS:
@@ -94,11 +92,10 @@ OPTIONAL FLAGS:
   --playground-id   Associate with a playground
 
 EXAMPLES:
-  fibe mutters create 5 --type observation --body "Service restarted"
-  fibe mutters create 5 --type alert --body "High CPU" --playground-id 42`,
+  fibe mutters create my-agent --type observation --body "Service restarted"
+  fibe mutters create my-agent --type alert --body "High CPU" --playground-id 42`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 
 			if typ == "" {
 				return fmt.Errorf("required field 'type' not set")
@@ -111,7 +108,7 @@ EXAMPLES:
 			if cmd.Flags().Changed("playground-id") {
 				params.PlaygroundIdentifier = playgroundID
 			}
-			mutter, err := c.Mutters.CreateItem(ctx(), agentID, params)
+			mutter, err := c.Mutters.CreateItemByAgentIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}

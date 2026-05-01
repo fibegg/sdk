@@ -70,6 +70,18 @@ func TestResourceGetDispatchesWithAlias(t *testing.T) {
 	if getM.Name != agentName {
 		t.Fatalf("expected name %s, got %s", agentName, getM.Name)
 	}
+
+	getByNameRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
+		"resource":   "agents",
+		"identifier": agentName,
+	})
+	if err != nil {
+		t.Fatalf("get by name dispatch: %v", err)
+	}
+	getByNameAgent := getByNameRes.(*fibe.Agent)
+	if getByNameAgent.ID != m.ID {
+		t.Fatalf("expected agent ID %d, got %d", m.ID, getByNameAgent.ID)
+	}
 }
 
 func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
@@ -81,7 +93,7 @@ func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
 	}
 
 	agentName := fmt.Sprintf("test-agent-%d", time.Now().UnixNano())
-	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 		"resource":  "agents",
 		"operation": "create",
 		"payload": map[string]any{
@@ -92,12 +104,9 @@ func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	m := res.(*fibe.Agent)
-	agentID := int(m.ID)
-
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", map[string]any{
-		"resource": "agents",
-		"id":       agentID,
+		"resource":   "agents",
+		"identifier": agentName,
 	}); err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}

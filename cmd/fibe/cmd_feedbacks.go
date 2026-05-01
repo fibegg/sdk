@@ -19,10 +19,10 @@ Feedback captures user annotations on agent output: text selections,
 comments, and contextual information.
 
 SUBCOMMANDS:
-  list <agent-id>          List feedbacks
-  get <agent-id> <id>      Show feedback details
-  create <agent-id>        Create feedback
-  delete <agent-id> <id>   Delete feedback`,
+  list <agent-id-or-name>          List feedbacks
+  get <agent-id-or-name> <id>      Show feedback details
+  create <agent-id-or-name>        Create feedback
+  delete <agent-id-or-name> <id>   Delete feedback`,
 	}
 	cmd.AddCommand(fbListCmd(), fbGetCmd(), fbCreateCmd(), fbDeleteCmd())
 	return cmd
@@ -31,7 +31,7 @@ SUBCOMMANDS:
 func fbListCmd() *cobra.Command {
 	var query, sourceType, sourceID, playgroundID, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
-		Use: "list <agent-id>", Short: "List agent feedbacks", Args: cobra.ExactArgs(1),
+		Use: "list <agent-id-or-name>", Short: "List agent feedbacks", Args: cobra.ExactArgs(1),
 		Long: `List feedbacks for an agent.
 
 FILTERS:
@@ -51,12 +51,11 @@ SORTING:
                         Default: created_at_desc
 
 EXAMPLES:
-  fibe feedbacks list 5
-  fibe feedbacks list 5 -q "bug" --source-type messages
-  fibe feedbacks list 5 --playground-id 42 -o json`,
+  fibe feedbacks list my-agent
+  fibe feedbacks list my-agent -q "bug" --source-type messages
+  fibe feedbacks list my-agent --playground-id 42 -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.FeedbackListParams{}
 			if query != "" {
 				params.Query = query
@@ -85,7 +84,7 @@ EXAMPLES:
 			if flagPerPage > 0 {
 				params.PerPage = flagPerPage
 			}
-			fbs, err := c.Feedbacks.List(ctx(), agentID, params)
+			fbs, err := c.Feedbacks.ListByAgentIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -105,12 +104,11 @@ EXAMPLES:
 
 func fbGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "get <agent-id> <id>", Short: "Show feedback", Args: cobra.ExactArgs(2),
+		Use: "get <agent-id-or-name> <id>", Short: "Show feedback", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
-			fb, err := c.Feedbacks.Get(ctx(), agentID, id)
+			fb, err := c.Feedbacks.GetByAgentIdentifier(ctx(), args[0], id)
 			if err != nil {
 				return err
 			}
@@ -123,11 +121,10 @@ func fbGetCmd() *cobra.Command {
 func fbCreateCmd() *cobra.Command {
 	var sourceType, comment string
 	cmd := &cobra.Command{
-		Use: "create <agent-id>", Short: "Create feedback", Args: cobra.ExactArgs(1),
+		Use: "create <agent-id-or-name>", Short: "Create feedback", Args: cobra.ExactArgs(1),
 		Long: "Create new feedback for an agent's completion capability.\n\nFEEDBACK CONSTRAINTS:\n  - The rating must be a strict integer grading the response (typically 1 to 5 points).\n  - Do not hallucinate scores. Ask the human explicitly for a numeric rating.\n\nREQUIRED FLAGS:\n  --source-type  Feedback source\n  --comment      Feedback explanation text",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.FeedbackCreateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -143,7 +140,7 @@ func fbCreateCmd() *cobra.Command {
 				return fmt.Errorf("required field 'source-type' not set")
 			}
 
-			fb, err := c.Feedbacks.Create(ctx(), agentID, params)
+			fb, err := c.Feedbacks.CreateByAgentIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -158,12 +155,11 @@ func fbCreateCmd() *cobra.Command {
 
 func fbDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "delete <agent-id> <id>", Short: "Delete feedback", Args: cobra.ExactArgs(2),
+		Use: "delete <agent-id-or-name> <id>", Short: "Delete feedback", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
-			if err := c.Feedbacks.Delete(ctx(), agentID, id); err != nil {
+			if err := c.Feedbacks.DeleteByAgentIdentifier(ctx(), args[0], id); err != nil {
 				return err
 			}
 			fmt.Printf("Feedback %d deleted\n", id)

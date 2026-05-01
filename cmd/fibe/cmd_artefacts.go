@@ -22,10 +22,10 @@ ARTEFACT CONSTRAINTS:
   - LLM Genies MUST bundle any text output over ~40 lines into an Artefact instead of direct chat messages to keep the session context token window efficient.
 
 SUBCOMMANDS:
-  list <agent-id>          List artefacts
-  get <agent-id> <id>      Show artefact details
-  create <agent-id>        Upload an artefact
-  download <agent-id> <id> Download artefact file content`,
+  list <agent-id-or-name>          List artefacts
+  get <agent-id-or-name> <id>      Show artefact details
+  create <agent-id-or-name>        Upload an artefact
+  download <agent-id-or-name> <id> Download artefact file content`,
 	}
 	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artDownloadCmd())
 	return cmd
@@ -34,8 +34,8 @@ SUBCOMMANDS:
 func artListCmd() *cobra.Command {
 	var query, name, agentIDFlag, playgroundID, contentType, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
-		Use: "list [agent-id]", Short: "List artefacts", Args: cobra.MaximumNArgs(1),
-		Long: `List artefacts. When agent-id is provided, lists artefacts for that agent.
+		Use: "list [agent-id-or-name]", Short: "List artefacts", Args: cobra.MaximumNArgs(1),
+		Long: `List artefacts. When agent-id-or-name is provided, lists artefacts for that agent.
 When omitted, lists all artefacts accessible by the current player.
 
 FILTERS:
@@ -57,7 +57,7 @@ SORTING:
 
 EXAMPLES:
   fibe artefacts list
-  fibe artefacts list 5
+  fibe artefacts list my-agent
   fibe artefacts list -q "report" --sort name_asc
   fibe artefacts list --agent-id 5 --content-type application/pdf -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -92,8 +92,7 @@ EXAMPLES:
 			}
 
 			if len(args) > 0 {
-				agentID, _ := strconv.ParseInt(args[0], 10, 64)
-				arts, err := c.Artefacts.List(ctx(), agentID, params)
+				arts, err := c.Artefacts.ListByAgentIdentifier(ctx(), args[0], params)
 				if err != nil {
 					return err
 				}
@@ -124,12 +123,11 @@ EXAMPLES:
 
 func artGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "get <agent-id> <id>", Short: "Show artefact details", Args: cobra.ExactArgs(2),
+		Use: "get <agent-id-or-name> <id>", Short: "Show artefact details", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
-			art, err := c.Artefacts.Get(ctx(), agentID, id)
+			art, err := c.Artefacts.GetByAgentIdentifier(ctx(), args[0], id)
 			if err != nil {
 				return err
 			}
@@ -142,10 +140,9 @@ func artGetCmd() *cobra.Command {
 func artCreateCmd() *cobra.Command {
 	var name, desc, file string
 	cmd := &cobra.Command{
-		Use: "create <agent-id>", Short: "Create/upload an artefact", Args: cobra.ExactArgs(1),
+		Use: "create <agent-id-or-name>", Short: "Create/upload an artefact", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ArtefactCreateParams{Name: name, Description: desc}
 
 			var fileReader io.Reader
@@ -169,7 +166,7 @@ func artCreateCmd() *cobra.Command {
 				return fmt.Errorf("required flag --file not provided")
 			}
 
-			art, err := c.Artefacts.Create(ctx(), agentID, params, fileReader, fileName)
+			art, err := c.Artefacts.CreateByAgentIdentifier(ctx(), args[0], params, fileReader, fileName)
 			if err != nil {
 				return err
 			}
@@ -190,7 +187,7 @@ func artCreateCmd() *cobra.Command {
 func artDownloadCmd() *cobra.Command {
 	var to string
 	cmd := &cobra.Command{
-		Use:   "download <agent-id> <id>",
+		Use:   "download <agent-id-or-name> <id>",
 		Short: "Download an artefact's file content",
 		Long: `Download the binary content of an artefact.
 
@@ -198,17 +195,16 @@ REQUIRED FLAGS:
   --to    Output file path (use - for stdout)
 
 EXAMPLES:
-  fibe artefacts download 5 100 --to ./report.pdf
-  fibe artefacts download 5 100 --to - > report.pdf`,
+  fibe artefacts download my-agent 100 --to ./report.pdf
+  fibe artefacts download my-agent 100 --to - > report.pdf`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			id, _ := strconv.ParseInt(args[1], 10, 64)
 			if to == "" {
 				return fmt.Errorf("required field 'to' not set")
 			}
-			body, filename, contentType, err := c.Artefacts.Download(ctx(), agentID, id)
+			body, filename, contentType, err := c.Artefacts.DownloadByAgentIdentifier(ctx(), args[0], id)
 			if err != nil {
 				return err
 			}

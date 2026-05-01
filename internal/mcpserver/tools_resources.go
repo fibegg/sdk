@@ -71,10 +71,10 @@ func (s *Server) registerResourceTools() {
 			return rt.get(ctx, c, identifier)
 		},
 	}, mcp.NewTool("fibe_resource_get",
-		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, or by slug-safe name for playgrounds, tricks, playspecs, props, and marquees. Secret and job_env reads do not reveal plaintext values; artefact_attachment returns base64 file content."),
+		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, or by name for playgrounds, tricks, playspecs, props, marquees, and agents. Secret and job_env reads do not reveal plaintext values; artefact_attachment returns base64 file content."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(getResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, playspec, prop, webhook.")),
 		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
-		mcp.WithString("identifier", mcp.Description("Numeric ID or slug-safe name for playgrounds, tricks, playspecs, props, and marquees.")),
+		mcp.WithString("identifier", mcp.Description("Numeric ID or name for playgrounds, tricks, playspecs, props, marquees, and agents.")),
 	))
 
 	s.addTool(&toolImpl{
@@ -102,10 +102,10 @@ func (s *Server) registerResourceTools() {
 			return deletedResourceResult(name, identifier), nil
 		},
 	}, mcp.NewTool("fibe_resource_delete",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, or by slug-safe name for playgrounds, tricks, playspecs, props, and marquees."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, or by name for playgrounds, tricks, playspecs, props, marquees, and agents."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(deleteResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, playspec, prop, api_key.")),
 		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
-		mcp.WithString("identifier", mcp.Description("Numeric ID or slug-safe name for playgrounds, tricks, playspecs, props, and marquees.")),
+		mcp.WithString("identifier", mcp.Description("Numeric ID or name for playgrounds, tricks, playspecs, props, marquees, and agents.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 }
@@ -143,18 +143,10 @@ func flatResourceTools() map[string]flatResourceTool {
 				return c.Agents.List(ctx, p)
 			}),
 			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
-				id, err := parsePositiveIdentifierID(identifier, "id")
-				if err != nil {
-					return nil, err
-				}
-				return c.Agents.Get(ctx, id)
+				return c.Agents.GetByIdentifier(ctx, identifier)
 			},
 			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
-				id, err := parsePositiveIdentifierID(identifier, "id")
-				if err != nil {
-					return err
-				}
-				return c.Agents.Delete(ctx, id)
+				return c.Agents.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"artefact": {

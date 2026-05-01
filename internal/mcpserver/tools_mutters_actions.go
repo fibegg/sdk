@@ -55,13 +55,13 @@ Use this as the dedicated agent progress channel described in public/prompts/mai
 		tier:        tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			agentID, ok := argInt64(args, "agent_id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'agent_id' not set")
+			agentIdentifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
 			}
 			var p fibe.MutterListParams
 			_ = bindArgs(args, &p)
-			return c.Mutters.Get(ctx, agentID, &p)
+			return c.Mutters.GetByAgentIdentifier(ctx, agentIdentifier, &p)
 		},
 	}, mcp.NewTool("fibe_mutters_get",
 		mcp.WithDescription(`Retrieve an agent's mutter stream.
@@ -78,9 +78,11 @@ func mutterGetInputSchema() map[string]any {
 		"required":             []string{"agent_id"},
 		"properties": map[string]any{
 			"agent_id": map[string]any{
-				"type":        "integer",
-				"description": "Agent ID whose mutter stream should be retrieved.",
-				"minimum":     1,
+				"oneOf": []any{
+					map[string]any{"type": "integer", "minimum": 1},
+					map[string]any{"type": "string", "minLength": 1},
+				},
+				"description": "Agent ID or name whose mutter stream should be retrieved.",
 			},
 			"playground_id": map[string]any{
 				"type":        "integer",

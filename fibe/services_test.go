@@ -320,6 +320,40 @@ func TestAgents_List(t *testing.T) {
 	}
 }
 
+func TestAgents_GetByIdentifierEscapesName(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/test-agent" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		json.NewEncoder(w).Encode(Agent{ID: 9, Name: "test-agent", Provider: ProviderOpenAICodex})
+	})
+
+	agent, err := c.Agents.GetByIdentifier(context.Background(), "test-agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if agent.ID != 9 || agent.Name != "test-agent" {
+		t.Fatalf("unexpected agent: %#v", agent)
+	}
+}
+
+func TestAgents_GetByIdentifierEscapesSpaces(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/test%20agent" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		json.NewEncoder(w).Encode(Agent{ID: 10, Name: "test agent", Provider: ProviderOpenAICodex})
+	})
+
+	agent, err := c.Agents.GetByIdentifier(context.Background(), "test agent")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if agent.ID != 10 || agent.Name != "test agent" {
+		t.Fatalf("unexpected agent: %#v", agent)
+	}
+}
+
 func TestAgents_Chat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/api/agents/5/chat" {

@@ -427,7 +427,7 @@ func artefactCreateSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"agent_id"},
 		"properties": map[string]any{
-			"agent_id":       map[string]any{"type": "integer", "description": "Agent ID that owns the artefact.", "minimum": 1},
+			"agent_id":       namedIdentifierSchema("agent_id", "Agent ID or name that owns the artefact."),
 			"name":           map[string]any{"type": "string", "description": "Artefact display name. Also used as the filename fallback by artefact.create."},
 			"filename":       map[string]any{"type": "string", "description": "Filename for the uploaded artefact. Defaults to name when omitted."},
 			"content_base64": map[string]any{"type": "string", "description": "Base64-encoded file content. Use either content_base64 or content_path."},
@@ -444,7 +444,7 @@ func mutterCreateSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"agent_id", "type", "body"},
 		"properties": map[string]any{
-			"agent_id":      map[string]any{"type": "integer", "description": "Agent ID that owns the mutter.", "minimum": 1},
+			"agent_id":      namedIdentifierSchema("agent_id", "Agent ID or name that owns the mutter."),
 			"type":          map[string]any{"type": "string", "description": "Mutter type label. Common values are info, warning, error, and success; Server accepts arbitrary strings."},
 			"body":          map[string]any{"type": "string", "description": "Mutter body text."},
 			"playground_id": namedIdentifierSchema("playground_id", "Optional playground ID or slug-safe name to associate with the mutter."),
@@ -574,9 +574,11 @@ func MemoryMemorizeSchema() map[string]any {
 				"description": "Durable memory text.",
 			},
 			"agent_id": map[string]any{
-				"type":        "integer",
-				"minimum":     1,
-				"description": "Optional Rails Agent ID that created the memory. fibe_memorize fills this from FIBE_AGENT_ID when available.",
+				"oneOf": []any{
+					map[string]any{"type": "integer", "minimum": 1},
+					map[string]any{"type": "string", "minLength": 1},
+				},
+				"description": "Optional Rails Agent ID or name that created the memory. fibe_memorize fills this from FIBE_AGENT_ID when available.",
 			},
 			"tags": map[string]any{
 				"type":        "array",
@@ -926,7 +928,7 @@ func resourceIDSchema(resource, tool string) map[string]any {
 		properties["identifier"] = map[string]any{
 			"type":        "string",
 			"minLength":   1,
-			"description": "Numeric ID or slug-safe resource name. Use when identifying playgrounds, tricks, playspecs, props, and marquees by name.",
+			"description": "Numeric ID or resource name. Use when identifying playgrounds, tricks, playspecs, props, marquees, and agents by name.",
 		}
 	}
 	schema := map[string]any{
@@ -1037,7 +1039,7 @@ func enrichPropertySchema(name string, prop map[string]any) {
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee":
+	case "playground", "trick", "playspec", "prop", "marquee", "agent":
 		return true
 	default:
 		return false
@@ -1046,7 +1048,8 @@ func namedResource(resource string) bool {
 
 func namedIdentifierField(name string) bool {
 	switch name {
-	case "playground_id", "target_playground_id", "build_in_public_playground_id",
+	case "agent_id",
+		"playground_id", "target_playground_id", "build_in_public_playground_id",
 		"trick_id",
 		"playspec_id", "target_playspec_id",
 		"prop_id", "source_prop_id",
