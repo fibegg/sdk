@@ -109,9 +109,10 @@ func TestErrors_ValidationFailed(t *testing.T) {
 
 	t.Run("server-side validation", func(t *testing.T) {
 		t.Parallel()
+		spec := seedPlayspec(t, c)
 		_, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("bad-pg"),
-			PlayspecID: 999999999,
+			Name:       "Invalid Playground " + uniqueName("bad-pg"),
+			PlayspecID: *spec.ID,
 		})
 		apiErr := requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
 		if !apiErr.IsValidation() {
