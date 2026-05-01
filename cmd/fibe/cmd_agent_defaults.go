@@ -10,8 +10,8 @@ import (
 
 func agentDefaultsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "agent-defaults",
-		Aliases: []string{"agent-default", "agent-settings"},
+		Use:     "defaults",
+		Aliases: []string{"agent-defaults"},
 		Short:   "Manage player-level agent defaults",
 		Long: `Manage player-level agent defaults used as overrides for newly created and running agents.
 
@@ -73,12 +73,12 @@ Flags build a defaults object directly. Pass --provider to write the flags under
 provider_overrides.<provider>; otherwise they write global defaults.
 
 EXAMPLES:
-  fibe agent-defaults get -o json
-  fibe agent-defaults update -f defaults.json
-  fibe agent-defaults update --system-prompt "You are Fibe" --custom-env "DEBUG=true"
-  fibe agent-defaults update --provider gemini --model-options gemini-pro --syscheck=false
-  fibe agent-defaults update --provider-args "--bare --max-tokens 4096"
-  fibe agent-defaults update --skill-toggle fibe-hunks.md=false`,
+  fibe agents defaults get -o json
+  fibe agents defaults update -f defaults.json
+  fibe agents defaults update --system-prompt "You are Fibe" --custom-env "DEBUG=true"
+  fibe agents defaults update --provider gemini --model-options gemini-pro --syscheck=false
+  fibe agents defaults update --provider-args "--bare --max-tokens 4096"
+  fibe agents defaults update --skill-toggle fibe-hunks.md=false`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			defaults, fromFile, err := agentDefaultsFromInput()
 			if err != nil {

@@ -30,13 +30,18 @@ func (s *TrickService) Get(ctx context.Context, id int64) (*Playground, error) {
 	return s.client.Playgrounds.Get(ctx, id)
 }
 
+// GetByIdentifier returns detailed information about a trick by numeric ID or slug-safe name.
+func (s *TrickService) GetByIdentifier(ctx context.Context, identifier string) (*Playground, error) {
+	return s.client.Playgrounds.GetByIdentifier(ctx, identifier)
+}
+
 // Trigger creates a new trick run from a job-mode playspec.
 // If params.Name is empty, a name is auto-generated as "{playspec-name}-{random}".
 func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) (*Playground, error) {
 	name := params.Name
 	if name == "" {
 		// Fetch playspec name for auto-generation
-		spec, err := s.client.Playspecs.Get(ctx, params.PlayspecID)
+		spec, err := s.client.Playspecs.GetByIdentifier(ctx, params.playspecIdentifier())
 		if err != nil {
 			return nil, fmt.Errorf("fibe: fetch playspec for trick name: %w", err)
 		}
@@ -44,9 +49,11 @@ func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) 
 	}
 
 	createParams := &PlaygroundCreateParams{
-		Name:       name,
-		PlayspecID: params.PlayspecID,
-		MarqueeID:  params.MarqueeID,
+		Name:               name,
+		PlayspecID:         params.PlayspecID,
+		PlayspecIdentifier: params.PlayspecIdentifier,
+		MarqueeID:          params.MarqueeID,
+		MarqueeIdentifier:  params.MarqueeIdentifier,
 	}
 
 	return s.client.Playgrounds.Create(ctx, createParams)
@@ -55,13 +62,19 @@ func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) 
 // Rerun creates a new trick run by copying the playspec and marquee
 // from an existing trick.
 func (s *TrickService) Rerun(ctx context.Context, sourceID int64) (*Playground, error) {
-	source, err := s.client.Playgrounds.Get(ctx, sourceID)
+	return s.RerunByIdentifier(ctx, int64Identifier(sourceID))
+}
+
+// RerunByIdentifier creates a new trick run by copying the playspec and marquee
+// from an existing trick identified by numeric ID or slug-safe name.
+func (s *TrickService) RerunByIdentifier(ctx context.Context, sourceIdentifier string) (*Playground, error) {
+	source, err := s.client.Playgrounds.GetByIdentifier(ctx, sourceIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("fibe: fetch source trick for rerun: %w", err)
 	}
 
 	if source.PlayspecID == nil {
-		return nil, fmt.Errorf("fibe: source trick %d has no playspec", sourceID)
+		return nil, fmt.Errorf("fibe: source trick %s has no playspec", sourceIdentifier)
 	}
 
 	// Fetch playspec to get the name for auto-generation
@@ -84,14 +97,26 @@ func (s *TrickService) Delete(ctx context.Context, id int64) error {
 	return s.client.Playgrounds.Delete(ctx, id)
 }
 
+func (s *TrickService) DeleteByIdentifier(ctx context.Context, identifier string) error {
+	return s.client.Playgrounds.DeleteByIdentifier(ctx, identifier)
+}
+
 // Status returns the current status and job result for a trick.
 func (s *TrickService) Status(ctx context.Context, id int64) (*PlaygroundStatus, error) {
 	return s.client.Playgrounds.Status(ctx, id)
 }
 
+func (s *TrickService) StatusByIdentifier(ctx context.Context, identifier string) (*PlaygroundStatus, error) {
+	return s.client.Playgrounds.StatusByIdentifier(ctx, identifier)
+}
+
 // Logs returns logs for a specific service in a trick.
 func (s *TrickService) Logs(ctx context.Context, id int64, service string, tail *int) (*PlaygroundLogs, error) {
 	return s.client.Playgrounds.Logs(ctx, id, service, tail)
+}
+
+func (s *TrickService) LogsByIdentifier(ctx context.Context, identifier string, service string, tail *int) (*PlaygroundLogs, error) {
+	return s.client.Playgrounds.LogsByIdentifier(ctx, identifier, service, tail)
 }
 
 func randomHex(n int) string {

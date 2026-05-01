@@ -153,33 +153,86 @@ type TemplatePatchEdit struct {
 }
 
 type TemplateVersionPatchParams struct {
-	BaseVersionID       int64               `json:"base_version_id"`
-	TemplateBody        string              `json:"template_body,omitempty"`
-	Patches             []TemplatePatchEdit `json:"patches,omitempty"`
-	Edits               []TemplatePatchEdit `json:"edits,omitempty"`
-	Public              *bool               `json:"public,omitempty"`
-	Changelog           *string             `json:"changelog,omitempty"`
-	TargetPlayspecID    *int64              `json:"target_playspec_id,omitempty"`
-	RolloutMode         string              `json:"rollout_mode,omitempty"`
-	TargetPlaygroundID  *int64              `json:"target_playground_id,omitempty"`
-	SwitchVariables     map[string]any      `json:"switch_variables,omitempty"`
-	RegenerateVariables []string            `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings     *bool               `json:"confirm_warnings,omitempty"`
-	AutoSwitch          *bool               `json:"auto_switch,omitempty"`
-	ResponseMode        string              `json:"response_mode,omitempty"`
+	BaseVersionID              int64               `json:"base_version_id"`
+	TemplateBody               string              `json:"template_body,omitempty"`
+	Patches                    []TemplatePatchEdit `json:"patches,omitempty"`
+	Edits                      []TemplatePatchEdit `json:"edits,omitempty"`
+	Public                     *bool               `json:"public,omitempty"`
+	Changelog                  *string             `json:"changelog,omitempty"`
+	TargetPlayspecID           *int64              `json:"target_playspec_id,omitempty"`
+	TargetPlayspecIdentifier   string              `json:"-"`
+	RolloutMode                string              `json:"rollout_mode,omitempty"`
+	TargetPlaygroundID         *int64              `json:"target_playground_id,omitempty"`
+	TargetPlaygroundIdentifier string              `json:"-"`
+	SwitchVariables            map[string]any      `json:"switch_variables,omitempty"`
+	RegenerateVariables        []string            `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings            *bool               `json:"confirm_warnings,omitempty"`
+	AutoSwitch                 *bool               `json:"auto_switch,omitempty"`
+	ResponseMode               string              `json:"response_mode,omitempty"`
+}
+
+func (p TemplateVersionPatchParams) MarshalJSON() ([]byte, error) {
+	type alias TemplateVersionPatchParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.TargetPlayspecIdentifier != "" {
+		body["target_playspec_id"] = p.TargetPlayspecIdentifier
+	}
+	if p.TargetPlaygroundIdentifier != "" {
+		body["target_playground_id"] = p.TargetPlaygroundIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type TemplateVersionPatchResult map[string]any
 
 type ImportTemplateSourceParams struct {
-	SourcePropID      int64  `json:"source_prop_id"`
-	SourcePath        string `json:"source_path"`
-	SourceRef         string `json:"source_ref,omitempty"`
-	SourceAutoRefresh *bool  `json:"source_auto_refresh,omitempty"`
-	SourceAutoUpgrade *bool  `json:"source_auto_upgrade,omitempty"`
-	CIEnabled         *bool  `json:"ci_enabled,omitempty"`
-	CIMarqueeID       *int64 `json:"ci_marquee_id,omitempty"`
-	MarqueeID         *int64 `json:"marquee_id,omitempty"`
+	SourcePropID         int64  `json:"source_prop_id"`
+	SourcePropIdentifier string `json:"-"`
+	SourcePath           string `json:"source_path"`
+	SourceRef            string `json:"source_ref,omitempty"`
+	SourceAutoRefresh    *bool  `json:"source_auto_refresh,omitempty"`
+	SourceAutoUpgrade    *bool  `json:"source_auto_upgrade,omitempty"`
+	CIEnabled            *bool  `json:"ci_enabled,omitempty"`
+	CIMarqueeID          *int64 `json:"ci_marquee_id,omitempty"`
+	CIMarqueeIdentifier  string `json:"-"`
+	MarqueeID            *int64 `json:"marquee_id,omitempty"`
+	MarqueeIdentifier    string `json:"-"`
+}
+
+func (p *ImportTemplateSourceParams) Validate() error {
+	v := &validator{}
+	v.requiredIDOrIdentifier("source_prop_id", p.SourcePropID, p.SourcePropIdentifier)
+	v.required("source_path", p.SourcePath)
+	return v.err()
+}
+
+func (p ImportTemplateSourceParams) MarshalJSON() ([]byte, error) {
+	type alias ImportTemplateSourceParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.SourcePropIdentifier != "" {
+		body["source_prop_id"] = p.SourcePropIdentifier
+	}
+	if p.CIMarqueeIdentifier != "" {
+		body["ci_marquee_id"] = p.CIMarqueeIdentifier
+	}
+	if p.MarqueeIdentifier != "" {
+		body["marquee_id"] = p.MarqueeIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type ImportTemplateSourceRefreshResult struct {
@@ -202,6 +255,7 @@ type ImportTemplateUpgradeLinkedResult struct {
 
 type ImportTemplateLaunchParams struct {
 	MarqueeID         int64             `json:"marquee_id"`
+	MarqueeIdentifier string            `json:"-"`
 	Version           *int64            `json:"version,omitempty"`
 	Name              string            `json:"name,omitempty"`
 	Variables         map[string]any    `json:"variables,omitempty"`
@@ -212,8 +266,24 @@ type ImportTemplateLaunchParams struct {
 
 func (p *ImportTemplateLaunchParams) Validate() error {
 	v := &validator{}
-	v.requiredInt("marquee_id", p.MarqueeID)
+	v.requiredIDOrIdentifier("marquee_id", p.MarqueeID, p.MarqueeIdentifier)
 	return v.err()
+}
+
+func (p ImportTemplateLaunchParams) MarshalJSON() ([]byte, error) {
+	type alias ImportTemplateLaunchParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.MarqueeIdentifier != "" {
+		body["marquee_id"] = p.MarqueeIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type ImportTemplateListParams struct {

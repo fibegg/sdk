@@ -13,8 +13,8 @@ import (
 
 type flatResourceTool struct {
 	list   func(context.Context, *fibe.Client, map[string]any) (any, error)
-	get    func(context.Context, *fibe.Client, int64) (any, error)
-	delete func(context.Context, *fibe.Client, int64) error
+	get    func(context.Context, *fibe.Client, string) (any, error)
+	delete func(context.Context, *fibe.Client, string) error
 }
 
 func (s *Server) registerResourceTools() {
@@ -61,22 +61,20 @@ func (s *Server) registerResourceTools() {
 			if _, ok := args["reveal"]; ok {
 				return nil, fmt.Errorf("field 'reveal' is not supported by fibe_resource_get")
 			}
-			id, ok := argInt64(args, "id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
-			}
-			if id <= 0 {
-				return nil, fmt.Errorf("field 'id' must be greater than zero")
+			identifier, err := resourceIdentifierArg(name, args)
+			if err != nil {
+				return nil, err
 			}
 			if _, _, err := resourceschema.ValidatePayload(name, "get", canonicalResourceArgs(args, name)); err != nil {
 				return nil, err
 			}
-			return rt.get(ctx, c, id)
+			return rt.get(ctx, c, identifier)
 		},
 	}, mcp.NewTool("fibe_resource_get",
-		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID. Secret and job_env reads do not reveal plaintext values; artefact_attachment returns base64 file content."),
+		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, or by slug-safe name for playgrounds, tricks, playspecs, props, and marquees. Secret and job_env reads do not reveal plaintext values; artefact_attachment returns base64 file content."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(getResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, playspec, prop, webhook.")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("ID of the selected resource.")),
+		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
+		mcp.WithString("identifier", mcp.Description("Numeric ID or slug-safe name for playgrounds, tricks, playspecs, props, and marquees.")),
 	))
 
 	s.addTool(&toolImpl{
@@ -89,27 +87,25 @@ func (s *Server) registerResourceTools() {
 			if err != nil {
 				return nil, err
 			}
-			id, ok := argInt64(args, "id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'id' not set")
-			}
-			if id <= 0 {
-				return nil, fmt.Errorf("field 'id' must be greater than zero")
+			identifier, err := resourceIdentifierArg(name, args)
+			if err != nil {
+				return nil, err
 			}
 			validationArgs := canonicalResourceArgs(args, name)
 			delete(validationArgs, "confirm")
 			if _, _, err := resourceschema.ValidatePayload(name, "delete", validationArgs); err != nil {
 				return nil, err
 			}
-			if err := rt.delete(ctx, c, id); err != nil {
+			if err := rt.delete(ctx, c, identifier); err != nil {
 				return nil, err
 			}
-			return map[string]any{"resource": name, "id": id, "deleted": true}, nil
+			return deletedResourceResult(name, identifier), nil
 		},
 	}, mcp.NewTool("fibe_resource_delete",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, or by slug-safe name for playgrounds, tricks, playspecs, props, and marquees."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(deleteResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, playspec, prop, api_key.")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("ID of the selected resource.")),
+		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
+		mcp.WithString("identifier", mcp.Description("Numeric ID or slug-safe name for playgrounds, tricks, playspecs, props, and marquees.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 }
@@ -124,32 +120,40 @@ func flatResourceTools() map[string]flatResourceTool {
 				}
 				return c.Playgrounds.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
-				return c.Playgrounds.Get(ctx, id)
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				return c.Playgrounds.GetByIdentifier(ctx, identifier)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				return c.Playgrounds.Delete(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				return c.Playgrounds.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"trick": {
 			list: listResource[fibe.PlaygroundListParams](func(ctx context.Context, c *fibe.Client, p *fibe.PlaygroundListParams) (any, error) {
 				return c.Tricks.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
-				return c.Tricks.Get(ctx, id)
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				return c.Tricks.GetByIdentifier(ctx, identifier)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				return c.Tricks.Delete(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				return c.Tricks.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"agent": {
 			list: listResource[fibe.AgentListParams](func(ctx context.Context, c *fibe.Client, p *fibe.AgentListParams) (any, error) {
 				return c.Agents.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.Agents.Get(ctx, id)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.Agents.Delete(ctx, id)
 			},
 		},
@@ -157,12 +161,20 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.ArtefactListParams](func(ctx context.Context, c *fibe.Client, p *fibe.ArtefactListParams) (any, error) {
 				return c.Artefacts.ListAll(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.Artefacts.GetByID(ctx, id)
 			},
 		},
 		"artefact_attachment": {
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				body, filename, contentType, err := c.Artefacts.DownloadByID(ctx, id)
 				if err != nil {
 					return nil, err
@@ -186,43 +198,51 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.PlayspecListParams](func(ctx context.Context, c *fibe.Client, p *fibe.PlayspecListParams) (any, error) {
 				return c.Playspecs.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
-				return c.Playspecs.Get(ctx, id)
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				return c.Playspecs.GetByIdentifier(ctx, identifier)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				return c.Playspecs.Delete(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				return c.Playspecs.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"prop": {
 			list: listResource[fibe.PropListParams](func(ctx context.Context, c *fibe.Client, p *fibe.PropListParams) (any, error) {
 				return c.Props.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
-				return c.Props.Get(ctx, id)
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				return c.Props.GetByIdentifier(ctx, identifier)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				return c.Props.Delete(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				return c.Props.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"marquee": {
 			list: listResource[fibe.MarqueeListParams](func(ctx context.Context, c *fibe.Client, p *fibe.MarqueeListParams) (any, error) {
 				return c.Marquees.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
-				return c.Marquees.Get(ctx, id)
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				return c.Marquees.GetByIdentifier(ctx, identifier)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				return c.Marquees.Delete(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				return c.Marquees.DeleteByIdentifier(ctx, identifier)
 			},
 		},
 		"secret": {
 			list: listResource[fibe.SecretListParams](func(ctx context.Context, c *fibe.Client, p *fibe.SecretListParams) (any, error) {
 				return c.Secrets.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.Secrets.Get(ctx, id, false)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.Secrets.Delete(ctx, id)
 			},
 		},
@@ -230,7 +250,11 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.APIKeyListParams](func(ctx context.Context, c *fibe.Client, p *fibe.APIKeyListParams) (any, error) {
 				return c.APIKeys.List(ctx, p)
 			}),
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.APIKeys.Delete(ctx, id)
 			},
 		},
@@ -238,10 +262,18 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.WebhookEndpointListParams](func(ctx context.Context, c *fibe.Client, p *fibe.WebhookEndpointListParams) (any, error) {
 				return c.WebhookEndpoints.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.WebhookEndpoints.Get(ctx, id)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.WebhookEndpoints.Delete(ctx, id)
 			},
 		},
@@ -265,10 +297,18 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.ImportTemplateListParams](func(ctx context.Context, c *fibe.Client, p *fibe.ImportTemplateListParams) (any, error) {
 				return c.ImportTemplates.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.ImportTemplates.Get(ctx, id)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.ImportTemplates.Delete(ctx, id)
 			},
 		},
@@ -287,13 +327,21 @@ func flatResourceTools() map[string]flatResourceTool {
 				}
 				return c.ImportTemplates.ListVersions(ctx, id, &p)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.ImportTemplateVersions.Delete(ctx, id)
 			},
 		},
 		"template_source": {
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
-				_, err := c.ImportTemplates.ClearSource(ctx, id)
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
+				_, err = c.ImportTemplates.ClearSource(ctx, id)
 				return err
 			},
 		},
@@ -301,10 +349,18 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.JobEnvListParams](func(ctx context.Context, c *fibe.Client, p *fibe.JobEnvListParams) (any, error) {
 				return c.JobEnv.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.JobEnv.Get(ctx, id, false)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.JobEnv.Delete(ctx, id)
 			},
 		},
@@ -317,10 +373,18 @@ func flatResourceTools() map[string]flatResourceTool {
 			list: listResource[fibe.MemoryListParams](func(ctx context.Context, c *fibe.Client, p *fibe.MemoryListParams) (any, error) {
 				return c.Memories.List(ctx, p)
 			}),
-			get: func(ctx context.Context, c *fibe.Client, id int64) (any, error) {
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
 				return c.Memories.Get(ctx, id)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, id int64) error {
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
 				return c.Memories.Delete(ctx, id)
 			},
 		},
@@ -392,5 +456,28 @@ func canonicalResourceArgs(args map[string]any, canonical string) map[string]any
 		out[key] = value
 	}
 	out["resource"] = canonical
+	return out
+}
+
+func resourceIdentifierArg(resource string, args map[string]any) (string, error) {
+	if namedResource(resource) {
+		identifier, err := requiredIdentifier(args, "id", "identifier")
+		if err != nil {
+			return "", err
+		}
+		return identifier, nil
+	}
+	id, err := requiredPositiveID(args, "id")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%d", id), nil
+}
+
+func deletedResourceResult(resource, identifier string) map[string]any {
+	out := map[string]any{"resource": resource, "identifier": identifier, "deleted": true}
+	if id, err := parsePositiveIdentifierID(identifier, "id"); err == nil {
+		out["id"] = id
+	}
 	return out
 }

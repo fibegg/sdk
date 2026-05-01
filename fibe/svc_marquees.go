@@ -3,7 +3,6 @@ package fibe
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -17,8 +16,12 @@ func (s *MarqueeService) List(ctx context.Context, params *MarqueeListParams) (*
 }
 
 func (s *MarqueeService) Get(ctx context.Context, id int64) (*Marquee, error) {
+	return s.GetByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *MarqueeService) GetByIdentifier(ctx context.Context, identifier string) (*Marquee, error) {
 	var result Marquee
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/marquees/%d", id), nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/marquees", identifier), nil, &result)
 	return &result, err
 }
 
@@ -36,31 +39,47 @@ func (s *MarqueeService) Create(ctx context.Context, params *MarqueeCreateParams
 }
 
 func (s *MarqueeService) Update(ctx context.Context, id int64, params *MarqueeUpdateParams) (*Marquee, error) {
+	return s.UpdateByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *MarqueeService) UpdateByIdentifier(ctx context.Context, identifier string, params *MarqueeUpdateParams) (*Marquee, error) {
 	var result Marquee
 	body, err := marqueeRequestBody(params)
 	if err != nil {
 		return nil, err
 	}
-	err = s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/marquees/%d", id), body, &result)
+	err = s.client.do(ctx, http.MethodPatch, identifierPath("/api/marquees", identifier), body, &result)
 	return &result, err
 }
 
 func (s *MarqueeService) Delete(ctx context.Context, id int64) error {
-	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/marquees/%d", id), nil, nil)
+	return s.DeleteByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *MarqueeService) DeleteByIdentifier(ctx context.Context, identifier string) error {
+	return s.client.do(ctx, http.MethodDelete, identifierPath("/api/marquees", identifier), nil, nil)
 }
 
 func (s *MarqueeService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyResult, error) {
+	return s.GenerateSSHKeyByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *MarqueeService) GenerateSSHKeyByIdentifier(ctx context.Context, identifier string) (*SSHKeyResult, error) {
 	var result SSHKeyResult
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/marquees/%d/generate_ssh_key", id), nil, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/marquees", identifier)+"/generate_ssh_key", nil, &result)
 	return &result, err
 }
 
 // TestConnection tests SSH connectivity to the marquee host.
 // The API returns 202 Accepted; this method auto-polls for the result.
 func (s *MarqueeService) TestConnection(ctx context.Context, id int64) (*ConnectionTestResult, error) {
+	return s.TestConnectionByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *MarqueeService) TestConnectionByIdentifier(ctx context.Context, identifier string) (*ConnectionTestResult, error) {
 	var result ConnectionTestResult
-	statusFmt := fmt.Sprintf("/api/marquees/%d/test_connection/%%s", id)
-	err := s.client.doAsync(ctx, http.MethodPost, fmt.Sprintf("/api/marquees/%d/test_connection", id), statusFmt, nil, &result)
+	path := identifierPath("/api/marquees", identifier)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/test_connection", path+"/test_connection/%s", nil, &result)
 	return &result, err
 }
 

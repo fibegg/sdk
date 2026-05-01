@@ -25,7 +25,7 @@ func greenfieldCmd() *cobra.Command {
 		templateIDTypoTemlate  int64
 		version                string
 		templateBody           string
-		marqueeID              int64
+		marqueeID              string
 		marqueeIDTypoMarque    int64
 		vars                   []string
 		waitTimeout            time.Duration
@@ -71,13 +71,12 @@ Examples:
 			if cmd.Flags().Changed("template-body") {
 				params.TemplateBody = normalizeTemplateBodyValue(resolveStringValue(templateBody))
 			}
-			if cmd.Flags().Changed("marquee-id") && marqueeID > 0 {
-				id := marqueeID
-				params.MarqueeID = &id
+			if cmd.Flags().Changed("marquee-id") && marqueeID != "" {
+				params.MarqueeIdentifier = marqueeID
 			} else if cmd.Flags().Changed("marque-id") && marqueeIDTypoMarque > 0 {
 				id := marqueeIDTypoMarque
 				params.MarqueeID = &id
-			} else if params.MarqueeID == nil {
+			} else if params.MarqueeID == nil && params.MarqueeIdentifier == "" {
 				id, err := marqueeIDFromEnv()
 				if err != nil {
 					return err
@@ -130,7 +129,7 @@ Examples:
 	cmd.Flags().Int64Var(&templateID, "template-id", 0, "Template to use (optional, default: base template)")
 	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)")
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target marquee ID (optional, default: current Marquee)")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional, default: current Marquee)")
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "Set template variables (e.g., --var app_name=Tower, optional)")
 	cmd.Flags().DurationVar(&waitTimeout, "wait-timeout", 10*time.Minute, "Maximum time to wait for the playground to reach running (optional, default 10m0s)")
 	cmd.Flags().Int64Var(&templateIDTypoTempalte, "tempalte-id", 0, "Alias for --template-id")

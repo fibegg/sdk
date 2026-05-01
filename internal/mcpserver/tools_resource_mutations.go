@@ -65,14 +65,14 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 	switch resource + "." + operation {
 	case "agent.create":
 		var p fibe.AgentCreateParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "build_in_public_playground_id"); err != nil {
 			return nil, err
 		}
 		return c.Agents.Create(ctx, &p)
 	case "agent.update":
 		id, _ := argInt64(payload, "agent_id")
 		var p fibe.AgentUpdateParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "build_in_public_playground_id"); err != nil {
 			return nil, err
 		}
 		return c.Agents.Update(ctx, id, &p)
@@ -84,17 +84,20 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		return c.APIKeys.Create(ctx, &p)
 	case "marquee.create":
 		var p fibe.MarqueeCreateParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "prop_id"); err != nil {
 			return nil, err
 		}
 		return c.Marquees.Create(ctx, &p)
 	case "marquee.update":
-		id, _ := argInt64(payload, "marquee_id")
-		var p fibe.MarqueeUpdateParams
-		if err := bindArgs(payload, &p); err != nil {
+		identifier, err := requiredIdentifier(payload, "marquee_id", "")
+		if err != nil {
 			return nil, err
 		}
-		return c.Marquees.Update(ctx, id, &p)
+		var p fibe.MarqueeUpdateParams
+		if err := bindIdentifierArgs(payload, &p, "prop_id"); err != nil {
+			return nil, err
+		}
+		return c.Marquees.UpdateByIdentifier(ctx, identifier, &p)
 	case "marquee.autoconnect_token":
 		var p fibe.AutoconnectTokenParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -102,17 +105,23 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Marquees.AutoconnectToken(ctx, &p)
 	case "marquee.generate_ssh_key":
-		id, _ := argInt64(payload, "marquee_id")
-		return c.Marquees.GenerateSSHKey(ctx, id)
-	case "marquee.test_connection":
-		id, _ := argInt64(payload, "marquee_id")
-		return c.Marquees.TestConnection(ctx, id)
-	case "playground.create":
-		var p fibe.PlaygroundCreateParams
-		if err := bindArgs(payload, &p); err != nil {
+		identifier, err := requiredIdentifier(payload, "marquee_id", "")
+		if err != nil {
 			return nil, err
 		}
-		if p.MarqueeID == nil {
+		return c.Marquees.GenerateSSHKeyByIdentifier(ctx, identifier)
+	case "marquee.test_connection":
+		identifier, err := requiredIdentifier(payload, "marquee_id", "")
+		if err != nil {
+			return nil, err
+		}
+		return c.Marquees.TestConnectionByIdentifier(ctx, identifier)
+	case "playground.create":
+		var p fibe.PlaygroundCreateParams
+		if err := bindIdentifierArgs(payload, &p, "playspec_id", "marquee_id"); err != nil {
+			return nil, err
+		}
+		if p.MarqueeID == nil && p.MarqueeIdentifier == "" {
 			envID, err := parseMarqueeIDEnv()
 			if err != nil {
 				return nil, fmt.Errorf("marquee_id is required either in payload or via FIBE_MARQUEE_ID env var: %w", err)
@@ -121,12 +130,15 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Playgrounds.Create(ctx, &p)
 	case "playground.update":
-		id, _ := argInt64(payload, "playground_id")
-		var p fibe.PlaygroundUpdateParams
-		if err := bindArgs(payload, &p); err != nil {
+		identifier, err := requiredIdentifier(payload, "playground_id", "")
+		if err != nil {
 			return nil, err
 		}
-		return c.Playgrounds.Update(ctx, id, &p)
+		var p fibe.PlaygroundUpdateParams
+		if err := bindIdentifierArgs(payload, &p, "playspec_id", "marquee_id"); err != nil {
+			return nil, err
+		}
+		return c.Playgrounds.UpdateByIdentifier(ctx, identifier, &p)
 	case "playspec.create":
 		var p fibe.PlayspecCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -134,12 +146,15 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Playspecs.Create(ctx, &p)
 	case "playspec.update":
-		id, _ := argInt64(payload, "playspec_id")
-		var p fibe.PlayspecUpdateParams
-		if err := bindArgs(payload, &p); err != nil {
+		identifier, err := requiredIdentifier(payload, "playspec_id", "")
+		if err != nil {
 			return nil, err
 		}
-		return c.Playspecs.Update(ctx, id, &p)
+		var p fibe.PlayspecUpdateParams
+		if err := bindPlayspecUpdateArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.Playspecs.UpdateByIdentifier(ctx, identifier, &p)
 	case "prop.create":
 		var p fibe.PropCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -147,12 +162,15 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Props.Create(ctx, &p)
 	case "prop.update":
-		id, _ := argInt64(payload, "prop_id")
+		identifier, err := requiredIdentifier(payload, "prop_id", "")
+		if err != nil {
+			return nil, err
+		}
 		var p fibe.PropUpdateParams
 		if err := bindArgs(payload, &p); err != nil {
 			return nil, err
 		}
-		return c.Props.Update(ctx, id, &p)
+		return c.Props.UpdateByIdentifier(ctx, identifier, &p)
 	case "prop.attach":
 		repoFullName := argString(payload, "repo_full_name")
 		if parsed := parseRepoFullName(repoFullName); parsed != "" {
@@ -162,11 +180,14 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 	case "prop.mirror":
 		return c.Props.Mirror(ctx, argString(payload, "source_url"), argString(payload, "name"))
 	case "prop.sync":
-		id, _ := argInt64(payload, "prop_id")
-		if err := c.Props.Sync(ctx, id); err != nil {
+		identifier, err := requiredIdentifier(payload, "prop_id", "")
+		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"prop_id": id, "ok": true}, nil
+		if err := c.Props.SyncByIdentifier(ctx, identifier); err != nil {
+			return nil, err
+		}
+		return map[string]any{"prop_identifier": identifier, "ok": true}, nil
 	case "secret.create":
 		var p fibe.SecretCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -197,7 +218,7 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 	case "template.source_set":
 		id, _ := argInt64(payload, "template_id")
 		var p fibe.ImportTemplateSourceParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "source_prop_id", "ci_marquee_id", "marquee_id"); err != nil {
 			return nil, err
 		}
 		return c.ImportTemplates.SetSource(ctx, id, &p)
@@ -213,13 +234,16 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		return c.ImportTemplates.TogglePublic(ctx, templateID, versionID)
 	case "trick.trigger":
 		var p fibe.TrickTriggerParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "playspec_id", "marquee_id"); err != nil {
 			return nil, err
 		}
 		return c.Tricks.Trigger(ctx, &p)
 	case "trick.rerun":
-		id, _ := argInt64(payload, "trick_id")
-		return c.Tricks.Rerun(ctx, id)
+		identifier, err := requiredIdentifier(payload, "trick_id", "")
+		if err != nil {
+			return nil, err
+		}
+		return c.Tricks.RerunByIdentifier(ctx, identifier)
 	case "webhook.create":
 		var p fibe.WebhookEndpointCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -241,7 +265,7 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		return map[string]any{"webhook_id": id, "ok": true}, nil
 	case "job_env.create":
 		var p fibe.JobEnvSetParams
-		if err := bindArgs(payload, &p); err != nil {
+		if err := bindIdentifierArgs(payload, &p, "prop_id"); err != nil {
 			return nil, err
 		}
 		return c.JobEnv.Set(ctx, &p)
@@ -324,4 +348,47 @@ func mutateTemplateVersionCreate(ctx context.Context, c *fibe.Client, payload ma
 		p.ResponseMode = "summary"
 	}
 	return c.ImportTemplates.CreateVersion(ctx, id, &p)
+}
+
+func bindPlayspecUpdateArgs(payload map[string]any, params *fibe.PlayspecUpdateParams) error {
+	cleaned := make(map[string]any, len(payload))
+	for key, value := range payload {
+		cleaned[key] = value
+	}
+
+	type serviceIdentifier struct {
+		index      int
+		identifier string
+	}
+	var identifiers []serviceIdentifier
+	if services, ok := payload["services"].([]any); ok {
+		copiedServices := make([]any, len(services))
+		for i, service := range services {
+			serviceMap, ok := service.(map[string]any)
+			if !ok {
+				copiedServices[i] = service
+				continue
+			}
+			copied := make(map[string]any, len(serviceMap))
+			for key, value := range serviceMap {
+				copied[key] = value
+			}
+			if identifier, ok := stringIdentifierValue(copied["prop_id"]); ok {
+				identifiers = append(identifiers, serviceIdentifier{index: i, identifier: identifier})
+				delete(copied, "prop_id")
+			}
+			copiedServices[i] = copied
+		}
+		cleaned["services"] = copiedServices
+	}
+
+	if err := bindArgs(cleaned, params); err != nil {
+		return err
+	}
+	for _, entry := range identifiers {
+		if entry.index >= 0 && entry.index < len(params.Services) {
+			params.Services[entry.index].PropIdentifier = entry.identifier
+		}
+	}
+	return nil
 }

@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Artefact represents a file produced by an agent.
 type Artefact struct {
@@ -33,7 +36,24 @@ type ArtefactListParams struct {
 }
 
 type ArtefactCreateParams struct {
-	Name         string `json:"name"`
-	Description  string `json:"description,omitempty"`
-	PlaygroundID *int64 `json:"playground_id,omitempty"`
+	Name                 string `json:"name"`
+	Description          string `json:"description,omitempty"`
+	PlaygroundID         *int64 `json:"playground_id,omitempty"`
+	PlaygroundIdentifier string `json:"-"`
+}
+
+func (p ArtefactCreateParams) MarshalJSON() ([]byte, error) {
+	type alias ArtefactCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PlaygroundIdentifier != "" {
+		body["playground_id"] = p.PlaygroundIdentifier
+	}
+	return json.Marshal(body)
 }

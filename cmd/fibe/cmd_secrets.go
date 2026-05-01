@@ -10,8 +10,9 @@ import (
 
 func secretsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "secrets",
-		Short: "Manage encrypted secrets",
+		Use:     "secrets",
+		Aliases: []string{"sec"},
+		Short:   "Manage encrypted secrets",
 		Long: `Manage Fibe secrets — encrypted key-value pairs for environment variables.
 
 Secrets are injected into playgrounds as environment variables.

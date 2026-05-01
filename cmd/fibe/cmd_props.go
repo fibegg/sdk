@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -11,7 +10,7 @@ import (
 func propsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "props",
-		Aliases: []string{"repos"},
+		Aliases: []string{"pr", "repos"},
 		Short:   "Manage props (linked repositories)",
 		Long: `Manage Fibe props — linked Git repositories.
 
@@ -24,15 +23,15 @@ PROVIDERS:
 
 SUBCOMMANDS:
   list              List all props
-  get <id>          Show prop details
+  get <id-or-name> Show prop details
   create            Create a new prop
-  update <id>       Update prop settings
-  delete <id>       Delete a prop
+  update <id-or-name>       Update prop settings
+  delete <id-or-name>       Delete a prop
   attach            Attach a GitHub repo by name
   mirror            Mirror a GitHub repo to Gitea
-  sync <id>         Trigger repository sync
-  branches <id>     List branches
-  env-defaults <id> Get env defaults for a branch
+  sync <id-or-name>         Trigger repository sync
+  branches <id-or-name>     List branches
+  env-defaults <id-or-name> Get env defaults for a branch
   with-compose      List props that have docker-compose`,
 	}
 
@@ -147,13 +146,12 @@ EXAMPLES:
 
 func propGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <id>",
+		Use:   "get <id-or-name>",
 		Short: "Show prop details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			prop, err := c.Props.Get(ctx(), id)
+			prop, err := c.Props.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -259,7 +257,7 @@ func propUpdateCmd() *cobra.Command {
 	var private bool
 
 	cmd := &cobra.Command{
-		Use:   "update <id>",
+		Use:   "update <id-or-name>",
 		Short: "Update prop settings",
 		Long: `Update an existing prop's internal settings.
 
@@ -277,7 +275,6 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.PropUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -301,7 +298,7 @@ EXAMPLES:
 				v := resolveStringValue(dockerCompose)
 				params.DockerComposeYAML = &v
 			}
-			prop, err := c.Props.Update(ctx(), id, params)
+			prop, err := c.Props.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -325,16 +322,15 @@ EXAMPLES:
 
 func propDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <id>",
+		Use:   "delete <id-or-name>",
 		Short: "Delete a prop",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Props.Delete(ctx(), id); err != nil {
+			if err := c.Props.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Prop %d deleted\n", id)
+			fmt.Printf("Prop %s deleted\n", args[0])
 			return nil
 		},
 	}
@@ -407,7 +403,7 @@ EXAMPLES:
 
 func propSyncCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "sync <id>",
+		Use:   "sync <id-or-name>",
 		Short: "Trigger repository sync",
 		Long: `Trigger an immediate sync of the repository.
 
@@ -418,11 +414,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Props.Sync(ctx(), id); err != nil {
+			if err := c.Props.SyncByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Sync scheduled for prop %d\n", id)
+			fmt.Printf("Sync scheduled for prop %s\n", args[0])
 			return nil
 		},
 	}
@@ -433,7 +428,7 @@ func propBranchesCmd() *cobra.Command {
 	var limit int
 
 	cmd := &cobra.Command{
-		Use:   "branches <id>",
+		Use:   "branches <id-or-name>",
 		Short: "List repository branches",
 		Long: `List branches of a linked repository.
 
@@ -447,8 +442,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := c.Props.Branches(ctx(), id, query, limit)
+			result, err := c.Props.BranchesByIdentifier(ctx(), args[0], query, limit)
 			if err != nil {
 				return err
 			}
@@ -476,7 +470,7 @@ func propEnvDefaultsCmd() *cobra.Command {
 	var branch, envFile string
 
 	cmd := &cobra.Command{
-		Use:   "env-defaults <id>",
+		Use:   "env-defaults <id-or-name>",
 		Short: "Get environment variable defaults for a branch",
 		Long: `Extract default environment variables from a branch's .env file.
 
@@ -492,8 +486,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := c.Props.EnvDefaults(ctx(), id, branch, envFile)
+			result, err := c.Props.EnvDefaultsByIdentifier(ctx(), args[0], branch, envFile)
 			if err != nil {
 				return err
 			}

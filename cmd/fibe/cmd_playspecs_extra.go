@@ -30,13 +30,13 @@ func init() {
 	}
 }
 
-// psAddMountedFileCmd: fibe playspecs add-mounted-file <id> --file PATH [--mount-path P] [--services a,b] [--readonly]
+// psAddMountedFileCmd: fibe playspecs add-mounted-file <id-or-name> --file PATH [--mount-path P] [--services a,b] [--readonly]
 func psAddMountedFileCmd() *cobra.Command {
 	var filePath, mountPath string
 	var targetServices []string
 	var readOnly bool
 	cmd := &cobra.Command{
-		Use:   "add-mounted-file <id>",
+		Use:   "add-mounted-file <id-or-name>",
 		Short: "Attach a file to a playspec",
 		Long: `Attach a file to a playspec so deployments mount it into the target services.
 
@@ -53,7 +53,6 @@ EXAMPLES:
   fibe playspecs add-mounted-file 42 --file ./secret.json --services api,worker --readonly`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filePath == "" {
 				return fmt.Errorf("required flag --file not set")
 			}
@@ -67,10 +66,10 @@ EXAMPLES:
 				p.ReadOnly = &readOnly
 			}
 			c := newClient()
-			if err := c.Playspecs.AddMountedFile(ctx(), id, bytes.NewReader(data), filename, p); err != nil {
+			if err := c.Playspecs.AddMountedFileByIdentifier(ctx(), args[0], bytes.NewReader(data), filename, p); err != nil {
 				return err
 			}
-			outputJSON(map[string]any{"id": id, "filename": filename, "ok": true})
+			outputJSON(map[string]any{"id": args[0], "filename": filename, "ok": true})
 			return nil
 		},
 	}
@@ -86,7 +85,7 @@ func psUpdateMountedFileCmd() *cobra.Command {
 	var targetServices []string
 	var readOnly bool
 	cmd := &cobra.Command{
-		Use:   "update-mounted-file <id>",
+		Use:   "update-mounted-file <id-or-name>",
 		Short: "Update metadata on a playspec mounted file",
 		Long: `Update metadata (mount path, target services, readonly) on an existing mounted file.
 
@@ -102,7 +101,6 @@ EXAMPLES:
   fibe playspecs update-mounted-file 42 --filename prod.env --mount-path /etc/config.env`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filename == "" {
 				return fmt.Errorf("required flag --filename not set")
 			}
@@ -115,10 +113,10 @@ EXAMPLES:
 				p.ReadOnly = &readOnly
 			}
 			c := newClient()
-			if err := c.Playspecs.UpdateMountedFile(ctx(), id, p); err != nil {
+			if err := c.Playspecs.UpdateMountedFileByIdentifier(ctx(), args[0], p); err != nil {
 				return err
 			}
-			outputJSON(map[string]any{"id": id, "filename": filename, "ok": true})
+			outputJSON(map[string]any{"id": args[0], "filename": filename, "ok": true})
 			return nil
 		},
 	}
@@ -132,7 +130,7 @@ EXAMPLES:
 func psRemoveMountedFileCmd() *cobra.Command {
 	var filename string
 	cmd := &cobra.Command{
-		Use:   "remove-mounted-file <id>",
+		Use:   "remove-mounted-file <id-or-name>",
 		Short: "Remove a playspec mounted file",
 		Long: `Remove a mounted file from a playspec.
 
@@ -143,15 +141,14 @@ EXAMPLES:
   fibe playspecs remove-mounted-file 42 --filename prod.env`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if filename == "" {
 				return fmt.Errorf("required flag --filename not set")
 			}
 			c := newClient()
-			if err := c.Playspecs.RemoveMountedFile(ctx(), id, filename); err != nil {
+			if err := c.Playspecs.RemoveMountedFileByIdentifier(ctx(), args[0], filename); err != nil {
 				return err
 			}
-			outputJSON(map[string]any{"id": id, "filename": filename, "removed": true})
+			outputJSON(map[string]any{"id": args[0], "filename": filename, "removed": true})
 			return nil
 		},
 	}
@@ -162,7 +159,7 @@ EXAMPLES:
 func psAddRegistryCredentialCmd() *cobra.Command {
 	var registryType, registryURL, username, secret string
 	cmd := &cobra.Command{
-		Use:   "add-registry-credential <id>",
+		Use:   "add-registry-credential <id-or-name>",
 		Short: "Attach a docker registry credential to a playspec",
 		Long: `Attach a docker registry credential to a playspec so image pulls can authenticate.
 
@@ -176,7 +173,6 @@ EXAMPLES:
   fibe playspecs add-registry-credential 42 --registry-type docker --registry-url docker.io --username u --secret s`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			p := &fibe.RegistryCredentialParams{
 				RegistryType: registryType, RegistryURL: registryURL,
 				Username: username, Secret: secret,
@@ -185,7 +181,7 @@ EXAMPLES:
 				return fmt.Errorf("registry-type, registry-url, username, and secret are required")
 			}
 			c := newClient()
-			result, err := c.Playspecs.AddRegistryCredential(ctx(), id, p)
+			result, err := c.Playspecs.AddRegistryCredentialByIdentifier(ctx(), args[0], p)
 			if err != nil {
 				return err
 			}
@@ -203,7 +199,7 @@ EXAMPLES:
 func psRemoveRegistryCredentialCmd() *cobra.Command {
 	var credentialID string
 	cmd := &cobra.Command{
-		Use:   "remove-registry-credential <id>",
+		Use:   "remove-registry-credential <id-or-name>",
 		Short: "Detach a docker registry credential from a playspec",
 		Long: `Detach a docker registry credential from a playspec.
 
@@ -214,15 +210,14 @@ REQUIRED FLAGS:
 	  fibe playspecs remove-registry-credential 42 --credential-id 7`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if credentialID == "" {
 				return fmt.Errorf("required flag --credential-id not set")
 			}
 			c := newClient()
-			if err := c.Playspecs.RemoveRegistryCredential(ctx(), id, credentialID); err != nil {
+			if err := c.Playspecs.RemoveRegistryCredentialByIdentifier(ctx(), args[0], credentialID); err != nil {
 				return err
 			}
-			outputJSON(map[string]any{"id": id, "credential_id": credentialID, "removed": true})
+			outputJSON(map[string]any{"id": args[0], "credential_id": credentialID, "removed": true})
 			return nil
 		},
 	}
@@ -238,7 +233,7 @@ func psSwitchVersionCmd() *cobra.Command {
 	var preview bool
 
 	cmd := &cobra.Command{
-		Use:   "switch-version <id>",
+		Use:   "switch-version <id-or-name>",
 		Short: "Preview or apply a template version switch for a playspec",
 		Long: `Switch a template-backed playspec to any readable template version in the same fork tree.
 
@@ -256,7 +251,6 @@ EXAMPLES:
   fibe ps switch-version 42 --target-template-version-id 123 --var app_name=demo --confirm-warnings`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if targetID == 0 {
 				return fmt.Errorf("required flag --target-template-version-id not set")
 			}
@@ -275,9 +269,9 @@ EXAMPLES:
 			c := newClient()
 			var result *fibe.PlayspecTemplateVersionSwitchResult
 			if preview {
-				result, err = c.Playspecs.PreviewTemplateVersionSwitch(ctx(), id, params)
+				result, err = c.Playspecs.PreviewTemplateVersionSwitchByIdentifier(ctx(), args[0], params)
 			} else {
-				result, err = c.Playspecs.SwitchTemplateVersion(ctx(), id, params)
+				result, err = c.Playspecs.SwitchTemplateVersionByIdentifier(ctx(), args[0], params)
 			}
 			if err != nil {
 				return err

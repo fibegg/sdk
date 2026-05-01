@@ -114,7 +114,6 @@ DOCUMENTATION:
 		playgroundsCmd(),
 		tricksCmd(),
 		agentsCmd(),
-		agentDefaultsCmd(),
 		playspecsCmd(),
 		propsCmd(),
 		marqueesCmd(),
@@ -149,8 +148,82 @@ DOCUMENTATION:
 		docsCmd(),
 	)
 
+	// Register template function to show aliases inline in help output.
+	cobra.AddTemplateFunc("nameWithAlias", func(cmd *cobra.Command) string {
+		if len(cmd.Aliases) == 0 {
+			return cmd.Name()
+		}
+		shortest := cmd.Aliases[0]
+		for _, a := range cmd.Aliases[1:] {
+			if len(a) < len(shortest) {
+				shortest = a
+			}
+		}
+		return fmt.Sprintf("%s (%s)", cmd.Name(), shortest)
+	})
+
+	// Compute padding that accounts for alias suffixes.
+	cobra.AddTemplateFunc("aliasPadding", func(parent *cobra.Command) int {
+		maxLen := 0
+		for _, c := range parent.Commands() {
+			if !c.IsAvailableCommand() && c.Name() != "help" {
+				continue
+			}
+			n := len(c.Name())
+			if len(c.Aliases) > 0 {
+				shortest := c.Aliases[0]
+				for _, a := range c.Aliases[1:] {
+					if len(a) < len(shortest) {
+						shortest = a
+					}
+				}
+				n += len(shortest) + 3 // " (" + alias + ")"
+			}
+			if n > maxLen {
+				maxLen = n
+			}
+		}
+		return maxLen
+	})
+
+	cobra.AddTemplateFunc("rpadAlias", func(s string, padding int) string {
+		if len(s) >= padding {
+			return s
+		}
+		return s + strings.Repeat(" ", padding-len(s))
+	})
+
+	cmd.SetUsageTemplate(usageTemplateWithAliases)
+
 	return cmd
 }
+
+// usageTemplateWithAliases is the default Cobra usage template modified to show
+// the shortest alias in parentheses after each command name.
+const usageTemplateWithAliases = `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$padding := aliasPadding .}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpadAlias (nameWithAlias .) $padding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
 
 func newClient() *fibe.Client {
 	opts := []fibe.Option{}

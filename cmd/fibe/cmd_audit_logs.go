@@ -7,8 +7,9 @@ import (
 )
 func auditLogsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "audit-logs",
-		Short: "View audit logs",
+		Use:     "audit-logs",
+		Aliases: []string{"al"},
+		Short:   "View audit logs",
 		Long: `View Fibe audit logs — records of all API and UI actions.
 
 Filter by resource type, channel (api/ui), or action prefix.

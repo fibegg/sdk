@@ -42,7 +42,8 @@ SUBCOMMANDS:
   set-messages <id>     Replace agent messages content
   activity <id>         Get agent activity
   set-activity <id>     Replace agent activity content
-  gitea-token <id>      Get agent's Gitea token`,
+  gitea-token <id>      Get agent's Gitea token
+  defaults              Manage player-level agent defaults`,
 	}
 
 	cmd.AddCommand(
@@ -65,6 +66,7 @@ SUBCOMMANDS:
 		agActivityCmd(),
 		agSetActivityCmd(),
 		agGiteaTokenCmd(),
+		agentDefaultsCmd(),
 	)
 	return cmd
 }
@@ -199,7 +201,7 @@ func agCreateCmd() *cobra.Command {
 	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
 	var skillToggleFlags []string
 	var mountFiles, mountArtefacts []string
-	var playgroundCrumbsID int64
+	var playgroundCrumbsID string
 	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
 
 	cmd := &cobra.Command{
@@ -231,7 +233,7 @@ OPTIONAL FLAGS:
   --build-in-public
                   Show the agent on the public profile when enabled
   --playground-crumbs-id
-                  Playground ID for public timeline crumbs
+                  Playground ID or name for public timeline crumbs
   --mount-file     Local file mount as ./path:%{agent_data}/target.ext (repeatable)
   --mount-artefact Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)
 
@@ -264,7 +266,7 @@ EXAMPLES:
 				params.BuildInPublic = &buildInPublic
 			}
 			if cmd.Flags().Changed("playground-crumbs-id") {
-				params.BuildInPublicPlaygroundID = &playgroundCrumbsID
+				params.BuildInPublicPlaygroundIdentifier = playgroundCrumbsID
 			}
 			if cmd.Flags().Changed("provider-api-key-mode") {
 				params.ProviderAPIKeyMode = &providerAPIKeyMode
@@ -334,7 +336,7 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&syncSkillsEnabled, "sync-skills", false, "Enable Fibe system skill sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
 	cmd.Flags().BoolVar(&buildInPublic, "build-in-public", false, "Show this agent on the public profile")
-	cmd.Flags().Int64Var(&playgroundCrumbsID, "playground-crumbs-id", 0, "Playground ID for public timeline crumbs")
+	cmd.Flags().StringVar(&playgroundCrumbsID, "playground-crumbs-id", "", "Playground ID or name for public timeline crumbs")
 	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
@@ -356,7 +358,7 @@ func agUpdateCmd() *cobra.Command {
 	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
 	var skillToggleFlags []string
 	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode bool
-	var buildInPublicPlaygroundID int64
+	var buildInPublicPlaygroundID string
 
 	cmd := &cobra.Command{
 		Use:   "update <id>",
@@ -379,7 +381,7 @@ OPTIONAL FLAGS:
   --cli-version                   Fibe CLI version pin for this agent
   --provider-args                 Provider CLI flags, for example "--bare --max-tokens 4096"
   --skill-toggle                  Skill toggle as filename=true|false (repeatable)
-  --build-in-public-playground-id Playground ID for public builds
+  --build-in-public-playground-id Playground ID or name for public builds
 
 EXAMPLES:
   fibe agents update 5 --name new-name
@@ -417,7 +419,7 @@ EXAMPLES:
 				params.CpuLimit = &cpuLimit
 			}
 			if cmd.Flags().Changed("build-in-public-playground-id") {
-				params.BuildInPublicPlaygroundID = &buildInPublicPlaygroundID
+				params.BuildInPublicPlaygroundIdentifier = buildInPublicPlaygroundID
 			}
 			if cmd.Flags().Changed("prompt") {
 				params.Prompt = &prompt
@@ -472,7 +474,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&cliVersion, "cli-version", "", "Fibe CLI version pin")
 	cmd.Flags().StringVar(&providerArgs, "provider-args", "", "Provider CLI flags, for example \"--bare --max-tokens 4096\"")
 	cmd.Flags().StringArrayVar(&skillToggleFlags, "skill-toggle", nil, "Skill toggle as filename=true|false (repeatable)")
-	cmd.Flags().Int64Var(&buildInPublicPlaygroundID, "build-in-public-playground-id", 0, "Playground ID for public builds")
+	cmd.Flags().StringVar(&buildInPublicPlaygroundID, "build-in-public-playground-id", "", "Playground ID or name for public builds")
 	return cmd
 }
 
@@ -586,25 +588,25 @@ EXAMPLES:
 }
 
 func agStartChatCmd() *cobra.Command {
-	var marqueeID int64
+	var marqueeID string
 	cmd := &cobra.Command{
 		Use:   "start-chat <id>",
 		Short: "Start an interactive chat session for an agent",
 		Long: `Start the agent chat runtime on a target Marquee.
 
 REQUIRED FLAGS:
-  --marquee-id   Target Marquee ID
+  --marquee-id   Target Marquee ID or name
 
 EXAMPLES:
   fibe agents start-chat 5 --marquee-id 2
   fibe ag start-chat 5 --marquee-id 2`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if marqueeID <= 0 {
+			if marqueeID == "" {
 				return fmt.Errorf("required field 'marquee-id' not set")
 			}
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			session, err := newClient().Agents.StartChat(ctx(), id, marqueeID)
+			session, err := newClient().Agents.StartChatByIdentifier(ctx(), id, marqueeID)
 			if err != nil {
 				return err
 			}
@@ -612,7 +614,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target Marquee ID (required)")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target Marquee ID or name (required)")
 	return cmd
 }
 

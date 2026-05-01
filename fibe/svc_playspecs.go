@@ -2,7 +2,6 @@ package fibe
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -17,8 +16,12 @@ func (s *PlayspecService) List(ctx context.Context, params *PlayspecListParams) 
 }
 
 func (s *PlayspecService) Get(ctx context.Context, id int64) (*Playspec, error) {
+	return s.GetByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *PlayspecService) GetByIdentifier(ctx context.Context, identifier string) (*Playspec, error) {
 	var result Playspec
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/playspecs/%d", id), nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/playspecs", identifier), nil, &result)
 	return &result, err
 }
 
@@ -33,19 +36,31 @@ func (s *PlayspecService) Create(ctx context.Context, params *PlayspecCreatePara
 }
 
 func (s *PlayspecService) Update(ctx context.Context, id int64, params *PlayspecUpdateParams) (*Playspec, error) {
+	return s.UpdateByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *PlayspecService) UpdateByIdentifier(ctx context.Context, identifier string, params *PlayspecUpdateParams) (*Playspec, error) {
 	var result Playspec
 	body := map[string]any{"playspec": params}
-	err := s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/playspecs/%d", id), body, &result)
+	err := s.client.do(ctx, http.MethodPatch, identifierPath("/api/playspecs", identifier), body, &result)
 	return &result, err
 }
 
 func (s *PlayspecService) Delete(ctx context.Context, id int64) error {
-	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/playspecs/%d", id), nil, nil)
+	return s.DeleteByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *PlayspecService) DeleteByIdentifier(ctx context.Context, identifier string) error {
+	return s.client.do(ctx, http.MethodDelete, identifierPath("/api/playspecs", identifier), nil, nil)
 }
 
 func (s *PlayspecService) Services(ctx context.Context, id int64) ([]any, error) {
+	return s.ServicesByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *PlayspecService) ServicesByIdentifier(ctx context.Context, identifier string) ([]any, error) {
 	var result []any
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/playspecs/%d/services", id), nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/playspecs", identifier)+"/services", nil, &result)
 	return result, err
 }
 
@@ -69,20 +84,32 @@ func (s *PlayspecService) ValidateComposeWithParams(ctx context.Context, params 
 }
 
 func (s *PlayspecService) PreviewTemplateVersionSwitch(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error) {
+	return s.PreviewTemplateVersionSwitchByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *PlayspecService) PreviewTemplateVersionSwitchByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error) {
 	var result PlayspecTemplateVersionSwitchPreview
-	path := fmt.Sprintf("/api/playspecs/%d/template_version_switch/preview", id)
+	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch/preview"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
 
 func (s *PlayspecService) SwitchTemplateVersion(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error) {
+	return s.SwitchTemplateVersionByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *PlayspecService) SwitchTemplateVersionByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error) {
 	var result PlayspecTemplateVersionSwitchResult
-	path := fmt.Sprintf("/api/playspecs/%d/template_version_switch", id)
+	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
 
 func (s *PlayspecService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) error {
+	return s.AddMountedFileByIdentifier(ctx, int64Identifier(id), file, fileName, params)
+}
+
+func (s *PlayspecService) AddMountedFileByIdentifier(ctx context.Context, identifier string, file io.Reader, fileName string, params *MountedFileParams) error {
 	fields := map[string]string{
 		"mount_path": params.MountPath,
 	}
@@ -93,23 +120,35 @@ func (s *PlayspecService) AddMountedFile(ctx context.Context, id int64, file io.
 			fields["readonly"] = "false"
 		}
 	}
-	path := fmt.Sprintf("/api/playspecs/%d/add_mounted_file", id)
+	path := identifierPath("/api/playspecs", identifier) + "/add_mounted_file"
 	return s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, nil)
 }
 
 func (s *PlayspecService) UpdateMountedFile(ctx context.Context, id int64, params *MountedFileUpdateParams) error {
-	path := fmt.Sprintf("/api/playspecs/%d/update_mounted_file", id)
+	return s.UpdateMountedFileByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *PlayspecService) UpdateMountedFileByIdentifier(ctx context.Context, identifier string, params *MountedFileUpdateParams) error {
+	path := identifierPath("/api/playspecs", identifier) + "/update_mounted_file"
 	return s.client.do(ctx, http.MethodPatch, path, params, nil)
 }
 
 func (s *PlayspecService) RemoveMountedFile(ctx context.Context, id int64, filename string) error {
-	path := fmt.Sprintf("/api/playspecs/%d/remove_mounted_file", id)
+	return s.RemoveMountedFileByIdentifier(ctx, int64Identifier(id), filename)
+}
+
+func (s *PlayspecService) RemoveMountedFileByIdentifier(ctx context.Context, identifier string, filename string) error {
+	path := identifierPath("/api/playspecs", identifier) + "/remove_mounted_file"
 	body := map[string]any{"filename": filename}
 	return s.client.do(ctx, http.MethodDelete, path, body, nil)
 }
 
 func (s *PlayspecService) AddRegistryCredential(ctx context.Context, id int64, params *RegistryCredentialParams) (*RegistryCredentialResult, error) {
-	path := fmt.Sprintf("/api/playspecs/%d/add_registry_credential", id)
+	return s.AddRegistryCredentialByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *PlayspecService) AddRegistryCredentialByIdentifier(ctx context.Context, identifier string, params *RegistryCredentialParams) (*RegistryCredentialResult, error) {
+	path := identifierPath("/api/playspecs", identifier) + "/add_registry_credential"
 	var result RegistryCredentialResult
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	if err != nil {
@@ -119,7 +158,11 @@ func (s *PlayspecService) AddRegistryCredential(ctx context.Context, id int64, p
 }
 
 func (s *PlayspecService) RemoveRegistryCredential(ctx context.Context, id int64, credentialID string) error {
-	path := fmt.Sprintf("/api/playspecs/%d/remove_registry_credential", id)
+	return s.RemoveRegistryCredentialByIdentifier(ctx, int64Identifier(id), credentialID)
+}
+
+func (s *PlayspecService) RemoveRegistryCredentialByIdentifier(ctx context.Context, identifier string, credentialID string) error {
+	path := identifierPath("/api/playspecs", identifier) + "/remove_registry_credential"
 	body := map[string]any{"credential_id": credentialID}
 	return s.client.do(ctx, http.MethodDelete, path, body, nil)
 }

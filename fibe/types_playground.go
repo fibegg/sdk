@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Playground represents a running environment instance.
 type Playground struct {
@@ -45,7 +48,9 @@ type JobResult struct {
 type PlaygroundCreateParams struct {
 	Name               string                    `json:"name"`
 	PlayspecID         int64                     `json:"playspec_id"`
+	PlayspecIdentifier string                    `json:"-"`
 	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
+	MarqueeIdentifier  string                    `json:"-"`
 	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
 	NeverExpire        *bool                     `json:"never_expire,omitempty"`
 	Services           map[string]*ServiceConfig `json:"services,omitempty"`
@@ -55,7 +60,7 @@ type PlaygroundCreateParams struct {
 func (p *PlaygroundCreateParams) Validate() error {
 	v := &validator{}
 	v.required("name", p.Name)
-	v.requiredInt("playspec_id", p.PlayspecID)
+	v.requiredIDOrIdentifier("playspec_id", p.PlayspecID, p.PlayspecIdentifier)
 	for name, svc := range p.Services {
 		if svc != nil && svc.Exposure != nil {
 			v.subdomain(name+".exposure.subdomain", svc.Exposure.Subdomain)
@@ -63,6 +68,25 @@ func (p *PlaygroundCreateParams) Validate() error {
 		}
 	}
 	return v.err()
+}
+
+func (p PlaygroundCreateParams) MarshalJSON() ([]byte, error) {
+	type alias PlaygroundCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PlayspecIdentifier != "" {
+		body["playspec_id"] = p.PlayspecIdentifier
+	}
+	if p.MarqueeIdentifier != "" {
+		body["marquee_id"] = p.MarqueeIdentifier
+	}
+	return json.Marshal(body)
 }
 
 // ServiceConfig configures a single service within a playground.
@@ -102,27 +126,50 @@ type PortMapping struct {
 
 // PlaygroundListParams controls filtering and pagination for playground list.
 type PlaygroundListParams struct {
-	Q             string `url:"q,omitempty"`
-	Status        string `url:"status,omitempty"`
-	JobMode       *bool  `url:"job_mode,omitempty"`
-	PlayspecID    int64  `url:"playspec_id,omitempty"`
-	MarqueeID     int64  `url:"marquee_id,omitempty"`
-	Name          string `url:"name,omitempty"`
-	CreatedAfter  string `url:"created_after,omitempty"`
-	CreatedBefore string `url:"created_before,omitempty"`
-	Sort          string `url:"sort,omitempty"`
-	Page          int    `url:"page,omitempty"`
-	PerPage       int    `url:"per_page,omitempty"`
+	Q                  string `url:"q,omitempty"`
+	Status             string `url:"status,omitempty"`
+	JobMode            *bool  `url:"job_mode,omitempty"`
+	PlayspecID         int64  `url:"playspec_id,omitempty"`
+	PlayspecIdentifier string `url:"playspec_id,omitempty"`
+	MarqueeID          int64  `url:"marquee_id,omitempty"`
+	MarqueeIdentifier  string `url:"marquee_id,omitempty"`
+	Name               string `url:"name,omitempty"`
+	CreatedAfter       string `url:"created_after,omitempty"`
+	CreatedBefore      string `url:"created_before,omitempty"`
+	Sort               string `url:"sort,omitempty"`
+	Page               int    `url:"page,omitempty"`
+	PerPage            int    `url:"per_page,omitempty"`
 }
 
 type PlaygroundUpdateParams struct {
 	Name               *string                   `json:"name,omitempty"`
 	PlayspecID         *int64                    `json:"playspec_id,omitempty"`
+	PlayspecIdentifier string                    `json:"-"`
 	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
+	MarqueeIdentifier  string                    `json:"-"`
 	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
 	NeverExpire        *bool                     `json:"never_expire,omitempty"`
 	Services           map[string]*ServiceConfig `json:"services,omitempty"`
 	BuildOverridesYAML map[string]any            `json:"build_overrides_yaml,omitempty"`
+}
+
+func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
+	type alias PlaygroundUpdateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PlayspecIdentifier != "" {
+		body["playspec_id"] = p.PlayspecIdentifier
+	}
+	if p.MarqueeIdentifier != "" {
+		body["marquee_id"] = p.MarqueeIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type PlaygroundStatus struct {
@@ -199,7 +246,16 @@ type PlaygroundExtendResult struct {
 }
 
 type TrickTriggerParams struct {
-	PlayspecID int64  `json:"playspec_id"`
-	MarqueeID  *int64 `json:"marquee_id,omitempty"`
-	Name       string `json:"name,omitempty"` // auto-generated if empty
+	PlayspecID         int64  `json:"playspec_id"`
+	PlayspecIdentifier string `json:"-"`
+	MarqueeID          *int64 `json:"marquee_id,omitempty"`
+	MarqueeIdentifier  string `json:"-"`
+	Name               string `json:"name,omitempty"` // auto-generated if empty
+}
+
+func (p *TrickTriggerParams) playspecIdentifier() string {
+	if p.PlayspecIdentifier != "" {
+		return p.PlayspecIdentifier
+	}
+	return int64Identifier(p.PlayspecID)
 }

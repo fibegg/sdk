@@ -1,6 +1,7 @@
 package fibe
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -98,6 +99,7 @@ type PlayspecServiceDef struct {
 	Name           string           `json:"name"`
 	Type           string           `json:"type"`
 	PropID         *int64           `json:"prop_id,omitempty"`
+	PropIdentifier string           `json:"-"`
 	Workdir        string           `json:"workdir,omitempty"`
 	Workflow       string           `json:"workflow,omitempty"`
 	EnvFilePath    string           `json:"env_file_path,omitempty"`
@@ -105,6 +107,22 @@ type PlayspecServiceDef struct {
 	Image          string           `json:"image,omitempty"`
 	Exposure       *ServiceExposure `json:"exposure,omitempty"`
 	JobWatch       *bool            `json:"job_watch,omitempty"`
+}
+
+func (p PlayspecServiceDef) MarshalJSON() ([]byte, error) {
+	type alias PlayspecServiceDef
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PropIdentifier != "" {
+		body["prop_id"] = p.PropIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type PlayspecUpdateParams struct {
@@ -164,14 +182,31 @@ type RegistryCredentialResult struct {
 }
 
 type PlayspecTemplateVersionSwitchParams struct {
-	TargetTemplateVersionID int64          `json:"target_template_version_id"`
-	Variables               map[string]any `json:"variables,omitempty"`
-	RegenerateVariables     []string       `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings         bool           `json:"confirm_warnings,omitempty"`
-	RolloutMode             string         `json:"rollout_mode,omitempty"`
-	TargetPlaygroundID      *int64         `json:"target_playground_id,omitempty"`
-	ResponseMode            string         `json:"response_mode,omitempty"`
-	Summary                 bool           `json:"summary,omitempty"`
+	TargetTemplateVersionID    int64          `json:"target_template_version_id"`
+	Variables                  map[string]any `json:"variables,omitempty"`
+	RegenerateVariables        []string       `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings            bool           `json:"confirm_warnings,omitempty"`
+	RolloutMode                string         `json:"rollout_mode,omitempty"`
+	TargetPlaygroundID         *int64         `json:"target_playground_id,omitempty"`
+	TargetPlaygroundIdentifier string         `json:"-"`
+	ResponseMode               string         `json:"response_mode,omitempty"`
+	Summary                    bool           `json:"summary,omitempty"`
+}
+
+func (p PlayspecTemplateVersionSwitchParams) MarshalJSON() ([]byte, error) {
+	type alias PlayspecTemplateVersionSwitchParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.TargetPlaygroundIdentifier != "" {
+		body["target_playground_id"] = p.TargetPlaygroundIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type PlayspecTemplateVersionSwitchResult struct {

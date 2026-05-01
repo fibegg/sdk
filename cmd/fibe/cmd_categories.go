@@ -6,8 +6,9 @@ import (
 )
 func categoriesCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "categories",
-		Short: "List template categories",
+		Use:     "categories",
+		Aliases: []string{"cat"},
+		Short:   "List template categories",
 		Long: `List all template categories available for organizing import templates.
 
 EXAMPLES:

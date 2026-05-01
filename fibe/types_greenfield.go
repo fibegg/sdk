@@ -1,13 +1,16 @@
 package fibe
 
+import "encoding/json"
+
 type GreenfieldCreateParams struct {
-	Name         string         `json:"name"`
-	TemplateID   *int64         `json:"template_id,omitempty"`
-	Version      string         `json:"version,omitempty"`
-	TemplateBody string         `json:"template_body,omitempty"`
-	GitProvider  string         `json:"git_provider,omitempty"`
-	MarqueeID    *int64         `json:"marquee_id,omitempty"`
-	Variables    map[string]any `json:"variables,omitempty"`
+	Name              string         `json:"name"`
+	TemplateID        *int64         `json:"template_id,omitempty"`
+	Version           string         `json:"version,omitempty"`
+	TemplateBody      string         `json:"template_body,omitempty"`
+	GitProvider       string         `json:"git_provider,omitempty"`
+	MarqueeID         *int64         `json:"marquee_id,omitempty"`
+	MarqueeIdentifier string         `json:"-"`
+	Variables         map[string]any `json:"variables,omitempty"`
 }
 
 func (p *GreenfieldCreateParams) Validate() error {
@@ -20,6 +23,22 @@ func (p *GreenfieldCreateParams) Validate() error {
 		v.errors = append(v.errors, ValidationError{Field: "template_body", Message: "cannot be combined with template_id or version"})
 	}
 	return v.err()
+}
+
+func (p GreenfieldCreateParams) MarshalJSON() ([]byte, error) {
+	type alias GreenfieldCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.MarqueeIdentifier != "" {
+		body["marquee_id"] = p.MarqueeIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type GreenfieldResult struct {

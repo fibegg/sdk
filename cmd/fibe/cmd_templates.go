@@ -400,7 +400,7 @@ func tplSourceCmd() *cobra.Command {
 }
 
 func tplSourceSetCmd() *cobra.Command {
-	var propID, ciMarqueeID, marqueeID int64
+	var propID, ciMarqueeID, marqueeID string
 	var path, ref string
 	var autoRefresh, autoUpgrade, ciEnabled bool
 	cmd := &cobra.Command{
@@ -409,16 +409,16 @@ func tplSourceSetCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			templateID, _ := strconv.ParseInt(args[0], 10, 64)
-			if propID <= 0 {
+			if propID == "" {
 				return fmt.Errorf("required field 'prop-id' not set")
 			}
 			if path == "" {
 				return fmt.Errorf("required field 'path' not set")
 			}
 			params := &fibe.ImportTemplateSourceParams{
-				SourcePropID: propID,
-				SourcePath:   path,
-				SourceRef:    ref,
+				SourcePropIdentifier: propID,
+				SourcePath:           path,
+				SourceRef:            ref,
 			}
 			if cmd.Flags().Changed("auto-refresh") {
 				params.SourceAutoRefresh = &autoRefresh
@@ -430,9 +430,9 @@ func tplSourceSetCmd() *cobra.Command {
 				params.CIEnabled = &ciEnabled
 			}
 			if cmd.Flags().Changed("ci-marquee-id") {
-				params.CIMarqueeID = &ciMarqueeID
+				params.CIMarqueeIdentifier = ciMarqueeID
 			} else if cmd.Flags().Changed("marquee-id") {
-				params.CIMarqueeID = &marqueeID
+				params.CIMarqueeIdentifier = marqueeID
 			}
 			result, err := newClient().ImportTemplates.SetSource(ctx(), templateID, params)
 			if err != nil {
@@ -442,15 +442,15 @@ func tplSourceSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int64Var(&propID, "prop-id", 0, "Source Prop ID (required)")
+	cmd.Flags().StringVar(&propID, "prop-id", "", "Source Prop ID or name (required)")
 	cmd.Flags().StringVar(&path, "path", "", "Source YAML path, e.g. fibe-ci.yml")
 	cmd.Flags().StringVar(&ref, "ref", "", "Source ref/branch")
 	cmd.Flags().BoolVar(&autoRefresh, "auto-refresh", true, "Refresh versions from matching pushes")
 	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Playspecs")
 	cmd.Flags().BoolVar(&ciEnabled, "ci-enabled", false, "Enable CI workflow sync for this template source")
 	cmd.Flags().BoolVar(&ciEnabled, "ci", false, "Alias for --ci-enabled")
-	cmd.Flags().Int64Var(&ciMarqueeID, "ci-marquee-id", 0, "Marquee ID used by CI workflow sync")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Alias for --ci-marquee-id")
+	cmd.Flags().StringVar(&ciMarqueeID, "ci-marquee-id", "", "Marquee ID or name used by CI workflow sync")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Alias for --ci-marquee-id")
 	return cmd
 }
 
@@ -559,7 +559,7 @@ EXAMPLES:
 }
 
 func tplLaunchCmd() *cobra.Command {
-	var marqueeID int64
+	var marqueeID string
 	var name string
 	var version int64
 	cmd := &cobra.Command{
@@ -568,7 +568,7 @@ func tplLaunchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			id, _ := strconv.ParseInt(args[0], 10, 64)
-			params := &fibe.ImportTemplateLaunchParams{MarqueeID: marqueeID}
+			params := &fibe.ImportTemplateLaunchParams{MarqueeIdentifier: marqueeID}
 			if name != "" {
 				params.Name = name
 			}
@@ -583,7 +583,7 @@ func tplLaunchCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target marquee ID (required)")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (required)")
 	cmd.Flags().StringVar(&name, "name", "", "Optional playground name")
 	cmd.Flags().Int64Var(&version, "version", 0, "Optional template version")
 	cmd.MarkFlagRequired("marquee-id")

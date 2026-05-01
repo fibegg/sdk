@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -28,12 +27,12 @@ LIFECYCLE:
 
 SUBCOMMANDS:
   list                List all tricks
-  get <id>            Show trick details
+  get <id-or-name>    Show trick details
   trigger             Run a new trick from a job-mode playspec
-  rerun <id>          Re-run a completed/failed trick
-  status <id>         Check trick status and result
-  logs <id>           Get service logs
-  delete <id>         Delete a trick`,
+  rerun <id-or-name>  Re-run a completed/failed trick
+  status <id-or-name> Check trick status and result
+  logs <id-or-name>   Get service logs
+  delete <id-or-name> Delete a trick`,
 	}
 
 	cmd.AddCommand(
@@ -50,7 +49,7 @@ SUBCOMMANDS:
 
 func trListCmd() *cobra.Command {
 	var query, status, name, sort, createdAfter, createdBefore string
-	var playspecID int64
+	var playspecID string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all tricks",
@@ -60,7 +59,7 @@ FILTERS:
   -q, --query           Search across name (substring match)
   --status              Filter by exact status. Values: pending, in_progress, running, completed, error
   --name                Filter by name (substring match)
-  --playspec-id         Filter by playspec ID
+  --playspec-id         Filter by playspec ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601)
@@ -88,15 +87,33 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.PlaygroundListParams{}
-			if query != "" { params.Q = query }
-			if status != "" { params.Status = status }
-			if name != "" { params.Name = name }
-			if playspecID > 0 { params.PlayspecID = playspecID }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if name != "" {
+				params.Name = name
+			}
+			if playspecID != "" {
+				params.PlayspecIdentifier = playspecID
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			tricks, err := c.Tricks.List(ctx(), params)
 			if err != nil {
 				return err
@@ -121,7 +138,7 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().Int64Var(&playspecID, "playspec-id", 0, "Filter by playspec ID")
+	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Filter by playspec ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")
@@ -130,7 +147,7 @@ EXAMPLES:
 
 func trGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <id>",
+		Use:   "get <id-or-name>",
 		Short: "Show detailed trick information",
 		Long: `Get detailed information about a specific trick.
 
@@ -142,8 +159,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			tr, err := c.Tricks.Get(ctx(), id)
+			tr, err := c.Tricks.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -169,8 +185,8 @@ EXAMPLES:
 }
 
 func trTriggerCmd() *cobra.Command {
-	var playspecID int64
-	var marqueeID int64
+	var playspecID string
+	var marqueeID string
 	var name string
 
 	cmd := &cobra.Command{
@@ -182,10 +198,10 @@ A trick name is auto-generated as "{playspec-name}-{random}" unless
 you provide one explicitly with --name.
 
 REQUIRED FLAGS:
-  --playspec-id   ID of the job-mode playspec
+  --playspec-id   ID or name of the job-mode playspec
 
 OPTIONAL FLAGS:
-  --marquee-id    Target server
+  --marquee-id    Target server ID or name
   --name          Custom trick name (auto-generated if omitted)
 
 EXAMPLES:
@@ -195,16 +211,16 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TrickTriggerParams{
-				PlayspecID: playspecID,
+				PlayspecIdentifier: playspecID,
 			}
 			if cmd.Flags().Changed("marquee-id") {
-				params.MarqueeID = &marqueeID
+				params.MarqueeIdentifier = marqueeID
 			}
 			if cmd.Flags().Changed("name") {
 				params.Name = name
 			}
 
-			if params.PlayspecID == 0 {
+			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
 				return fmt.Errorf("required field 'playspec-id' not set")
 			}
 
@@ -221,15 +237,15 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().Int64Var(&playspecID, "playspec-id", 0, "Job-mode playspec ID (required)")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target marquee ID (optional)")
+	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Job-mode playspec ID or name (required)")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional)")
 	cmd.Flags().StringVar(&name, "name", "", "Custom trick name (auto-generated if omitted)")
 	return cmd
 }
 
 func trRerunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rerun <id>",
+		Use:   "rerun <id-or-name>",
 		Short: "Re-run a completed or failed trick",
 		Long: `Create a new trick run by copying the playspec and marquee settings
 from an existing trick. The new trick gets a fresh auto-generated name.
@@ -239,8 +255,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			tr, err := c.Tricks.Rerun(ctx(), id)
+			tr, err := c.Tricks.RerunByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -248,7 +263,7 @@ EXAMPLES:
 				outputJSON(tr)
 				return nil
 			}
-			fmt.Printf("Re-triggered trick %d (%s) from source %d — status: %s\n", tr.ID, tr.Name, id, tr.Status)
+			fmt.Printf("Re-triggered trick %d (%s) from source %s — status: %s\n", tr.ID, tr.Name, args[0], tr.Status)
 			return nil
 		},
 	}
@@ -256,7 +271,7 @@ EXAMPLES:
 
 func trStatusCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "status <id>",
+		Use:   "status <id-or-name>",
 		Short: "Check trick status and job result",
 		Long: `Get the current status of a trick, including the job result
 with per-service outcomes when completed.
@@ -266,8 +281,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			status, err := c.Tricks.Status(ctx(), id)
+			status, err := c.Tricks.StatusByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -289,7 +303,7 @@ func trLogsCmd() *cobra.Command {
 	var tail int
 
 	cmd := &cobra.Command{
-		Use:   "logs <id>",
+		Use:   "logs <id-or-name>",
 		Short: "Get service logs from a trick",
 		Long: `Retrieve logs from a specific service in a trick.
 
@@ -308,12 +322,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			var t *int
 			if tail > 0 {
 				t = &tail
 			}
-			logs, err := c.Tricks.Logs(ctx(), id, service, t)
+			logs, err := c.Tricks.LogsByIdentifier(ctx(), args[0], service, t)
 			if err != nil {
 				return err
 			}
@@ -336,7 +349,7 @@ EXAMPLES:
 
 func trDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <id>",
+		Use:   "delete <id-or-name>",
 		Short: "Delete a trick",
 		Long: `Delete a trick and tear down its services.
 
@@ -345,11 +358,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Tricks.Delete(ctx(), id); err != nil {
+			if err := c.Tricks.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Trick %d deletion initiated\n", id)
+			fmt.Printf("Trick %s deletion initiated\n", args[0])
 			return nil
 		},
 	}

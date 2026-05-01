@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Marquee struct {
 	ID                   int64     `json:"id"`
@@ -31,6 +34,7 @@ type MarqueeCreateParams struct {
 	DockerhubToken       *string           `json:"dockerhub_token,omitempty"`
 	BuildPlatform        *string           `json:"build_platform,omitempty"`
 	PropID               *int64            `json:"prop_id,omitempty"`
+	PropIdentifier       string            `json:"-"`
 	Status               *string           `json:"status,omitempty"`
 	DnsProvider          *string           `json:"dns_provider,omitempty"`
 	DnsCredentials       map[string]string `json:"dns_credentials,omitempty"`
@@ -67,9 +71,42 @@ type MarqueeUpdateParams struct {
 	DockerhubToken       *string           `json:"dockerhub_token,omitempty"`
 	BuildPlatform        *string           `json:"build_platform,omitempty"`
 	PropID               *int64            `json:"prop_id,omitempty"`
+	PropIdentifier       string            `json:"-"`
 	Status               *string           `json:"status,omitempty"`
 	DnsProvider          *string           `json:"dns_provider,omitempty"`
 	DnsCredentials       map[string]string `json:"dns_credentials,omitempty"`
+}
+
+func (p MarqueeCreateParams) MarshalJSON() ([]byte, error) {
+	type alias MarqueeCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PropIdentifier != "" {
+		body["prop_id"] = p.PropIdentifier
+	}
+	return json.Marshal(body)
+}
+
+func (p MarqueeUpdateParams) MarshalJSON() ([]byte, error) {
+	type alias MarqueeUpdateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PropIdentifier != "" {
+		body["prop_id"] = p.PropIdentifier
+	}
+	return json.Marshal(body)
 }
 
 // AutoconnectTokenParams for generating a marquee autoconnect token.

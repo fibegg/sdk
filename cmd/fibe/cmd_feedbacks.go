@@ -10,8 +10,9 @@ import (
 
 func feedbacksCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "feedbacks",
-		Short: "Manage agent feedback",
+		Use:     "feedbacks",
+		Aliases: []string{"fb"},
+		Short:   "Manage agent feedback",
 		Long: `Manage feedback attached to agent interactions.
 
 Feedback captures user annotations on agent output: text selections,

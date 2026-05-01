@@ -18,9 +18,9 @@ func (s *Server) registerCustomTools() {
 		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			id, ok := argInt64(args, "playground_id")
-			if !ok {
-				return nil, fmt.Errorf("required field 'playground_id' not set")
+			identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+			if err != nil {
+				return nil, err
 			}
 			service := argString(args, "service")
 			if service == "" {
@@ -31,11 +31,12 @@ func (s *Server) registerCustomTools() {
 				n := int(t)
 				tail = &n
 			}
-			return c.Playgrounds.Logs(ctx, id, service, tail)
+			return c.Playgrounds.LogsByIdentifier(ctx, identifier, service, tail)
 		},
 	}, mcp.NewTool("fibe_playgrounds_logs",
 		mcp.WithDescription("[MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors."),
-		mcp.WithNumber("playground_id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
+		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("service", mcp.Required(), mcp.Description("Compose service name, for example web or worker.")),
 		mcp.WithNumber("tail", mcp.Description("Number of log lines to return (default: 50)")),
 	))

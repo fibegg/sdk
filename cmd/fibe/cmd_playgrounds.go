@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -32,18 +31,18 @@ CORE TROUBLESHOOTING:
 
 SUBCOMMANDS:
   list              List all playgrounds
-  get <id>          Show playground details
+  get <id-or-name> Show playground details
   create            Create a new playground
-  update <id>       Update playground settings
-  delete <id>       Delete a playground
-  rollout <id>      Recreate with latest config
-  hard-restart <id> Hard restart all services
-  extend <id>       Extend expiration time
-  status <id>       Check playground status
-  compose <id>      Get docker-compose configuration
-  logs <id>         Get service logs
-  env <id>          Get environment metadata
-  debug <id>        Get debug information`,
+  update <id-or-name>       Update playground settings
+  delete <id-or-name>       Delete a playground
+  rollout <id-or-name>      Recreate with latest config
+  hard-restart <id-or-name> Hard restart all services
+  extend <id-or-name>       Extend expiration time
+  status <id-or-name>       Check playground status
+  compose <id-or-name>      Get docker-compose configuration
+  logs <id-or-name>         Get service logs
+  env <id-or-name>          Get environment metadata
+  debug <id-or-name>        Get debug information`,
 	}
 
 	cmd.AddCommand(
@@ -66,7 +65,7 @@ SUBCOMMANDS:
 
 func pgListCmd() *cobra.Command {
 	var query, status, name, sort, createdAfter, createdBefore string
-	var playspecID, marqueeID int64
+	var playspecID, marqueeID string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all playgrounds (excludes tricks)",
@@ -77,8 +76,8 @@ FILTERS:
   -q, --query           Search across name (substring match)
   --status              Filter by exact status. Values: pending, in_progress, running, error, stopped, destroying
   --name                Filter by name (substring match)
-  --playspec-id         Filter by playspec ID
-  --marquee-id          Filter by marquee ID
+  --playspec-id         Filter by playspec ID or name
+  --marquee-id          Filter by marquee ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601, e.g. 2026-01-15)
@@ -114,11 +113,11 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if playspecID > 0 {
-				params.PlayspecID = playspecID
+			if playspecID != "" {
+				params.PlayspecIdentifier = playspecID
 			}
-			if marqueeID > 0 {
-				params.MarqueeID = marqueeID
+			if marqueeID != "" {
+				params.MarqueeIdentifier = marqueeID
 			}
 			if createdAfter != "" {
 				params.CreatedAfter = createdAfter
@@ -158,8 +157,8 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().Int64Var(&playspecID, "playspec-id", 0, "Filter by playspec ID")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Filter by marquee ID")
+	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Filter by playspec ID or name")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Filter by marquee ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc, name_asc)")
@@ -168,7 +167,7 @@ EXAMPLES:
 
 func pgGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <id>",
+		Use:   "get <id-or-name>",
 		Short: "Show detailed playground information",
 		Long: `Get detailed information about a specific playground.
 
@@ -177,12 +176,12 @@ environment overrides, error messages, service status, and job results.
 
 EXAMPLES:
   fibe playgrounds get 42
+  fibe playgrounds get my-playground
   fibe pg get 42 --output json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			pg, err := c.Playgrounds.Get(ctx(), id)
+			pg, err := c.Playgrounds.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -206,8 +205,8 @@ EXAMPLES:
 
 func pgCreateCmd() *cobra.Command {
 	var name string
-	var playspecID int64
-	var marqueeID int64
+	var playspecID string
+	var marqueeID string
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -225,10 +224,10 @@ SUBDOMAIN BOUNDARIES:
 
 REQUIRED FLAGS:
   --name          Playground name
-  --playspec-id   ID of the playspec to use
+  --playspec-id   ID or name of the playspec to use
 
 OPTIONAL FLAGS:
-  --marquee-id    ID of the target marquee (server)
+  --marquee-id    ID or name of the target marquee (server)
 
 EXAMPLES:
   fibe playgrounds create --name my-app --playspec-id 5
@@ -246,16 +245,16 @@ EXAMPLES:
 				params.Name = name
 			}
 			if cmd.Flags().Changed("playspec-id") {
-				params.PlayspecID = playspecID
+				params.PlayspecIdentifier = playspecID
 			}
 			if cmd.Flags().Changed("marquee-id") {
-				params.MarqueeID = &marqueeID
+				params.MarqueeIdentifier = marqueeID
 			}
 
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
 			}
-			if params.PlayspecID == 0 {
+			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
 				return fmt.Errorf("required field 'playspec-id' not set")
 			}
 
@@ -273,24 +272,24 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Playground name (required)")
-	cmd.Flags().Int64Var(&playspecID, "playspec-id", 0, "Playspec ID (required)")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Marquee ID (optional)")
+	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Playspec ID or name (required)")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Marquee ID or name (optional)")
 	return cmd
 }
 
 func pgUpdateCmd() *cobra.Command {
 	var name string
-	var playspecID, marqueeID int64
+	var playspecID, marqueeID string
 
 	cmd := &cobra.Command{
-		Use:   "update <id>",
+		Use:   "update <id-or-name>",
 		Short: "Update playground settings",
 		Long: `Update an existing playground's configuration.
 
 OPTIONAL FLAGS:
   --name           New playground name
-  --playspec-id    Switch to a different playspec
-  --marquee-id     Move to a different marquee
+  --playspec-id    Switch to a different playspec by ID or name
+  --marquee-id     Move to a different marquee by ID or name
 
 For complex updates (services, build_overrides_yaml), use --from-file:
   fibe playgrounds update 42 -f update.json
@@ -302,7 +301,6 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.PlaygroundUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -311,12 +309,12 @@ EXAMPLES:
 				params.Name = &name
 			}
 			if cmd.Flags().Changed("playspec-id") {
-				params.PlayspecID = &playspecID
+				params.PlayspecIdentifier = playspecID
 			}
 			if cmd.Flags().Changed("marquee-id") {
-				params.MarqueeID = &marqueeID
+				params.MarqueeIdentifier = marqueeID
 			}
-			pg, err := c.Playgrounds.Update(ctx(), id, params)
+			pg, err := c.Playgrounds.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -330,14 +328,14 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "New playground name")
-	cmd.Flags().Int64Var(&playspecID, "playspec-id", 0, "Switch to a different playspec")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Move to a different marquee")
+	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Switch to a different playspec by ID or name")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Move to a different marquee by ID or name")
 	return cmd
 }
 
 func pgDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <id>",
+		Use:   "delete <id-or-name>",
 		Short: "Delete a playground",
 		Long: `Delete a playground and tear down all its services.
 
@@ -351,11 +349,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Playgrounds.Delete(ctx(), id); err != nil {
+			if err := c.Playgrounds.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Playground %d deletion initiated\n", id)
+			fmt.Printf("Playground %s deletion initiated\n", args[0])
 			return nil
 		},
 	}
@@ -364,7 +361,7 @@ EXAMPLES:
 func pgRolloutCmd() *cobra.Command {
 	var force bool
 	cmd := &cobra.Command{
-		Use:   "rollout <id>",
+		Use:   "rollout <id-or-name>",
 		Short: "Recreate playground with latest configuration",
 		Long: `Trigger a rollout to recreate the playground with the latest playspec configuration.
 
@@ -378,12 +375,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.Action(ctx(), id, params)
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -398,7 +394,7 @@ EXAMPLES:
 func pgHardRestartCmd() *cobra.Command {
 	var force bool
 	cmd := &cobra.Command{
-		Use:   "hard-restart <id>",
+		Use:   "hard-restart <id-or-name>",
 		Short: "Hard restart all playground services",
 		Long: `Perform a hard restart of all services in the playground.
 
@@ -410,12 +406,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.Action(ctx(), id, params)
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -431,7 +426,7 @@ func pgExtendCmd() *cobra.Command {
 	var hours int
 
 	cmd := &cobra.Command{
-		Use:   "extend <id>",
+		Use:   "extend <id-or-name>",
 		Short: "Extend playground expiration time",
 		Long: `Extend the expiration time of a playground.
 
@@ -446,12 +441,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			var h *int
 			if hours > 0 {
 				h = &hours
 			}
-			result, err := c.Playgrounds.ExtendExpiration(ctx(), id, h)
+			result, err := c.Playgrounds.ExtendExpirationByIdentifier(ctx(), args[0], h)
 			if err != nil {
 				return err
 			}
@@ -466,7 +460,7 @@ EXAMPLES:
 
 func pgStatusCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "status <id>",
+		Use:   "status <id-or-name>",
 		Short: "Check playground status",
 		Long: `Get the current status of a playground, including job result if available.
 
@@ -478,8 +472,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			status, err := c.Playgrounds.Status(ctx(), id)
+			status, err := c.Playgrounds.StatusByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -495,7 +488,7 @@ EXAMPLES:
 
 func pgComposeCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "compose <id>",
+		Use:   "compose <id-or-name>",
 		Short: "Get playground docker-compose configuration",
 		Long: `Retrieve the generated docker-compose YAML for a playground.
 
@@ -508,8 +501,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			compose, err := c.Playgrounds.Compose(ctx(), id)
+			compose, err := c.Playgrounds.ComposeByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -528,7 +520,7 @@ func pgLogsCmd() *cobra.Command {
 	var tail int
 
 	cmd := &cobra.Command{
-		Use:   "logs <id>",
+		Use:   "logs <id-or-name>",
 		Short: "Get service logs from a playground",
 		Long: `Retrieve logs from a specific service in a playground.
 
@@ -547,12 +539,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			var t *int
 			if tail > 0 {
 				t = &tail
 			}
-			logs, err := c.Playgrounds.Logs(ctx(), id, service, t)
+			logs, err := c.Playgrounds.LogsByIdentifier(ctx(), args[0], service, t)
 			if err != nil {
 				return err
 			}
@@ -575,7 +566,7 @@ EXAMPLES:
 
 func pgEnvCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "env <id>",
+		Use:   "env <id-or-name>",
 		Short: "Get playground environment metadata",
 		Long: `Get the merged environment variables and metadata for a playground.
 
@@ -587,8 +578,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			env, err := c.Playgrounds.EnvMetadata(ctx(), id)
+			env, err := c.Playgrounds.EnvMetadataByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -600,7 +590,7 @@ EXAMPLES:
 
 func pgDebugCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "debug <id>",
+		Use:   "debug <id-or-name>",
 		Short: "Get comprehensive debug information",
 		Long: `Get comprehensive debug information for a playground.
 
@@ -612,8 +602,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			debug, err := c.Playgrounds.Debug(ctx(), id)
+			debug, err := c.Playgrounds.DebugWithParamsByIdentifier(ctx(), args[0], nil)
 			if err != nil {
 				return err
 			}

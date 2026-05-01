@@ -23,7 +23,8 @@ func (s *Server) registerWaitTool() {
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
 		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)"),
-		mcp.WithNumber("playground_id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
+		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target playground status, for example running, stopped, or has_changes.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
 		mcp.WithString("interval", mcp.Description("Polling interval as Go duration string (default: 3s)")),
@@ -35,9 +36,9 @@ func (s *Server) registerWaitTool() {
 // notifications/progress on every tick so hosts see status transitions
 // without the agent having to loop.
 func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-	id, ok := argInt64(args, "playground_id")
-	if !ok {
-		return nil, fmt.Errorf("required field 'playground_id' not set")
+	identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+	if err != nil {
+		return nil, err
 	}
 	target := argString(args, "status")
 	if target == "" {
@@ -62,7 +63,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			terminal  bool
 			terminalE string
 		)
-		pg, err := c.Playgrounds.Status(ctx, id)
+		pg, err := c.Playgrounds.StatusByIdentifier(ctx, identifier)
 		fetchErr = err
 		if err == nil {
 			payload = pg

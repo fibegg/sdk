@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -20,11 +19,11 @@ registry credentials, and deployment settings for playgrounds.
 
 SUBCOMMANDS:
   list                   List all playspecs
-  get <id>               Show playspec details
+  get <id-or-name>       Show playspec details
   create                 Create a new playspec
-  update <id>            Update playspec settings
-  delete <id>            Delete a playspec
-  services <id>          List playspec services
+  update <id-or-name>    Update playspec settings
+  delete <id-or-name>    Delete a playspec
+  services <id-or-name>  List playspec services
   validate-compose       Validate a docker-compose YAML`,
 	}
 
@@ -143,7 +142,7 @@ EXAMPLES:
 
 func psGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <id>",
+		Use:   "get <id-or-name>",
 		Short: "Show playspec details",
 		Long: `Get detailed information about a playspec including services, mounted files,
 and registry credentials.
@@ -154,8 +153,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			spec, err := c.Playspecs.Get(ctx(), id)
+			spec, err := c.Playspecs.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -270,7 +268,7 @@ func psUpdateCmd() *cobra.Command {
 	var persistVolumes, jobMode bool
 
 	cmd := &cobra.Command{
-		Use:   "update <id>",
+		Use:   "update <id-or-name>",
 		Short: "Update playspec settings",
 		Long: `Update an existing playspec's configuration.
 
@@ -291,7 +289,6 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.PlayspecUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -312,7 +309,7 @@ EXAMPLES:
 			if cmd.Flags().Changed("job-mode") {
 				params.JobMode = &jobMode
 			}
-			spec, err := c.Playspecs.Update(ctx(), id, params)
+			spec, err := c.Playspecs.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -335,7 +332,7 @@ EXAMPLES:
 
 func psDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <id>",
+		Use:   "delete <id-or-name>",
 		Short: "Delete a playspec",
 		Long: `Delete a playspec. Cannot delete if active playgrounds exist.
 
@@ -344,11 +341,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Playspecs.Delete(ctx(), id); err != nil {
+			if err := c.Playspecs.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Playspec %d deleted\n", id)
+			fmt.Printf("Playspec %s deleted\n", args[0])
 			return nil
 		},
 	}
@@ -356,7 +352,7 @@ EXAMPLES:
 
 func psServicesCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "services <id>",
+		Use:   "services <id-or-name>",
 		Short: "List playspec services",
 		Long: `List the services defined in a playspec's docker-compose configuration.
 
@@ -365,8 +361,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			svcs, err := c.Playspecs.Services(ctx(), id)
+			svcs, err := c.Playspecs.ServicesByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}

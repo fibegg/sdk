@@ -133,6 +133,10 @@ func validateAnyOf(path string, payload map[string]any, schema map[string]any) e
 }
 
 func validateValue(path string, value any, schema map[string]any) error {
+	if err, handled := validateOneOfValue(path, value, schema); handled {
+		return err
+	}
+
 	if enum := schemaEnum(schema); len(enum) > 0 {
 		s, ok := value.(string)
 		if !ok {
@@ -223,6 +227,33 @@ func validateValue(path string, value any, schema map[string]any) error {
 		}
 	}
 	return nil
+}
+
+func validateOneOfValue(path string, value any, schema map[string]any) (error, bool) {
+	raw, ok := schema["oneOf"]
+	if !ok {
+		return nil, false
+	}
+	branches, ok := raw.([]any)
+	if !ok || len(branches) == 0 {
+		return nil, false
+	}
+	var messages []string
+	for _, branchRaw := range branches {
+		branch, ok := branchRaw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if err := validateValue(path, value, branch); err == nil {
+			return nil, true
+		} else {
+			messages = append(messages, err.Error())
+		}
+	}
+	if len(messages) == 0 {
+		return fmt.Errorf("%s does not match any allowed schema", path), true
+	}
+	return fmt.Errorf("%s does not match any allowed schema: %s", path, strings.Join(messages, "; ")), true
 }
 
 func requiredFields(schema map[string]any) []string {

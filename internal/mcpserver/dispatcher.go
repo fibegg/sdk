@@ -239,8 +239,7 @@ func argInt64(args map[string]any, key string) (int64, bool) {
 		if x == "" {
 			return 0, false
 		}
-		var n int64
-		_, err := fmt.Sscanf(x, "%d", &n)
+		n, err := strconv.ParseInt(strings.TrimSpace(x), 10, 64)
 		if err != nil {
 			return 0, false
 		}

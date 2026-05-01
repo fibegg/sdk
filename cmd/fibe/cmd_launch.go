@@ -12,7 +12,7 @@ import (
 func launchCmd() *cobra.Command {
 	var name, compose string
 	var jobMode, createPlayground, noCreatePlayground bool
-	var marqueeID int64
+	var marqueeID string
 	var launchVars []string
 	var launchProps []string
 	cmd := &cobra.Command{
@@ -57,9 +57,8 @@ EXAMPLES:
 				t := true
 				params.JobMode = &t
 			}
-			if cmd.Flags().Changed("marquee-id") && marqueeID > 0 {
-				mid := marqueeID
-				params.MarqueeID = &mid
+			if cmd.Flags().Changed("marquee-id") && marqueeID != "" {
+				params.MarqueeIdentifier = marqueeID
 			}
 			if cmd.Flags().Changed("create-playground") {
 				v := createPlayground
@@ -83,11 +82,14 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("prop") && len(launchProps) > 0 {
 				params.PropMappings = make(map[string]int64)
+				params.PropMappingIdentifiers = make(map[string]string)
 				for _, v := range launchProps {
 					parts := strings.SplitN(v, "=", 2)
 					if len(parts) == 2 {
 						if pid, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
 							params.PropMappings[parts[0]] = pid
+						} else {
+							params.PropMappingIdentifiers[parts[0]] = parts[1]
 						}
 					}
 				}
@@ -103,7 +105,7 @@ EXAMPLES:
 			if params.ComposeYAML == "" {
 				return fmt.Errorf("required field 'compose' not set")
 			}
-			if params.JobMode != nil && *params.JobMode && params.MarqueeID == nil {
+			if params.JobMode != nil && *params.JobMode && params.MarqueeID == nil && params.MarqueeIdentifier == "" {
 				return fmt.Errorf("--job-mode requires --marquee-id (a trick has no marquee to run on otherwise)")
 			}
 
@@ -118,10 +120,10 @@ EXAMPLES:
 	cmd.Flags().StringVar(&name, "name", "", "Name (required)")
 	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML (required)")
 	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Create as a trick (job-mode) instead of a playground (requires --marquee-id)")
-	cmd.Flags().Int64Var(&marqueeID, "marquee-id", 0, "Target marquee ID. Required when --job-mode is set; without it only the playspec is created.")
+	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name. Required when --job-mode is set; without it only the playspec is created.")
 	cmd.Flags().BoolVar(&createPlayground, "create-playground", false, "Force playground creation. Defaults to true when --marquee-id is set, false otherwise.")
 	cmd.Flags().BoolVar(&noCreatePlayground, "no-create-playground", false, "Skip playground deployment even when --marquee-id is set.")
 	cmd.Flags().StringSliceVar(&launchVars, "var", nil, "Set template variables (e.g., --var subdomain=foo --var fibe_domain=foo.fibe.live)")
-	cmd.Flags().StringSliceVar(&launchProps, "prop", nil, "Map private Git repository to Prop ID (e.g., --prop https://github.com/fibegg/fibe.git=123)")
+	cmd.Flags().StringSliceVar(&launchProps, "prop", nil, "Map private Git repository to Prop ID or name (e.g., --prop https://github.com/fibegg/fibe.git=my-prop)")
 	return cmd
 }

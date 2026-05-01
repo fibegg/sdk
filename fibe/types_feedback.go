@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Feedback struct {
 	ID             *int64     `json:"id"`
@@ -20,15 +23,32 @@ type Feedback struct {
 }
 
 type FeedbackCreateParams struct {
-	SourceType     string  `json:"source_type"`
-	SourceID       *int64  `json:"source_id,omitempty"`
-	SelectionStart *int    `json:"selection_start,omitempty"`
-	SelectionEnd   *int    `json:"selection_end,omitempty"`
-	SelectedText   *string `json:"selected_text,omitempty"`
-	Comment        *string `json:"comment,omitempty"`
-	LineText       *string `json:"line_text,omitempty"`
-	Context        *string `json:"context,omitempty"`
-	PlaygroundID   *int64  `json:"playground_id,omitempty"`
+	SourceType           string  `json:"source_type"`
+	SourceID             *int64  `json:"source_id,omitempty"`
+	SelectionStart       *int    `json:"selection_start,omitempty"`
+	SelectionEnd         *int    `json:"selection_end,omitempty"`
+	SelectedText         *string `json:"selected_text,omitempty"`
+	Comment              *string `json:"comment,omitempty"`
+	LineText             *string `json:"line_text,omitempty"`
+	Context              *string `json:"context,omitempty"`
+	PlaygroundID         *int64  `json:"playground_id,omitempty"`
+	PlaygroundIdentifier string  `json:"-"`
+}
+
+func (p FeedbackCreateParams) MarshalJSON() ([]byte, error) {
+	type alias FeedbackCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PlaygroundIdentifier != "" {
+		body["playground_id"] = p.PlaygroundIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type FeedbackUpdateParams struct {
@@ -46,4 +66,3 @@ type FeedbackListParams struct {
 	Page          int    `url:"page,omitempty"`
 	PerPage       int    `url:"per_page,omitempty"`
 }
-

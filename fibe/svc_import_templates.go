@@ -97,6 +97,9 @@ func (s *ImportTemplateService) PatchCreate(ctx context.Context, id int64, param
 }
 
 func (s *ImportTemplateService) SetSource(ctx context.Context, id int64, params *ImportTemplateSourceParams) (*ImportTemplate, error) {
+	if err := validateParams(params); err != nil {
+		return nil, err
+	}
 	var result ImportTemplate
 	body := map[string]any{"source": params}
 	err := s.client.do(ctx, http.MethodPut, fmt.Sprintf("/api/import_templates/%d/source", id), body, &result)

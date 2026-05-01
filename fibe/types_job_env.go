@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type JobEnvEntry struct {
 	ID          *int64     `json:"id"`
@@ -17,21 +20,23 @@ type JobEnvEntry struct {
 }
 
 type JobEnvListParams struct {
-	PropID  int64  `url:"prop_id,omitempty"`
-	Secret  *bool  `url:"secret,omitempty"`
-	Enabled *bool  `url:"enabled,omitempty"`
-	Q       string `url:"q,omitempty"`
-	Page    int    `url:"page,omitempty"`
-	PerPage int    `url:"per_page,omitempty"`
+	PropID         int64  `url:"prop_id,omitempty"`
+	PropIdentifier string `url:"prop_id,omitempty"`
+	Secret         *bool  `url:"secret,omitempty"`
+	Enabled        *bool  `url:"enabled,omitempty"`
+	Q              string `url:"q,omitempty"`
+	Page           int    `url:"page,omitempty"`
+	PerPage        int    `url:"per_page,omitempty"`
 }
 
 type JobEnvSetParams struct {
-	PropID      *int64  `json:"prop_id,omitempty"`
-	Key         string  `json:"key"`
-	Value       string  `json:"value"`
-	Secret      bool    `json:"secret,omitempty"`
-	Enabled     *bool   `json:"enabled,omitempty"`
-	Description *string `json:"description,omitempty"`
+	PropID         *int64  `json:"prop_id,omitempty"`
+	PropIdentifier string  `json:"-"`
+	Key            string  `json:"key"`
+	Value          string  `json:"value"`
+	Secret         bool    `json:"secret,omitempty"`
+	Enabled        *bool   `json:"enabled,omitempty"`
+	Description    *string `json:"description,omitempty"`
 }
 
 func (p *JobEnvSetParams) Validate() error {
@@ -39,6 +44,22 @@ func (p *JobEnvSetParams) Validate() error {
 	v.required("key", p.Key)
 	v.required("value", p.Value)
 	return v.err()
+}
+
+func (p JobEnvSetParams) MarshalJSON() ([]byte, error) {
+	type alias JobEnvSetParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PropIdentifier != "" {
+		body["prop_id"] = p.PropIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type JobEnvUpdateParams struct {

@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Mutter struct {
 	ID           *int64         `json:"id"`
@@ -23,8 +26,24 @@ type MutterListParams struct {
 }
 
 type MutterItemParams struct {
-	Type         string `json:"type"`
-	Body         string `json:"body"`
-	PlaygroundID *int64 `json:"playground_id,omitempty"`
+	Type                 string `json:"type"`
+	Body                 string `json:"body"`
+	PlaygroundID         *int64 `json:"playground_id,omitempty"`
+	PlaygroundIdentifier string `json:"-"`
 }
 
+func (p MutterItemParams) MarshalJSON() ([]byte, error) {
+	type alias MutterItemParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.PlaygroundIdentifier != "" {
+		body["playground_id"] = p.PlaygroundIdentifier
+	}
+	return json.Marshal(body)
+}

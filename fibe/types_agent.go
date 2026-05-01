@@ -1,6 +1,9 @@
 package fibe
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	ProviderGemini      = "gemini"
@@ -62,30 +65,31 @@ type MountedFileEntry struct {
 }
 
 type AgentCreateParams struct {
-	Name                      string           `json:"name"`
-	Provider                  string           `json:"provider"`
-	APIKeyID                  *int64           `json:"api_key_id,omitempty"`
-	SyncEnabled               *bool            `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled         *bool            `json:"sync_skills_enabled,omitempty"`
-	SyscheckEnabled           *bool            `json:"syscheck_enabled,omitempty"`
-	BuildInPublic             *bool            `json:"build_in_public,omitempty"`
-	BuildInPublicPlaygroundID *int64           `json:"build_in_public_playground_id,omitempty"`
-	Description               *string          `json:"description,omitempty"`
-	ProviderAPIKeyMode        *bool            `json:"provider_api_key_mode,omitempty"`
-	Mode                      *string          `json:"mode,omitempty"`
-	ModelOptions              *string          `json:"model_options,omitempty"`
-	MemoryLimit               *string          `json:"memory_limit,omitempty"`
-	CpuLimit                  *string          `json:"cpu_limit,omitempty"`
-	Settings                  map[string]any   `json:"settings,omitempty"`
-	Prompt                    *string          `json:"prompt,omitempty"`
-	MCPJSON                   *string          `json:"mcp_json,omitempty"`
-	PostInitScript            *string          `json:"post_init_script,omitempty"`
-	CustomEnv                 *string          `json:"custom_env,omitempty"`
-	CLIVersion                *string          `json:"cli_version,omitempty"`
-	ProviderArgs              map[string]any   `json:"provider_args,omitempty"`
-	ProviderArgsCLI           *string          `json:"provider_args_cli,omitempty"`
-	SkillToggles              map[string]bool  `json:"skill_toggles,omitempty"`
-	Mounts                    []AgentMountSpec `json:"mounts,omitempty"`
+	Name                              string           `json:"name"`
+	Provider                          string           `json:"provider"`
+	APIKeyID                          *int64           `json:"api_key_id,omitempty"`
+	SyncEnabled                       *bool            `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled                 *bool            `json:"sync_skills_enabled,omitempty"`
+	SyscheckEnabled                   *bool            `json:"syscheck_enabled,omitempty"`
+	BuildInPublic                     *bool            `json:"build_in_public,omitempty"`
+	BuildInPublicPlaygroundID         *int64           `json:"build_in_public_playground_id,omitempty"`
+	BuildInPublicPlaygroundIdentifier string           `json:"-"`
+	Description                       *string          `json:"description,omitempty"`
+	ProviderAPIKeyMode                *bool            `json:"provider_api_key_mode,omitempty"`
+	Mode                              *string          `json:"mode,omitempty"`
+	ModelOptions                      *string          `json:"model_options,omitempty"`
+	MemoryLimit                       *string          `json:"memory_limit,omitempty"`
+	CpuLimit                          *string          `json:"cpu_limit,omitempty"`
+	Settings                          map[string]any   `json:"settings,omitempty"`
+	Prompt                            *string          `json:"prompt,omitempty"`
+	MCPJSON                           *string          `json:"mcp_json,omitempty"`
+	PostInitScript                    *string          `json:"post_init_script,omitempty"`
+	CustomEnv                         *string          `json:"custom_env,omitempty"`
+	CLIVersion                        *string          `json:"cli_version,omitempty"`
+	ProviderArgs                      map[string]any   `json:"provider_args,omitempty"`
+	ProviderArgsCLI                   *string          `json:"provider_args_cli,omitempty"`
+	SkillToggles                      map[string]bool  `json:"skill_toggles,omitempty"`
+	Mounts                            []AgentMountSpec `json:"mounts,omitempty"`
 }
 
 func (p *AgentCreateParams) Validate() error {
@@ -96,29 +100,62 @@ func (p *AgentCreateParams) Validate() error {
 	return v.err()
 }
 
+func (p AgentCreateParams) MarshalJSON() ([]byte, error) {
+	type alias AgentCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.BuildInPublicPlaygroundIdentifier != "" {
+		body["build_in_public_playground_id"] = p.BuildInPublicPlaygroundIdentifier
+	}
+	return json.Marshal(body)
+}
+
 type AgentUpdateParams struct {
-	Name                      *string         `json:"name,omitempty"`
-	APIKeyID                  *int64          `json:"api_key_id,omitempty"`
-	SyncEnabled               *bool           `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled         *bool           `json:"sync_skills_enabled,omitempty"`
-	SyscheckEnabled           *bool           `json:"syscheck_enabled,omitempty"`
-	BuildInPublic             *bool           `json:"build_in_public,omitempty"`
-	Description               *string         `json:"description,omitempty"`
-	ProviderAPIKeyMode        *bool           `json:"provider_api_key_mode,omitempty"`
-	Mode                      *string         `json:"mode,omitempty"`
-	ModelOptions              *string         `json:"model_options,omitempty"`
-	MemoryLimit               *string         `json:"memory_limit,omitempty"`
-	CpuLimit                  *string         `json:"cpu_limit,omitempty"`
-	BuildInPublicPlaygroundID *int64          `json:"build_in_public_playground_id,omitempty"`
-	Settings                  map[string]any  `json:"settings,omitempty"`
-	Prompt                    *string         `json:"prompt,omitempty"`
-	MCPJSON                   *string         `json:"mcp_json,omitempty"`
-	PostInitScript            *string         `json:"post_init_script,omitempty"`
-	CustomEnv                 *string         `json:"custom_env,omitempty"`
-	CLIVersion                *string         `json:"cli_version,omitempty"`
-	ProviderArgs              map[string]any  `json:"provider_args,omitempty"`
-	ProviderArgsCLI           *string         `json:"provider_args_cli,omitempty"`
-	SkillToggles              map[string]bool `json:"skill_toggles,omitempty"`
+	Name                              *string         `json:"name,omitempty"`
+	APIKeyID                          *int64          `json:"api_key_id,omitempty"`
+	SyncEnabled                       *bool           `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled                 *bool           `json:"sync_skills_enabled,omitempty"`
+	SyscheckEnabled                   *bool           `json:"syscheck_enabled,omitempty"`
+	BuildInPublic                     *bool           `json:"build_in_public,omitempty"`
+	Description                       *string         `json:"description,omitempty"`
+	ProviderAPIKeyMode                *bool           `json:"provider_api_key_mode,omitempty"`
+	Mode                              *string         `json:"mode,omitempty"`
+	ModelOptions                      *string         `json:"model_options,omitempty"`
+	MemoryLimit                       *string         `json:"memory_limit,omitempty"`
+	CpuLimit                          *string         `json:"cpu_limit,omitempty"`
+	BuildInPublicPlaygroundID         *int64          `json:"build_in_public_playground_id,omitempty"`
+	BuildInPublicPlaygroundIdentifier string          `json:"-"`
+	Settings                          map[string]any  `json:"settings,omitempty"`
+	Prompt                            *string         `json:"prompt,omitempty"`
+	MCPJSON                           *string         `json:"mcp_json,omitempty"`
+	PostInitScript                    *string         `json:"post_init_script,omitempty"`
+	CustomEnv                         *string         `json:"custom_env,omitempty"`
+	CLIVersion                        *string         `json:"cli_version,omitempty"`
+	ProviderArgs                      map[string]any  `json:"provider_args,omitempty"`
+	ProviderArgsCLI                   *string         `json:"provider_args_cli,omitempty"`
+	SkillToggles                      map[string]bool `json:"skill_toggles,omitempty"`
+}
+
+func (p AgentUpdateParams) MarshalJSON() ([]byte, error) {
+	type alias AgentUpdateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.BuildInPublicPlaygroundIdentifier != "" {
+		body["build_in_public_playground_id"] = p.BuildInPublicPlaygroundIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type AgentMountSpec struct {

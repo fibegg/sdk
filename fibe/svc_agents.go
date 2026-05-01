@@ -77,6 +77,13 @@ func (s *AgentService) StartChat(ctx context.Context, id, marqueeID int64) (*Age
 	return &result, err
 }
 
+func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, marqueeIdentifier string) (*AgentChatSession, error) {
+	var result AgentChatSession
+	body := map[string]any{"marquee_id": marqueeIdentifier}
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/start_chat", id), body, &result)
+	return &result, err
+}
+
 func (s *AgentService) RuntimeStatus(ctx context.Context, id int64) (*AgentRuntimeStatus, error) {
 	var result AgentRuntimeStatus
 	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/agents/%d/runtime_status", id), nil, &result)

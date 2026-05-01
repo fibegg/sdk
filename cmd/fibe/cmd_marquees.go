@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -20,12 +19,12 @@ Marquees are connected via SSH and managed by Fibe.
 
 SUBCOMMANDS:
   list                  List all marquees
-  get <id>              Show marquee details
+  get <id-or-name>      Show marquee details
   create                Create a new marquee
-  update <id>           Update marquee settings
-  delete <id>           Delete a marquee
-  generate-ssh-key <id> Generate SSH key pair
-  test-connection <id>  Test SSH connection
+  update <id-or-name>           Update marquee settings
+  delete <id-or-name>           Delete a marquee
+  generate-ssh-key <id-or-name> Generate SSH key pair
+  test-connection <id-or-name>  Test SSH connection
   autoconnect-token     Generate autoconnect token`,
 	}
 
@@ -117,12 +116,11 @@ EXAMPLES:
 
 func mqGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "get <id>", Short: "Show marquee details", Args: cobra.ExactArgs(1),
+		Use: "get <id-or-name>", Short: "Show marquee details", Args: cobra.ExactArgs(1),
 		Long: "Get detailed information about a marquee.\n\nEXAMPLES:\n  fibe marquees get 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			mq, err := c.Marquees.Get(ctx(), id)
+			mq, err := c.Marquees.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -208,11 +206,10 @@ func mqCreateCmd() *cobra.Command {
 func mqUpdateCmd() *cobra.Command {
 	var name, status, dnsProvider string
 	cmd := &cobra.Command{
-		Use: "update <id>", Short: "Update marquee settings", Args: cobra.ExactArgs(1),
+		Use: "update <id-or-name>", Short: "Update marquee settings", Args: cobra.ExactArgs(1),
 		Long: "Update a marquee's configuration parameters." + generateSchemaDoc(&fibe.MarqueeUpdateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.MarqueeUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -226,7 +223,7 @@ func mqUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("dns-provider") {
 				params.DnsProvider = &dnsProvider
 			}
-			mq, err := c.Marquees.Update(ctx(), id, params)
+			mq, err := c.Marquees.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -246,15 +243,14 @@ func mqUpdateCmd() *cobra.Command {
 
 func mqDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "delete <id>", Short: "Delete a marquee", Args: cobra.ExactArgs(1),
+		Use: "delete <id-or-name>", Short: "Delete a marquee", Args: cobra.ExactArgs(1),
 		Long: "Delete a marquee. Cannot delete if active playgrounds exist.\n\nEXAMPLES:\n  fibe marquees delete 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Marquees.Delete(ctx(), id); err != nil {
+			if err := c.Marquees.DeleteByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Marquee %d deleted\n", id)
+			fmt.Printf("Marquee %s deleted\n", args[0])
 			return nil
 		},
 	}
@@ -262,12 +258,11 @@ func mqDeleteCmd() *cobra.Command {
 
 func mqSSHKeyCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "generate-ssh-key <id>", Short: "Generate SSH key pair for marquee", Args: cobra.ExactArgs(1),
+		Use: "generate-ssh-key <id-or-name>", Short: "Generate SSH key pair for marquee", Args: cobra.ExactArgs(1),
 		Long: "Generate a new SSH key pair for a marquee.\nReturns the public key that should be added to the server's authorized_keys.\n\nEXAMPLES:\n  fibe marquees generate-ssh-key 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := c.Marquees.GenerateSSHKey(ctx(), id)
+			result, err := c.Marquees.GenerateSSHKeyByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -279,12 +274,11 @@ func mqSSHKeyCmd() *cobra.Command {
 
 func mqTestCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "test-connection <id>", Short: "Test SSH connection to marquee", Args: cobra.ExactArgs(1),
+		Use: "test-connection <id-or-name>", Short: "Test SSH connection to marquee", Args: cobra.ExactArgs(1),
 		Long: "Test the SSH connection to a marquee server.\n\nEXAMPLES:\n  fibe marquees test-connection 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := c.Marquees.TestConnection(ctx(), id)
+			result, err := c.Marquees.TestConnectionByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}

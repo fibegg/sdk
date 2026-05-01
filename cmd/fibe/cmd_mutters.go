@@ -7,10 +7,12 @@ import (
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func muttersCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mutters",
-		Short: "Manage agent mutters (observations)",
+		Use:     "mutters",
+		Aliases: []string{"mut"},
+		Short:   "Manage agent mutters (observations)",
 		Long: `Manage mutters — agent observation and monitoring data.
 
 Mutters capture structured observations from agent runs, including
@@ -44,14 +46,28 @@ EXAMPLES:
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.MutterListParams{}
-			if playgroundID != "" { params.PlaygroundID = playgroundID }
-			if query != "" { params.Query = query }
-			if status != "" { params.Status = status }
-			if severity != "" { params.Severity = severity }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if playgroundID != "" {
+				params.PlaygroundID = playgroundID
+			}
+			if query != "" {
+				params.Query = query
+			}
+			if status != "" {
+				params.Status = status
+			}
+			if severity != "" {
+				params.Severity = severity
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			mutter, err := c.Mutters.Get(ctx(), agentID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(mutter)
 			return nil
 		},
@@ -65,7 +81,7 @@ EXAMPLES:
 
 func mutterCreateCmd() *cobra.Command {
 	var typ, body string
-	var playgroundID int64
+	var playgroundID string
 	cmd := &cobra.Command{
 		Use: "create <agent-id>", Short: "Create a mutter item", Args: cobra.ExactArgs(1),
 		Long: `Create a new mutter item for an agent.
@@ -83,25 +99,28 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			agentID, _ := strconv.ParseInt(args[0], 10, 64)
-			
+
 			if typ == "" {
 				return fmt.Errorf("required field 'type' not set")
 			}
 			if body == "" {
 				return fmt.Errorf("required field 'body' not set")
 			}
-			
+
 			params := &fibe.MutterItemParams{Type: typ, Body: body}
-			if cmd.Flags().Changed("playground-id") { params.PlaygroundID = &playgroundID }
+			if cmd.Flags().Changed("playground-id") {
+				params.PlaygroundIdentifier = playgroundID
+			}
 			mutter, err := c.Mutters.CreateItem(ctx(), agentID, params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(mutter)
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&typ, "type", "", "Item type (required)")
 	cmd.Flags().StringVar(&body, "body", "", "Item body (required)")
-	cmd.Flags().Int64Var(&playgroundID, "playground-id", 0, "Associate with a playground")
+	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Associate with a playground ID or name")
 	return cmd
 }
-

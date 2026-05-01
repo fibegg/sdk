@@ -335,7 +335,7 @@ func buildRegistry() map[string]map[string]any {
 		"type":     "object",
 		"required": []string{"playground_id", "action_type"},
 		"properties": map[string]any{
-			"playground_id": map[string]any{"type": "integer", "description": "Playground ID.", "minimum": 1},
+			"playground_id": namedIdentifierSchema("playground_id", "Playground ID or slug-safe name."),
 			"action_type":   map[string]any{"type": "string", "enum": fibe.ValidPlaygroundActions, "description": "Lifecycle action to perform."},
 			"force":         map[string]any{"type": "boolean", "description": "Bypass normal state guards when Rails permits forced execution."},
 		},
@@ -412,7 +412,11 @@ func updateParamsSchemaFor[P any](idField string) map[string]any {
 	}
 	schema := paramsSchema[P]()
 	props := schema["properties"].(map[string]any)
-	props[idField] = map[string]any{"type": "integer", "description": schemaIDDescription(idField) + ".", "minimum": 1}
+	if namedIdentifierField(idField) {
+		props[idField] = namedIdentifierSchema(idField, schemaIDDescription(idField)+" or slug-safe name.")
+	} else {
+		props[idField] = map[string]any{"type": "integer", "description": schemaIDDescription(idField) + ".", "minimum": 1}
+	}
 	schema["required"] = []string{idField}
 	return schema
 }
@@ -429,7 +433,7 @@ func artefactCreateSchema() map[string]any {
 			"content_base64": map[string]any{"type": "string", "description": "Base64-encoded file content. Use either content_base64 or content_path."},
 			"content_path":   map[string]any{"type": "string", "description": "Absolute local file path to read and upload. Use either content_path or content_base64."},
 			"description":    map[string]any{"type": "string", "description": "Optional human-readable artefact description."},
-			"playground_id":  map[string]any{"type": "integer", "description": "Optional playground ID to associate with the artefact.", "minimum": 1},
+			"playground_id":  namedIdentifierSchema("playground_id", "Optional playground ID or slug-safe name to associate with the artefact."),
 		},
 	}
 }
@@ -443,7 +447,7 @@ func mutterCreateSchema() map[string]any {
 			"agent_id":      map[string]any{"type": "integer", "description": "Agent ID that owns the mutter.", "minimum": 1},
 			"type":          map[string]any{"type": "string", "description": "Mutter type label. Common values are info, warning, error, and success; Server accepts arbitrary strings."},
 			"body":          map[string]any{"type": "string", "description": "Mutter body text."},
-			"playground_id": map[string]any{"type": "integer", "description": "Optional playground ID to associate with the mutter.", "minimum": 1},
+			"playground_id": namedIdentifierSchema("playground_id", "Optional playground ID or slug-safe name to associate with the mutter."),
 		},
 	}
 }
@@ -502,13 +506,13 @@ func templateSourceSetSchema() map[string]any {
 	schema := paramsSchema[fibe.ImportTemplateSourceParams]("source_prop_id", "source_path")
 	props := schema["properties"].(map[string]any)
 	props["template_id"] = map[string]any{"type": "integer", "description": "Template ID whose tracked source should be configured.", "minimum": 1}
-	props["source_prop_id"].(map[string]any)["description"] = "Source Prop ID containing the template YAML file."
+	props["source_prop_id"] = namedIdentifierSchema("source_prop_id", "Source Prop ID or slug-safe name containing the template YAML file.")
 	props["source_path"].(map[string]any)["description"] = "Path to the source YAML file inside the Prop repository."
 	props["source_ref"].(map[string]any)["description"] = "Source branch, tag, or git ref."
 	props["source_auto_refresh"].(map[string]any)["description"] = "Refresh the template when matching source changes are detected."
 	props["source_auto_upgrade"].(map[string]any)["description"] = "Automatically upgrade linked job Playspecs after a source refresh creates a new version."
 	props["ci_enabled"].(map[string]any)["description"] = "Enable CI workflow sync for this template source."
-	props["ci_marquee_id"].(map[string]any)["description"] = "Marquee ID used by CI workflow sync."
+	props["ci_marquee_id"] = namedIdentifierSchema("ci_marquee_id", "Marquee ID or slug-safe name used by CI workflow sync.")
 	delete(props, "marquee_id")
 	schema["required"] = []string{"template_id", "source_prop_id", "source_path"}
 	return schema
@@ -539,12 +543,16 @@ func templateVersionTogglePublicSchema() map[string]any {
 }
 
 func resourceActionIDSchema(idField, description string) map[string]any {
+	prop := map[string]any{"type": "integer", "description": description, "minimum": 1}
+	if namedIdentifierField(idField) {
+		prop = namedIdentifierSchema(idField, strings.Replace(description, " ID", " ID or slug-safe name", 1))
+	}
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{idField},
 		"properties": map[string]any{
-			idField: map[string]any{"type": "integer", "description": description, "minimum": 1},
+			idField: prop,
 		},
 	}
 }
@@ -700,7 +708,8 @@ func templateVersionPatchCreateSchema() map[string]any {
 			"edits":                map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Alias for patches."},
 			"public":               map[string]any{"type": "boolean", "description": "Make the created version public."},
 			"changelog":            map[string]any{"type": "string", "description": "Human-readable changelog for the created template version."},
-			"target_playspec_id":   map[string]any{"type": "integer", "description": "Target playspec ID for optional auto-switch.", "minimum": 1},
+			"target_playspec_id":   namedIdentifierSchema("target_playspec_id", "Target playspec ID or slug-safe name for optional auto-switch."),
+			"target_playground_id": namedIdentifierSchema("target_playground_id", "Target playground ID or slug-safe name for optional rollout."),
 			"switch_variables":     map[string]any{"type": "object", "description": "Variables to pass to version switch."},
 			"regenerate_variables": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Template variable names to regenerate during switch."},
 			"confirm_warnings":     map[string]any{"type": "boolean", "description": "Set true to continue when preview warnings are present."},
@@ -899,23 +908,40 @@ func withDescription(schema map[string]any, description string) map[string]any {
 }
 
 func resourceIDSchema(resource, tool string) map[string]any {
-	return map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []string{"resource", "id"},
-		"properties": map[string]any{
-			"resource": map[string]any{
-				"type":        "string",
-				"enum":        []string{resource},
-				"description": fmt.Sprintf("Canonical resource name for %s.", tool),
-			},
-			"id": map[string]any{
-				"type":        "integer",
-				"description": "ID of the selected resource.",
-				"minimum":     1,
-			},
+	required := []string{"resource", "id"}
+	properties := map[string]any{
+		"resource": map[string]any{
+			"type":        "string",
+			"enum":        []string{resource},
+			"description": fmt.Sprintf("Canonical resource name for %s.", tool),
+		},
+		"id": map[string]any{
+			"type":        "integer",
+			"description": "ID of the selected resource.",
+			"minimum":     1,
 		},
 	}
+	if namedResource(resource) {
+		required = []string{"resource"}
+		properties["identifier"] = map[string]any{
+			"type":        "string",
+			"minLength":   1,
+			"description": "Numeric ID or slug-safe resource name. Use when identifying playgrounds, tricks, playspecs, props, and marquees by name.",
+		}
+	}
+	schema := map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             required,
+		"properties":           properties,
+	}
+	if namedResource(resource) {
+		schema["anyOf"] = []any{
+			map[string]any{"required": []string{"id"}},
+			map[string]any{"required": []string{"identifier"}},
+		}
+	}
+	return schema
 }
 
 func listParamsSchema[P any]() map[string]any {
@@ -979,6 +1005,9 @@ func structSchema(t reflect.Type, required ...string) map[string]any {
 }
 
 func enrichPropertySchema(name string, prop map[string]any) {
+	if namedIdentifierField(name) && (schemaHasType(prop, "integer") || schemaHasType(prop, "number") || schemaHasType(prop, "string")) {
+		convertNamedIdentifierSchema(name, prop)
+	}
 	if schemaFieldIsNumericID(name, prop) {
 		prop["minimum"] = 1
 	}
@@ -1004,6 +1033,56 @@ func enrichPropertySchema(name string, prop map[string]any) {
 			}
 		}
 	}
+}
+
+func namedResource(resource string) bool {
+	switch resource {
+	case "playground", "trick", "playspec", "prop", "marquee":
+		return true
+	default:
+		return false
+	}
+}
+
+func namedIdentifierField(name string) bool {
+	switch name {
+	case "playground_id", "target_playground_id", "build_in_public_playground_id",
+		"trick_id",
+		"playspec_id", "target_playspec_id",
+		"prop_id", "source_prop_id",
+		"marquee_id", "ci_marquee_id", "target_marquee_id":
+		return true
+	default:
+		return false
+	}
+}
+
+func namedIdentifierSchema(name string, description string) map[string]any {
+	if description == "" {
+		description = schemaIDDescription(name) + " or slug-safe name."
+	}
+	return map[string]any{
+		"oneOf": []any{
+			map[string]any{"type": "integer", "minimum": 1},
+			map[string]any{"type": "string", "minLength": 1},
+		},
+		"description": description,
+	}
+}
+
+func convertNamedIdentifierSchema(name string, prop map[string]any) {
+	desc, _ := prop["description"].(string)
+	if desc == "" {
+		desc = schemaIDDescription(name) + " or slug-safe name."
+	}
+	for _, key := range []string{"type", "minimum", "maximum", "format"} {
+		delete(prop, key)
+	}
+	prop["oneOf"] = []any{
+		map[string]any{"type": "integer", "minimum": 1},
+		map[string]any{"type": "string", "minLength": 1},
+	}
+	prop["description"] = desc
 }
 
 func schemaFieldIsNumericID(name string, prop map[string]any) bool {

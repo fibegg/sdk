@@ -11,8 +11,9 @@ import (
 
 func jobEnvCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "job-env",
-		Short: "Manage job-mode environment variables and secrets",
+		Use:     "job-env",
+		Aliases: []string{"je"},
+		Short:   "Manage job-mode environment variables and secrets",
 		Long: `Manage global and Prop-scoped ENV entries injected into job-mode Tricks.
 
 Keys must be uppercase letters, numbers, and underscores, and may not use the reserved FIBE_ prefix.`,
@@ -22,7 +23,7 @@ Keys must be uppercase letters, numbers, and underscores, and may not use the re
 }
 
 func jobEnvListCmd() *cobra.Command {
-	var propID int64
+	var propID string
 	var query string
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -30,8 +31,8 @@ func jobEnvListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.JobEnvListParams{}
-			if propID > 0 {
-				params.PropID = propID
+			if propID != "" {
+				params.PropIdentifier = propID
 			}
 			if query != "" {
 				params.Q = query
@@ -67,7 +68,7 @@ func jobEnvListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int64Var(&propID, "prop-id", 0, "Filter by Prop ID")
+	cmd.Flags().StringVar(&propID, "prop-id", "", "Filter by Prop ID or name")
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search key/description")
 	return cmd
 }
@@ -110,7 +111,7 @@ func jobEnvGetCmd() *cobra.Command {
 }
 
 func jobEnvSetCmd() *cobra.Command {
-	var propID int64
+	var propID string
 	var secret bool
 	var desc string
 	cmd := &cobra.Command{
@@ -124,8 +125,8 @@ func jobEnvSetCmd() *cobra.Command {
 			}
 			c := newClient()
 			params := &fibe.JobEnvSetParams{Key: key, Value: value, Secret: secret}
-			if propID > 0 {
-				params.PropID = &propID
+			if propID != "" {
+				params.PropIdentifier = propID
 			}
 			if desc != "" {
 				params.Description = &desc
@@ -138,7 +139,7 @@ func jobEnvSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().Int64Var(&propID, "prop-id", 0, "Scope to a Prop ID instead of global")
+	cmd.Flags().StringVar(&propID, "prop-id", "", "Scope to a Prop ID or name instead of global")
 	cmd.Flags().BoolVar(&secret, "secret", false, "Store as secret and mask in list responses")
 	cmd.Flags().StringVar(&desc, "description", "", "Optional description")
 	return cmd
