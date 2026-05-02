@@ -111,7 +111,19 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 		return fmt.Errorf("write %s: %w", target.Path, err)
 	}
 	fmt.Printf("Installed fibe MCP server into %s\n", target.Path)
+	if notice := mcpInstallReloadNotice(client); notice != "" {
+		fmt.Println(notice)
+	}
 	return nil
+}
+
+func mcpInstallReloadNotice(client string) string {
+	switch client {
+	case "codex":
+		return "Note: Codex loads MCP server config when a session starts; restart Codex or open a new session for this change to take effect."
+	default:
+		return ""
+	}
 }
 
 func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]any, []string, error) {

@@ -53,6 +53,9 @@ func (s *Server) registerResourceMutateTool() {
 					"message":   "Payload is valid; no request was sent.",
 				}, nil
 			}
+			if canonicalResource == "playground" && canonicalOperation == "action" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
+				return nil, &confirmRequiredError{tool: "fibe_resource_mutate"}
+			}
 			return dispatchResourceMutation(ctx, c, canonicalResource, canonicalOperation, payload)
 		},
 	}, mcp.NewTool("fibe_resource_mutate",
@@ -79,6 +82,12 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			return nil, err
 		}
 		return c.Agents.UpdateByIdentifier(ctx, identifier, &p)
+	case "agent.restart_chat":
+		identifier, err := requiredIdentifier(payload, "agent_id", "")
+		if err != nil {
+			return nil, err
+		}
+		return c.Agents.RestartChatByIdentifier(ctx, identifier)
 	case "api_key.create":
 		var p fibe.APIKeyCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -142,6 +151,17 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			return nil, err
 		}
 		return c.Playgrounds.UpdateByIdentifier(ctx, identifier, &p)
+	case "playground.action":
+		identifier, err := requiredIdentifier(payload, "playground_id", "")
+		if err != nil {
+			return nil, err
+		}
+		p := &fibe.PlaygroundActionParams{ActionType: argString(payload, "action_type")}
+		if _, ok := payload["force"]; ok {
+			force := argBool(payload, "force")
+			p.Force = &force
+		}
+		return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
 	case "playspec.create":
 		var p fibe.PlayspecCreateParams
 		if err := bindArgs(payload, &p); err != nil {

@@ -177,3 +177,64 @@ services:
 		t.Fatalf("fibe_playgrounds_wait failed: %v", err)
 	}
 }
+
+func TestTemplatesDevelopApplyRequiresConfirm(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":                "playspec",
+		"target_id":                  1,
+		"mode":                       "apply",
+		"change_type":                "switch_existing",
+		"target_template_version_id": 2,
+	})
+	if err == nil || !strings.Contains(err.Error(), "confirm:true") {
+		t.Fatalf("expected confirm:true error, got %v", err)
+	}
+}
+
+func TestTemplatesDevelopPreviewDoesNotRequireConfirm(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":                "playspec",
+		"target_id":                  1,
+		"mode":                       "preview",
+		"change_type":                "switch_existing",
+		"target_template_version_id": 2,
+	})
+	if err == nil {
+		t.Fatal("expected mock network error")
+	}
+	if strings.Contains(err.Error(), "confirm:true") || strings.Contains(err.Error(), "destructive") {
+		t.Fatalf("preview should not require confirm, got %v", err)
+	}
+}
+
+func TestTemplatesDevelopApplyAcceptsConfirm(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+		"target_type":                "playspec",
+		"target_id":                  1,
+		"mode":                       "apply",
+		"change_type":                "switch_existing",
+		"target_template_version_id": 2,
+		"confirm":                    true,
+	})
+	if err == nil {
+		t.Fatal("expected mock network error")
+	}
+	if strings.Contains(err.Error(), "confirm:true") || strings.Contains(err.Error(), "destructive") {
+		t.Fatalf("confirm:true should pass the template develop gate, got %v", err)
+	}
+}

@@ -31,6 +31,7 @@ SUBCOMMANDS:
   delete <id-or-name>   Delete an agent
   duplicate <id-or-name> Clone an agent
   start-chat <id-or-name> Start an interactive chat session on a Marquee
+  restart-chat <id-or-name> Restart the current chat container
   runtime-status <id-or-name> Show agent chat runtime status
   purge-chat <id-or-name> Tear down agent chat container and volumes
   chat <id-or-name>     Send a chat message
@@ -54,6 +55,7 @@ SUBCOMMANDS:
 		agDeleteCmd(),
 		agDuplicateCmd(),
 		agStartChatCmd(),
+		agRestartChatCmd(),
 		agRuntimeStatusCmd(),
 		agPurgeChatCmd(),
 		agSendMessageCmd(),
@@ -640,6 +642,34 @@ EXAMPLES:
 			fmt.Printf("Authenticated:     %s\n", fmtBool(status.Authenticated))
 			fmt.Printf("Processing:        %s\n", fmtBool(status.IsProcessing))
 			fmt.Printf("Queue count:       %d\n", status.QueueCount)
+			return nil
+		},
+	}
+}
+
+func agRestartChatCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart-chat <id-or-name>",
+		Short: "Restart an agent chat runtime",
+		Long: `Restart the current agent chat runtime in place.
+
+This preserves chat volumes and queues the normal start/deploy path, so the
+runtime pulls the current configured image before coming back up.
+
+EXAMPLES:
+  fibe agents restart-chat 5
+  fibe ag restart-chat my-agent -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			session, err := newClient().Agents.RestartChatByIdentifier(ctx(), args[0])
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(session)
+				return nil
+			}
+			fmt.Printf("Restart queued for chat %d for agent %s (status: %s)\n", session.ID, args[0], session.Status)
 			return nil
 		},
 	}

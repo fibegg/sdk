@@ -17,6 +17,7 @@ var mutationCaseKeys = []struct {
 }{
 	{resource: "agent", operation: "create"},
 	{resource: "agent", operation: "update"},
+	{resource: "agent", operation: "restart_chat"},
 	{resource: "api_key", operation: "create"},
 	{resource: "artefact", operation: "create"},
 	{resource: "marquee", operation: "create"},
@@ -26,6 +27,7 @@ var mutationCaseKeys = []struct {
 	{resource: "marquee", operation: "test_connection"},
 	{resource: "playground", operation: "create"},
 	{resource: "playground", operation: "update"},
+	{resource: "playground", operation: "action"},
 	{resource: "playspec", operation: "create"},
 	{resource: "playspec", operation: "update"},
 	{resource: "prop", operation: "create"},
@@ -168,6 +170,10 @@ func MutationToolInputSchema() map[string]any {
 			"dry_run": map[string]any{
 				"type":        "boolean",
 				"description": "Validate the payload against fibe_schema and return without sending any API request.",
+			},
+			"confirm": map[string]any{
+				"type":        "boolean",
+				"description": "Set true for destructive routed operations such as playground.action unless the server runs with --yolo.",
 			},
 		},
 	}

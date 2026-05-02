@@ -399,6 +399,23 @@ func TestAgents_StartChat(t *testing.T) {
 	}
 }
 
+func TestAgents_RestartChat(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/restart_chat" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "pending"})
+	})
+
+	session, err := c.Agents.RestartChat(context.Background(), 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if session.ID != 123 || session.Status != "pending" {
+		t.Errorf("unexpected session: %#v", session)
+	}
+}
+
 func TestAgents_RuntimeStatus(t *testing.T) {
 	chatURL := "https://agent.example.test"
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {

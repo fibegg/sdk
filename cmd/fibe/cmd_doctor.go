@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
 
@@ -59,20 +60,15 @@ Output includes:
 			fmt.Println()
 
 			// Check API key presence
-			apiKey := os.Getenv("FIBE_API_KEY")
+			apiKey, apiKeySource := doctorAPIKeyStatus()
 			if apiKey == "" {
-				fmt.Println("❌ FIBE_API_KEY: not set")
-				fmt.Println("   Set it with: export FIBE_API_KEY=pk_live_...")
+				fmt.Println("❌ API key: not set")
+				fmt.Println("   Set it with: export FIBE_API_KEY=pk_live_... or pass --api-key")
 			} else {
-				masked := apiKey[:10] + "..." + apiKey[len(apiKey)-4:]
-				fmt.Printf("✅ FIBE_API_KEY: %s\n", masked)
+				fmt.Printf("✅ API key: %s (%s)\n", maskKey(apiKey), apiKeySource)
 			}
 
-			domain := os.Getenv("FIBE_DOMAIN")
-			if domain == "" {
-				domain = "fibe.gg"
-			}
-			fmt.Printf("✅ Domain: %s\n", domain)
+			fmt.Printf("✅ Domain: %s\n", c.BaseURL())
 			fmt.Printf("✅ Version: %s\n", version)
 			fmt.Println()
 
@@ -89,4 +85,20 @@ Output includes:
 			return nil
 		},
 	}
+}
+
+func doctorAPIKeyStatus() (string, string) {
+	if flagAPIKey != "" {
+		return flagAPIKey, "--api-key flag"
+	}
+	if apiKey := os.Getenv("FIBE_API_KEY"); apiKey != "" {
+		return apiKey, "FIBE_API_KEY env"
+	}
+
+	store := fibe.NewCredentialStore(fibe.DefaultCredentialPath())
+	if entry, err := store.Get(resolveDomain()); err == nil && entry != nil && entry.APIKey != "" {
+		return entry.APIKey, "credentials.json"
+	}
+
+	return "", ""
 }

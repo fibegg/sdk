@@ -2,7 +2,10 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -97,6 +100,99 @@ func TestResourceMutateDryRunValidatesWithoutAPI(t *testing.T) {
 	}
 }
 
+func TestResourceMutatePlaygroundActionRequiresConfirm(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "playground",
+		"operation": "action",
+		"payload": map[string]any{
+			"playground_id": 42,
+			"action_type":   "retry_compose",
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), "confirm:true") {
+		t.Fatalf("expected confirm:true error, got %v", err)
+	}
+}
+
+func TestResourceMutateDispatchesPlaygroundActionWithConfirm(t *testing.T) {
+	var hit bool
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/42/action" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		hit = true
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		if body["action_type"] != "retry_compose" || body["force"] != true {
+			t.Fatalf("unexpected body: %#v", body)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": 42, "status": "queued"})
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "playground",
+		"operation": "action",
+		"confirm":   true,
+		"payload": map[string]any{
+			"playground_id": 42,
+			"action_type":   "retry_compose",
+			"force":         true,
+		},
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	status := res.(*fibe.PlaygroundStatus)
+	if !hit || status.ID != 42 || status.Status != "queued" {
+		t.Fatalf("unexpected result hit=%v status=%#v", hit, status)
+	}
+}
+
+func TestResourceMutateDispatchesAgentRestartChat(t *testing.T) {
+	var hit bool
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/agents/my-agent/restart_chat" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		hit = true
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": 7, "status": "pending", "chat_url": "https://chat.example.test"})
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agent",
+		"operation": "restart_chat",
+		"payload": map[string]any{
+			"agent_id": "my-agent",
+		},
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	session := res.(*fibe.AgentChatSession)
+	if !hit || session.ID != 7 || session.Status != "pending" {
+		t.Fatalf("unexpected result hit=%v session=%#v", hit, session)
+	}
+}
+
 func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 	apiKey, domain := requireRealServer(t)
 	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
@@ -109,6 +205,7 @@ func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 		operation string
 		payload   map[string]any
 	}{
+		{resource: "agent", operation: "restart_chat", payload: map[string]any{"agent_id": 3}},
 		{resource: "marquee", operation: "autoconnect_token", payload: map[string]any{"ssl_mode": "http"}},
 		{resource: "marquee", operation: "generate_ssh_key", payload: map[string]any{"marquee_id": 3}},
 		{resource: "marquee", operation: "test_connection", payload: map[string]any{"marquee_id": 3}},

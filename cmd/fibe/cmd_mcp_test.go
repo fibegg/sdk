@@ -93,6 +93,16 @@ func TestRunMCPInstallCodexWritesTOMLConfig(t *testing.T) {
 	}
 }
 
+func TestMCPInstallReloadNoticeMentionsCodexSessions(t *testing.T) {
+	notice := mcpInstallReloadNotice("codex")
+	if !strings.Contains(notice, "new session") {
+		t.Fatalf("expected codex reload notice to mention new sessions, got %q", notice)
+	}
+	if got := mcpInstallReloadNotice("cursor"); got != "" {
+		t.Fatalf("expected no cursor reload notice, got %q", got)
+	}
+}
+
 func TestRunMCPInstallClaudeCodeProjectWritesMCPJSON(t *testing.T) {
 	home := t.TempDir()
 	project := t.TempDir()

@@ -55,6 +55,9 @@ func (s *Server) registerTemplateDevelopTools() {
 			if _, _, err := resourceschema.ValidatePayload("template", "develop", args); err != nil {
 				return nil, err
 			}
+			if argString(args, "mode") == "apply" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
+				return nil, &confirmRequiredError{tool: "fibe_templates_develop"}
+			}
 			var in templateDevelopArgs
 			if err := bindArgs(args, &in); err != nil {
 				return nil, err

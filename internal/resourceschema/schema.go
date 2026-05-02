@@ -343,6 +343,7 @@ func buildRegistry() map[string]map[string]any {
 	agentCreate := withPropertyEnum(paramsSchema[fibe.AgentCreateParams]("name", "provider"), "provider", fibe.ValidProviders)
 	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	out["agent"]["update"] = withPropertyEnum(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
+	out["agent"]["restart_chat"] = resourceActionIDSchema("agent_id", "Agent ID whose active chat runtime should be restarted.")
 	out["artefact"]["create"] = artefactCreateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
 	out["playspec"]["create"] = paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml")
@@ -779,6 +780,7 @@ func templateDevelopSchema() map[string]any {
 			"switch_variables":           map[string]any{"type": "object", "description": "Template variables to use when switching a playspec."},
 			"regenerate_variables":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate while switching."},
 			"confirm_warnings":           map[string]any{"type": "boolean", "description": "Allow apply when preview reports switch warnings."},
+			"confirm":                    map[string]any{"type": "boolean", "description": "Required for mode=apply unless the MCP server runs with --yolo. Not required for previews."},
 			"post_apply":                 map[string]any{"type": "string", "enum": []string{"none", "rollout_target", "rollout_all", "trigger_trick"}, "description": "Optional action after apply. Tricks should use trigger_trick; normal playgrounds can use rollout_target or rollout_all."},
 			"wait":                       map[string]any{"type": "boolean", "description": "Wait for rollout targets or triggered trick completion."},
 			"wait_timeout_seconds":       map[string]any{"type": "integer", "description": "Maximum seconds to wait.", "minimum": 1},

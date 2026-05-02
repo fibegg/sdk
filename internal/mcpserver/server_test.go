@@ -220,7 +220,7 @@ func TestImportantToolEnumsAreAdvertised(t *testing.T) {
 	}
 
 	mutateOperations := schemaPropertyEnum(t, srv.toolSchemas["fibe_resource_mutate"], "operation")
-	for _, want := range []string{"create", "update", "toggle_public"} {
+	for _, want := range []string{"action", "create", "update", "toggle_public"} {
 		if !containsString(mutateOperations, want) {
 			t.Fatalf("fibe_resource_mutate.operation enum missing %q: %#v", want, mutateOperations)
 		}

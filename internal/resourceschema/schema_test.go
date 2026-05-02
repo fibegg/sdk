@@ -158,7 +158,7 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("template.develop schema missing")
 	}
 	developProps := templateDevelop.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"target_type", "target_id", "mode", "change_type", "post_apply", "template_body", "template_body_path"} {
+	for _, want := range []string{"target_type", "target_id", "mode", "change_type", "confirm", "post_apply", "template_body", "template_body_path"} {
 		if _, ok := developProps[want]; !ok {
 			t.Fatalf("template.develop missing property %q: %#v", want, developProps)
 		}
@@ -208,8 +208,8 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		}
 		if entry.Name == "agent" {
 			foundAgent = true
-			if !containsSelector(entry.Operations, "create") || !containsSelector(entry.Operations, "update") {
-				t.Fatalf("agent catalog operations missing create/update: %#v", entry.Operations)
+			if !containsSelector(entry.Operations, "create") || !containsSelector(entry.Operations, "update") || !containsSelector(entry.Operations, "restart_chat") {
+				t.Fatalf("agent catalog operations missing create/update/restart_chat: %#v", entry.Operations)
 			}
 		}
 		if entry.Name == "template_version" {
@@ -233,6 +233,7 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 		operation string
 		fields    []string
 	}{
+		{resource: "agent", operation: "restart_chat", fields: []string{"agent_id"}},
 		{resource: "marquee", operation: "autoconnect_token", fields: []string{"email", "domain", "ip", "ssl_mode", "dns_provider", "dns_credentials"}},
 		{resource: "marquee", operation: "generate_ssh_key", fields: []string{"marquee_id"}},
 		{resource: "marquee", operation: "test_connection", fields: []string{"marquee_id"}},
@@ -295,13 +296,16 @@ func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
 	if containsAnySelector(operationEnum, "patch_create") {
 		t.Fatalf("mutation operation enum should not include patch_create: %#v", operationEnum)
 	}
-	for _, want := range []string{"autoconnect_token", "source_set", "toggle_public", "trigger", "test"} {
+	for _, want := range []string{"action", "autoconnect_token", "restart_chat", "source_set", "toggle_public", "trigger", "test"} {
 		if !containsAnySelector(operationEnum, want) {
 			t.Fatalf("mutation operation enum missing %q: %#v", want, operationEnum)
 		}
 	}
 	if _, ok := props["dry_run"].(map[string]any); !ok {
 		t.Fatalf("mutation tool schema missing dry_run: %#v", props)
+	}
+	if _, ok := props["confirm"].(map[string]any); !ok {
+		t.Fatalf("mutation tool schema missing confirm: %#v", props)
 	}
 
 	if _, _, err := ValidateMutationPayload("agent", "update", map[string]any{"agent_id": 1}); err == nil {

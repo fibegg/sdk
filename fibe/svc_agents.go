@@ -108,6 +108,16 @@ func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIden
 	return &result, err
 }
 
+func (s *AgentService) RestartChat(ctx context.Context, id int64) (*AgentChatSession, error) {
+	return s.RestartChatByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *AgentService) RestartChatByIdentifier(ctx context.Context, identifier string) (*AgentChatSession, error) {
+	var result AgentChatSession
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/restart_chat", nil, &result)
+	return &result, err
+}
+
 func (s *AgentService) RuntimeStatus(ctx context.Context, id int64) (*AgentRuntimeStatus, error) {
 	return s.RuntimeStatusByIdentifier(ctx, int64Identifier(id))
 }
