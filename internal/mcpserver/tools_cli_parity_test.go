@@ -437,6 +437,8 @@ func TestCLIParity_GetTools(t *testing.T) {
 			var mcpObj, cliObj any
 			json.Unmarshal(mcpBytes, &mcpObj)
 			json.Unmarshal(cliOut, &cliObj)
+			normalizeGetParityObject(res, mcpObj)
+			normalizeGetParityObject(res, cliObj)
 
 			if !reflect.DeepEqual(mcpObj, cliObj) {
 				t.Errorf("Mismatch for %s GET.\nMCP: %s\nCLI: %s", res, string(mcpBytes), string(cliOut))
@@ -532,4 +534,17 @@ func TestCLIParity_GetTools(t *testing.T) {
 			}
 		})
 	}
+}
+
+func normalizeGetParityObject(resource string, obj any) {
+	if resource != "playgrounds" {
+		return
+	}
+	m, ok := obj.(map[string]any)
+	if !ok {
+		return
+	}
+	// The GET parity test invokes MCP and CLI sequentially. Rails computes this
+	// value from Time.current, so it legitimately drifts between the two calls.
+	delete(m, "time_remaining")
 }
