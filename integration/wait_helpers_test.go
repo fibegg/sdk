@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,6 +74,10 @@ func skipIfPlaygroundActionStateRejected(t *testing.T, err error, action string)
 		return false
 	}
 	if apiErr.StatusCode == 409 || (apiErr.StatusCode == 422 && apiErr.Code == "INVALID_STATE") {
+		t.Skipf("%s rejected by current playground state: %s", action, apiErr.Message)
+		return true
+	}
+	if apiErr.Code == "REMOTE_REQUEST_FAILED" && strings.Contains(apiErr.Message, "deployment is already active") {
 		t.Skipf("%s rejected by current playground state: %s", action, apiErr.Message)
 		return true
 	}

@@ -44,8 +44,8 @@ EXAMPLES:
   fibe mcp serve --yolo                               # skip destructive confirm gate
   FIBE_MCP_TOOLS=full fibe mcp serve --http :8080     # multi-tenant SSE
 
-  fibe mcp install --client claude-code               # wire into ~/.claude.json
-  fibe mcp install --client claude-code --project .   # wire into .mcp.json
+  fibe mcp install --client claude-code               # wire into project .mcp.json
+  fibe mcp install --client claude-code --user        # wire into ~/.claude.json
   fibe mcp install --client codex                     # wire into ~/.codex/config.toml
   fibe mcp config --client claude-desktop             # print config snippet`,
 	}
@@ -165,7 +165,7 @@ EXAMPLES:
 
 func mcpInstallCmd() *cobra.Command {
 	var client, project string
-	var dryRun bool
+	var dryRun, userScope bool
 	var opts installOptions
 	cmd := &cobra.Command{
 		Use:   "install",
@@ -173,7 +173,7 @@ func mcpInstallCmd() *cobra.Command {
 		Long: `Write the Fibe MCP server into an MCP client's configuration file.
 
 SUPPORTED CLIENTS:
-  claude-code      ~/.claude.json (or project .mcp.json with --project .)
+  claude-code      project .mcp.json by default (use --user for ~/.claude.json)
   claude-desktop   ~/Library/Application Support/Claude/claude_desktop_config.json
   cursor           ~/.cursor/mcp.json
   vscode           ~/.vscode/mcp.json (or workspace .vscode/mcp.json with --project .)
@@ -218,6 +218,7 @@ TOOL TIERS:
 
 EXAMPLES:
   fibe mcp install --client claude-code
+  fibe mcp install --client claude-code --user
   fibe mcp install --client antigravity --api-key pk_live_... --domain http://dev.local:3000
   fibe mcp install --client claude-desktop --tools full --yolo
   fibe mcp install --client cursor --env FOO=bar --env BAZ=qux
@@ -227,11 +228,16 @@ EXAMPLES:
   fibe mcp install --client codex --transport streamable-http --url http://127.0.0.1:7797/mcp
   fibe mcp install --client antigravity --dry-run`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runMCPInstall(client, project, dryRun, opts)
+			resolvedProject, err := resolveMCPProjectScope(client, project, userScope)
+			if err != nil {
+				return err
+			}
+			return runMCPInstall(client, resolvedProject, dryRun, opts)
 		},
 	}
 	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
-	cmd.Flags().StringVar(&project, "project", "", "Install into a project-scoped config (pass the project directory). Default: user-scoped.")
+	cmd.Flags().StringVar(&project, "project", "", "Install into a project-scoped config (pass the project directory). Default for claude-code: current directory.")
+	cmd.Flags().BoolVar(&userScope, "user", false, "Install into the user-scoped config when the client supports both user and project configs")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed config without writing")
 	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
 	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
@@ -246,7 +252,7 @@ EXAMPLES:
 
 func mcpUninstallCmd() *cobra.Command {
 	var client, project string
-	var dryRun bool
+	var dryRun, userScope bool
 	cmd := &cobra.Command{
 		Use:   "uninstall",
 		Short: "Remove the Fibe MCP server from a client's config",
@@ -255,14 +261,20 @@ touching other registered servers.
 
 EXAMPLES:
   fibe mcp uninstall --client claude-code
+  fibe mcp uninstall --client claude-code --user
   fibe mcp uninstall --client claude-desktop --dry-run
   fibe mcp uninstall --client codex --project .`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runMCPUninstall(client, project, dryRun)
+			resolvedProject, err := resolveMCPProjectScope(client, project, userScope)
+			if err != nil {
+				return err
+			}
+			return runMCPUninstall(client, resolvedProject, dryRun)
 		},
 	}
 	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
-	cmd.Flags().StringVar(&project, "project", "", "Operate on a project-scoped config (pass the project directory)")
+	cmd.Flags().StringVar(&project, "project", "", "Operate on a project-scoped config (pass the project directory). Default for claude-code: current directory.")
+	cmd.Flags().BoolVar(&userScope, "user", false, "Operate on the user-scoped config when the client supports both user and project configs")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed content without writing")
 	return cmd
 }

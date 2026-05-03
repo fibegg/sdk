@@ -44,6 +44,22 @@ type installOptions struct {
 	URL       string   // URL for URL-backed MCP clients
 }
 
+func resolveMCPProjectScope(client, project string, userScope bool) (string, error) {
+	if userScope {
+		if project != "" {
+			return "", fmt.Errorf("--user cannot be combined with --project")
+		}
+		return "", nil
+	}
+	if project != "" {
+		return project, nil
+	}
+	if client == "claude-code" {
+		return ".", nil
+	}
+	return "", nil
+}
+
 // runMCPInstall writes the fibe MCP server entry into the target client's
 // configuration file. Works with claude-code, claude-desktop, cursor, vscode,
 // antigravity, and codex.

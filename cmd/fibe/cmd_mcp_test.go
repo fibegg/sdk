@@ -151,6 +151,28 @@ func TestRunMCPInstallClaudeCodeProjectWritesMCPJSON(t *testing.T) {
 	}
 }
 
+func TestResolveMCPProjectScopeDefaultsClaudeCodeToCurrentProject(t *testing.T) {
+	project, err := resolveMCPProjectScope("claude-code", "", false)
+	if err != nil {
+		t.Fatalf("resolve scope: %v", err)
+	}
+	if project != "." {
+		t.Fatalf("project=%q want current directory", project)
+	}
+
+	project, err = resolveMCPProjectScope("claude-code", "", true)
+	if err != nil {
+		t.Fatalf("resolve user scope: %v", err)
+	}
+	if project != "" {
+		t.Fatalf("user scope project=%q want empty", project)
+	}
+
+	if _, err := resolveMCPProjectScope("claude-code", ".", true); err == nil {
+		t.Fatal("expected --user and --project conflict")
+	}
+}
+
 func TestRunMCPInstallCodexURLModeWritesURLConfig(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

@@ -109,17 +109,8 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	if linkDir == "" {
 		linkDir = "/app/playground"
 	}
-	if info, err := os.Lstat(linkDir); err == nil {
-		if info.Mode()&os.ModeSymlink != 0 {
-			if err := os.Remove(linkDir); err != nil {
-				return nil, fmt.Errorf("failed to remove existing symlink %s: %w", linkDir, err)
-			}
-		} else if err := os.RemoveAll(linkDir); err != nil {
-			return nil, fmt.Errorf("failed to remove existing target directory %s: %w", linkDir, err)
-		}
-	}
-	if err := os.MkdirAll(linkDir, 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create target directory: %w", err)
+	if err := prepareLinkDir(linkDir); err != nil {
+		return nil, err
 	}
 
 	var mountable []*Service
@@ -176,6 +167,38 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		return nil, fmt.Errorf("failed to write state file: %w", err)
 	}
 	return result, nil
+}
+
+func prepareLinkDir(linkDir string) error {
+	info, err := os.Lstat(linkDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(linkDir, 0o755); err != nil {
+				return fmt.Errorf("failed to create target directory %s: %w", linkDir, err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to inspect target directory %s: %w", linkDir, err)
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("target path %s must be a directory, got symlink", linkDir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("target path %s must be a directory", linkDir)
+	}
+
+	entries, err := os.ReadDir(linkDir)
+	if err != nil {
+		return fmt.Errorf("failed to read target directory %s: %w", linkDir, err)
+	}
+	for _, entry := range entries {
+		path := filepath.Join(linkDir, entry.Name())
+		if err := os.RemoveAll(path); err != nil {
+			return fmt.Errorf("failed to remove existing target entry %s: %w", path, err)
+		}
+	}
+	return nil
 }
 
 func parseServices(content string) map[string]*Service {

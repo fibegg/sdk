@@ -32,14 +32,30 @@ type GitHubRepoCreateParams struct {
 
 // GiteaRepo is the result of creating a new Gitea repo.
 type GiteaRepo struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	FullName    string `json:"full_name"`
-	HTMLURL     string `json:"html_url"`
-	CloneURL    string `json:"clone_url"`
-	SSHURL      string `json:"ssh_url"`
-	Private     bool   `json:"private"`
-	Description string `json:"description"`
+	ID            int64             `json:"id"`
+	Name          string            `json:"name"`
+	FullName      string            `json:"full_name"`
+	HTMLURL       string            `json:"html_url"`
+	CloneURL      string            `json:"clone_url"`
+	SSHURL        string            `json:"ssh_url"`
+	Private       bool              `json:"private"`
+	Description   string            `json:"description"`
+	DefaultBranch string            `json:"default_branch,omitempty"`
+	Repo          *GiteaRepoSummary `json:"repo,omitempty"`
+	PropID        int64             `json:"prop_id,omitempty"`
+	Prop          *Prop             `json:"prop,omitempty"`
+}
+
+type GiteaRepoSummary struct {
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	FullName      string `json:"full_name"`
+	HTMLURL       string `json:"html_url"`
+	CloneURL      string `json:"clone_url"`
+	SSHURL        string `json:"ssh_url"`
+	Private       bool   `json:"private"`
+	Description   string `json:"description"`
+	DefaultBranch string `json:"default_branch,omitempty"`
 }
 
 type GiteaRepoCreateParams struct {
@@ -48,4 +64,3 @@ type GiteaRepoCreateParams struct {
 	AutoInit    *bool   `json:"auto_init,omitempty"`
 	Description *string `json:"description,omitempty"`
 }
-

@@ -183,6 +183,60 @@ func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 	}
 }
 
+func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/gitea_repos" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":             123,
+			"name":           "bagg-app",
+			"full_name":      "viktorvsk/bagg-app",
+			"html_url":       "https://git-next.fibe.live/viktorvsk/bagg-app",
+			"clone_url":      "https://git-next.fibe.live/viktorvsk/bagg-app.git",
+			"default_branch": "main",
+			"repo": map[string]any{
+				"id":             123,
+				"name":           "bagg-app",
+				"full_name":      "viktorvsk/bagg-app",
+				"html_url":       "https://git-next.fibe.live/viktorvsk/bagg-app",
+				"clone_url":      "https://git-next.fibe.live/viktorvsk/bagg-app.git",
+				"default_branch": "main",
+			},
+			"prop_id": 456,
+			"prop": map[string]any{
+				"id":             456,
+				"name":           "bagg-app",
+				"repository_url": "https://git-next.fibe.live/viktorvsk/bagg-app",
+				"provider":       "gitea",
+			},
+		})
+	})
+
+	private := true
+	result, err := c.GiteaRepos.Create(context.Background(), &GiteaRepoCreateParams{Name: "bagg-app", Private: &private})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if body["name"] != "bagg-app" || body["private"] != true {
+		t.Fatalf("unexpected body: %#v", body)
+	}
+	if result.PropID != 456 || result.Prop == nil || result.Prop.ID != 456 {
+		t.Fatalf("expected prop in result, got %#v", result)
+	}
+	if result.Repo == nil || result.Repo.HTMLURL != "https://git-next.fibe.live/viktorvsk/bagg-app" {
+		t.Fatalf("expected nested repo in result, got %#v", result)
+	}
+	if result.DefaultBranch != "main" {
+		t.Fatalf("default branch=%q", result.DefaultBranch)
+	}
+}
+
 func TestPlaygrounds_Action(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {

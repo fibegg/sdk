@@ -9,10 +9,10 @@ func giteaReposCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gitea-repos",
 		Short: "Manage Gitea repositories",
-		Long: `Create Gitea repositories via the Fibe API.
+		Long: `Create Gitea repositories via the Fibe API and register them as Props.
 
 SUBCOMMANDS:
-  create    Create a new Gitea repository`,
+  create    Create a new Gitea repository and Prop`,
 	}
 	cmd.AddCommand(giteaRepoCreateCmd())
 	return cmd
@@ -22,8 +22,9 @@ func giteaRepoCreateCmd() *cobra.Command {
 	var name, description string
 	var private, autoInit bool
 	cmd := &cobra.Command{
-		Use: "create", Short: "Create a new Gitea repository",
-		Long: `Create a new Gitea repository.
+		Use:   "create",
+		Short: "Create a new Gitea repository and Prop",
+		Long: `Create a new Gitea repository and register it as a Fibe Prop.
 
 REQUIRED FLAGS:
   --name    Repository name
@@ -39,11 +40,19 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.GiteaRepoCreateParams{Name: name}
-			if cmd.Flags().Changed("private") { params.Private = &private }
-			if cmd.Flags().Changed("auto-init") { params.AutoInit = &autoInit }
-			if cmd.Flags().Changed("description") { params.Description = &description }
+			if cmd.Flags().Changed("private") {
+				params.Private = &private
+			}
+			if cmd.Flags().Changed("auto-init") {
+				params.AutoInit = &autoInit
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &description
+			}
 			repo, err := c.GiteaRepos.Create(ctx(), params)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			outputJSON(repo)
 			return nil
 		},
