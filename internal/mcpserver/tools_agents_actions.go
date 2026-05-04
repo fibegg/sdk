@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -81,9 +82,15 @@ func (s *Server) registerAgentActionTools() {
 			if name == "" {
 				return nil, fmt.Errorf("required field 'name' not set or empty")
 			}
-			return c.Agents.Update(ctx, agentID, &fibe.AgentUpdateParams{
+			params := &fibe.AgentUpdateParams{
 				Name: &name,
-			})
+			}
+			if conversationID := strings.TrimSpace(os.Getenv("CONVERSATION_ID")); conversationID != "" {
+				params.RenameContext = &fibe.AgentRenameContext{
+					ConversationClientID: conversationID,
+				}
+			}
+			return c.Agents.Update(ctx, agentID, params)
 		},
 	}, mcp.NewTool("fibe_update_name",
 		mcp.WithDescription("[MODE:DIALOG] Update your own agent name. Use this to update your name when conversation topic changes significantly."),

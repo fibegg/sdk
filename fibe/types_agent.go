@@ -117,29 +117,35 @@ func (p AgentCreateParams) MarshalJSON() ([]byte, error) {
 }
 
 type AgentUpdateParams struct {
-	Name                              *string         `json:"name,omitempty"`
-	APIKeyID                          *int64          `json:"api_key_id,omitempty"`
-	SyncEnabled                       *bool           `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled                 *bool           `json:"sync_skills_enabled,omitempty"`
-	SyscheckEnabled                   *bool           `json:"syscheck_enabled,omitempty"`
-	BuildInPublic                     *bool           `json:"build_in_public,omitempty"`
-	Description                       *string         `json:"description,omitempty"`
-	ProviderAPIKeyMode                *bool           `json:"provider_api_key_mode,omitempty"`
-	Mode                              *string         `json:"mode,omitempty"`
-	ModelOptions                      *string         `json:"model_options,omitempty"`
-	MemoryLimit                       *string         `json:"memory_limit,omitempty"`
-	CpuLimit                          *string         `json:"cpu_limit,omitempty"`
-	BuildInPublicPlaygroundID         *int64          `json:"build_in_public_playground_id,omitempty"`
-	BuildInPublicPlaygroundIdentifier string          `json:"-"`
-	Settings                          map[string]any  `json:"settings,omitempty"`
-	Prompt                            *string         `json:"prompt,omitempty"`
-	MCPJSON                           *string         `json:"mcp_json,omitempty"`
-	PostInitScript                    *string         `json:"post_init_script,omitempty"`
-	CustomEnv                         *string         `json:"custom_env,omitempty"`
-	CLIVersion                        *string         `json:"cli_version,omitempty"`
-	ProviderArgs                      map[string]any  `json:"provider_args,omitempty"`
-	ProviderArgsCLI                   *string         `json:"provider_args_cli,omitempty"`
-	SkillToggles                      map[string]bool `json:"skill_toggles,omitempty"`
+	Name                              *string             `json:"name,omitempty"`
+	APIKeyID                          *int64              `json:"api_key_id,omitempty"`
+	SyncEnabled                       *bool               `json:"sync_enabled,omitempty"`
+	SyncSkillsEnabled                 *bool               `json:"sync_skills_enabled,omitempty"`
+	SyscheckEnabled                   *bool               `json:"syscheck_enabled,omitempty"`
+	BuildInPublic                     *bool               `json:"build_in_public,omitempty"`
+	Description                       *string             `json:"description,omitempty"`
+	ProviderAPIKeyMode                *bool               `json:"provider_api_key_mode,omitempty"`
+	Mode                              *string             `json:"mode,omitempty"`
+	ModelOptions                      *string             `json:"model_options,omitempty"`
+	MemoryLimit                       *string             `json:"memory_limit,omitempty"`
+	CpuLimit                          *string             `json:"cpu_limit,omitempty"`
+	BuildInPublicPlaygroundID         *int64              `json:"build_in_public_playground_id,omitempty"`
+	BuildInPublicPlaygroundIdentifier string              `json:"-"`
+	Settings                          map[string]any      `json:"settings,omitempty"`
+	Prompt                            *string             `json:"prompt,omitempty"`
+	MCPJSON                           *string             `json:"mcp_json,omitempty"`
+	PostInitScript                    *string             `json:"post_init_script,omitempty"`
+	CustomEnv                         *string             `json:"custom_env,omitempty"`
+	CLIVersion                        *string             `json:"cli_version,omitempty"`
+	ProviderArgs                      map[string]any      `json:"provider_args,omitempty"`
+	ProviderArgsCLI                   *string             `json:"provider_args_cli,omitempty"`
+	SkillToggles                      map[string]bool     `json:"skill_toggles,omitempty"`
+	RenameContext                     *AgentRenameContext `json:"-"`
+}
+
+type AgentRenameContext struct {
+	ConversationClientID string `json:"conversation_client_id,omitempty"`
+	ConversationTitle    string `json:"conversation_title,omitempty"`
 }
 
 func (p AgentUpdateParams) MarshalJSON() ([]byte, error) {

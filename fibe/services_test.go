@@ -552,6 +552,40 @@ func TestAgents_CreateProviderAPIKeyModeJSON(t *testing.T) {
 	}
 }
 
+func TestAgents_UpdateRenameContextJSON(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" || r.URL.Path != "/api/agents/99" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		if body["agent"]["name"] != "renamed" {
+			t.Errorf("expected agent name, got %#v", body["agent"]["name"])
+		}
+		context := body["agent_rename_context"]
+		if context["conversation_client_id"] != "thread-123" {
+			t.Errorf("expected conversation context, got %#v", context)
+		}
+		json.NewEncoder(w).Encode(Agent{ID: 99, Name: "renamed", Provider: ProviderGemini})
+	})
+
+	name := "renamed"
+	agent, err := c.Agents.Update(context.Background(), 99, &AgentUpdateParams{
+		Name: &name,
+		RenameContext: &AgentRenameContext{
+			ConversationClientID: "thread-123",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if agent.Name != name {
+		t.Errorf("expected name %q, got %q", name, agent.Name)
+	}
+}
+
 func TestSecrets_List(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(listEnv([]Secret{{Key: "DB_URL"}}))

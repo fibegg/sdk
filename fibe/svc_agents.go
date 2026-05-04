@@ -51,6 +51,9 @@ func (s *AgentService) Update(ctx context.Context, id int64, params *AgentUpdate
 func (s *AgentService) UpdateByIdentifier(ctx context.Context, identifier string, params *AgentUpdateParams) (*Agent, error) {
 	var result Agent
 	body := map[string]any{"agent": params}
+	if params != nil && params.RenameContext != nil {
+		body["agent_rename_context"] = params.RenameContext
+	}
 	err := s.client.do(ctx, http.MethodPatch, identifierPath("/api/agents", identifier), body, &result)
 	return &result, err
 }

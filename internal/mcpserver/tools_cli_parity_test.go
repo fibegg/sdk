@@ -544,7 +544,16 @@ func normalizeGetParityObject(resource string, obj any) {
 	if !ok {
 		return
 	}
-	// The GET parity test invokes MCP and CLI sequentially. Rails computes this
-	// value from Time.current, so it legitimately drifts between the two calls.
+	// The GET parity test invokes MCP and CLI sequentially against a live
+	// playground. Runtime state can legitimately change between those calls.
+	delete(m, "status")
 	delete(m, "time_remaining")
+	delete(m, "expiration_percentage")
+	if services, ok := m["services"].([]any); ok {
+		for _, service := range services {
+			if serviceMap, ok := service.(map[string]any); ok {
+				delete(serviceMap, "status")
+			}
+		}
+	}
 }
