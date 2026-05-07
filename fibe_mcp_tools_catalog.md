@@ -1,6 +1,6 @@
 # Fibe MCP Tools
 
-Total Tools: 42
+Total Tools: 40
 
 ## `fibe_agents_duplicate`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** True
@@ -96,25 +96,13 @@ Total Tools: 42
 **Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-[MODE:BROWNFIELD] Get info about a local playground.
+[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.
 
 ## `fibe_local_playgrounds_link`
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** True
 
 ### Description
 [MODE:BROWNFIELD] Link local playground mounts into a working directory.
-
-## `fibe_local_playgrounds_list`
-**Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
-
-### Description
-[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT.
-
-## `fibe_local_playgrounds_urls`
-**Tier:** local | **Destructive:** False | **Idempotent:** True | **Read-only:** True
-
-### Description
-[MODE:BROWNFIELD] Get URLs of a local playground.
 
 ## `fibe_monitor_follow`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** True | **Read-only:** True

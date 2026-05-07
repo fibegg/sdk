@@ -17,10 +17,8 @@
 | `fibe_github_repos_create` | [MODE:GREENFIELD] Register and connect a new GitHub repository |
 | `fibe_greenfield_create` | [MODE:GREENFIELD] Create a new repository, Prop, app-owned template version, deployed playground, wait for running, and link it locally. |
 | `fibe_help` | [MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes. |
-| `fibe_local_playgrounds_info` | [MODE:BROWNFIELD] Get info about a local playground. |
+| `fibe_local_playgrounds_info` | [MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT. |
 | `fibe_local_playgrounds_link` | [MODE:BROWNFIELD] Link local playground mounts into a working directory. |
-| `fibe_local_playgrounds_list` | [MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT. |
-| `fibe_local_playgrounds_urls` | [MODE:BROWNFIELD] Get URLs of a local playground. |
 | `fibe_monitor_follow` | [MODE:OVERSEER] Stream agent-produced events as live MCP progress notifications |
 | `fibe_monitor_list` | [MODE:OVERSEER] List agent-produced monitor events |
 | `fibe_mutter` | [MODE:SIDEEFFECTS] Create one short mutter for an agent: a visible internal note used for progress, proof, blocker, or problem updates. |

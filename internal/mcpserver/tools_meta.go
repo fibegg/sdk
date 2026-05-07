@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/localplaygrounds"
 	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -75,7 +76,7 @@ func (s *Server) registerMetaTools() {
 	s.addTool(&toolImpl{
 		name: "fibe_auth_set", description: "[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations", tier: tierOther,
 		annotations: toolAnnotations{},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+		handler: func(ctx context.Context, _ *fibe.Client, args map[string]any) (any, error) {
 			apiKey := argString(args, "api_key")
 			domain := argString(args, "domain")
 			if apiKey == "" && domain == "" {
@@ -132,54 +133,47 @@ is most useful in multi-tenant HTTP deployments.`),
 
 	// ---------- local playground helpers ----------
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_list", description: "[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT.", tier: tierLocal,
+		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierLocal,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			return s.runCobraArgs(ctx, "local", "playgrounds", "list")
-		},
-	}, mcp.NewTool("fibe_local_playgrounds_list",
-		mcp.WithDescription("[MODE:BROWNFIELD] List playgrounds available locally at /opt/fibe/playgrounds or PLAYROOMS_ROOT."),
-	))
-
-	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Get info about a local playground.", tier: tierLocal,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			name := argString(args, "playground")
-			if name == "" {
-				return nil, fmt.Errorf("required field 'playground' not set")
+			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))
+			if view == "" {
+				return nil, fmt.Errorf("required field 'view' not set")
 			}
-			return s.runCobraArgs(ctx, "local", "playgrounds", "info", name)
+			selector, err := localPlaygroundSelectorFromArgs(args, view)
+			if err != nil {
+				return nil, err
+			}
+			playgrounds, err := localplaygrounds.Scan(localplaygrounds.BaseDir())
+			if err != nil {
+				return nil, err
+			}
+			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain())
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_info",
-		mcp.WithDescription("[MODE:BROWNFIELD] Get info about a local playground."),
-		mcp.WithString("playground", mcp.Required(), mcp.Description("Local playground name, directory, or playspec prefix")),
-	))
+		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
 
-	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_urls", description: "[MODE:BROWNFIELD] Get URLs of a local playground.", tier: tierLocal,
-		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
-		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			name := argString(args, "playground")
-			if name == "" {
-				return nil, fmt.Errorf("required field 'playground' not set")
-			}
-			return s.runCobraArgs(ctx, "local", "playgrounds", "urls", name)
-		},
-	}, mcp.NewTool("fibe_local_playgrounds_urls",
-		mcp.WithDescription("[MODE:BROWNFIELD] Get URLs of a local playground."),
-		mcp.WithString("playground", mcp.Required(), mcp.Description("Local playground name, directory, or playspec prefix")),
+Views:
+  names    list all local playground names, playspecs, IDs, and paths; omit playground/playground_id
+  urls     exposed service URLs for one playground
+  mounts   source-code mount locations for one playground
+  details  full local metadata for one playground
+
+Selectors accept local numeric playground ID, compose project/name, playspec, or unique playspec prefix.`),
+		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, urls, mounts, or details.")),
+		mcp.WithString("playground", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
+		mcp.WithNumber("playground_id", mcp.Description("Local playground numeric ID. Omit for view=names.")),
 	))
 
 	s.addTool(&toolImpl{
 		name: "fibe_local_playgrounds_link", description: "[MODE:BROWNFIELD] Link local playground mounts into a working directory.", tier: tierBrownfield,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			name := argString(args, "playground")
-			if name == "" {
-				return nil, fmt.Errorf("required field 'playground' not set")
+			selector, err := localPlaygroundTargetFromArgs(args)
+			if err != nil {
+				return nil, err
 			}
-			cliArgs := []any{"local", "playgrounds", "link", name}
+			cliArgs := []any{"local", "playgrounds", "link", selector}
 			if linkDir := argString(args, "link_dir"); linkDir != "" {
 				cliArgs = append(cliArgs, "--link-dir", linkDir)
 			}
@@ -187,7 +181,8 @@ is most useful in multi-tenant HTTP deployments.`),
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_link",
 		mcp.WithDescription("[MODE:BROWNFIELD] Link local playground mounts into a working directory."),
-		mcp.WithString("playground", mcp.Required(), mcp.Description("Local playground name, directory, or playspec prefix")),
+		mcp.WithString("playground", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix")),
+		mcp.WithNumber("playground_id", mcp.Description("Local playground numeric ID")),
 		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: /app/playground)")),
 	))
 
@@ -434,6 +429,56 @@ func (s *Server) runCobraArgs(ctx context.Context, args ...string) (any, error) 
 		raw[i] = arg
 	}
 	return s.runCobra(ctx, map[string]any{"args": raw})
+}
+
+func localPlaygroundSelectorFromArgs(args map[string]any, view string) (string, error) {
+	selector, err := localPlaygroundOptionalSelectorFromArgs(args)
+	if err != nil {
+		return "", err
+	}
+	if view == "names" {
+		if selector != "" {
+			return "", fmt.Errorf("view 'names' does not accept playground or playground_id")
+		}
+		return "", nil
+	}
+	if selector == "" {
+		return "", fmt.Errorf("view '%s' requires playground or playground_id", view)
+	}
+	return selector, nil
+}
+
+func localPlaygroundTargetFromArgs(args map[string]any) (string, error) {
+	selector, err := localPlaygroundOptionalSelectorFromArgs(args)
+	if err != nil {
+		return "", err
+	}
+	if selector == "" {
+		return "", fmt.Errorf("required field 'playground' or 'playground_id' not set")
+	}
+	return selector, nil
+}
+
+func localPlaygroundOptionalSelectorFromArgs(args map[string]any) (string, error) {
+	playground := strings.TrimSpace(argString(args, "playground"))
+	var playgroundID string
+	if _, ok := args["playground_id"]; ok {
+		id, ok := argInt64(args, "playground_id")
+		if !ok {
+			return "", fmt.Errorf("field 'playground_id' must be numeric")
+		}
+		if id <= 0 {
+			return "", fmt.Errorf("field 'playground_id' must be > 0")
+		}
+		playgroundID = fmt.Sprint(id)
+	}
+	if playground != "" && playgroundID != "" {
+		return "", fmt.Errorf("pass only one of playground or playground_id")
+	}
+	if playgroundID != "" {
+		return playgroundID, nil
+	}
+	return playground, nil
 }
 
 var fibeRunCaptureMaxBytes = 1 << 20

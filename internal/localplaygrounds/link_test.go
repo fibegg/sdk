@@ -9,7 +9,7 @@ import (
 
 func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	root := t.TempDir()
-	t.Setenv("PLAYROOMS_ROOT", root)
+	t.Setenv("MARQUEE_ROOT", root)
 	pgDir := filepath.Join(root, "pg-123")
 	if err := os.MkdirAll(pgDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -51,6 +51,139 @@ func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	}
 	if string(state) != "pg-123" {
 		t.Fatalf("state=%q want pg-123", state)
+	}
+}
+
+func TestBaseDirResolvesMarqueeRootPlaygroundsSubdirectory(t *testing.T) {
+	root := t.TempDir()
+	playgroundsRoot := filepath.Join(root, "playgrounds")
+	pgDir := filepath.Join(playgroundsRoot, "pg-123")
+	if err := os.MkdirAll(pgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte("services: {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MARQUEE_ROOT", root)
+
+	if got := BaseDir(); got != playgroundsRoot {
+		t.Fatalf("BaseDir()=%q want %q", got, playgroundsRoot)
+	}
+}
+
+func TestScanViewsAndIDResolution(t *testing.T) {
+	root := t.TempDir()
+	pgDir := filepath.Join(root, "mcp-test-dev--42")
+	if err := os.MkdirAll(pgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	compose := `services:
+  api:
+    image: ruby:latest
+    labels:
+      fibe.gg/playspec: mcp-test-dev
+      fibe.gg/playground: mcp-test-dev--42
+      fibe.gg/subdomain: api
+      fibe.gg/expose: public:3000
+      fibe.gg/start_command: "bin/dev"
+      traefik.enable: "true"
+    volumes:
+      - type: bind
+        source: /opt/fibe/playgrounds/mcp-test-dev--42/props/viktorvsk--mcp-test-dev--5/main
+        target: /app
+  worker:
+    image: alpine
+    labels:
+      - "fibe.gg/playspec=mcp-test-dev"
+      - "traefik.enable=false"
+`
+	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	playgrounds, err := Scan(root)
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if len(playgrounds) != 1 {
+		t.Fatalf("playgrounds=%d want 1", len(playgrounds))
+	}
+	pg, err := Find(playgrounds, "42")
+	if err != nil {
+		t.Fatalf("Find by ID: %v", err)
+	}
+	if pg.ID != "42" || pg.DirName != "mcp-test-dev--42" || pg.Playspec != "mcp-test-dev" {
+		t.Fatalf("unexpected playground: %#v", pg)
+	}
+
+	names := Names(playgrounds)
+	if len(names) != 1 || names[0].ID != "42" || names[0].Name != "mcp-test-dev--42" || names[0].Path != pgDir {
+		t.Fatalf("unexpected names: %#v", names)
+	}
+	urls := URLs(pg, "example.test")
+	if len(urls) != 1 || urls[0].Service != "api" || urls[0].URL != "api.example.test" {
+		t.Fatalf("unexpected urls: %#v", urls)
+	}
+	mounts := Mounts(pg)
+	if len(mounts) != 1 || mounts[0].Service != "api" || mounts[0].Branch != "main" || mounts[0].Prop != "mcp-test-dev" {
+		t.Fatalf("unexpected mounts: %#v", mounts)
+	}
+}
+
+func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
+	root := t.TempDir()
+	pgDir := filepath.Join(root, "compose-without-id")
+	if err := os.MkdirAll(pgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	compose := `services:
+  web:
+    image: nginx
+    labels:
+      fibe.gg/playspec: fallback-app
+      fibe.gg/playground: fallback-app--77
+`
+	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	playgrounds, err := Scan(root)
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	pg, err := Find(playgrounds, "77")
+	if err != nil {
+		t.Fatalf("Find by fallback ID: %v", err)
+	}
+	if pg.DirName != "compose-without-id" {
+		t.Fatalf("DirName=%s want compose-without-id", pg.DirName)
+	}
+}
+
+func TestFindRejectsAmbiguousPlayspecPrefix(t *testing.T) {
+	playgrounds := []Playground{
+		{ID: "1", DirName: "alpha--1", Playspec: "suite-app"},
+		{ID: "2", DirName: "beta--2", Playspec: "suite-api"},
+	}
+	_, err := Find(playgrounds, "suite")
+	if err == nil {
+		t.Fatal("Find succeeded, want ambiguous error")
+	}
+	if !strings.Contains(err.Error(), "multiple playgrounds found matching") {
+		t.Fatalf("error=%q want ambiguous match", err.Error())
+	}
+}
+
+func TestMountsReturnsOnlyMountableServices(t *testing.T) {
+	pg := &Playground{
+		DirName:  "static-site--24",
+		Playspec: "static-site",
+		Services: map[string]*Service{
+			"web": {Name: "web", Image: "nginx"},
+		},
+	}
+	if mounts := Mounts(pg); len(mounts) != 0 {
+		t.Fatalf("mounts=%#v want empty", mounts)
 	}
 }
 

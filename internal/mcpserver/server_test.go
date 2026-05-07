@@ -233,6 +233,17 @@ func TestImportantToolEnumsAreAdvertised(t *testing.T) {
 		}
 	}
 
+	localViews := schemaPropertyEnum(t, srv.toolSchemas["fibe_local_playgrounds_info"], "view")
+	for _, want := range []string{"names", "urls", "mounts", "details"} {
+		if !containsString(localViews, want) {
+			t.Fatalf("fibe_local_playgrounds_info.view enum missing %q: %#v", want, localViews)
+		}
+	}
+	for _, deleted := range []string{"fibe_local_playgrounds_list", "fibe_local_playgrounds_urls"} {
+		if _, ok := srv.dispatcher.lookup(deleted); ok {
+			t.Fatalf("%s should not be registered", deleted)
+		}
+	}
 }
 
 func TestDispatchRejectsNonPositiveIDs(t *testing.T) {
@@ -493,7 +504,7 @@ func TestCommaSeparatedToolSetAdvertisesSelectedTiers(t *testing.T) {
 		"fibe_gitea_repos_create",
 		"fibe_playgrounds_action",
 		"fibe_agents_runtime_status",
-		"fibe_local_playgrounds_list",
+		"fibe_local_playgrounds_info",
 	} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised for other,meta", name)

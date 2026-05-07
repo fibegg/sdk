@@ -9,7 +9,7 @@ func localCmd() *cobra.Command {
 		Long: `Explore local Fibe-related resources without calling the Fibe API.
 
 Examples:
-  fibe local playgrounds list
+  fibe local playgrounds info --view names
   fibe local conversations list
   fibe local conversations get <uuid> --chat`,
 	}

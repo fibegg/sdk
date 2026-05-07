@@ -188,19 +188,9 @@ func TestCLIParity_ListTools(t *testing.T) {
 			cliArgs: []string{"playgrounds", "debug", "999999999", "--output", "json"},
 		},
 		{
-			mcpTool: "fibe_local_playgrounds_list",
-			mcpArgs: map[string]any{},
-			cliArgs: []string{"local", "playgrounds", "list", "--output", "json"},
-		},
-		{
 			mcpTool: "fibe_local_playgrounds_info",
-			mcpArgs: map[string]any{"playground": "nonexistent_dir_for_test"},
-			cliArgs: []string{"local", "playgrounds", "info", "nonexistent_dir_for_test", "--output", "json"},
-		},
-		{
-			mcpTool: "fibe_local_playgrounds_urls",
-			mcpArgs: map[string]any{"playground": "nonexistent_dir_for_test"},
-			cliArgs: []string{"local", "playgrounds", "urls", "nonexistent_dir_for_test", "--output", "json"},
+			mcpArgs: map[string]any{"view": "details", "playground": "nonexistent_dir_for_test"},
+			cliArgs: []string{"local", "playgrounds", "info", "--view", "details", "--playground", "nonexistent_dir_for_test", "--output", "json"},
 		},
 	}
 

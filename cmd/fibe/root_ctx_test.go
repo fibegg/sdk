@@ -60,7 +60,7 @@ func TestLocalConversationTableColumnsHonorOnly(t *testing.T) {
 func TestLocalCommandPaths(t *testing.T) {
 	root := RootCmd()
 	for _, args := range [][]string{
-		{"local", "playgrounds", "list"},
+		{"local", "playgrounds", "info"},
 		{"local", "conversations", "list"},
 	} {
 		cmd, remaining, err := root.Find(args)
@@ -72,6 +72,19 @@ func TestLocalCommandPaths(t *testing.T) {
 		}
 		if len(remaining) != 0 {
 			t.Fatalf("find %v remaining = %v", args, remaining)
+		}
+	}
+}
+
+func TestDeletedLocalPlaygroundSubcommandsAreNotRegistered(t *testing.T) {
+	root := RootCmd()
+	for _, args := range [][]string{
+		{"local", "playgrounds", "list"},
+		{"local", "playgrounds", "urls"},
+	} {
+		cmd, remaining, err := root.Find(args)
+		if err == nil && cmd != nil && len(remaining) == 0 {
+			t.Fatalf("deleted command %v is still registered as %s", args, cmd.CommandPath())
 		}
 	}
 }

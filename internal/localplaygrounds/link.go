@@ -4,54 +4,76 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
+	"gopkg.in/yaml.v3"
 )
 
+const defaultBaseDir = "/opt/fibe/playgrounds"
+const defaultRootDomain = "phoenix.test"
+
+var Views = []string{"names", "urls", "mounts", "details"}
+
 type Service struct {
-	Name      string
-	Image     string
-	Traefik   bool
-	Expose    bool
-	Subdomain string
-	StartCmd  string
-	HostMount string
-	Prop      string
-	Branch    string
+	Name      string `json:"name" yaml:"name"`
+	Image     string `json:"image,omitempty" yaml:"image,omitempty"`
+	Traefik   bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
+	Expose    bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
+	Subdomain string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+	StartCmd  string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
+	HostMount string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
+	Prop      string `json:"prop,omitempty" yaml:"prop,omitempty"`
+	Branch    string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
 type Playground struct {
-	DirName  string
-	Playspec string
-	Services map[string]*Service
+	ID       string              `json:"id,omitempty" yaml:"id,omitempty"`
+	DirName  string              `json:"name" yaml:"name"`
+	Path     string              `json:"path" yaml:"path"`
+	Playspec string              `json:"playspec" yaml:"playspec"`
+	Services map[string]*Service `json:"services" yaml:"services"`
+}
+
+type NameEntry struct {
+	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
+	Name     string `json:"name" yaml:"name"`
+	Playspec string `json:"playspec" yaml:"playspec"`
+	Path     string `json:"path" yaml:"path"`
+}
+
+type URLEntry struct {
+	Service string `json:"service" yaml:"service"`
+	URL     string `json:"url" yaml:"url"`
+}
+
+type MountEntry struct {
+	Service string `json:"service" yaml:"service"`
+	Mount   string `json:"mount" yaml:"mount"`
+	Prop    string `json:"prop,omitempty" yaml:"prop,omitempty"`
+	Branch  string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
 func BaseDir() string {
-	if v := os.Getenv("PLAYROOMS_ROOT"); v != "" {
-		return v
+	if v := strings.TrimSpace(os.Getenv("MARQUEE_ROOT")); v != "" {
+		return resolveMarqueeRoot(v)
 	}
-	return "/opt/fibe/playgrounds"
+	return defaultBaseDir
 }
 
-var (
-	rePlayspecLocal   = regexp.MustCompile(`fibe\.gg/playspec:\s*['"]?([^\s'"]+)['"]?`)
-	reServiceLocal    = regexp.MustCompile(`^  ([a-zA-Z0-9_-]+):`)
-	reImageLocal      = regexp.MustCompile(`^\s+image:\s+['"]?([^'"]+)['"]?`)
-	reTraefikLocal    = regexp.MustCompile(`traefik\.enable:\s+['"]?true['"]?`)
-	reExposeLocal     = regexp.MustCompile(`fibe\.gg/expose:`)
-	reSubdomainLocal  = regexp.MustCompile(`fibe\.gg/subdomain:\s+['"]?([^'"]+)['"]?`)
-	reStartCmdLocal   = regexp.MustCompile(`fibe\.gg/start_command:\s+(.+)$`)
-	reVolMountLocal   = regexp.MustCompile(`^\s*-\s*["']?(/opt/fibe[^:"']+)[:"']`)
-	reServicesHdLocal = regexp.MustCompile(`^services:`)
-	reTopLevelLocal   = regexp.MustCompile(`^[a-zA-Z]`)
-)
+func RootDomain() string {
+	if v := os.Getenv("MARQUEE_ROOT_DOMAIN"); v != "" {
+		return v
+	}
+	return defaultRootDomain
+}
 
 func Scan(baseDir string) ([]Playground, error) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
-		return nil, fmt.Errorf("directory '%s' does not exist.\nYou can set the PLAYROOMS_ROOT environment variable", baseDir)
+		return nil, fmt.Errorf("directory '%s' does not exist.\nYou can set the MARQUEE_ROOT environment variable", baseDir)
 	}
 
 	var playgrounds []Playground
@@ -64,30 +86,159 @@ func Scan(baseDir string) ([]Playground, error) {
 		if err != nil {
 			continue
 		}
-		content := string(data)
-
-		playspec := entry.Name()
-		if m := rePlayspecLocal.FindStringSubmatch(content); m != nil {
-			playspec = m[1]
-		}
-
-		playgrounds = append(playgrounds, Playground{
-			DirName:  entry.Name(),
-			Playspec: playspec,
-			Services: parseServices(content),
-		})
+		pg := parseCompose(entry.Name(), filepath.Join(baseDir, entry.Name()), data)
+		playgrounds = append(playgrounds, pg)
 	}
+	sort.Slice(playgrounds, func(i, j int) bool {
+		return playgrounds[i].DirName < playgrounds[j].DirName
+	})
 	return playgrounds, nil
 }
 
-func Find(playgrounds []Playground, target string) *Playground {
-	for i := range playgrounds {
-		pg := &playgrounds[i]
-		if pg.DirName == target || pg.Playspec == target || strings.HasPrefix(pg.Playspec, target) {
-			return pg
+func resolveMarqueeRoot(root string) string {
+	root = filepath.Clean(root)
+	if filepath.Base(root) == "playgrounds" || hasComposeProjectDirs(root) {
+		return root
+	}
+	candidate := filepath.Join(root, "playgrounds")
+	if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+		return candidate
+	}
+	return root
+}
+
+func hasComposeProjectDirs(root string) bool {
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(root, entry.Name(), "compose.yml")); err == nil {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+func Find(playgrounds []Playground, target string) (*Playground, error) {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return nil, fmt.Errorf("required playground selector not set")
+	}
+
+	if isNumeric(target) {
+		if pg := findByID(playgrounds, target); pg != nil {
+			return pg, nil
+		}
+		if matches := exactNameMatches(playgrounds, target); len(matches) == 1 {
+			return matches[0], nil
+		} else if len(matches) > 1 {
+			return nil, ambiguousError(target, matches)
+		}
+		return nil, fmt.Errorf("no playground found matching '%s'", target)
+	}
+
+	if matches := exactNameMatches(playgrounds, target); len(matches) == 1 {
+		return matches[0], nil
+	} else if len(matches) > 1 {
+		return nil, ambiguousError(target, matches)
+	}
+
+	if matches := exactPlayspecMatches(playgrounds, target); len(matches) == 1 {
+		return matches[0], nil
+	} else if len(matches) > 1 {
+		return nil, ambiguousError(target, matches)
+	}
+
+	if matches := playspecPrefixMatches(playgrounds, target); len(matches) == 1 {
+		return matches[0], nil
+	} else if len(matches) > 1 {
+		return nil, ambiguousError(target, matches)
+	}
+
+	return nil, fmt.Errorf("no playground found matching '%s'", target)
+}
+
+func Names(playgrounds []Playground) []NameEntry {
+	items := make([]NameEntry, 0, len(playgrounds))
+	for _, pg := range playgrounds {
+		items = append(items, NameEntry{
+			ID:       pg.ID,
+			Name:     pg.DirName,
+			Playspec: pg.Playspec,
+			Path:     pg.Path,
+		})
+	}
+	return items
+}
+
+func URLs(pg *Playground, rootDomain string) []URLEntry {
+	if rootDomain == "" {
+		rootDomain = defaultRootDomain
+	}
+	seen := make(map[string]bool)
+	var entries []URLEntry
+	for _, name := range serviceNames(pg.Services) {
+		svc := pg.Services[name]
+		if svc.Traefik && svc.Subdomain != "" {
+			fullURL := svc.Subdomain + "." + rootDomain
+			if !seen[fullURL] {
+				seen[fullURL] = true
+				entries = append(entries, URLEntry{Service: name, URL: fullURL})
+			}
+		}
+	}
+	return entries
+}
+
+func Mounts(pg *Playground) []MountEntry {
+	var entries []MountEntry
+	for _, name := range serviceNames(pg.Services) {
+		svc := pg.Services[name]
+		if svc.HostMount == "" {
+			continue
+		}
+		entries = append(entries, MountEntry{
+			Service: name,
+			Mount:   svc.HostMount,
+			Prop:    svc.Prop,
+			Branch:  svc.Branch,
+		})
+	}
+	return entries
+}
+
+func View(playgrounds []Playground, view, selector, rootDomain string) (any, error) {
+	switch view {
+	case "names":
+		if strings.TrimSpace(selector) != "" {
+			return nil, fmt.Errorf("view 'names' does not accept a playground selector")
+		}
+		return Names(playgrounds), nil
+	case "urls":
+		pg, err := Find(playgrounds, selector)
+		if err != nil {
+			return nil, err
+		}
+		return URLs(pg, rootDomain), nil
+	case "mounts":
+		pg, err := Find(playgrounds, selector)
+		if err != nil {
+			return nil, err
+		}
+		return Mounts(pg), nil
+	case "details":
+		pg, err := Find(playgrounds, selector)
+		if err != nil {
+			return nil, err
+		}
+		return pg, nil
+	default:
+		return nil, fmt.Errorf("unknown local playground view %q (valid: %s)", view, strings.Join(Views, ", "))
+	}
 }
 
 func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
@@ -98,9 +249,9 @@ func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	pg := Find(playgrounds, target)
-	if pg == nil {
-		return nil, fmt.Errorf("no playground found matching '%s'", target)
+	pg, err := Find(playgrounds, target)
+	if err != nil {
+		return nil, err
 	}
 	return LinkPlayground(pg, linkDir)
 }
@@ -201,57 +352,179 @@ func prepareLinkDir(linkDir string) error {
 	return nil
 }
 
-func parseServices(content string) map[string]*Service {
-	lines := strings.Split(content, "\n")
-	services := make(map[string]*Service)
-	var current *Service
-	inServices := false
-
-	for _, line := range lines {
-		if reServicesHdLocal.MatchString(line) {
-			inServices = true
-			continue
-		}
-		if inServices && reTopLevelLocal.MatchString(line) {
-			inServices = false
-		}
-		if !inServices {
-			continue
-		}
-
-		if m := reServiceLocal.FindStringSubmatch(line); m != nil {
-			current = &Service{Name: m[1]}
-			services[m[1]] = current
-			continue
-		}
-		if current == nil {
-			continue
-		}
-
-		if m := reImageLocal.FindStringSubmatch(line); m != nil {
-			current.Image = m[1]
-		}
-		if reTraefikLocal.MatchString(line) {
-			current.Traefik = true
-		}
-		if reExposeLocal.MatchString(line) {
-			current.Expose = true
-		}
-		if m := reSubdomainLocal.FindStringSubmatch(line); m != nil {
-			current.Subdomain = m[1]
-		}
-		if m := reStartCmdLocal.FindStringSubmatch(line); m != nil {
-			cmd := strings.TrimSpace(m[1])
-			cmd = strings.TrimLeft(cmd, `"'`)
-			cmd = strings.TrimRight(cmd, `"'`)
-			current.StartCmd = cmd
-		}
-		if m := reVolMountLocal.FindStringSubmatch(line); m != nil {
-			setMount(current, m[1])
-		}
+func parseCompose(dirName, dirPath string, data []byte) Playground {
+	pg := Playground{
+		DirName:  dirName,
+		Path:     dirPath,
+		Playspec: dirName,
+		Services: map[string]*Service{},
 	}
 
-	return services
+	var doc map[string]any
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return pg
+	}
+
+	services := asMap(doc["services"])
+	for _, svcName := range sortedMapKeys(services) {
+		svcMap := asMap(services[svcName])
+		labels := normalizeLabels(svcMap["labels"])
+		service := &Service{
+			Name:      svcName,
+			Image:     scalarString(svcMap["image"]),
+			Traefik:   truthy(labels["traefik.enable"]),
+			Expose:    labelExists(labels, "fibe.gg/expose"),
+			Subdomain: labels["fibe.gg/subdomain"],
+			StartCmd:  trimCommand(labels["fibe.gg/start_command"]),
+		}
+		if pg.Playspec == dirName {
+			if playspec := labels["fibe.gg/playspec"]; playspec != "" {
+				pg.Playspec = playspec
+			}
+		}
+		if pg.ID == "" {
+			if playgroundName := labels["fibe.gg/playground"]; playgroundName != "" {
+				pg.ID = trailingID(playgroundName)
+			}
+		}
+		for _, volume := range volumeSources(svcMap["volumes"]) {
+			setMount(service, volume)
+			if service.HostMount != "" {
+				break
+			}
+		}
+		pg.Services[svcName] = service
+	}
+	if id := trailingID(dirName); id != "" {
+		pg.ID = id
+	}
+	return pg
+}
+
+func asMap(value any) map[string]any {
+	out := map[string]any{}
+	switch typed := value.(type) {
+	case map[string]any:
+		return typed
+	case map[any]any:
+		for key, val := range typed {
+			out[fmt.Sprint(key)] = val
+		}
+	}
+	return out
+}
+
+func normalizeLabels(value any) map[string]string {
+	labels := map[string]string{}
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, val := range typed {
+			labels[key] = scalarString(val)
+		}
+	case map[any]any:
+		for key, val := range typed {
+			labels[fmt.Sprint(key)] = scalarString(val)
+		}
+	case []any:
+		for _, item := range typed {
+			label := scalarString(item)
+			if label == "" {
+				continue
+			}
+			key, val, ok := strings.Cut(label, "=")
+			if !ok {
+				key, val, ok = strings.Cut(label, ":")
+			}
+			if ok {
+				labels[strings.TrimSpace(key)] = strings.TrimSpace(val)
+			}
+		}
+	case []string:
+		for _, label := range typed {
+			key, val, ok := strings.Cut(label, "=")
+			if !ok {
+				key, val, ok = strings.Cut(label, ":")
+			}
+			if ok {
+				labels[strings.TrimSpace(key)] = strings.TrimSpace(val)
+			}
+		}
+	}
+	return labels
+}
+
+func volumeSources(value any) []string {
+	var out []string
+	switch typed := value.(type) {
+	case []any:
+		for _, item := range typed {
+			if source := volumeSource(item); source != "" {
+				out = append(out, source)
+			}
+		}
+	case []string:
+		for _, item := range typed {
+			if source := volumeSource(item); source != "" {
+				out = append(out, source)
+			}
+		}
+	}
+	return out
+}
+
+func volumeSource(value any) string {
+	switch typed := value.(type) {
+	case string:
+		source, _, _ := strings.Cut(strings.TrimSpace(typed), ":")
+		return strings.Trim(source, `"'`)
+	case map[string]any:
+		return scalarString(typed["source"])
+	case map[any]any:
+		return scalarString(typed["source"])
+	}
+	return ""
+}
+
+func scalarString(value any) string {
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return typed
+	case bool:
+		if typed {
+			return "true"
+		}
+		return "false"
+	case int:
+		return strconv.Itoa(typed)
+	case int64:
+		return strconv.FormatInt(typed, 10)
+	case float64:
+		return strconv.FormatFloat(typed, 'f', -1, 64)
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func trimCommand(cmd string) string {
+	cmd = strings.TrimSpace(cmd)
+	cmd = strings.TrimLeft(cmd, `"'`)
+	cmd = strings.TrimRight(cmd, `"'`)
+	return cmd
+}
+
+func truthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "true", "1", "yes", "on":
+		return true
+	}
+	return false
+}
+
+func labelExists(labels map[string]string, key string) bool {
+	value, ok := labels[key]
+	return ok && strings.TrimSpace(value) != "false"
 }
 
 func setMount(service *Service, hostPath string) {
@@ -273,4 +546,102 @@ func setMount(service *Service, hostPath string) {
 		service.Prop = rawProp
 	}
 	service.Branch = parts[1]
+}
+
+func trailingID(name string) string {
+	idx := strings.LastIndex(name, "--")
+	if idx == -1 || idx+2 >= len(name) {
+		return ""
+	}
+	id := name[idx+2:]
+	if !isNumeric(id) {
+		return ""
+	}
+	return id
+}
+
+func isNumeric(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func findByID(playgrounds []Playground, target string) *Playground {
+	for i := range playgrounds {
+		if playgrounds[i].ID == target {
+			return &playgrounds[i]
+		}
+	}
+	return nil
+}
+
+func exactNameMatches(playgrounds []Playground, target string) []*Playground {
+	var matches []*Playground
+	for i := range playgrounds {
+		if playgrounds[i].DirName == target {
+			matches = append(matches, &playgrounds[i])
+		}
+	}
+	return matches
+}
+
+func exactPlayspecMatches(playgrounds []Playground, target string) []*Playground {
+	var matches []*Playground
+	for i := range playgrounds {
+		if playgrounds[i].Playspec == target {
+			matches = append(matches, &playgrounds[i])
+		}
+	}
+	return matches
+}
+
+func playspecPrefixMatches(playgrounds []Playground, target string) []*Playground {
+	var matches []*Playground
+	for i := range playgrounds {
+		if strings.HasPrefix(playgrounds[i].Playspec, target) {
+			matches = append(matches, &playgrounds[i])
+		}
+	}
+	return matches
+}
+
+func ambiguousError(target string, matches []*Playground) error {
+	candidates := make([]string, 0, len(matches))
+	for _, pg := range matches {
+		label := pg.DirName
+		if pg.Playspec != "" {
+			label += " (playspec: " + pg.Playspec
+			if pg.ID != "" {
+				label += ", id: " + pg.ID
+			}
+			label += ")"
+		}
+		candidates = append(candidates, label)
+	}
+	sort.Strings(candidates)
+	return fmt.Errorf("multiple playgrounds found matching '%s': %s", target, strings.Join(candidates, ", "))
+}
+
+func serviceNames(services map[string]*Service) []string {
+	names := make([]string, 0, len(services))
+	for name := range services {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func sortedMapKeys(values map[string]any) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }

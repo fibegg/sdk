@@ -42,7 +42,7 @@ func TestE2E_TemplatesDevelopFlow(t *testing.T) {
 		t.Skip("no active marquees available")
 	}
 	t.Setenv("FIBE_MARQUEE_ID", fmt.Sprintf("%d", activeMarqueeID))
-	t.Setenv("PLAYROOMS_ROOT", t.TempDir())
+	t.Setenv("MARQUEE_ROOT", t.TempDir())
 
 	// 1. Create a greenfield app to get a real template, version, playspec, and playground
 	repoName := fmt.Sprintf("mcp-test-dev-%d", time.Now().UnixNano())
