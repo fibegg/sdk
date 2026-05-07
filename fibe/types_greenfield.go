@@ -5,9 +5,11 @@ import "encoding/json"
 type GreenfieldCreateParams struct {
 	Name              string         `json:"name"`
 	TemplateID        *int64         `json:"template_id,omitempty"`
+	TemplateVersionID *int64         `json:"template_version_id,omitempty"`
 	Version           string         `json:"version,omitempty"`
 	TemplateBody      string         `json:"template_body,omitempty"`
 	GitProvider       string         `json:"git_provider,omitempty"`
+	Private           *bool          `json:"private,omitempty"`
 	MarqueeID         *int64         `json:"marquee_id,omitempty"`
 	MarqueeIdentifier string         `json:"-"`
 	Variables         map[string]any `json:"variables,omitempty"`
@@ -19,8 +21,11 @@ func (p *GreenfieldCreateParams) Validate() error {
 	if p.Version != "" && p.TemplateID == nil {
 		v.errors = append(v.errors, ValidationError{Field: "version", Message: "requires template_id"})
 	}
-	if p.TemplateBody != "" && (p.TemplateID != nil || p.Version != "") {
-		v.errors = append(v.errors, ValidationError{Field: "template_body", Message: "cannot be combined with template_id or version"})
+	if p.TemplateVersionID != nil && (p.TemplateID != nil || p.Version != "") {
+		v.errors = append(v.errors, ValidationError{Field: "template_version_id", Message: "cannot be combined with template_id or version"})
+	}
+	if p.TemplateBody != "" && (p.TemplateID != nil || p.TemplateVersionID != nil || p.Version != "") {
+		v.errors = append(v.errors, ValidationError{Field: "template_body", Message: "cannot be combined with template_id, template_version_id, or version"})
 	}
 	return v.err()
 }

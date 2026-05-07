@@ -3,7 +3,9 @@ package fibe
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"testing"
 )
 
@@ -102,12 +104,25 @@ func TestGreenfield_Create(t *testing.T) {
 	})
 
 	marqueeID := int64(12)
+	templateVersionID := int64(912)
 	result, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
-		Name:         "tower-defence",
-		TemplateBody: "services:\n  web:\n    image: nginx\n",
-		GitProvider:  "github",
-		MarqueeID:    &marqueeID,
-		Variables:    map[string]any{"app_name": "Tower"},
+		Name:              "tower-defence",
+		TemplateBody:      "services:\n  web:\n    image: nginx\n",
+		GitProvider:       "github",
+		MarqueeID:         &marqueeID,
+		TemplateVersionID: &templateVersionID,
+		Variables:         map[string]any{"app_name": "Tower"},
+	})
+	if err == nil {
+		t.Fatal("expected template_body/template_version_id validation error")
+	}
+
+	result, err = c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+		Name:              "tower-defence",
+		TemplateVersionID: &templateVersionID,
+		GitProvider:       "github",
+		MarqueeID:         &marqueeID,
+		Variables:         map[string]any{"app_name": "Tower"},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -121,8 +136,8 @@ func TestGreenfield_Create(t *testing.T) {
 	if body["marquee_id"].(float64) != 12 {
 		t.Fatalf("unexpected marquee id in body: %#v", body)
 	}
-	if body["template_body"] != "services:\n  web:\n    image: nginx\n" {
-		t.Fatalf("unexpected template body in body: %#v", body)
+	if body["template_version_id"].(float64) != 912 {
+		t.Fatalf("unexpected template version id in body: %#v", body)
 	}
 	vars := body["variables"].(map[string]any)
 	if vars["app_name"] != "Tower" {
@@ -415,19 +430,76 @@ func TestAgents_Chat(t *testing.T) {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
-		if body["text"] != "hello" {
-			t.Errorf("expected text 'hello', got %v", body["text"])
+		attachments, _ := body["attachmentFilenames"].([]any)
+		if body["text"] != "hello" || body["conversation_id"] != "thread-1" || body["busy_policy"] != "queue" || len(attachments) != 1 || attachments[0] != "notes.txt" {
+			t.Errorf("unexpected chat body: %#v", body)
 		}
 		w.WriteHeader(202)
 		json.NewEncoder(w).Encode(map[string]any{"status": "accepted"})
 	})
 
-	result, err := c.Agents.Chat(context.Background(), 5, &AgentChatParams{Text: "hello"})
+	result, err := c.Agents.Chat(context.Background(), 5, &AgentChatParams{Text: "hello", ConversationID: "thread-1", BusyPolicy: "queue", AttachmentFilenames: []string{"notes.txt"}})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if result["status"] != "accepted" {
 		t.Errorf("expected status 'accepted', got %v", result["status"])
+	}
+}
+
+func TestAgents_Upload(t *testing.T) {
+	tmp, err := os.CreateTemp(t.TempDir(), "attachment-*.txt")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	if _, err := tmp.WriteString("hello"); err != nil {
+		t.Fatalf("write temp: %v", err)
+	}
+	if err := tmp.Close(); err != nil {
+		t.Fatalf("close temp: %v", err)
+	}
+
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/test-agent/uploads" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := r.ParseMultipartForm(8 << 20); err != nil {
+			t.Errorf("ParseMultipartForm: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if got := r.FormValue("conversation_id"); got != "thread-1" {
+			t.Errorf("conversation_id = %q", got)
+		}
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			t.Errorf("FormFile: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		content, err := io.ReadAll(file)
+		if err != nil {
+			t.Errorf("ReadAll: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if string(content) != "hello" || header.Filename == "" {
+			t.Errorf("unexpected uploaded file %q %q", header.Filename, string(content))
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"filename": "runtime-file.txt"})
+	})
+
+	result, err := c.Agents.UploadByIdentifier(context.Background(), "test-agent", &AgentUploadParams{
+		FilePath:       tmp.Name(),
+		ConversationID: "thread-1",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Filename != "runtime-file.txt" {
+		t.Errorf("unexpected upload result: %#v", result)
 	}
 }
 

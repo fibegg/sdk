@@ -163,6 +163,21 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 			t.Fatalf("template.develop missing property %q: %#v", want, developProps)
 		}
 	}
+	if _, _, err := ValidatePayload("template", "develop", map[string]any{
+		"target_type":      "playground",
+		"target_id":        42,
+		"mode":             "apply",
+		"change_type":      "patch",
+		"post_apply":       "rollout_target",
+		"wait":             true,
+		"confirm":          true,
+		"confirm_warnings": true,
+		"patches": []any{
+			map[string]any{"op": "set", "path": "services.redis.image", "value": "redis:7-alpine", "create_missing": true},
+		},
+	}); err != nil {
+		t.Fatalf("template.develop should validate project-local rollout payload: %v", err)
+	}
 
 	marqueeCreate, _, op, ok := SchemaFor("marquee", "create")
 	if !ok || op != "create" {

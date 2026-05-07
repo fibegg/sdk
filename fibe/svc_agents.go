@@ -76,6 +76,41 @@ func (s *AgentService) ChatByIdentifier(ctx context.Context, identifier string, 
 	return result, err
 }
 
+func (s *AgentService) Upload(ctx context.Context, id int64, params *AgentUploadParams) (*AgentUploadResult, error) {
+	return s.UploadByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *AgentService) UploadByIdentifier(ctx context.Context, identifier string, params *AgentUploadParams) (*AgentUploadResult, error) {
+	if params == nil {
+		return nil, fmt.Errorf("upload params required")
+	}
+	if params.FilePath == "" {
+		return nil, fmt.Errorf("file_path is required")
+	}
+
+	file, err := os.Open(params.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("open attachment: %w", err)
+	}
+	defer file.Close()
+
+	fileName := params.FileName
+	if fileName == "" {
+		fileName = filepath.Base(params.FilePath)
+	}
+	fields := map[string]string{}
+	if params.ConversationID != "" {
+		fields["conversation_id"] = params.ConversationID
+	}
+
+	path := identifierPath("/api/agents", identifier) + "/uploads"
+	var result AgentUploadResult
+	if err := s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (s *AgentService) Authenticate(ctx context.Context, id int64, code, token *string) (*Agent, error) {
 	return s.AuthenticateByIdentifier(ctx, int64Identifier(id), code, token)
 }

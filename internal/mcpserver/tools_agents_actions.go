@@ -28,10 +28,22 @@ func (s *Server) registerAgentActionTools() {
 			if p.Text == "" {
 				return nil, fmt.Errorf("required field 'text' not set")
 			}
+			for _, path := range argStringList(args, "attachment_paths") {
+				upload, err := c.Agents.UploadByIdentifier(ctx, identifier, &fibe.AgentUploadParams{
+					FilePath:       path,
+					ConversationID: p.ConversationID,
+				})
+				if err != nil {
+					return nil, err
+				}
+				if upload.Filename != "" {
+					p.AttachmentFilenames = append(p.AttachmentFilenames, upload.Filename)
+				}
+			}
 			return c.Agents.ChatByIdentifier(ctx, identifier, &p)
 		},
 	}, mcp.NewTool("fibe_agents_send_message",
-		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent runtime chat."),
+		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent runtime chat, optionally uploading local attachments first."),
 		withRawInputSchema(agentSendMessageInputSchema()),
 	))
 
@@ -117,8 +129,57 @@ func agentSendMessageInputSchema() map[string]any {
 		"minLength":   1,
 		"description": "Text to send to the agent.",
 	}
+	props["conversation_id"] = map[string]any{
+		"type":        "string",
+		"description": "Specific runtime conversation/thread ID. Optional.",
+	}
+	props["busy_policy"] = map[string]any{
+		"type":        "string",
+		"description": "Runtime busy behavior, e.g. queue. Optional.",
+	}
+	props["images"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Image payloads to send to the runtime, such as data URLs. Optional.",
+	}
+	props["attachment_paths"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Local file paths to upload before sending. Optional.",
+	}
+	props["attachment_filenames"] = map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Runtime attachment filenames returned by a previous upload. Optional.",
+	}
 	schema["required"] = []string{"agent_id", "text"}
 	return schema
+}
+
+func argStringList(args map[string]any, key string) []string {
+	v, ok := args[key]
+	if !ok {
+		return nil
+	}
+	switch x := v.(type) {
+	case []string:
+		return x
+	case []any:
+		out := make([]string, 0, len(x))
+		for _, item := range x {
+			if s, ok := item.(string); ok && strings.TrimSpace(s) != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case string:
+		if strings.TrimSpace(x) == "" {
+			return nil
+		}
+		return []string{x}
+	default:
+		return nil
+	}
 }
 
 // ---------- Artefacts ----------

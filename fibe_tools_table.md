@@ -4,7 +4,7 @@
 |-----------|-------------|
 | `fibe_agents_duplicate` | [MODE:OVERSEER] Duplicate an agent configuration. |
 | `fibe_agents_runtime_status` | [MODE:OVERSEER] Check agent runtime reachability, authentication, queue, and processing state. |
-| `fibe_agents_send_message` | [MODE:OVERSEER] Send one text message to an agent runtime chat. |
+| `fibe_agents_send_message` | [MODE:OVERSEER] Send one text message to an agent runtime chat, optionally uploading local attachments first. |
 | `fibe_agents_start_chat` | [MODE:SIDEEFFECTS] Start or reconnect an agent runtime chat on the current Marquee. |
 | `fibe_auth_set` | [MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations |
 | `fibe_call` | [MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools |

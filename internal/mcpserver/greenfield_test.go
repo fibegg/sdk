@@ -12,6 +12,7 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 
 	params, timeout, err := greenfieldArgs(map[string]any{
 		"name":      "tower-defence",
+		"private":   true,
 		"variables": map[string]any{"app_name": "Tower", "--subdomain": "x1"},
 	})
 	if err != nil {
@@ -22,6 +23,9 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 	}
 	if params.GitProvider != "gitea" {
 		t.Fatalf("git_provider=%q want gitea", params.GitProvider)
+	}
+	if params.Private == nil || *params.Private != true {
+		t.Fatalf("private=%v want true", params.Private)
 	}
 	if timeout.String() != "10m0s" {
 		t.Fatalf("timeout=%s want 10m0s", timeout)
@@ -47,6 +51,21 @@ func TestGreenfieldArgsAcceptTemplateIDAndVersion(t *testing.T) {
 	}
 	if params.Version != "v1" {
 		t.Fatalf("version=%q want v1", params.Version)
+	}
+}
+
+func TestGreenfieldArgsAcceptTemplateVersionID(t *testing.T) {
+	t.Setenv("FIBE_MARQUEE_ID", "88")
+
+	params, _, err := greenfieldArgs(map[string]any{
+		"name":                "todo",
+		"template_version_id": float64(912),
+	})
+	if err != nil {
+		t.Fatalf("greenfieldArgs: %v", err)
+	}
+	if params.TemplateVersionID == nil || *params.TemplateVersionID != 912 {
+		t.Fatalf("template_version_id=%v want 912", params.TemplateVersionID)
 	}
 }
 
@@ -96,6 +115,19 @@ func TestGreenfieldArgsRejectTemplateBodyWithTemplateID(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "template_body cannot be combined") {
 		t.Fatalf("expected template_body conflict error, got %v", err)
+	}
+}
+
+func TestGreenfieldArgsRejectTemplateVersionIDWithTemplateID(t *testing.T) {
+	t.Setenv("FIBE_MARQUEE_ID", "88")
+
+	_, _, err := greenfieldArgs(map[string]any{
+		"name":                "todo",
+		"template_id":         float64(347),
+		"template_version_id": float64(912),
+	})
+	if err == nil || !strings.Contains(err.Error(), "template_version_id cannot be combined") {
+		t.Fatalf("expected template_version_id conflict error, got %v", err)
 	}
 }
 

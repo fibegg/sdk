@@ -704,6 +704,10 @@ EXAMPLES:
 
 func agSendMessageCmd() *cobra.Command {
 	var text string
+	var conversationID string
+	var busyPolicy string
+	var attachmentPaths []string
+	var attachmentFilenames []string
 
 	cmd := &cobra.Command{
 		Use:     "send-message <id-or-name>",
@@ -716,9 +720,16 @@ The agent processes the message asynchronously (status: 202 Accepted).
 REQUIRED FLAGS:
   --text                  Message text to send
 
+OPTIONAL FLAGS:
+  --conversation-id       Specific runtime conversation/thread ID
+  --busy-policy           Runtime busy behavior, e.g. queue
+  --attach                Local file path to upload before sending. Repeatable
+  --attachment-filename   Already-uploaded runtime filename to include. Repeatable
+
 EXAMPLES:
   fibe agents send-message 5 --text "Fix the failing tests"
   fibe ag send-message my-agent --text "Deploy to staging"
+  fibe ag send-message my-agent --conversation-id conv-123 --text "Use this log" --attach ./log.txt
   echo '{"text": "Debug the build output"}' | fibe agents send-message my-agent -f -
   fibe agents send-message my-agent -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
 		Args: cobra.ExactArgs(1),
@@ -731,8 +742,29 @@ EXAMPLES:
 			if cmd.Flags().Changed("text") {
 				params.Text = text
 			}
+			if cmd.Flags().Changed("conversation-id") {
+				params.ConversationID = conversationID
+			}
+			if cmd.Flags().Changed("busy-policy") {
+				params.BusyPolicy = busyPolicy
+			}
+			if len(attachmentFilenames) > 0 {
+				params.AttachmentFilenames = append(params.AttachmentFilenames, attachmentFilenames...)
+			}
 			if params.Text == "" {
 				return fmt.Errorf("required field 'text' not set")
+			}
+			for _, path := range attachmentPaths {
+				upload, err := c.Agents.UploadByIdentifier(ctx(), args[0], &fibe.AgentUploadParams{
+					FilePath:       path,
+					ConversationID: params.ConversationID,
+				})
+				if err != nil {
+					return err
+				}
+				if upload.Filename != "" {
+					params.AttachmentFilenames = append(params.AttachmentFilenames, upload.Filename)
+				}
 			}
 			result, err := c.Agents.ChatByIdentifier(ctx(), args[0], params)
 			if err != nil {
@@ -744,6 +776,10 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&text, "text", "", "Chat message text (required)")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&busyPolicy, "busy-policy", "", "Runtime busy behavior, e.g. queue")
+	cmd.Flags().StringArrayVar(&attachmentPaths, "attach", nil, "Local file path to upload before sending (repeatable)")
+	cmd.Flags().StringArrayVar(&attachmentFilenames, "attachment-filename", nil, "Already-uploaded runtime filename to include (repeatable)")
 	return cmd
 }
 

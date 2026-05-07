@@ -177,7 +177,21 @@ type AgentMountSpec struct {
 }
 
 type AgentChatParams struct {
-	Text string `json:"text"`
+	Text                string   `json:"text"`
+	ConversationID      string   `json:"conversation_id,omitempty"`
+	BusyPolicy          string   `json:"busy_policy,omitempty"`
+	Images              []string `json:"images,omitempty"`
+	AttachmentFilenames []string `json:"attachmentFilenames,omitempty"`
+}
+
+type AgentUploadParams struct {
+	FilePath       string `json:"-"`
+	FileName       string `json:"filename,omitempty"`
+	ConversationID string `json:"conversation_id,omitempty"`
+}
+
+type AgentUploadResult struct {
+	Filename string `json:"filename"`
 }
 
 type AgentChatSession struct {

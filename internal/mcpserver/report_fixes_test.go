@@ -112,6 +112,22 @@ func TestAgentsSendMessageRequiresCanonicalTextField(t *testing.T) {
 	}
 }
 
+func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	props, ok := srv.toolSchemas["fibe_agents_send_message"]["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("schema properties missing: %#v", srv.toolSchemas["fibe_agents_send_message"])
+	}
+	for _, want := range []string{"agent_id", "text", "conversation_id", "busy_policy", "images", "attachment_paths", "attachment_filenames"} {
+		if _, ok := props[want]; !ok {
+			t.Fatalf("schema property %q missing: %#v", want, props)
+		}
+	}
+}
+
 // Note: HTTP tests have been moved to real integration tests in tools_templates_develop_test.go
 
 // ---------- Props attach: URL-to-short-form parsing ----------

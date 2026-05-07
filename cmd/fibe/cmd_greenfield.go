@@ -20,7 +20,9 @@ func greenfieldCmd() *cobra.Command {
 	var (
 		name                   string
 		gitProvider            string
+		private                bool
 		templateID             int64
+		templateVersionID      int64
 		templateIDTypoTempalte int64
 		templateIDTypoTemlate  int64
 		version                string
@@ -41,6 +43,7 @@ and links the local playground checkout into /app/playground by default.
 
 Examples:
   fibe greenfield --name my-app --template-id 347
+  fibe greenfield --name my-app --template-version-id 912
   fibe greenfield --name my-app -f my-template.yml
   fibe greenfield --name my-app --template-body 'services:\n  web:\n    image: nginx'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -57,12 +60,25 @@ Examples:
 			} else if params.GitProvider == "" {
 				params.GitProvider = "gitea"
 			}
+			if cmd.Flags().Changed("private") {
+				params.Private = &private
+			}
 			selectedTemplateID, templateIDChanged := selectedGreenfieldTemplateID(cmd, templateID, templateIDTypoTempalte, templateIDTypoTemlate)
 			if templateIDChanged && selectedTemplateID > 0 {
 				id := selectedTemplateID
 				params.TemplateID = &id
 			}
+			if cmd.Flags().Changed("template-version-id") && templateVersionID > 0 {
+				if params.TemplateID != nil || params.Version != "" {
+					return fmt.Errorf("--template-version-id cannot be combined with --template-id or --version")
+				}
+				id := templateVersionID
+				params.TemplateVersionID = &id
+			}
 			if cmd.Flags().Changed("version") {
+				if params.TemplateVersionID != nil {
+					return fmt.Errorf("--version cannot be combined with --template-version-id")
+				}
 				if params.TemplateID == nil {
 					return fmt.Errorf("--version requires --template-id")
 				}
@@ -126,7 +142,9 @@ Examples:
 	cmd.Flags().SortFlags = false
 	cmd.Flags().StringVar(&name, "name", "", "Repository/app name (required, must be unique)")
 	cmd.Flags().StringVar(&gitProvider, "git-provider", "gitea", "Destination git provider: gitea or github (optional, default: gitea)")
+	cmd.Flags().BoolVar(&private, "private", false, "Create destination repository as private")
 	cmd.Flags().Int64Var(&templateID, "template-id", 0, "Template to use (optional, default: base template)")
+	cmd.Flags().Int64Var(&templateVersionID, "template-version-id", 0, "Exact template version ID to use (optional)")
 	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)")
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional, default: current Marquee)")

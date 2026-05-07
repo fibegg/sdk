@@ -18,7 +18,7 @@ Total Tools: 42
 **Tier:** overseer | **Destructive:** False | **Idempotent:** False
 
 ### Description
-[MODE:OVERSEER] Send one text message to an agent runtime chat.
+[MODE:OVERSEER] Send one text message to an agent runtime chat, optionally uploading local attachments first.
 
 ## `fibe_agents_start_chat`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** False
