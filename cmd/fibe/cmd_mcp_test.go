@@ -72,7 +72,7 @@ func TestRunMCPInstallCodexWritesTOMLConfig(t *testing.T) {
 	if entry["command"] == "" {
 		t.Fatalf("expected command to be populated, got %#v", entry["command"])
 	}
-	if got := toStringSlice(t, entry["args"]); len(got) != 2 || got[0] != "mcp" || got[1] != "serve" {
+	if got := toStringSlice(t, entry["args"]); !equalStringSlices(got, []string{"mcp", "serve", "--profile", "default"}) {
 		t.Fatalf("unexpected args: %#v", got)
 	}
 
@@ -87,9 +87,8 @@ func TestRunMCPInstallCodexWritesTOMLConfig(t *testing.T) {
 		t.Fatalf("expected FOO=bar, got %#v", got)
 	}
 
-	envVars := toStringSlice(t, entry["env_vars"])
-	if !contains(envVars, "FIBE_API_KEY") || !contains(envVars, "FIBE_DOMAIN") {
-		t.Fatalf("expected env_vars to forward FIBE_API_KEY and FIBE_DOMAIN, got %#v", envVars)
+	if _, ok := entry["env_vars"]; ok {
+		t.Fatalf("did not expect env_vars in profile-pinned stdio install, got %#v", entry["env_vars"])
 	}
 }
 
@@ -138,16 +137,11 @@ func TestRunMCPInstallClaudeCodeProjectWritesMCPJSON(t *testing.T) {
 	if entry["command"] == "" {
 		t.Fatalf("expected command to be populated, got %#v", entry["command"])
 	}
-	if got := toStringSlice(t, entry["args"]); len(got) != 2 || got[0] != "mcp" || got[1] != "serve" {
+	if got := toStringSlice(t, entry["args"]); !equalStringSlices(got, []string{"mcp", "serve", "--profile", "default", "--api-key", "pk_test_claude", "--domain", "next.fibe.live"}) {
 		t.Fatalf("unexpected args: %#v", got)
 	}
-
-	env := nestedMap(t, entry["env"])
-	if got := env["FIBE_API_KEY"]; got != "pk_test_claude" {
-		t.Fatalf("expected FIBE_API_KEY=pk_test_claude, got %#v", got)
-	}
-	if got := env["FIBE_DOMAIN"]; got != "next.fibe.live" {
-		t.Fatalf("expected FIBE_DOMAIN=next.fibe.live, got %#v", got)
+	if _, ok := entry["env"]; ok {
+		t.Fatalf("did not expect env for explicit auth-only install, got %#v", entry["env"])
 	}
 }
 
@@ -426,11 +420,14 @@ func toStringSlice(t *testing.T, value any) []string {
 	return out
 }
 
-func contains(items []string, want string) bool {
-	for _, item := range items {
-		if item == want {
-			return true
+func equalStringSlices(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			return false
 		}
 	}
-	return false
+	return true
 }

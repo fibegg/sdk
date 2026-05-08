@@ -34,9 +34,10 @@ type mcpClientTarget struct {
 // installOptions bundles the flags that shape the emitted MCP config entry.
 // Each field is optional; empty means "use the default".
 type installOptions struct {
-	APIKey    string   // literal value to inline for FIBE_API_KEY
-	Domain    string   // literal value to inline for FIBE_DOMAIN
+	APIKey    string   // literal value to pass through --api-key
+	Domain    string   // literal value to pass through --domain
 	Env       []string // arbitrary KEY=VALUE pairs to inline
+	Profile   string   // profile to pass to "fibe mcp serve"
 	ToolSet   string   // full, core, or comma-separated named tiers (passed as FIBE_MCP_TOOLS)
 	Yolo      bool     // sets FIBE_MCP_YOLO=1
 	AuditLog  string   // sets FIBE_MCP_AUDIT_LOG
@@ -72,9 +73,9 @@ func resolveMCPProjectScope(client, project string, userScope bool) (string, err
 //   - Each client has a slightly different schema (claude uses "mcpServers",
 //     vscode uses "servers", Codex uses TOML "mcp_servers"), so we keep a
 //     small per-client adapter.
-//   - Some clients (e.g. Antigravity) don't expand ${VAR} placeholders in
-//     env values. When --api-key is omitted for those, we auto-resolve
-//     FIBE_API_KEY from the parent shell so the entry works out of the box.
+//   - Default stdio installs pin a profile rather than forwarding shell
+//     auth env vars. Explicit --api-key/--domain are passed to the launched
+//     "fibe mcp serve" command as one-off overrides.
 func runMCPInstall(client, project string, dryRun bool, opts installOptions) error {
 	bin, err := os.Executable()
 	if err != nil {
@@ -159,9 +160,20 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 	}
 
 	env, envVars, warnings := resolveInstallEnv(client, opts)
+	profile := opts.Profile
+	if profile == "" {
+		profile = selectedProfileName()
+	}
+	args := []string{"mcp", "serve", "--profile", profile}
+	if opts.APIKey != "" {
+		args = append(args, "--api-key", opts.APIKey)
+	}
+	if opts.Domain != "" {
+		args = append(args, "--domain", opts.Domain)
+	}
 	entry := map[string]any{
 		"command": bin,
-		"args":    []string{"mcp", "serve"},
+		"args":    args,
 	}
 	if len(env) > 0 {
 		entry["env"] = env
@@ -225,6 +237,9 @@ func validateRemoteInstallOptions(client string, opts installOptions) error {
 	if opts.Domain != "" {
 		unsupported = append(unsupported, "--domain")
 	}
+	if opts.Profile != "" {
+		unsupported = append(unsupported, "--profile")
+	}
 	if len(opts.Env) > 0 {
 		unsupported = append(unsupported, "--env")
 	}
@@ -277,57 +292,13 @@ func remoteAPIKeyPlaceholder(client string) string {
 // resolveInstallEnv builds the "env" map for the MCP server entry based on
 // the install flags and the target client's env-expansion quirks.
 //
-// For clients that support ${VAR} expansion (claude-code, claude-desktop,
-// cursor, vscode): we keep "${FIBE_API_KEY}" as the placeholder unless the
-// caller supplied --api-key.
-//
-// For clients that don't (antigravity): we auto-resolve FIBE_API_KEY from
-// the parent shell at install time. If the shell doesn't have it, we emit a
-// warning and leave an empty string so the user can edit the file.
-//
-// Codex is handled separately because its TOML schema supports "env_vars",
-// which forwards selected shell variables without ${VAR} placeholders.
+// Stdio installs pin a Fibe profile and do not forward FIBE_API_KEY or
+// FIBE_DOMAIN by default. Explicit --api-key/--domain are represented as
+// serve flags; this function only handles non-auth MCP process env.
 func resolveInstallEnv(client string, opts installOptions) (map[string]string, []string, []string) {
-	if client == "codex" {
-		return resolveCodexInstallEnv(opts)
-	}
-
 	var warnings []string
 	env := map[string]string{}
-	expandsPlaceholders := clientExpandsEnvPlaceholders(client)
 
-	// API key.
-	switch {
-	case opts.APIKey != "":
-		env["FIBE_API_KEY"] = opts.APIKey
-	case expandsPlaceholders:
-		env["FIBE_API_KEY"] = "${FIBE_API_KEY}"
-	default:
-		if v := os.Getenv("FIBE_API_KEY"); v != "" {
-			env["FIBE_API_KEY"] = v
-		} else {
-			env["FIBE_API_KEY"] = ""
-			warnings = append(warnings,
-				"FIBE_API_KEY left empty — "+client+" does not expand ${VAR} placeholders; "+
-					"rerun with --api-key <key> or edit the config manually.")
-		}
-	}
-
-	// Domain override.
-	switch {
-	case opts.Domain != "":
-		env["FIBE_DOMAIN"] = opts.Domain
-	case expandsPlaceholders:
-		env["FIBE_DOMAIN"] = "${FIBE_DOMAIN}"
-	default:
-		if v := os.Getenv("FIBE_DOMAIN"); v != "" {
-			env["FIBE_DOMAIN"] = v
-		} else {
-			env["FIBE_DOMAIN"] = "fibe.gg"
-		}
-	}
-
-	// Tool set + yolo + audit log.
 	if opts.ToolSet != "" {
 		env["FIBE_MCP_TOOLS"] = opts.ToolSet
 	}
@@ -344,39 +315,6 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 	return env, nil, warnings
 }
 
-func resolveCodexInstallEnv(opts installOptions) (map[string]string, []string, []string) {
-	var warnings []string
-	env := map[string]string{}
-
-	if opts.APIKey != "" {
-		env["FIBE_API_KEY"] = opts.APIKey
-	}
-	if opts.Domain != "" {
-		env["FIBE_DOMAIN"] = opts.Domain
-	}
-	if opts.ToolSet != "" {
-		env["FIBE_MCP_TOOLS"] = opts.ToolSet
-	}
-	if opts.Yolo {
-		env["FIBE_MCP_YOLO"] = "1"
-	}
-	if opts.AuditLog != "" {
-		env["FIBE_MCP_AUDIT_LOG"] = opts.AuditLog
-	}
-
-	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
-
-	envVars := make([]string, 0, 2)
-	if _, ok := env["FIBE_API_KEY"]; !ok {
-		envVars = append(envVars, "FIBE_API_KEY")
-	}
-	if _, ok := env["FIBE_DOMAIN"]; !ok {
-		envVars = append(envVars, "FIBE_DOMAIN")
-	}
-
-	return env, envVars, warnings
-}
-
 func applyInstallEnvPairs(env map[string]string, pairs []string) []string {
 	var warnings []string
 	for _, pair := range pairs {
@@ -388,19 +326,6 @@ func applyInstallEnvPairs(env map[string]string, pairs []string) []string {
 		env[k] = v
 	}
 	return warnings
-}
-
-// clientExpandsEnvPlaceholders returns true for MCP clients known to expand
-// ${VAR} syntax inside env values. Antigravity does not; Claude Code,
-// Claude Desktop, Cursor, and VS Code do (at least as of this writing).
-// Codex uses "env_vars" forwarding instead of placeholder expansion.
-func clientExpandsEnvPlaceholders(client string) bool {
-	switch client {
-	case "antigravity":
-		return false
-	default:
-		return true
-	}
 }
 
 // runMCPUninstall removes the "fibe" entry from the target client's config

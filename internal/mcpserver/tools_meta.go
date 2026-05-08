@@ -124,11 +124,114 @@ By default the server pings /api/me with the new credentials before committing
 them to session state. If the ping fails, the previous credentials are kept
 (prevents "poisoned session" failure modes). Pass validate:false to skip.
 
-Stdio transport can usually rely on the FIBE_API_KEY env var. fibe_auth_set
-is most useful in multi-tenant HTTP deployments.`),
+Prefer fibe_auth_use for local profile switching because it never reveals API
+keys to the agent. fibe_auth_set remains useful for HTTP deployments or
+one-off credentials supplied explicitly by the user.`),
 		mcp.WithString("api_key", mcp.Description("Fibe API key, for example fibe_live_... or fibe_test_...")),
 		mcp.WithString("domain", mcp.Description("API domain override (default: fibe.gg)")),
 		mcp.WithBoolean("validate", mcp.Description("Ping /api/me with the new creds before saving (default: true)")),
+	))
+
+	// ---------- fibe_auth_list ----------
+	s.addTool(&toolImpl{
+		name: "fibe_auth_list", description: "[MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys.", tier: tierMeta,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			profiles, err := listMCPAuthProfiles()
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{
+				"profiles": profiles,
+			}, nil
+		},
+	}, mcp.NewTool("fibe_auth_list",
+		mcp.WithDescription("List local Fibe auth profiles available to this MCP server. API keys are masked and never returned in full."),
+	))
+
+	// ---------- fibe_auth_status ----------
+	s.addTool(&toolImpl{
+		name: "fibe_auth_status", description: "[MODE:DIALOG] Show the current MCP session auth target and selected profile, if any.", tier: tierMeta,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			st := s.sessionFor(ctx)
+			st.mu.RLock()
+			profile, sessionProfile, domain, apiKeySet := st.profile, st.profile, st.domain, st.apiKey != ""
+			st.mu.RUnlock()
+			if profile == "" {
+				profile = s.cfg.Profile
+			}
+			if domain == "" {
+				domain = s.cfg.Domain
+			}
+			return map[string]any{
+				"profile":          profile,
+				"session_profile":  sessionProfile,
+				"server_profile":   s.cfg.Profile,
+				"base_url":         c.BaseURL(),
+				"session_domain":   normalizeMCPDomain(domain),
+				"session_key_set":  apiKeySet,
+				"server_key_set":   s.cfg.APIKey != "",
+				"require_auth":     s.cfg.RequireAuth,
+				"configured_tools": s.cfg.ToolSet,
+			}, nil
+		},
+	}, mcp.NewTool("fibe_auth_status",
+		mcp.WithDescription("Show the current MCP session auth target and selected profile, if any."),
+	))
+
+	// ---------- fibe_auth_use ----------
+	s.addTool(&toolImpl{
+		name: "fibe_auth_use", description: "[MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately.", tier: tierMeta,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, _ *fibe.Client, args map[string]any) (any, error) {
+			profile := strings.TrimSpace(argString(args, "profile"))
+			domain, apiKey, apiKeyID, ok, err := resolveMCPAuthProfile(profile)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, fmt.Errorf("auth profile %q does not exist", profile)
+			}
+			validate := true
+			if v, ok := args["validate"]; ok {
+				if b, ok := v.(bool); ok {
+					validate = b
+				}
+			}
+
+			prev := s.sessionFor(ctx)
+			prev.mu.RLock()
+			prevProfile, prevKey, prevDomain := prev.profile, prev.apiKey, prev.domain
+			prev.mu.RUnlock()
+
+			s.setSessionProfile(ctx, profile, apiKey, domain)
+			if validate {
+				newClient, err := s.resolveClient(ctx)
+				if err == nil && newClient != nil {
+					if pingErr := newClient.Ping(ctx); pingErr != nil {
+						s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+						return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
+					}
+				}
+			}
+			return map[string]any{
+				"ok":         true,
+				"profile":    profile,
+				"domain":     domain,
+				"base_url":   mcpBaseURL(domain),
+				"api_key_id": apiKeyID,
+				"key_set":    apiKey != "",
+				"validated":  validate,
+			}, nil
+		},
+	}, mcp.NewTool("fibe_auth_use",
+		mcp.WithDescription(`Switch this MCP session to a local Fibe auth profile by name.
+
+This does not reveal API keys to the agent. By default it validates the
+selected profile with /api/me before keeping the new session client.`),
+		mcp.WithString("profile", mcp.Required(), mcp.Description("Local Fibe auth profile name, for example default, staging, local, or a feature-env profile.")),
+		mcp.WithBoolean("validate", mcp.Description("Ping /api/me with the selected profile before saving (default: true).")),
 	))
 
 	// ---------- local playground helpers ----------

@@ -24,6 +24,7 @@ var (
 
 	flagAPIKey        string
 	flagDomain        string
+	flagProfile       string
 	flagDebug         bool
 	flagOutput        string
 	flagOnly          []string
@@ -52,8 +53,9 @@ CORE ARCHITECTURE:
   - Tricks are ad-hoc job workloads (job-mode Playspecs) that run to completion.
 
 AUTHENTICATION:
-  Set FIBE_API_KEY environment variable or use --api-key flag.
-  Create API keys at https://fibe.gg or via: fibe api-keys create
+  Run 'fibe login --api-key <key>' or 'fibe auth login' to configure the
+  default production profile. Use --profile for one-off environment switches.
+  FIBE_API_KEY/FIBE_DOMAIN are CI fallbacks when no profile is configured.
 
 EXAMPLES:
   fibe playgrounds list                      List all playgrounds
@@ -100,8 +102,9 @@ DOCUMENTATION:
 		Version: version,
 	}
 
-	cmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key (default: $FIBE_API_KEY)")
-	cmd.PersistentFlags().StringVar(&flagDomain, "domain", "", "API domain (default: $FIBE_DOMAIN, fallback: fibe.gg)")
+	cmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "API key override")
+	cmd.PersistentFlags().StringVar(&flagDomain, "domain", "", "API domain override (default profile domain or fibe.gg)")
+	cmd.PersistentFlags().StringVar(&flagProfile, "profile", "", "Auth profile to use (default: active profile or default)")
 	cmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "Enable debug logging")
 	cmd.PersistentFlags().StringVarP(&flagOutput, "output", "o", "", "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)")
 	cmd.PersistentFlags().StringSliceVar(&flagOnly, "only", nil, "Filter response to specific fields (e.g. --only id,name,status)")
@@ -141,6 +144,7 @@ DOCUMENTATION:
 		doctorCmd(),
 		configCmd(),
 		authCmd(),
+		authLoginCmd(),
 		localCmd(),
 		mcpCmd(),
 		versionCmd(),
@@ -226,16 +230,15 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 `
 
 func newClient() *fibe.Client {
-	opts := []fibe.Option{}
-
-	if flagAPIKey != "" {
-		opts = append(opts, fibe.WithAPIKey(flagAPIKey))
+	resolved := resolveCLIAuth()
+	opts := []fibe.Option{
+		fibe.WithDisableAutoConfig(),
+		fibe.WithDomain(resolved.Domain),
 	}
 
-	if flagDomain != "" {
-		opts = append(opts, fibe.WithDomain(flagDomain))
+	if resolved.APIKey != "" {
+		opts = append(opts, fibe.WithAPIKey(resolved.APIKey))
 	}
-
 	if flagDebug {
 		opts = append(opts, fibe.WithDebug())
 	}

@@ -41,6 +41,9 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_run",
 		"fibe_schema",
 		"fibe_auth_set",
+		"fibe_auth_list",
+		"fibe_auth_status",
+		"fibe_auth_use",
 		"fibe_pipeline",
 		"fibe_pipeline_result",
 		"fibe_resource_list",
@@ -70,6 +73,71 @@ func TestDefaultConfigUsesFullToolset(t *testing.T) {
 	cfg := DefaultConfig()
 	if cfg.ToolSet != "full" {
 		t.Fatalf("expected default ToolSet full, got %q", cfg.ToolSet)
+	}
+}
+
+func TestAuthUseSwitchesMCPProfileWithoutExposingKey(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", home)
+
+	if err := fibe.NewAuthProfileStore(fibe.DefaultAuthProfilePath()).SetProfile("staging", "next.fibe.live"); err != nil {
+		t.Fatalf("set profile config: %v", err)
+	}
+	if err := fibe.NewCredentialStore(fibe.DefaultCredentialPath()).SetProfile("staging", &fibe.CredentialEntry{
+		APIKey:   "fibe_test_staging_secret",
+		APIKeyID: 42,
+		Domain:   "next.fibe.live",
+	}); err != nil {
+		t.Fatalf("set profile credentials: %v", err)
+	}
+
+	srv := New(Config{APIKey: "server-key", Domain: "fibe.gg", Profile: "default", ToolSet: "core", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_auth_use", map[string]any{
+		"profile":  "staging",
+		"validate": false,
+	})
+	if err != nil {
+		t.Fatalf("fibe_auth_use: %v", err)
+	}
+	got := result.(map[string]any)
+	if got["profile"] != "staging" || got["domain"] != "next.fibe.live" || got["key_set"] != true {
+		t.Fatalf("unexpected auth use result: %#v", got)
+	}
+
+	status, err := srv.dispatcher.dispatch(context.Background(), "fibe_auth_status", nil)
+	if err != nil {
+		t.Fatalf("fibe_auth_status: %v", err)
+	}
+	statusMap := status.(map[string]any)
+	if statusMap["profile"] != "staging" || statusMap["base_url"] != "https://next.fibe.live" {
+		t.Fatalf("unexpected auth status: %#v", statusMap)
+	}
+
+	list, err := srv.dispatcher.dispatch(context.Background(), "fibe_auth_list", nil)
+	if err != nil {
+		t.Fatalf("fibe_auth_list: %v", err)
+	}
+	profiles := list.(map[string]any)["profiles"].([]mcpAuthProfile)
+	found := false
+	for _, profile := range profiles {
+		if profile.Name != "staging" {
+			continue
+		}
+		found = true
+		if profile.MaskedKey == "fibe_test_staging_secret" {
+			t.Fatalf("auth list exposed raw API key")
+		}
+		if profile.MaskedKey == "" {
+			t.Fatalf("auth list did not report a masked key: %#v", profile)
+		}
+	}
+	if !found {
+		t.Fatalf("staging profile missing from auth list: %#v", profiles)
 	}
 }
 
@@ -456,6 +524,9 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		"fibe_run",
 		"fibe_status",
 		"fibe_doctor",
+		"fibe_auth_list",
+		"fibe_auth_status",
+		"fibe_auth_use",
 		"fibe_schema",
 		"fibe_tools_catalog",
 		"fibe_call",

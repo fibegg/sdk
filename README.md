@@ -27,13 +27,25 @@ go install github.com/fibegg/sdk/cmd/fibe@latest
 
 ## Setup
 
-Set your API key via an environment variable. Obtain a key at `https://fibe.gg/settings/api-keys`.
+Authenticate the CLI with a named local profile. The default profile targets
+`https://fibe.gg`, so most users only need:
 
 ```bash
-export FIBE_API_KEY="pk_live_yourkeyhere"
+fibe login --api-key "fibe_live_yourkeyhere"
 ```
 
-You can optionally specify `--api-key` in the CLI commands.
+Use additional profiles for staging, local, or feature environments:
+
+```bash
+fibe auth login --profile staging --domain next.fibe.live --api-key "fibe_test_..."
+fibe auth use staging
+fibe --profile default doctor
+```
+
+Credentials are stored in `~/.config/fibe/credentials.json`; non-secret profile
+metadata is stored in `~/.config/fibe/config.json`. `FIBE_API_KEY` and
+`FIBE_DOMAIN` remain supported as CI fallbacks when no profile is configured,
+but they do not override an active profile.
 
 ## CLI Usage Highlights
 
@@ -125,9 +137,10 @@ The same `fibe` binary also runs as a local [Model Context Protocol](https://mod
 # Register Fibe with your MCP client (claude-code | claude-desktop | cursor | vscode | antigravity | codex)
 fibe mcp install --client claude-code
 fibe mcp install --client claude-code --project . # project-root .mcp.json
+fibe mcp install --client codex --profile staging
 
-# Run the server manually (stdio, single-tenant)
-FIBE_API_KEY=pk_live_... fibe mcp serve
+# Run the server manually (stdio, single-tenant, profile-backed)
+fibe mcp serve --profile staging
 
 # Serve multiple tenants over SSE with per-request bearer auth
 fibe mcp serve --http :8080 --require-auth
@@ -179,13 +192,23 @@ The server also exposes read-only MCP resources agents can load once at session 
 | `fibe://pipeline/schema` | `fibe_pipeline` DSL reference |
 | `fibe://pipelines/{id}` | Cached pipeline result (5-min TTL) |
 
-### Multi-tenant auth
+### Auth and profiles
 
-Stdio transport is single-tenant by design (one process per client). For HTTP/SSE deployments serving multiple tenants, the server resolves credentials per request in this order:
+Stdio transport is single-tenant by design (one process per client). It starts
+with the selected CLI profile, and agents can switch the current MCP session at
+runtime with:
+
+- `fibe_auth_list` — list local profiles without exposing API keys
+- `fibe_auth_use` — switch this MCP session to another profile
+- `fibe_auth_status` — show the current MCP auth target
+- `fibe_auth_set` — advanced raw API key/domain override
+
+For HTTP/SSE deployments serving multiple tenants, the server resolves
+credentials per request in this order:
 
 1. `Authorization: Bearer <fibe-api-key>` header
 2. A prior `fibe_auth_set` tool call in the same session
-3. The server-wide `FIBE_API_KEY` fallback (disabled with `--require-auth`)
+3. The server-wide profile/API-key fallback (disabled with `--require-auth`)
 
 Each session gets its own `*fibe.Client` instance with isolated circuit-breaker and rate-limit state — one tenant's errors can't open another tenant's breaker.
 

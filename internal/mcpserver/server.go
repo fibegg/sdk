@@ -55,6 +55,10 @@ type Config struct {
 	// Domain overrides the default Fibe API domain.
 	Domain string
 
+	// Profile is the local auth profile used to derive the server default
+	// APIKey/Domain, when the server was launched from profile-aware CLI code.
+	Profile string
+
 	// Debug turns on verbose logging to stderr.
 	Debug bool
 
@@ -228,6 +232,7 @@ func (s *Server) ServeStdio(ctx context.Context) error {
 // Per-session clients are forked from this via client.WithKey.
 func (s *Server) buildBaseClient() *fibe.Client {
 	opts := []fibe.Option{
+		fibe.WithDisableAutoConfig(),
 		fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig),
 		fibe.WithRateLimitAutoWait(),
 	}

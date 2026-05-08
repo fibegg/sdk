@@ -42,19 +42,24 @@ func authCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage CLI authentication",
-		Long: `Authenticate the Fibe CLI using a browser-based device flow.
+		Long: `Authenticate the Fibe CLI with named profiles.
 
-Credentials are stored in ~/.config/fibe/credentials.json, keyed by FIBE_DOMAIN.
-This supports multiple environments (for example fibe.gg, staging.example.test, or server.test:3000).
+Credentials are stored in ~/.config/fibe/credentials.json. Non-secret profile
+metadata is stored in ~/.config/fibe/config.json.
 
-Resolution order: --api-key > FIBE_API_KEY > credentials.json
+The default profile targets fibe.gg. FIBE_API_KEY/FIBE_DOMAIN are CI fallbacks
+only when no active profile is configured.
 
-Use --domain to target a specific environment:
-  fibe --domain next.fibe.live auth login
-  fibe --domain server.test:3000 auth status`,
+Examples:
+  fibe login --api-key fibe_live_...
+  fibe auth login --profile staging --domain next.fibe.live --api-key fibe_test_...
+  fibe auth use staging
+  fibe --profile staging doctor`,
 	}
 
 	cmd.AddCommand(authLoginCmd())
+	cmd.AddCommand(authListCmd())
+	cmd.AddCommand(authUseCmd())
 	cmd.AddCommand(authLogoutCmd())
 	cmd.AddCommand(authStatusCmd())
 
@@ -66,16 +71,26 @@ func authLoginCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Authenticate CLI via browser",
-		Long: `Start a device authorization flow to authenticate the CLI.
+		Short: "Authenticate CLI and save a named profile",
+		Long: `Authenticate the CLI and save credentials to a named profile.
 
-1. Opens a browser link on FIBE_DOMAIN for you to approve
-2. Polls the server until you approve or the code expires (15 min)
-3. Stores the resulting API key in ~/.config/fibe/credentials.json`,
+If --api-key is provided, the key is validated with /api/me and stored.
+If --api-key is omitted, a browser device flow is started.
+
+Defaults:
+  --profile default
+  --domain  fibe.gg
+
+Examples:
+  fibe login --api-key fibe_live_...
+  fibe auth login --profile staging --domain next.fibe.live --api-key fibe_test_...`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := resolveDomain()
-			scheme := resolveScheme(domain)
-			baseURL := scheme + "://" + domain
+			profile := loginProfileName()
+			if err := validateProfileName(profile); err != nil {
+				return err
+			}
+			domain := normalizeDomainInput(flagDomain)
+			baseURL := effectiveBaseURL(domain)
 
 			if flagHostname == "" {
 				h, err := os.Hostname()
@@ -86,14 +101,30 @@ func authLoginCmd() *cobra.Command {
 				}
 			}
 
-			// Check if already authenticated for this domain
 			store := fibe.NewCredentialStore(fibe.DefaultCredentialPath())
-			if entry, err := store.Get(domain); err == nil && entry != nil {
-				fmt.Fprintf(os.Stderr, "Warning: overwriting existing credentials for %s\n", domain)
+			if entry, err := store.GetProfile(profile); err == nil && entry != nil {
+				fmt.Fprintf(os.Stderr, "Warning: overwriting existing credentials for profile %s (%s)\n", profile, entry.Domain)
+			}
+
+			if flagAPIKey != "" {
+				me, err := validateAPIKey(domain, flagAPIKey)
+				if err != nil {
+					return fmt.Errorf("API key validation failed for %s: %w", baseURL, err)
+				}
+				if err := saveAuthProfile(profile, domain, flagAPIKey, 0); err != nil {
+					return fmt.Errorf("authenticated but failed to save credentials: %w", err)
+				}
+				fmt.Fprintf(os.Stderr, "Authenticated profile %s with %s\n", profile, baseURL)
+				if me != nil && me.Username != "" {
+					fmt.Fprintf(os.Stderr, "User: %s (ID: %d)\n", me.Username, me.ID)
+				}
+				fmt.Fprintf(os.Stderr, "Credentials saved to %s\n", fibe.DefaultCredentialPath())
+				fmt.Fprintf(os.Stderr, "Active profile: %s\n", profile)
+				return nil
 			}
 
 			// Step 1: Initiate device authorization
-			fmt.Fprintf(os.Stderr, "Initiating authentication with %s...\n", domain)
+			fmt.Fprintf(os.Stderr, "Initiating authentication for profile %s with %s...\n", profile, baseURL)
 
 			initResp, err := initiateDeviceAuth(baseURL, flagHostname)
 			if err != nil {
@@ -155,17 +186,12 @@ func authLoginCmd() *cobra.Command {
 
 					case pollResp.Status == "authorized" && pollResp.APIKey != "":
 						fmt.Fprintln(os.Stderr)
-						// Store credential
-						err := store.Set(&fibe.CredentialEntry{
-							APIKey:   pollResp.APIKey,
-							APIKeyID: pollResp.APIKeyID,
-							Domain:   domain,
-						})
-						if err != nil {
+						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID); err != nil {
 							return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 						}
-						fmt.Fprintf(os.Stderr, "\n✓ Authenticated with %s\n", domain)
+						fmt.Fprintf(os.Stderr, "\nAuthenticated profile %s with %s\n", profile, baseURL)
 						fmt.Fprintf(os.Stderr, "  Credentials saved to %s\n", fibe.DefaultCredentialPath())
+						fmt.Fprintf(os.Stderr, "  Active profile: %s\n", profile)
 						return nil
 
 					case pollResp.Error == "access_denied":
@@ -194,42 +220,102 @@ func authLoginCmd() *cobra.Command {
 	return cmd
 }
 
+func authListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List auth profiles",
+		Long:  "List configured Fibe auth profiles, their domains, and masked credential status.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rows, err := listAuthProfiles()
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(rows)
+				return nil
+			}
+			if len(rows) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No auth profiles configured. Run `fibe login --api-key <key>` to create the default profile.")
+				return nil
+			}
+			tableRows := make([][]string, 0, len(rows))
+			for _, row := range rows {
+				active := ""
+				if row.Active {
+					active = "*"
+				}
+				auth := "missing"
+				if row.HasKey {
+					auth = row.MaskedKey
+				}
+				tableRows = append(tableRows, []string{active, row.Name, effectiveBaseURL(row.Domain), auth})
+			}
+			outputTable([]string{"ACTIVE", "PROFILE", "DOMAIN", "KEY"}, tableRows)
+			return nil
+		},
+	}
+}
+
+func authUseCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "use <profile>",
+		Short: "Switch active auth profile",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			profile := args[0]
+			if err := validateProfileName(profile); err != nil {
+				return err
+			}
+			if !profileExists(profile) {
+				return fmt.Errorf("auth profile %q does not exist; run `fibe auth list`", profile)
+			}
+			if err := newCLIConfigStore(defaultCLIConfigPath()).setActive(profile); err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Active profile: %s\n", profile)
+			return nil
+		},
+	}
+}
+
 func authLogoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
 		Short: "Remove stored CLI credentials",
-		Long: `Remove the stored API key for the current FIBE_DOMAIN.
+		Long: `Remove stored credentials for a profile.
 
-Also attempts to revoke the API key on the server (best-effort).`,
+Uses --profile when provided, otherwise the active profile. Also attempts to
+revoke the API key on the server when the stored API key ID is available.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := resolveDomain()
+			profile := selectedProfileName()
 			store := fibe.NewCredentialStore(fibe.DefaultCredentialPath())
 
-			entry, err := store.Get(domain)
+			entry, err := store.GetProfile(profile)
 			if err != nil || entry == nil {
-				fmt.Fprintf(os.Stderr, "No stored credentials for %s\n", domain)
+				fmt.Fprintf(cmd.OutOrStdout(), "No stored credentials for profile %s\n", profile)
 				return nil
 			}
 
 			// Best-effort: revoke the key on the server
 			if entry.APIKeyID > 0 {
 				client := fibe.NewClient(
+					fibe.WithDisableAutoConfig(),
 					fibe.WithAPIKey(entry.APIKey),
-					fibe.WithDomain(domain),
+					fibe.WithDomain(entry.Domain),
 				)
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
 				if err := client.APIKeys.Delete(ctx, entry.APIKeyID); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: could not revoke key on server: %v\n", err)
 				} else {
-					fmt.Fprintf(os.Stderr, "API key revoked on %s\n", domain)
+					fmt.Fprintf(os.Stderr, "API key revoked on %s\n", effectiveBaseURL(entry.Domain))
 				}
 			}
 
-			if err := store.Delete(domain); err != nil {
+			if err := deleteAuthProfile(profile); err != nil {
 				return fmt.Errorf("failed to remove local credentials: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "✓ Logged out from %s\n", domain)
+			fmt.Fprintf(cmd.OutOrStdout(), "Logged out profile %s\n", profile)
 			return nil
 		},
 	}
@@ -239,84 +325,44 @@ func authStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show current authentication status",
-		Long: `Show which credential source is active and list all stored domains.
+		Long: `Show which auth profile, domain, and credential source are active.
 
-Switch between environments using --domain:
-  fibe --domain fibe.gg auth status
-  fibe --domain next.fibe.live auth status`,
+Switch between environments using profiles:
+  fibe auth use staging
+  fibe --profile staging auth status`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := resolveDomain()
-
-			// Check all sources in priority order
-			if flagAPIKey != "" {
-				fmt.Fprintf(os.Stderr, "Domain:  %s\n", domain)
-				fmt.Fprintf(os.Stderr, "Source:  --api-key flag\n")
-				fmt.Fprintf(os.Stderr, "Key:     %s\n", maskKey(flagAPIKey))
+			resolved := resolveCLIAuth()
+			if effectiveOutput() != "table" {
+				outputJSON(map[string]any{
+					"profile":             resolved.Profile,
+					"domain":              effectiveBaseURL(resolved.Domain),
+					"auth_source":         resolved.AuthSource,
+					"domain_source":       resolved.DomainSource,
+					"authenticated_local": resolved.APIKey != "",
+					"ignored_env":         resolved.IgnoredEnv,
+				})
 				return nil
 			}
-			if envKey := os.Getenv("FIBE_API_KEY"); envKey != "" {
-				fmt.Fprintf(os.Stderr, "Domain:  %s\n", domain)
-				fmt.Fprintf(os.Stderr, "Source:  FIBE_API_KEY env\n")
-				fmt.Fprintf(os.Stderr, "Key:     %s\n", maskKey(envKey))
-				return nil
-			}
-
-			store := fibe.NewCredentialStore(fibe.DefaultCredentialPath())
-			entry, err := store.Get(domain)
-			if err == nil && entry != nil {
-				fmt.Fprintf(os.Stderr, "Domain:  %s\n", domain)
-				fmt.Fprintf(os.Stderr, "Source:  credentials.json (fibe auth login)\n")
-				fmt.Fprintf(os.Stderr, "Key:     %s\n", maskKey(entry.APIKey))
-				if entry.APIKeyID > 0 {
-					fmt.Fprintf(os.Stderr, "Key ID:  %d\n", entry.APIKeyID)
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "Profile: %s\n", resolved.Profile)
+			fmt.Fprintf(out, "Domain:  %s (%s)\n", effectiveBaseURL(resolved.Domain), resolved.DomainSource)
+			fmt.Fprintf(out, "Source:  %s\n", resolved.AuthSource)
+			if resolved.APIKey != "" {
+				fmt.Fprintf(out, "Key:     %s\n", maskKey(resolved.APIKey))
+				if resolved.APIKeyID > 0 {
+					fmt.Fprintf(out, "Key ID:  %d\n", resolved.APIKeyID)
 				}
 			} else {
-				fmt.Fprintf(os.Stderr, "Domain:  %s\n", domain)
-				fmt.Fprintln(os.Stderr, "Status:  not authenticated")
-				fmt.Fprintln(os.Stderr, "Run `fibe auth login` to authenticate.")
+				fmt.Fprintln(out, "Status:  not authenticated")
+				fmt.Fprintln(out, "Run `fibe login --api-key <key>` or `fibe auth login`.")
 			}
-
-			// Always show all stored domains
-			all, _ := store.List()
-			if len(all) > 0 {
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, "All stored domains:")
-				for d := range all {
-					marker := "  "
-					if d == domain {
-						marker = "→ "
-					}
-					fmt.Fprintf(os.Stderr, "  %s%s\n", marker, d)
-				}
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, "Switch with: fibe --domain <domain> ...")
+			if len(resolved.IgnoredEnv) > 0 {
+				fmt.Fprintf(out, "Ignored env: %s\n", strings.Join(resolved.IgnoredEnv, ", "))
 			}
 
 			return nil
 		},
 	}
-}
-
-// --- helpers ---
-
-func resolveDomain() string {
-	if flagDomain != "" {
-		return flagDomain
-	}
-	if d := os.Getenv("FIBE_DOMAIN"); d != "" {
-		return d
-	}
-	return "fibe.gg"
-}
-
-func resolveScheme(domain string) string {
-	if strings.HasSuffix(domain, ".test") ||
-		strings.Contains(domain, ".test:") ||
-		strings.Contains(domain, "localhost") ||
-		strings.Contains(domain, "127.0.0.1") {
-		return "http"
-	}
-	return "https"
 }
 
 func maskKey(key string) string {
@@ -340,6 +386,18 @@ func openBrowser(url string) error {
 
 func deviceFlowHTTPClient() *http.Client {
 	return &http.Client{Timeout: 15 * time.Second}
+}
+
+func validateAPIKey(domain, apiKey string) (*fibe.Player, error) {
+	client := fibe.NewClient(
+		fibe.WithDisableAutoConfig(),
+		fibe.WithDomain(domain),
+		fibe.WithAPIKey(apiKey),
+		fibe.WithMaxRetries(0),
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return client.APIKeys.Me(ctx)
 }
 
 func initiateDeviceAuth(baseURL, hostname string) (*deviceAuthResponse, error) {

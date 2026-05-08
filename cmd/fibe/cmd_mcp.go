@@ -31,8 +31,8 @@ SUBCOMMANDS:
   config    Print the client-specific config snippet needed to register the server manually
 
 ENV VARS:
-  FIBE_API_KEY              Default API key when per-session auth not set
-  FIBE_DOMAIN               API domain override
+  FIBE_API_KEY              CI fallback API key when no profile is configured
+  FIBE_DOMAIN               CI fallback API domain when no profile is configured
   FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
   FIBE_MCP_TOOLS            Tool surface: full, core, or comma tiers (e.g. other,meta)
   FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
@@ -104,8 +104,10 @@ EXAMPLES:
   fibe mcp serve --http :8080 --require-auth`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := mcpserver.DefaultConfig()
-			cfg.APIKey = resolveAPIKey()
-			cfg.Domain = flagDomain
+			auth := resolveCLIAuth()
+			cfg.APIKey = auth.APIKey
+			cfg.Domain = auth.Domain
+			cfg.Profile = auth.Profile
 			cfg.Debug = flagDebug
 
 			cfg.ToolSet = resolveEnv("FIBE_MCP_TOOLS", toolSet, cfg.ToolSet)
@@ -204,12 +206,11 @@ endpoint. Stdio remains the default because the SDK does not supervise a
 long-lived local HTTP daemon yet.
 
 ENV VARS:
-  By default, FIBE_API_KEY is written as "${FIBE_API_KEY}" so placeholder-
-  expanding clients resolve it at runtime. Antigravity does NOT expand
-  placeholders, so the installer auto-resolves FIBE_API_KEY from your shell
-  at install time for that client. Codex uses env_vars forwarding in
-  ~/.codex/config.toml instead of ${VAR} placeholders. Override with
-  --api-key to inline any value explicitly.
+  Stdio installs pin a local auth profile by passing --profile to
+  "fibe mcp serve". API keys are not written into client config by default.
+  Use --api-key/--domain only when you intentionally want explicit serve
+  overrides in the spawned MCP process. URL-backed installs still use bearer
+  auth headers.
 
 TOOL TIERS:
   --tools full             Expose the complete registered tool surface up front (default).
@@ -221,6 +222,7 @@ EXAMPLES:
   fibe mcp install --client claude-code --user
   fibe mcp install --client antigravity --api-key pk_live_... --domain http://dev.local:3000
   fibe mcp install --client claude-desktop --tools full --yolo
+  fibe mcp install --client codex --profile staging
   fibe mcp install --client cursor --env FOO=bar --env BAZ=qux
   fibe mcp install --client codex --project .
   fibe mcp install --client cursor --transport streamable-http --url https://fibe.example.com/mcp
@@ -239,8 +241,9 @@ EXAMPLES:
 	cmd.Flags().StringVar(&project, "project", "", "Install into a project-scoped config (pass the project directory). Default for claude-code: current directory.")
 	cmd.Flags().BoolVar(&userScope, "user", false, "Install into the user-scoped config when the client supports both user and project configs")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print the resolved target path and proposed config without writing")
-	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
-	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
+	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Pass a literal API key to mcp serve as an explicit override")
+	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Pass a literal domain to mcp serve as an explicit override")
+	cmd.Flags().StringVar(&opts.Profile, "profile", "", "Profile to pin in stdio MCP config (default: active profile)")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
@@ -355,8 +358,9 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVar(&client, "client", "claude-code", "Target client: "+mcpClientFlagHelp)
-	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Inline a literal FIBE_API_KEY value (skip ${VAR} placeholder)")
-	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Inline a literal FIBE_DOMAIN value")
+	cmd.Flags().StringVar(&opts.APIKey, "api-key", "", "Pass a literal API key to mcp serve as an explicit override")
+	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Pass a literal domain to mcp serve as an explicit override")
+	cmd.Flags().StringVar(&opts.Profile, "profile", "", "Profile to pin in stdio MCP config (default: active profile)")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
@@ -364,16 +368,6 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
 	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
-}
-
-// resolveAPIKey resolves the effective API key for the MCP server base
-// client: first --api-key, then FIBE_API_KEY. Per-session overrides are
-// resolved later, inside the dispatcher.
-func resolveAPIKey() string {
-	if flagAPIKey != "" {
-		return flagAPIKey
-	}
-	return os.Getenv("FIBE_API_KEY")
 }
 
 func resolveEnv(envKey, flagVal, def string) string {

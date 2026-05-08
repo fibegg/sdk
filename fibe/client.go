@@ -64,20 +64,20 @@ func NewClient(opts ...Option) *Client {
 		o(cfg)
 	}
 
-	if cfg.apiKey == "" {
+	if !cfg.disableAutoConfig && cfg.apiKey == "" {
 		if key := os.Getenv("FIBE_API_KEY"); key != "" {
 			cfg.apiKey = key
 		}
 	}
 
-	if cfg.domain == defaultDomain {
+	if !cfg.disableAutoConfig && cfg.domain == defaultDomain {
 		if domain := os.Getenv("FIBE_DOMAIN"); domain != "" {
 			cfg.domain = domain
 		}
 	}
 
 	// Lowest priority: credential store from `fibe auth login`
-	if cfg.apiKey == "" {
+	if !cfg.disableAutoConfig && cfg.apiKey == "" {
 		store := NewCredentialStore(DefaultCredentialPath())
 		if entry, err := store.Get(cfg.domain); err == nil && entry != nil {
 			cfg.apiKey = entry.APIKey

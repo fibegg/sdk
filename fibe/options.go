@@ -8,29 +8,30 @@ import (
 )
 
 const (
-	defaultDomain    = "fibe.gg"
-	defaultTimeout   = 30 * time.Second
+	defaultDomain     = "fibe.gg"
+	defaultTimeout    = 30 * time.Second
 	defaultMaxRetries = 3
-	defaultUserAgent = "fibe-go/0.1.0"
+	defaultUserAgent  = "fibe-go/0.1.0"
 )
 
 type Option func(*clientConfig)
 
 type clientConfig struct {
-	domain         string
-	apiKey         string
-	httpClient     *http.Client
-	timeout        time.Duration
-	userAgent      string
-	maxRetries     int
-	retryBaseDelay time.Duration
-	retryMaxDelay  time.Duration
-	breaker        *CircuitBreakerConfig
-	logger         *slog.Logger
-	debug          bool
-	rateLimitWait  bool
-	requestHook    func(req *http.Request) error
-	responseHook   func(res *http.Response) error
+	domain            string
+	apiKey            string
+	httpClient        *http.Client
+	timeout           time.Duration
+	userAgent         string
+	maxRetries        int
+	retryBaseDelay    time.Duration
+	retryMaxDelay     time.Duration
+	breaker           *CircuitBreakerConfig
+	logger            *slog.Logger
+	debug             bool
+	rateLimitWait     bool
+	requestHook       func(req *http.Request) error
+	responseHook      func(res *http.Response) error
+	disableAutoConfig bool
 }
 
 func defaultConfig() *clientConfig {
@@ -129,4 +130,12 @@ func WithRequestHook(hook func(req *http.Request) error) Option {
 // before the body is read or parsed.
 func WithResponseHook(hook func(res *http.Response) error) Option {
 	return func(c *clientConfig) { c.responseHook = hook }
+}
+
+// WithDisableAutoConfig prevents NewClient from reading FIBE_API_KEY,
+// FIBE_DOMAIN, or the CLI credential store. CLI commands use this after
+// resolving profiles explicitly; SDK callers keep the existing behavior by
+// default.
+func WithDisableAutoConfig() Option {
+	return func(c *clientConfig) { c.disableAutoConfig = true }
 }

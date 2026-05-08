@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
 
@@ -11,56 +11,46 @@ func configCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage CLI configuration",
-		Long: `Manage Fibe CLI local configuration.
+		Long: `Show Fibe CLI local configuration.
 
-The CLI reads configuration from environment variables.
-Use this command to view the active configuration.
+Auth profiles are stored in ~/.config/fibe/config.json and credentials are
+stored separately in ~/.config/fibe/credentials.json.
 
-Available settings:
-  FIBE_API_KEY  - Authentication token
-  FIBE_DOMAIN   - API domain (default: fibe.gg)
-  FIBE_OUTPUT   - Output format (table, json, yaml)`,
+FIBE_API_KEY/FIBE_DOMAIN are used only as fallbacks when no profile is
+configured.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			apiKey := os.Getenv("FIBE_API_KEY")
-			domain := os.Getenv("FIBE_DOMAIN")
-			if domain == "" {
-				domain = "fibe.gg"
-			}
-			outFormat := os.Getenv("FIBE_OUTPUT")
-			if outFormat == "" {
-				outFormat = "table"
-			}
-			maskedAPIKey := ""
-			if apiKey != "" {
-				mask := len(apiKey) - 4
-				if mask < 0 {
-					mask = 0
-				}
-				prefixLen := 8
-				if len(apiKey) < prefixLen {
-					prefixLen = len(apiKey)
-				}
-				maskedAPIKey = apiKey[:prefixLen] + "***" + apiKey[mask:]
-			}
+			resolved := resolveCLIAuth()
 
 			if effectiveOutput() != "table" {
-				outputJSON(map[string]string{
-					"api_key_masked": maskedAPIKey,
-					"domain":         domain,
-					"output":         outFormat,
+				outputJSON(map[string]any{
+					"profile":            resolved.Profile,
+					"domain":             effectiveBaseURL(resolved.Domain),
+					"auth_source":        resolved.AuthSource,
+					"domain_source":      resolved.DomainSource,
+					"config_path":        defaultCLIConfigPath(),
+					"credentials_path":   fibeCredentialPath(),
+					"output":             effectiveOutput(),
+					"ignored_env":        resolved.IgnoredEnv,
+					"profile_configured": resolved.ProfileConfigured,
 				})
 				return
 			}
 
 			fmt.Println("=== Active Configuration ===")
-			if apiKey == "" {
-				fmt.Println("FIBE_API_KEY: not set")
-			} else {
-				fmt.Printf("FIBE_API_KEY: %s\n", maskedAPIKey)
+			fmt.Printf("Profile:          %s\n", resolved.Profile)
+			fmt.Printf("Domain:           %s (%s)\n", effectiveBaseURL(resolved.Domain), resolved.DomainSource)
+			fmt.Printf("Auth source:      %s\n", resolved.AuthSource)
+			fmt.Printf("Config path:      %s\n", defaultCLIConfigPath())
+			fmt.Printf("Credentials path: %s\n", fibeCredentialPath())
+			fmt.Printf("Output:           %s\n", effectiveOutput())
+			if len(resolved.IgnoredEnv) > 0 {
+				fmt.Printf("Ignored env:      %v\n", resolved.IgnoredEnv)
 			}
-			fmt.Printf("FIBE_DOMAIN:  %s\n", domain)
-			fmt.Printf("FIBE_OUTPUT:  %s\n", outFormat)
 		},
 	}
 	return cmd
+}
+
+func fibeCredentialPath() string {
+	return fibe.DefaultCredentialPath()
 }

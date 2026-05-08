@@ -16,6 +16,7 @@ type sessionState struct {
 	mu        sync.RWMutex
 	apiKey    string
 	domain    string
+	profile   string
 	client    *fibe.Client // lazily built, reused across calls
 	sessionID string
 }
@@ -54,8 +55,9 @@ func (r *sessionRegistry) drop(id string) {
 }
 
 // resolveClient returns the effective *fibe.Client for this call, honoring:
-//  1. session override set via fibe_auth_set (or HTTP bearer header)
-//  2. server-level default APIKey (FIBE_API_KEY / --api-key)
+//  1. session override set via fibe_auth_use/fibe_auth_set
+//  2. HTTP bearer/domain headers
+//  3. server-level default profile/API key
 //
 // If RequireAuth is set and neither source produced a key, returns an error.
 // A per-session client is cached so circuit-breaker + rate-limit state stays
@@ -117,6 +119,7 @@ func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 	}
 
 	opts := []fibe.Option{
+		fibe.WithDisableAutoConfig(),
 		fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig),
 		fibe.WithRateLimitAutoWait(),
 	}
@@ -150,6 +153,17 @@ func (s *Server) sessionFor(ctx context.Context) *sessionState {
 func (s *Server) setSessionAuth(ctx context.Context, apiKey, domain string) {
 	st := s.sessionFor(ctx)
 	st.mu.Lock()
+	st.apiKey = apiKey
+	st.domain = domain
+	st.profile = ""
+	st.client = nil
+	st.mu.Unlock()
+}
+
+func (s *Server) setSessionProfile(ctx context.Context, profile, apiKey, domain string) {
+	st := s.sessionFor(ctx)
+	st.mu.Lock()
+	st.profile = profile
 	st.apiKey = apiKey
 	st.domain = domain
 	st.client = nil

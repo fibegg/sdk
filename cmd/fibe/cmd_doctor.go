@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
 
@@ -24,10 +22,14 @@ Output includes:
   - SDK version and domain`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
+			resolved := resolveCLIAuth()
 
 			result := map[string]any{
-				"domain":  c.BaseURL(),
-				"version": version,
+				"profile":       resolved.Profile,
+				"domain":        c.BaseURL(),
+				"version":       version,
+				"auth_source":   resolved.AuthSource,
+				"domain_source": resolved.DomainSource,
 			}
 
 			start := time.Now()
@@ -59,27 +61,30 @@ Output includes:
 			fmt.Println("=== Fibe Doctor ===")
 			fmt.Println()
 
-			// Check API key presence
 			apiKey, apiKeySource := doctorAPIKeyStatus()
+			fmt.Printf("Profile: %s\n", resolved.Profile)
 			if apiKey == "" {
-				fmt.Println("❌ API key: not set")
-				fmt.Println("   Set it with: export FIBE_API_KEY=pk_live_... or pass --api-key")
+				fmt.Println("API key: not set")
+				fmt.Println("   Run: fibe login --api-key <key>")
 			} else {
-				fmt.Printf("✅ API key: %s (%s)\n", maskKey(apiKey), apiKeySource)
+				fmt.Printf("API key: %s (%s)\n", maskKey(apiKey), apiKeySource)
 			}
 
-			fmt.Printf("✅ Domain: %s\n", c.BaseURL())
-			fmt.Printf("✅ Version: %s\n", version)
+			fmt.Printf("Domain: %s (%s)\n", c.BaseURL(), resolved.DomainSource)
+			fmt.Printf("Version: %s\n", version)
+			if len(resolved.IgnoredEnv) > 0 {
+				fmt.Printf("Ignored env: %v\n", resolved.IgnoredEnv)
+			}
 			fmt.Println()
 
 			if err != nil {
-				fmt.Printf("❌ Connectivity: %v\n", err)
+				fmt.Printf("Connectivity: %v\n", err)
 			} else {
-				fmt.Printf("✅ Connectivity: %dms\n", elapsed.Milliseconds())
+				fmt.Printf("Connectivity: %dms\n", elapsed.Milliseconds())
 				if me != nil {
-					fmt.Printf("✅ Authenticated as: %s (ID: %d)\n", me.Username, me.ID)
+					fmt.Printf("Authenticated as: %s (ID: %d)\n", me.Username, me.ID)
 				}
-				fmt.Printf("✅ Last Request ID: %s\n", c.LastRequestID())
+				fmt.Printf("Last Request ID: %s\n", c.LastRequestID())
 			}
 
 			return nil
@@ -88,17 +93,9 @@ Output includes:
 }
 
 func doctorAPIKeyStatus() (string, string) {
-	if flagAPIKey != "" {
-		return flagAPIKey, "--api-key flag"
+	resolved := resolveCLIAuth()
+	if resolved.APIKey != "" {
+		return resolved.APIKey, resolved.AuthSource
 	}
-	if apiKey := os.Getenv("FIBE_API_KEY"); apiKey != "" {
-		return apiKey, "FIBE_API_KEY env"
-	}
-
-	store := fibe.NewCredentialStore(fibe.DefaultCredentialPath())
-	if entry, err := store.Get(resolveDomain()); err == nil && entry != nil && entry.APIKey != "" {
-		return entry.APIKey, "credentials.json"
-	}
-
 	return "", ""
 }
