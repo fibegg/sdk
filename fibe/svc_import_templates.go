@@ -114,14 +114,15 @@ func (s *ImportTemplateService) ClearSource(ctx context.Context, id int64) (*Imp
 
 func (s *ImportTemplateService) RefreshSource(ctx context.Context, id int64) (*ImportTemplateSourceRefreshResult, error) {
 	var result ImportTemplateSourceRefreshResult
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/import_templates/%d/source/refresh", id), nil, &result)
+	path := fmt.Sprintf("/api/import_templates/%d/source/refresh", id)
+	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", nil, &result)
 	return &result, err
 }
 
 func (s *ImportTemplateService) UpgradeLinkedPlayspecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
 	var result ImportTemplateUpgradeLinkedResult
 	path := fmt.Sprintf("/api/import_templates/%d/versions/%d/upgrade_linked_playspecs", templateID, versionID)
-	err := s.client.do(ctx, http.MethodPost, path, nil, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", nil, &result)
 	return &result, err
 }
 

@@ -353,7 +353,7 @@ func normalizeDomainInput(domain string) string {
 	domain = strings.TrimRight(domain, "/")
 	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
 		if u, err := url.Parse(domain); err == nil && u.Host != "" {
-			return u.Host
+			return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String()
 		}
 	}
 	return domain

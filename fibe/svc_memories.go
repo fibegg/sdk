@@ -27,7 +27,7 @@ func (s *MemoryService) Get(ctx context.Context, id int64) (*Memory, error) {
 
 func (s *MemoryService) Memorize(ctx context.Context, payload map[string]any) (*MemoryMemorizeResult, error) {
 	var result MemoryMemorizeResult
-	err := s.client.do(ctx, http.MethodPost, "/api/memories/memorize", payload, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, "/api/memories/memorize", "/api/memories/memorize/%s", payload, &result)
 	return &result, err
 }
 

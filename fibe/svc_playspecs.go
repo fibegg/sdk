@@ -101,7 +101,7 @@ func (s *PlayspecService) SwitchTemplateVersion(ctx context.Context, id int64, p
 func (s *PlayspecService) SwitchTemplateVersionByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error) {
 	var result PlayspecTemplateVersionSwitchResult
 	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch"
-	err := s.client.do(ctx, http.MethodPost, path, params, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", params, &result)
 	return &result, err
 }
 

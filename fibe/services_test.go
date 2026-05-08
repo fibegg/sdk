@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -15,6 +16,40 @@ func listEnv[T any](items []T) listEnvelope[T] {
 		Data: items,
 		Meta: ListMeta{Page: 1, PerPage: 25, Total: int64(len(items))},
 	}
+}
+
+func testAsyncAcceptedEndpoint(t *testing.T, postPath, statusPath string, finalPayload map[string]any) (*Client, *atomic.Int32) {
+	t.Helper()
+	var calls atomic.Int32
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch calls.Add(1) {
+		case 1:
+			if r.Method != http.MethodPost || r.URL.Path != postPath {
+				t.Errorf("unexpected initial request %s %s", r.Method, r.URL.Path)
+			}
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(map[string]any{
+				"request_id": "req-async",
+				"status":     "queued",
+			})
+		case 2:
+			if r.Method != http.MethodGet || r.URL.Path != statusPath {
+				t.Errorf("unexpected status request %s %s", r.Method, r.URL.Path)
+			}
+			payload := map[string]any{
+				"request_id": "req-async",
+				"status":     "success",
+			}
+			for key, value := range finalPayload {
+				payload[key] = value
+			}
+			json.NewEncoder(w).Encode(payload)
+		default:
+			t.Errorf("unexpected extra request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+	return c, &calls
 }
 
 func TestPlaygrounds_List(t *testing.T) {
@@ -316,6 +351,106 @@ func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 	}
 	if decoded["CF_DNS_API_TOKEN"] != "secret-token" {
 		t.Fatalf("unexpected dns_credentials payload: %#v", decoded)
+	}
+}
+
+func TestMarquees_GenerateSSHKeyPollsAccepted(t *testing.T) {
+	c, calls := testAsyncAcceptedEndpoint(
+		t,
+		"/api/marquees/5/generate_ssh_key",
+		"/api/marquees/5/generate_ssh_key/req-async",
+		map[string]any{"public_key": "ssh-ed25519 AAAA test"},
+	)
+
+	result, err := c.Marquees.GenerateSSHKey(context.Background(), 5)
+	if err != nil {
+		t.Fatalf("generate ssh key: %v", err)
+	}
+	if result.PublicKey != "ssh-ed25519 AAAA test" {
+		t.Fatalf("unexpected ssh key result: %#v", result)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", calls.Load())
+	}
+}
+
+func TestImportTemplates_RefreshSourcePollsAccepted(t *testing.T) {
+	c, calls := testAsyncAcceptedEndpoint(
+		t,
+		"/api/import_templates/12/source/refresh",
+		"/api/import_templates/12/source/refresh/req-async",
+		map[string]any{"success": true, "version_created": true},
+	)
+
+	result, err := c.ImportTemplates.RefreshSource(context.Background(), 12)
+	if err != nil {
+		t.Fatalf("refresh source: %v", err)
+	}
+	if !result.Success || !result.VersionCreated {
+		t.Fatalf("unexpected refresh result: %#v", result)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", calls.Load())
+	}
+}
+
+func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
+	c, calls := testAsyncAcceptedEndpoint(
+		t,
+		"/api/import_templates/12/versions/34/upgrade_linked_playspecs",
+		"/api/import_templates/12/versions/34/upgrade_linked_playspecs/req-async",
+		map[string]any{"success": true, "upgraded_count": 2, "failed_count": 0},
+	)
+
+	result, err := c.ImportTemplates.UpgradeLinkedPlayspecs(context.Background(), 12, 34)
+	if err != nil {
+		t.Fatalf("upgrade linked playspecs: %v", err)
+	}
+	if !result.Success || result.UpgradedCount != 2 || result.FailedCount != 0 {
+		t.Fatalf("unexpected upgrade result: %#v", result)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", calls.Load())
+	}
+}
+
+func TestPlayspecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
+	c, calls := testAsyncAcceptedEndpoint(
+		t,
+		"/api/playspecs/9/template_version_switch",
+		"/api/playspecs/9/template_version_switch/req-async",
+		map[string]any{"no_op": true, "suggested_upgrade": true},
+	)
+
+	result, err := c.Playspecs.SwitchTemplateVersion(context.Background(), 9, &PlayspecTemplateVersionSwitchParams{TargetTemplateVersionID: 2})
+	if err != nil {
+		t.Fatalf("switch template version: %v", err)
+	}
+	if !result.NoOp || !result.SuggestedUpgrade {
+		t.Fatalf("unexpected switch result: %#v", result)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", calls.Load())
+	}
+}
+
+func TestMemories_MemorizePollsAccepted(t *testing.T) {
+	c, calls := testAsyncAcceptedEndpoint(
+		t,
+		"/api/memories/memorize",
+		"/api/memories/memorize/req-async",
+		map[string]any{"counts": map[string]any{"created": 1}},
+	)
+
+	result, err := c.Memories.Memorize(context.Background(), map[string]any{"conversation_id": "thread-1"})
+	if err != nil {
+		t.Fatalf("memorize: %v", err)
+	}
+	if result.Status != "success" || result.Counts["created"] != 1 {
+		t.Fatalf("unexpected memorize result: %#v", result)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", calls.Load())
 	}
 }
 
@@ -824,14 +959,20 @@ func TestAgents_PurgeChat(t *testing.T) {
 		if r.Method != "POST" || r.URL.Path != "/api/agents/5/purge_chat" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "stopped"})
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id":             123,
+			"status":         "stopping",
+			"operation":      "purge_chat",
+			"request_status": "queued",
+		})
 	})
 
 	session, err := c.Agents.PurgeChat(context.Background(), 5)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if session.ID != 123 || session.Status != "stopped" {
+	if session.ID != 123 || session.Status != "stopping" || session.Operation != "purge_chat" || session.RequestStatus != "queued" {
 		t.Errorf("unexpected session: %#v", session)
 	}
 }

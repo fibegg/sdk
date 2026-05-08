@@ -141,6 +141,34 @@ func TestAuthUseSwitchesMCPProfileWithoutExposingKey(t *testing.T) {
 	}
 }
 
+func TestAuthSetPreservesExplicitHTTPDomain(t *testing.T) {
+	srv := New(Config{APIKey: "server-key", Domain: "fibe.gg", Profile: "default", ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_auth_set", map[string]any{
+		"api_key":  "fibe_test_local",
+		"domain":   "http://app-playwright-web:3001",
+		"validate": false,
+	})
+	if err != nil {
+		t.Fatalf("fibe_auth_set: %v", err)
+	}
+	if got := result.(map[string]any)["domain_set"]; got != true {
+		t.Fatalf("domain_set = %#v, want true", got)
+	}
+
+	status, err := srv.dispatcher.dispatch(context.Background(), "fibe_auth_status", nil)
+	if err != nil {
+		t.Fatalf("fibe_auth_status: %v", err)
+	}
+	statusMap := status.(map[string]any)
+	if statusMap["session_domain"] != "http://app-playwright-web:3001" || statusMap["base_url"] != "http://app-playwright-web:3001" {
+		t.Fatalf("unexpected auth status: %#v", statusMap)
+	}
+}
+
 func TestFullModeAdvertisesCoreAgentTools(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4})
 	if err := srv.RegisterAll(); err != nil {

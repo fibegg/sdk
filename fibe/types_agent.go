@@ -202,6 +202,8 @@ type AgentChatSession struct {
 	ChatURL        *string `json:"chat_url"`
 	Subdomain      string  `json:"subdomain"`
 	ComposeProject string  `json:"compose_project"`
+	Operation      string  `json:"operation,omitempty"`
+	RequestStatus  string  `json:"request_status,omitempty"`
 }
 
 type AgentRuntimeStatus struct {

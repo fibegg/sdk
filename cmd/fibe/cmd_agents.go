@@ -906,8 +906,8 @@ EXAMPLES:
 func agPurgeChatCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "purge-chat <id-or-name>",
-		Short: "Tear down an agent chat container and volumes",
-		Long: `Synchronously purge the latest agent chat runtime container and persistent volumes.
+		Short: "Queue teardown of an agent chat container and volumes",
+		Long: `Queue teardown of the latest agent chat runtime container and persistent volumes.
 
 WARNING: This removes runtime volumes for the agent chat.
 
@@ -924,7 +924,11 @@ EXAMPLES:
 				outputJSON(session)
 				return nil
 			}
-			fmt.Printf("Purged chat %d for agent %s (status: %s)\n", session.ID, args[0], session.Status)
+			status := session.RequestStatus
+			if status == "" {
+				status = session.Status
+			}
+			fmt.Printf("Purge queued for chat %d for agent %s (status: %s)\n", session.ID, args[0], status)
 			return nil
 		},
 	}

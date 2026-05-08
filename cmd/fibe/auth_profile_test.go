@@ -42,6 +42,20 @@ func TestResolveCLIAuthUsesEnvOnlyWhenNoProfileConfigured(t *testing.T) {
 	}
 }
 
+func TestResolveCLIAuthPreservesExplicitHTTPEnvDomain(t *testing.T) {
+	setupAuthTest(t)
+	t.Setenv("FIBE_API_KEY", "fibe_test_env")
+	t.Setenv("FIBE_DOMAIN", "http://app-playwright-web:3001")
+
+	got := resolveCLIAuth()
+	if got.Domain != "http://app-playwright-web:3001" {
+		t.Fatalf("domain = %q, want explicit HTTP domain", got.Domain)
+	}
+	if base := effectiveBaseURL(got.Domain); base != "http://app-playwright-web:3001" {
+		t.Fatalf("base URL = %q, want http://app-playwright-web:3001", base)
+	}
+}
+
 func TestResolveCLIAuthProfileBeatsEnv(t *testing.T) {
 	setupAuthTest(t)
 	if err := saveAuthProfile("staging", "next.fibe.live", "fibe_test_profile", 42); err != nil {

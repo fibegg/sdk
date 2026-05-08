@@ -66,7 +66,8 @@ func (s *MarqueeService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyR
 
 func (s *MarqueeService) GenerateSSHKeyByIdentifier(ctx context.Context, identifier string) (*SSHKeyResult, error) {
 	var result SSHKeyResult
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/marquees", identifier)+"/generate_ssh_key", nil, &result)
+	path := identifierPath("/api/marquees", identifier)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/generate_ssh_key", path+"/generate_ssh_key/%s", nil, &result)
 	return &result, err
 }
 
