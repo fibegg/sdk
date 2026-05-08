@@ -57,6 +57,10 @@ SUBCOMMANDS:
 		agStartChatCmd(),
 		agRestartChatCmd(),
 		agRuntimeStatusCmd(),
+		agLiveStateCmd(),
+		agCreateConversationCmd(),
+		agDeleteConversationCmd(),
+		agInterruptCmd(),
 		agPurgeChatCmd(),
 		agSendMessageCmd(),
 		agAuthCmd(),
@@ -647,6 +651,131 @@ EXAMPLES:
 	}
 }
 
+func agLiveStateCmd() *cobra.Command {
+	var conversationID string
+	cmd := &cobra.Command{
+		Use:   "live-state <id-or-name>",
+		Short: "Show agent runtime live state",
+		Long: `Show the current runtime live state for an agent conversation.
+
+This includes transient processing state and streamed text when the runtime
+exposes it.
+
+OPTIONAL FLAGS:
+  --conversation-id   Specific runtime conversation/thread ID
+
+EXAMPLES:
+  fibe agents live-state 5 --conversation-id conv-123
+  fibe ag live-state my-agent -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			state, err := newClient().Agents.LiveStateByIdentifier(ctx(), args[0], &fibe.AgentDataParams{ConversationID: conversationID})
+			if err != nil {
+				return err
+			}
+			outputJSON(state)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	return cmd
+}
+
+func agCreateConversationCmd() *cobra.Command {
+	var conversationID, title string
+	cmd := &cobra.Command{
+		Use:   "create-conversation <id-or-name>",
+		Short: "Create or upsert an agent conversation",
+		Long: `Create or upsert a deterministic runtime conversation for an agent.
+
+REQUIRED FLAGS:
+  --conversation-id   Runtime conversation/thread ID
+
+OPTIONAL FLAGS:
+  --title             Human-readable title
+
+EXAMPLES:
+  fibe agents create-conversation 5 --conversation-id conv-123 --title "Landing page"`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(conversationID) == "" {
+				return fmt.Errorf("required field 'conversation-id' not set")
+			}
+			result, err := newClient().Agents.CreateConversationByIdentifier(ctx(), args[0], &fibe.AgentConversationParams{
+				ConversationID: conversationID,
+				Title:          title,
+			})
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Runtime conversation/thread ID (required)")
+	cmd.Flags().StringVar(&title, "title", "", "Human-readable title")
+	return cmd
+}
+
+func agDeleteConversationCmd() *cobra.Command {
+	var conversationID string
+	cmd := &cobra.Command{
+		Use:   "delete-conversation <id-or-name>",
+		Short: "Delete an agent conversation",
+		Long: `Delete a runtime conversation for an agent.
+
+REQUIRED FLAGS:
+  --conversation-id   Runtime conversation/thread ID
+
+EXAMPLES:
+  fibe agents delete-conversation 5 --conversation-id conv-123`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(conversationID) == "" {
+				return fmt.Errorf("required field 'conversation-id' not set")
+			}
+			if err := newClient().Agents.DeleteConversationByIdentifier(ctx(), args[0], conversationID); err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(map[string]any{"deleted": true, "conversation_id": conversationID})
+				return nil
+			}
+			fmt.Printf("Conversation %s deleted for agent %s\n", conversationID, args[0])
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Runtime conversation/thread ID (required)")
+	return cmd
+}
+
+func agInterruptCmd() *cobra.Command {
+	var conversationID string
+	cmd := &cobra.Command{
+		Use:   "interrupt <id-or-name>",
+		Short: "Interrupt a running agent turn",
+		Long: `Interrupt the current running turn for an agent.
+
+OPTIONAL FLAGS:
+  --conversation-id   Specific runtime conversation/thread ID
+
+EXAMPLES:
+  fibe agents interrupt 5 --conversation-id conv-123
+  fibe ag interrupt my-agent`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			result, err := newClient().Agents.InterruptByIdentifier(ctx(), args[0], &fibe.AgentConversationParams{ConversationID: conversationID})
+			if err != nil {
+				return err
+			}
+			outputJSON(result)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	return cmd
+}
+
 func agRestartChatCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart-chat <id-or-name>",
@@ -825,19 +954,24 @@ EXAMPLES:
 }
 
 func agMessagesCmd() *cobra.Command {
-	return &cobra.Command{
+	var conversationID string
+	cmd := &cobra.Command{
 		Use:   "messages <id-or-name>",
 		Short: "Get agent messages",
 		Long: `Retrieve the stored messages for an agent.
 
 Messages are agent conversation history stored as JSON.
 
+OPTIONAL FLAGS:
+  --conversation-id   Specific runtime conversation/thread ID
+
 EXAMPLES:
-  fibe agents messages my-agent`,
+  fibe agents messages my-agent
+  fibe agents messages my-agent --conversation-id conv-123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			data, err := c.Agents.GetMessagesByIdentifier(ctx(), args[0])
+			data, err := c.Agents.GetMessagesByIdentifierWithParams(ctx(), args[0], &fibe.AgentDataParams{ConversationID: conversationID})
 			if err != nil {
 				return err
 			}
@@ -845,10 +979,13 @@ EXAMPLES:
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	return cmd
 }
 
 func agActivityCmd() *cobra.Command {
-	return &cobra.Command{
+	var conversationID string
+	cmd := &cobra.Command{
 		Use:   "activity <id-or-name>",
 		Short: "Get agent activity log",
 		Long: `Retrieve the activity log for an agent.
@@ -856,12 +993,16 @@ func agActivityCmd() *cobra.Command {
 Activity logs track what the agent has done, including actions taken
 and their outcomes.
 
+OPTIONAL FLAGS:
+  --conversation-id   Specific runtime conversation/thread ID
+
 EXAMPLES:
-  fibe agents activity my-agent`,
+  fibe agents activity my-agent
+  fibe agents activity my-agent --conversation-id conv-123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			data, err := c.Agents.GetActivityByIdentifier(ctx(), args[0])
+			data, err := c.Agents.GetActivityByIdentifierWithParams(ctx(), args[0], &fibe.AgentDataParams{ConversationID: conversationID})
 			if err != nil {
 				return err
 			}
@@ -869,6 +1010,8 @@ EXAMPLES:
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	return cmd
 }
 
 func agGiteaTokenCmd() *cobra.Command {

@@ -15,7 +15,7 @@ const (
 	agentChatHealthProbeAttempts = 10
 	agentChatHealthProbeDelay    = 2 * time.Second
 	agentChatHealthProbeTimeout  = 3 * time.Second
-	// Must exceed the Rails AgentChatService reachability window
+	// Must exceed the server-side agent chat reachability window
 	// (45 attempts * 2s delay) so the SDK doesn't give up first.
 	agentChatProbeAttempts = 50
 	agentChatProbeDelay    = 2 * time.Second

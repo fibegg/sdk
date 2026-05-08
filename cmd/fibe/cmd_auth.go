@@ -45,13 +45,13 @@ func authCmd() *cobra.Command {
 		Long: `Authenticate the Fibe CLI using a browser-based device flow.
 
 Credentials are stored in ~/.config/fibe/credentials.json, keyed by FIBE_DOMAIN.
-This supports multiple environments (fibe.gg, next.fibe.live, rails.test:3000).
+This supports multiple environments (for example fibe.gg, staging.example.test, or server.test:3000).
 
 Resolution order: --api-key > FIBE_API_KEY > credentials.json
 
 Use --domain to target a specific environment:
   fibe --domain next.fibe.live auth login
-  fibe --domain rails.test:3000 auth status`,
+  fibe --domain server.test:3000 auth status`,
 	}
 
 	cmd.AddCommand(authLoginCmd())

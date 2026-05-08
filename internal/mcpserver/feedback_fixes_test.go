@@ -13,11 +13,10 @@ import (
 
 // ---------- Fix 1: empty updates rejected locally ----------
 
-// TestEmptyUpdateRejected reproduces the Rails 400 ParameterMissing case
+// TestEmptyUpdateRejected reproduces the server-side empty-update rejection
 // the user hit on playground.update. With only "playground_id" in the payload, the
-// outbound body would be {"playground": {}} which Rails treats as blank
-// and rejects. We now short-circuit with a clear message before the HTTP
-// round-trip.
+// outbound body would be {"playground": {}} which the server treats as blank and
+// rejects. We now short-circuit with a clear message before the HTTP round-trip.
 func TestEmptyUpdateRejected(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {

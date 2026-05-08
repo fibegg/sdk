@@ -283,7 +283,7 @@ func TestPlaygrounds_Action(t *testing.T) {
 	}
 }
 
-func TestMarquees_UpdateSerializesDnsCredentialsForRails(t *testing.T) {
+func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "PATCH" || r.URL.Path != "/api/marquees/1" {
@@ -571,6 +571,145 @@ func TestAgents_RuntimeStatus(t *testing.T) {
 	}
 }
 
+func TestAgents_ConversationLifecycleByIdentifier(t *testing.T) {
+	step := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != "POST" || r.URL.EscapedPath() != "/api/agents/test%20agent/conversations" {
+				t.Fatalf("unexpected create request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create body: %v", err)
+			}
+			if body["conversation_id"] != "thread-1" || body["title"] != "Project One" {
+				t.Fatalf("unexpected create body: %#v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]any{"id": "thread-1", "title": "Project One"})
+		case 2:
+			if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/test%20agent/live_state" {
+				t.Fatalf("unexpected live request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			if got := r.URL.Query().Get("conversation_id"); got != "thread-1" {
+				t.Fatalf("conversation_id query = %q", got)
+			}
+			json.NewEncoder(w).Encode(map[string]any{
+				"content": map[string]any{
+					"conversation_id": "thread-1",
+					"isProcessing":    true,
+					"streamText":      "partial",
+					"queuedTurns":     2,
+				},
+			})
+		case 3:
+			if r.Method != "POST" || r.URL.EscapedPath() != "/api/agents/test%20agent/interrupt" {
+				t.Fatalf("unexpected interrupt request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode interrupt body: %v", err)
+			}
+			if body["conversation_id"] != "thread-1" {
+				t.Fatalf("unexpected interrupt body: %#v", body)
+			}
+			json.NewEncoder(w).Encode(map[string]any{"interrupted": true, "conversation_id": "thread-1"})
+		case 4:
+			if r.Method != "DELETE" || r.URL.EscapedPath() != "/api/agents/test%20agent/conversations" {
+				t.Fatalf("unexpected delete request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			if got := r.URL.Query().Get("conversation_id"); got != "thread-1" {
+				t.Fatalf("conversation_id query = %q", got)
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+	})
+
+	created, err := c.Agents.CreateConversationByIdentifier(context.Background(), "test agent", &AgentConversationParams{
+		ConversationID: "thread-1",
+		Title:          "Project One",
+	})
+	if err != nil {
+		t.Fatalf("create conversation: %v", err)
+	}
+	if created["id"] != "thread-1" || created["title"] != "Project One" {
+		t.Fatalf("unexpected create result: %#v", created)
+	}
+
+	live, err := c.Agents.LiveStateByIdentifier(context.Background(), "test agent", &AgentDataParams{ConversationID: "thread-1"})
+	if err != nil {
+		t.Fatalf("live state: %v", err)
+	}
+	if live.ConversationID != "thread-1" || !live.IsProcessing || live.StreamText != "partial" || live.QueuedTurns != 2 {
+		t.Fatalf("unexpected live state: %#v", live)
+	}
+
+	interrupted, err := c.Agents.InterruptByIdentifier(context.Background(), "test agent", &AgentConversationParams{ConversationID: "thread-1"})
+	if err != nil {
+		t.Fatalf("interrupt: %v", err)
+	}
+	if interrupted["interrupted"] != true {
+		t.Fatalf("unexpected interrupt result: %#v", interrupted)
+	}
+
+	if err := c.Agents.DeleteConversationByIdentifier(context.Background(), "test agent", "thread-1"); err != nil {
+		t.Fatalf("delete conversation: %v", err)
+	}
+	if step != 4 {
+		t.Fatalf("expected 4 requests, got %d", step)
+	}
+}
+
+func TestAgents_ConversationMethodsRequireConversationID(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("server should not be called")
+	})
+
+	if _, err := c.Agents.CreateConversationByIdentifier(context.Background(), "agent", nil); err == nil {
+		t.Fatal("expected create validation error")
+	}
+	if err := c.Agents.DeleteConversationByIdentifier(context.Background(), "agent", ""); err == nil {
+		t.Fatal("expected delete validation error")
+	}
+}
+
+func TestAgents_DataReadsPassConversationID(t *testing.T) {
+	step := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != "GET" || r.URL.Path != "/api/agents/5/messages" {
+				t.Fatalf("unexpected messages request %s %s", r.Method, r.URL.Path)
+			}
+		case 2:
+			if r.Method != "GET" || r.URL.Path != "/api/agents/5/activity" {
+				t.Fatalf("unexpected activity request %s %s", r.Method, r.URL.Path)
+			}
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+		if got := r.URL.Query().Get("conversation_id"); got != "thread-1" {
+			t.Fatalf("conversation_id query = %q", got)
+		}
+		json.NewEncoder(w).Encode(AgentData{Content: []any{map[string]any{"id": "item-1"}}})
+	})
+
+	if _, err := c.Agents.GetMessagesByIdentifierWithParams(context.Background(), "5", &AgentDataParams{ConversationID: "thread-1"}); err != nil {
+		t.Fatalf("messages: %v", err)
+	}
+	if _, err := c.Agents.GetActivityByIdentifierWithParams(context.Background(), "5", &AgentDataParams{ConversationID: "thread-1"}); err != nil {
+		t.Fatalf("activity: %v", err)
+	}
+	if step != 2 {
+		t.Fatalf("expected 2 requests, got %d", step)
+	}
+}
+
 func TestAgents_PurgeChat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/api/agents/5/purge_chat" {
@@ -752,23 +891,23 @@ func TestImportTemplates_SearchWithParamsRegex(t *testing.T) {
 		if r.Method != "GET" || r.URL.Path != "/api/import_templates/search" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
-		if r.URL.Query().Get("q") != "rails-.*" {
-			t.Errorf("expected q=rails-.*, got %q", r.URL.Query().Get("q"))
+		if r.URL.Query().Get("q") != "starter-.*" {
+			t.Errorf("expected q=starter-.*, got %q", r.URL.Query().Get("q"))
 		}
 		if r.URL.Query().Get("regex") != "true" {
 			t.Errorf("expected regex=true, got %q", r.URL.Query().Get("regex"))
 		}
-		json.NewEncoder(w).Encode(listEnv([]ImportTemplate{{Name: "rails-starter"}}))
+		json.NewEncoder(w).Encode(listEnv([]ImportTemplate{{Name: "app-starter"}}))
 	})
 
 	result, err := c.ImportTemplates.SearchWithParams(context.Background(), &ImportTemplateSearchParams{
-		Query: "rails-.*",
+		Query: "starter-.*",
 		Regex: true,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result.Data) != 1 || result.Data[0].Name != "rails-starter" {
+	if len(result.Data) != 1 || result.Data[0].Name != "app-starter" {
 		t.Fatalf("unexpected result: %#v", result)
 	}
 }

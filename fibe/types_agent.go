@@ -177,11 +177,12 @@ type AgentMountSpec struct {
 }
 
 type AgentChatParams struct {
-	Text                string   `json:"text"`
-	ConversationID      string   `json:"conversation_id,omitempty"`
-	BusyPolicy          string   `json:"busy_policy,omitempty"`
-	Images              []string `json:"images,omitempty"`
-	AttachmentFilenames []string `json:"attachmentFilenames,omitempty"`
+	Text                     string   `json:"text"`
+	ConversationID           string   `json:"conversation_id,omitempty"`
+	BusyPolicy               string   `json:"busy_policy,omitempty"`
+	Images                   []string `json:"images,omitempty"`
+	AttachmentFilenames      []string `json:"attachmentFilenames,omitempty"`
+	AttachmentFilenamesSnake []string `json:"attachment_filenames,omitempty"`
 }
 
 type AgentUploadParams struct {
@@ -212,6 +213,25 @@ type AgentRuntimeStatus struct {
 	Authenticated    bool    `json:"authenticated"`
 	IsProcessing     bool    `json:"is_processing"`
 	QueueCount       int     `json:"queue_count"`
+}
+
+type AgentConversationParams struct {
+	ConversationID string `json:"conversation_id,omitempty" url:"conversation_id,omitempty"`
+	Title          string `json:"title,omitempty" url:"title,omitempty"`
+}
+
+type AgentDataParams struct {
+	ConversationID string `url:"conversation_id,omitempty"`
+}
+
+type AgentConversationLiveState struct {
+	ConversationID    string `json:"conversationId,omitempty"`
+	ConversationIDAlt string `json:"conversation_id,omitempty"`
+	IsProcessing      bool   `json:"isProcessing"`
+	StreamText        string `json:"streamText"`
+	CurrentActivityID string `json:"currentActivityId,omitempty"`
+	QueuedTurns       int    `json:"queuedTurns,omitempty"`
+	StartedAt         string `json:"startedAt,omitempty"`
 }
 
 type AgentData struct {

@@ -337,7 +337,7 @@ func buildRegistry() map[string]map[string]any {
 		"properties": map[string]any{
 			"playground_id": namedIdentifierSchema("playground_id", "Playground ID or slug-safe name."),
 			"action_type":   map[string]any{"type": "string", "enum": fibe.ValidPlaygroundActions, "description": "Lifecycle action to perform."},
-			"force":         map[string]any{"type": "boolean", "description": "Bypass normal state guards when Rails permits forced execution."},
+			"force":         map[string]any{"type": "boolean", "description": "Bypass normal state guards when the server permits forced execution."},
 		},
 	}
 	agentCreate := withPropertyEnum(paramsSchema[fibe.AgentCreateParams]("name", "provider"), "provider", fibe.ValidProviders)
@@ -457,7 +457,7 @@ func marqueeCreateSchema() map[string]any {
 	schema := paramsSchema[fibe.MarqueeCreateParams]("name", "host", "port", "user", "ssh_private_key")
 	props := schema["properties"].(map[string]any)
 	if port, ok := props["port"].(map[string]any); ok {
-		port["description"] = "SSH port. The Rails UI defaults to 22."
+		port["description"] = "SSH port. The Fibe UI defaults to 22."
 		port["minimum"] = 1
 		port["maximum"] = 65535
 		port["default"] = 22
@@ -498,7 +498,7 @@ func propMirrorSchema() map[string]any {
 		"required":             []string{"source_url"},
 		"properties": map[string]any{
 			"source_url": map[string]any{"type": "string", "format": "uri", "description": "Source GitHub repository URL to mirror."},
-			"name":       map[string]any{"type": "string", "description": "Optional name for the mirrored repository. If omitted, Rails infers it from the URL."},
+			"name":       map[string]any{"type": "string", "description": "Optional name for the mirrored repository. If omitted, the server infers it from the URL."},
 		},
 	}
 }
@@ -567,7 +567,7 @@ func MemoryMemorizeSchema() map[string]any {
 			"conversation_id": map[string]any{
 				"type":        "string",
 				"minLength":   1,
-				"description": "Stable local source conversation UUID. This is not a Rails database ID.",
+				"description": "Stable local source conversation UUID. This is not a server database ID.",
 			},
 			"content": map[string]any{
 				"type":        "string",
@@ -579,7 +579,7 @@ func MemoryMemorizeSchema() map[string]any {
 					map[string]any{"type": "integer", "minimum": 1},
 					map[string]any{"type": "string", "minLength": 1},
 				},
-				"description": "Optional Rails Agent ID or name that created the memory. fibe_memorize fills this from FIBE_AGENT_ID when available.",
+				"description": "Optional Fibe Agent ID or name that created the memory. fibe_memorize fills this from FIBE_AGENT_ID when available.",
 			},
 			"tags": map[string]any{
 				"type":        "array",
@@ -594,7 +594,7 @@ func MemoryMemorizeSchema() map[string]any {
 			},
 			"memory_key": map[string]any{
 				"type":        "string",
-				"description": "Optional exact idempotency key. Omit this and Rails computes one from content, tags, conversation_id, and groundings.",
+				"description": "Optional exact idempotency key. Omit this and the server computes one from content, tags, conversation_id, and groundings.",
 			},
 			"metadata": map[string]any{
 				"type":        "object",
@@ -674,7 +674,7 @@ func templateUpdateSchema() map[string]any {
 			"image_data":     map[string]any{"type": "string", "description": "Base64-encoded cover image data."},
 			"content_base64": map[string]any{"type": "string", "description": "Alias for image_data."},
 			"content_path":   map[string]any{"type": "string", "description": "Absolute local path to a cover image file."},
-			"content_type":   map[string]any{"type": "string", "enum": []string{"image/jpeg", "image/png", "image/svg+xml", "image/webp"}, "description": "Cover image MIME type. If omitted, Rails infers it from filename."},
+			"content_type":   map[string]any{"type": "string", "enum": []string{"image/jpeg", "image/png", "image/svg+xml", "image/webp"}, "description": "Cover image MIME type. If omitted, the server infers it from filename."},
 		},
 	}
 }

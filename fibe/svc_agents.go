@@ -72,8 +72,20 @@ func (s *AgentService) Chat(ctx context.Context, id int64, params *AgentChatPara
 
 func (s *AgentService) ChatByIdentifier(ctx context.Context, identifier string, params *AgentChatParams) (map[string]any, error) {
 	var result map[string]any
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/chat", params, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/chat", normalizeAgentChatParams(params), &result)
 	return result, err
+}
+
+func normalizeAgentChatParams(params *AgentChatParams) *AgentChatParams {
+	if params == nil {
+		return nil
+	}
+	prepared := *params
+	if len(prepared.AttachmentFilenamesSnake) > 0 {
+		prepared.AttachmentFilenames = append(prepared.AttachmentFilenames, prepared.AttachmentFilenamesSnake...)
+		prepared.AttachmentFilenamesSnake = nil
+	}
+	return &prepared
 }
 
 func (s *AgentService) Upload(ctx context.Context, id int64, params *AgentUploadParams) (*AgentUploadResult, error) {
@@ -164,6 +176,45 @@ func (s *AgentService) RuntimeStatusByIdentifier(ctx context.Context, identifier
 	var result AgentRuntimeStatus
 	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/runtime_status", nil, &result)
 	return &result, err
+}
+
+func (s *AgentService) CreateConversationByIdentifier(ctx context.Context, identifier string, params *AgentConversationParams) (map[string]any, error) {
+	if params == nil || params.ConversationID == "" {
+		return nil, fmt.Errorf("conversation_id is required")
+	}
+	var result map[string]any
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/conversations", params, &result)
+	return result, err
+}
+
+func (s *AgentService) DeleteConversationByIdentifier(ctx context.Context, identifier string, conversationID string) error {
+	if conversationID == "" {
+		return fmt.Errorf("conversation_id is required")
+	}
+	path := identifierPath("/api/agents", identifier) + "/conversations" + buildQuery(&AgentConversationParams{ConversationID: conversationID})
+	return s.client.do(ctx, http.MethodDelete, path, nil, nil)
+}
+
+func (s *AgentService) LiveStateByIdentifier(ctx context.Context, identifier string, params *AgentDataParams) (*AgentConversationLiveState, error) {
+	var result struct {
+		Content AgentConversationLiveState `json:"content"`
+	}
+	path := identifierPath("/api/agents", identifier) + "/live_state" + buildQuery(params)
+	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
+	if result.Content.ConversationID == "" {
+		result.Content.ConversationID = result.Content.ConversationIDAlt
+	}
+	return &result.Content, err
+}
+
+func (s *AgentService) InterruptByIdentifier(ctx context.Context, identifier string, params *AgentConversationParams) (map[string]any, error) {
+	body := map[string]any{}
+	if params != nil && params.ConversationID != "" {
+		body["conversation_id"] = params.ConversationID
+	}
+	var result map[string]any
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/interrupt", body, &result)
+	return result, err
 }
 
 func (s *AgentService) PurgeChat(ctx context.Context, id int64) (*AgentChatSession, error) {
@@ -265,8 +316,12 @@ func (s *AgentService) GetMessages(ctx context.Context, id int64) (*AgentData, e
 }
 
 func (s *AgentService) GetMessagesByIdentifier(ctx context.Context, identifier string) (*AgentData, error) {
+	return s.GetMessagesByIdentifierWithParams(ctx, identifier, nil)
+}
+
+func (s *AgentService) GetMessagesByIdentifierWithParams(ctx context.Context, identifier string, params *AgentDataParams) (*AgentData, error) {
 	var result AgentData
-	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/messages", nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/messages"+buildQuery(params), nil, &result)
 	return &result, err
 }
 
@@ -284,8 +339,12 @@ func (s *AgentService) GetActivity(ctx context.Context, id int64) (*AgentData, e
 }
 
 func (s *AgentService) GetActivityByIdentifier(ctx context.Context, identifier string) (*AgentData, error) {
+	return s.GetActivityByIdentifierWithParams(ctx, identifier, nil)
+}
+
+func (s *AgentService) GetActivityByIdentifierWithParams(ctx context.Context, identifier string, params *AgentDataParams) (*AgentData, error) {
 	var result AgentData
-	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/activity", nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/activity"+buildQuery(params), nil, &result)
 	return &result, err
 }
 

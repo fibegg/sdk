@@ -33,7 +33,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
 		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("action_type", mcp.Required(), mcp.Description("Lifecycle action to perform.")),
-		mcp.WithBoolean("force", mcp.Description("Bypass normal state guards when Rails permits forced execution.")),
+		mcp.WithBoolean("force", mcp.Description("Bypass normal state guards when the server permits forced execution.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 	registerPlaygroundDebugTool := func(name, desc string) {

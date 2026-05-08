@@ -357,7 +357,7 @@ func TestDomainResolution(t *testing.T) {
 		{"http://localhost:3000", "http://localhost:3000"},
 		{"https://custom.example.com", "https://custom.example.com"},
 		{"https://fibe.gg/", "https://fibe.gg"},
-		{"rails.test:3000", "http://rails.test:3000"},
+		{"server.test:3000", "http://server.test:3000"},
 		{"app.local:3000", "http://app.local:3000"},
 		{"dev.internal:8080", "http://dev.internal:8080"},
 	}

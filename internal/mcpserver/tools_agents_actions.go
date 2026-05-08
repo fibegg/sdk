@@ -82,6 +82,102 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
+		name: "fibe_agents_live_state", description: "[MODE:OVERSEER] Check conversation-scoped agent runtime stream state.", tier: tierOverseer,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			return c.Agents.LiveStateByIdentifier(ctx, identifier, &fibe.AgentDataParams{ConversationID: argString(args, "conversation_id")})
+		},
+	}, mcp.NewTool("fibe_agents_live_state",
+		mcp.WithDescription("[MODE:OVERSEER] Check conversation-scoped agent runtime stream state."),
+		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", false)),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_messages", description: "[MODE:OVERSEER] Read agent messages, optionally scoped to a conversation.", tier: tierOverseer,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			return c.Agents.GetMessagesByIdentifierWithParams(ctx, identifier, &fibe.AgentDataParams{ConversationID: argString(args, "conversation_id")})
+		},
+	}, mcp.NewTool("fibe_agents_messages",
+		mcp.WithDescription("[MODE:OVERSEER] Read agent messages, optionally scoped to a conversation."),
+		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", false)),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_activity", description: "[MODE:OVERSEER] Read agent activity, optionally scoped to a conversation.", tier: tierOverseer,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			return c.Agents.GetActivityByIdentifierWithParams(ctx, identifier, &fibe.AgentDataParams{ConversationID: argString(args, "conversation_id")})
+		},
+	}, mcp.NewTool("fibe_agents_activity",
+		mcp.WithDescription("[MODE:OVERSEER] Read agent activity, optionally scoped to a conversation."),
+		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", false)),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_create_conversation", description: "[MODE:SIDEEFFECTS] Create or upsert an agent conversation.", tier: tierOverseer,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			return c.Agents.CreateConversationByIdentifier(ctx, identifier, &fibe.AgentConversationParams{
+				ConversationID: argString(args, "conversation_id"),
+				Title:          argString(args, "title"),
+			})
+		},
+	}, mcp.NewTool("fibe_agents_create_conversation",
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Create or upsert an agent conversation."),
+		withRawInputSchema(agentCreateConversationInputSchema()),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_delete_conversation", description: "[MODE:SIDEEFFECTS] Delete an agent conversation.", tier: tierOverseer,
+		annotations: toolAnnotations{Destructive: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			if err := c.Agents.DeleteConversationByIdentifier(ctx, identifier, argString(args, "conversation_id")); err != nil {
+				return nil, err
+			}
+			return map[string]any{"deleted": true, "conversation_id": argString(args, "conversation_id")}, nil
+		},
+	}, mcp.NewTool("fibe_agents_delete_conversation",
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Delete an agent conversation."),
+		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", true)),
+	))
+
+	s.addTool(&toolImpl{
+		name: "fibe_agents_interrupt", description: "[MODE:SIDEEFFECTS] Interrupt a running agent turn.", tier: tierOverseer,
+		annotations: toolAnnotations{},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			identifier, err := requiredIdentifier(args, "agent_id", "")
+			if err != nil {
+				return nil, err
+			}
+			return c.Agents.InterruptByIdentifier(ctx, identifier, &fibe.AgentConversationParams{ConversationID: argString(args, "conversation_id")})
+		},
+	}, mcp.NewTool("fibe_agents_interrupt",
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Interrupt a running agent turn."),
+		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", false)),
+	))
+
+	s.addTool(&toolImpl{
 		name: "fibe_update_name", description: "[MODE:DIALOG] Update your own agent name.", tier: tierBase,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -119,6 +215,29 @@ func agentIdentifierOnlyInputSchema(description string) map[string]any {
 			"agent_id": identifierInputProperty(description),
 		},
 	}
+}
+
+func agentConversationInputSchema(description string, requireConversation bool) map[string]any {
+	schema := agentIdentifierOnlyInputSchema(description)
+	props := schema["properties"].(map[string]any)
+	props["conversation_id"] = map[string]any{
+		"type":        "string",
+		"description": "Specific runtime conversation/thread ID.",
+	}
+	if requireConversation {
+		schema["required"] = []string{"agent_id", "conversation_id"}
+	}
+	return schema
+}
+
+func agentCreateConversationInputSchema() map[string]any {
+	schema := agentConversationInputSchema("Agent ID or name.", true)
+	props := schema["properties"].(map[string]any)
+	props["title"] = map[string]any{
+		"type":        "string",
+		"description": "Human-readable conversation title. Optional.",
+	}
+	return schema
 }
 
 func agentSendMessageInputSchema() map[string]any {

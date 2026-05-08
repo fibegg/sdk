@@ -262,7 +262,6 @@ func registerList[P any, R any](s *Server, name, desc string, opts toolOpts,
 	s.addTool(t, tool)
 }
 
-
 // registerCreate registers a create endpoint that takes only the params.
 func registerCreate[P any, R any](s *Server, name, desc string, opts toolOpts,
 	fn func(ctx context.Context, c *fibe.Client, params *P) (*R, error)) {
@@ -342,7 +341,7 @@ func registerUpdate[P any, R any](s *Server, name, desc string, opts toolOpts,
 			if !hasUpdateFields(args, "id") {
 				// Reject "only id" updates locally so the agent gets a clean
 				// "nothing to update" error instead of a server-side 400
-				// from Rails' require(:resource) on an empty param wrapper.
+				// from the server's empty-resource validation.
 				return nil, fmt.Errorf("%s: pass at least one field to update (update tools reject empty payloads to avoid 400 responses)", name)
 			}
 			var p P
@@ -558,9 +557,8 @@ func registerCustom(s *Server, t *toolImpl, tool mcp.Tool) {
 
 // hasUpdateFields reports whether the caller provided at least one field
 // besides the routing keys (parent ID, id) and the transport-level confirm
-// flag. Rails' params.require(:resource).permit(...) raises 400 when the
-// permitted sub-hash is empty, so we catch empty updates locally to surface
-// a cleaner error.
+// flag. The server rejects an empty permitted resource payload, so we catch
+// empty updates locally to surface a cleaner error.
 func hasUpdateFields(args map[string]any, routingKeys ...string) bool {
 	skip := map[string]bool{"confirm": true}
 	for _, k := range routingKeys {

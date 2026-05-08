@@ -56,7 +56,7 @@ func (s *InstallationService) Repos(ctx context.Context, id int64, params *Insta
 }
 
 // FindGitHubRepos searches across ALL of the player's GitHub App installations.
-// Rails aggregates results in parallel and deduplicates by full_name.
+// The server aggregates results in parallel and deduplicates by full_name.
 func (s *InstallationService) FindGitHubRepos(ctx context.Context, params *InstallationReposParams) (*ListResult[InstallationRepo], error) {
 	path := "/api/github_repos/search" + buildQuery(params)
 	return doList[InstallationRepo](s.client, ctx, path)

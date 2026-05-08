@@ -38,7 +38,7 @@ func greenfieldCmd() *cobra.Command {
 		Short: "Create a new greenfield app from the platform template flow",
 		Long: `Create a new app repository, Prop, app-owned template version, and deployed playground.
 
-The command calls the Rails greenfield endpoint, waits for the playground to run,
+The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
 
 Examples:

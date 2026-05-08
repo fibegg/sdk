@@ -262,7 +262,7 @@ REQUIRED FLAGS:
 
 EXAMPLES:
   fibe templates search --query node
-  fibe templates search --query 'rails-.*' --regex`,
+  fibe templates search --query 'starter-.*' --regex`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			results, err := c.ImportTemplates.SearchWithParams(ctx(), &fibe.ImportTemplateSearchParams{Query: query, Regex: regex})

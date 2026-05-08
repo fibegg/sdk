@@ -95,7 +95,7 @@ func TestValidateComposeWithParamsHonorsFIBESchemaURL(t *testing.T) {
 	}
 }
 
-func TestValidateComposeWithParamsStopsBeforeRailsOnSchemaFailure(t *testing.T) {
+func TestValidateComposeWithParamsStopsBeforeServerOnSchemaFailure(t *testing.T) {
 	schemaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/schema+json")
 		_, _ = w.Write([]byte(testFibeComposeSchema))

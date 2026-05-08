@@ -45,7 +45,7 @@ func (s *Server) registerMemoryTools() {
 	}, mcp.NewTool("fibe_memorize",
 		mcp.WithDescription(`[MODE:SIDEEFFECTS] Create or update one memory from a local source conversation.
 
-Use after fibe_local_conversations_get. Pass conversation_id plus memory content, tags, confidence, and grounding proof. The SDK validates the local conversation exists, attaches the latest conversation snapshot internally, and Rails upserts that conversation archive before storing the memory. Use fibe_schema(resource:"memory", operation:"memorize") for the exact payload shape. Search, get, and delete memories through fibe_resource_list/get/delete with resource:"memory".`),
+Use after fibe_local_conversations_get. Pass conversation_id plus memory content, tags, confidence, and grounding proof. The SDK validates the local conversation exists, attaches the latest conversation snapshot internally, and the Fibe server upserts that conversation archive before storing the memory. Use fibe_schema(resource:"memory", operation:"memorize") for the exact payload shape. Search, get, and delete memories through fibe_resource_list/get/delete with resource:"memory".`),
 		withRawInputSchema(memoryMemorizeSchema()),
 	))
 }

@@ -45,7 +45,7 @@ type monitorListEnvelope struct {
 
 // MonitorListParams are the filters accepted by GET /api/monitor.
 //
-// CSV fields are serialized as comma-separated values because the Rails API
+// CSV fields are serialized as comma-separated values because the Fibe API
 // accepts both array-form and comma lists.
 type MonitorListParams struct {
 	AgentIDs     string `url:"agent_id,omitempty"`

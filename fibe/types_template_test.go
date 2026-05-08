@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestImportTemplateUnmarshalAcceptsRailsTimestampFormat(t *testing.T) {
+func TestImportTemplateUnmarshalAcceptsServerTimestampFormat(t *testing.T) {
 	body := []byte(`{
 		"id": 1,
 		"name": "greenfield",

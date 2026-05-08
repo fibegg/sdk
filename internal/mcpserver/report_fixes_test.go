@@ -14,7 +14,7 @@ import (
 // ---------- SDK: PropBranches is an array of objects ----------
 
 func TestPropBranchesUnmarshalsObjectArray(t *testing.T) {
-	// Shape the Rails API actually returns.
+	// Shape the Fibe API actually returns.
 	payload := []byte(`{"branches":[{"name":"main","default":true},{"name":"feat","default":false}]}`)
 	var pb fibe.PropBranches
 	if err := json.Unmarshal(payload, &pb); err != nil {
@@ -204,11 +204,11 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 // ---------- fibe launch returns both playspec_id and playground_id ----------
 
 func TestLaunchSurfacesBothIDs(t *testing.T) {
-	// We can't hit the real Rails API in a unit test, but we can verify the
+	// We can't hit the real Fibe API in a unit test, but we can verify the
 	// shape of the map our handler returns by calling it with a mocked
 	// LaunchService via the session client. The simplest path: assert the
 	// tool description mentions both keys and that the LaunchResult struct
-	// has the playspecs_created JSON tag the Rails side emits.
+	// has the playspecs_created JSON tag the server emits.
 	var r fibe.LaunchResult
 	if err := json.Unmarshal([]byte(`{"playspecs_created":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
 		t.Fatalf("unmarshal: %v", err)

@@ -119,8 +119,8 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_templates_search",
-			mcpArgs: map[string]any{"query": "rails"},
-			cliArgs: []string{"templates", "search", "--query", "rails", "--output", "json"},
+			mcpArgs: map[string]any{"query": "starter"},
+			cliArgs: []string{"templates", "search", "--query", "starter", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_status",
