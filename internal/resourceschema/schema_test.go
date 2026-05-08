@@ -70,6 +70,17 @@ func TestOperationSelectorsAreOperationSpecific(t *testing.T) {
 	if containsSelector(getSelectors, "api-key") || containsSelector(getSelectors, "api-keys") {
 		t.Fatalf("get selectors should not include api_key aliases: %#v", getSelectors)
 	}
+	if !containsSelector(getSelectors, "agent-attachment") || !containsSelector(getSelectors, "agent-attachments") {
+		t.Fatalf("get selectors should include agent attachment aliases: %#v", getSelectors)
+	}
+
+	watchSelectors := ResourceSelectorsForOperation("watch")
+	if !containsSelector(watchSelectors, "agent") || !containsSelector(watchSelectors, "agents") {
+		t.Fatalf("watch selectors should include agent aliases: %#v", watchSelectors)
+	}
+	if containsSelector(watchSelectors, "playground") {
+		t.Fatalf("watch selectors should be operation-specific: %#v", watchSelectors)
+	}
 }
 
 func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
@@ -223,8 +234,12 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		}
 		if entry.Name == "agent" {
 			foundAgent = true
-			if !containsSelector(entry.Operations, "create") || !containsSelector(entry.Operations, "update") || !containsSelector(entry.Operations, "restart_chat") {
-				t.Fatalf("agent catalog operations missing create/update/restart_chat: %#v", entry.Operations)
+			if !containsSelector(entry.Operations, "create") ||
+				!containsSelector(entry.Operations, "update") ||
+				!containsSelector(entry.Operations, "restart_chat") ||
+				!containsSelector(entry.Operations, "upload_attachment") ||
+				!containsSelector(entry.Operations, "watch") {
+				t.Fatalf("agent catalog operations missing expected operations: %#v", entry.Operations)
 			}
 		}
 		if entry.Name == "template_version" {
@@ -249,6 +264,7 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 		fields    []string
 	}{
 		{resource: "agent", operation: "restart_chat", fields: []string{"agent_id"}},
+		{resource: "agent", operation: "upload_attachment", fields: []string{"agent_id", "content_path", "content_base64", "filename", "conversation_id"}},
 		{resource: "marquee", operation: "autoconnect_token", fields: []string{"email", "domain", "ip", "ssl_mode", "dns_provider", "dns_credentials"}},
 		{resource: "marquee", operation: "generate_ssh_key", fields: []string{"marquee_id"}},
 		{resource: "marquee", operation: "test_connection", fields: []string{"marquee_id"}},
@@ -295,6 +311,12 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 	if _, _, err := ValidateMutationPayload("marquee", "autoconnect_token", map[string]any{"ssl_mode": "bogus"}); err == nil {
 		t.Fatal("marquee.autoconnect_token should reject unsupported ssl_mode")
 	}
+	if _, _, err := ValidateMutationPayload("agent", "upload_attachment", map[string]any{"agent_id": "builder", "content_base64": "aGVsbG8=", "filename": "hello.txt"}); err != nil {
+		t.Fatalf("agent.upload_attachment should validate: %v", err)
+	}
+	if _, _, err := ValidatePayload("agent_attachment", "get", map[string]any{"resource": "agent_attachment", "agent_id": "builder", "filename": "hello.txt"}); err != nil {
+		t.Fatalf("agent_attachment.get should validate: %v", err)
+	}
 }
 
 func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
@@ -311,7 +333,7 @@ func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
 	if containsAnySelector(operationEnum, "patch_create") {
 		t.Fatalf("mutation operation enum should not include patch_create: %#v", operationEnum)
 	}
-	for _, want := range []string{"action", "autoconnect_token", "restart_chat", "source_set", "toggle_public", "trigger", "test"} {
+	for _, want := range []string{"action", "autoconnect_token", "restart_chat", "source_set", "toggle_public", "trigger", "test", "upload_attachment"} {
 		if !containsAnySelector(operationEnum, want) {
 			t.Fatalf("mutation operation enum missing %q: %#v", want, operationEnum)
 		}

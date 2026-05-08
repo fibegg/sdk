@@ -110,8 +110,18 @@ func (s *AgentService) UploadByIdentifier(ctx context.Context, identifier string
 	if fileName == "" {
 		fileName = filepath.Base(params.FilePath)
 	}
+	return s.UploadReaderByIdentifier(ctx, identifier, file, fileName, params)
+}
+
+func (s *AgentService) UploadReaderByIdentifier(ctx context.Context, identifier string, file io.Reader, fileName string, params *AgentUploadParams) (*AgentUploadResult, error) {
+	if file == nil {
+		return nil, fmt.Errorf("file is required")
+	}
+	if fileName == "" {
+		fileName = "attachment"
+	}
 	fields := map[string]string{}
-	if params.ConversationID != "" {
+	if params != nil && params.ConversationID != "" {
 		fields["conversation_id"] = params.ConversationID
 	}
 
@@ -121,6 +131,18 @@ func (s *AgentService) UploadByIdentifier(ctx context.Context, identifier string
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (s *AgentService) DownloadAttachment(ctx context.Context, id int64, filename string, params *AgentDataParams) (io.ReadCloser, string, string, error) {
+	return s.DownloadAttachmentByIdentifier(ctx, int64Identifier(id), filename, params)
+}
+
+func (s *AgentService) DownloadAttachmentByIdentifier(ctx context.Context, identifier string, filename string, params *AgentDataParams) (io.ReadCloser, string, string, error) {
+	if filename == "" {
+		return nil, "", "", fmt.Errorf("filename is required")
+	}
+	path := identifierPath(identifierPath("/api/agents", identifier)+"/uploads", filename) + buildQuery(params)
+	return s.client.doDownload(ctx, path)
 }
 
 func (s *AgentService) Authenticate(ctx context.Context, id int64, code, token *string) (*Agent, error) {

@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -33,8 +38,11 @@ SUBCOMMANDS:
   start-chat <id-or-name> Start an interactive chat session on a Marquee
   restart-chat <id-or-name> Restart the current chat container
   runtime-status <id-or-name> Show agent chat runtime status
+  watch                 Watch agent resource events through AnyCable
   purge-chat <id-or-name> Tear down agent chat container and volumes
   chat <id-or-name>     Send a chat message
+  upload-attachment <id-or-name> Upload a runtime chat attachment
+  download-attachment <id-or-name> <filename> Download a runtime chat attachment
   authenticate <id-or-name> Authenticate agent with provider
   add-mounted-file <id-or-name> Attach a mounted file or Artefact snapshot
   update-mounted-file <id-or-name> Update mounted file metadata
@@ -57,12 +65,15 @@ SUBCOMMANDS:
 		agStartChatCmd(),
 		agRestartChatCmd(),
 		agRuntimeStatusCmd(),
+		agWatchCmd(),
 		agLiveStateCmd(),
 		agCreateConversationCmd(),
 		agDeleteConversationCmd(),
 		agInterruptCmd(),
 		agPurgeChatCmd(),
 		agSendMessageCmd(),
+		agUploadAttachmentCmd(),
+		agDownloadAttachmentCmd(),
 		agAuthCmd(),
 		agAddMountedFileCmd(),
 		agUpdateMountedFileCmd(),
@@ -79,6 +90,7 @@ SUBCOMMANDS:
 
 func agListCmd() *cobra.Command {
 	var query, provider, status, name, sort, createdAfter, createdBefore string
+	var includeRuntimeStatus bool
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all agents",
@@ -102,6 +114,7 @@ SORTING:
 
 OUTPUT:
   Columns: ID, NAME, PROVIDER, STATUS, AUTH
+  Add --include-runtime-status to include runtime reachability/queue columns.
   Use --output json for full details.
 
 EXAMPLES:
@@ -133,6 +146,9 @@ EXAMPLES:
 			if sort != "" {
 				params.Sort = sort
 			}
+			if includeRuntimeStatus {
+				params.IncludeRuntimeStatus = &includeRuntimeStatus
+			}
 			if flagPage > 0 {
 				params.Page = flagPage
 			}
@@ -148,11 +164,18 @@ EXAMPLES:
 				return nil
 			}
 			headers := []string{"ID", "NAME", "PROVIDER", "STATUS", "AUTH"}
+			if includeRuntimeStatus {
+				headers = append(headers, "RUNTIME", "REACHABLE", "BUSY", "QUEUE")
+			}
 			rows := make([][]string, len(agents.Data))
 			for i, a := range agents.Data {
-				rows[i] = []string{
+				row := []string{
 					fmtInt64(a.ID), a.Name, a.Provider, a.Status, fmtBool(a.Authenticated),
 				}
+				if includeRuntimeStatus {
+					row = append(row, agentRuntimeStatusColumns(a.RuntimeStatus)...)
+				}
+				rows[i] = row
 			}
 			outputTable(headers, rows)
 			return nil
@@ -165,6 +188,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")
+	cmd.Flags().BoolVar(&includeRuntimeStatus, "include-runtime-status", false, "Include runtime status for listed agents (opt-in; may probe running runtimes)")
 	return cmd
 }
 
@@ -198,6 +222,18 @@ EXAMPLES:
 			fmt.Printf("Created:       %s\n", fmtTime(agent.CreatedAt))
 			return nil
 		},
+	}
+}
+
+func agentRuntimeStatusColumns(status *fibe.AgentRuntimeStatus) []string {
+	if status == nil {
+		return []string{"", "", "", ""}
+	}
+	return []string{
+		status.Status,
+		fmtBool(status.RuntimeReachable),
+		fmtBool(status.IsProcessing),
+		strconv.Itoa(status.QueueCount),
 	}
 }
 
@@ -651,6 +687,69 @@ EXAMPLES:
 	}
 }
 
+func agWatchCmd() *cobra.Command {
+	var maxEvents int
+	var duration time.Duration
+	cmd := &cobra.Command{
+		Use:   "watch",
+		Short: "Watch agent resource events through AnyCable",
+		Long: `Watch agent resource events through the Rails AnyCable endpoint.
+
+Events are emitted as NDJSON and include the raw resource event payload.
+
+OPTIONAL FLAGS:
+  --max-events   Stop after this many events
+  --duration     Stop after this duration (0 = until cancelled)
+
+EXAMPLES:
+  fibe agents watch
+  fibe ag watch --max-events 5 --duration 1m`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			watchCtx := ctx()
+			cancel := func() {}
+			if duration > 0 {
+				watchCtx, cancel = context.WithTimeout(watchCtx, duration)
+			}
+			defer cancel()
+
+			events, errs := newClient().Cable.SubscribeResource(watchCtx, "Agent")
+			enc := json.NewEncoder(cmd.OutOrStdout())
+			count := 0
+			for events != nil || errs != nil {
+				select {
+				case ev, ok := <-events:
+					if !ok {
+						events = nil
+						continue
+					}
+					if err := enc.Encode(ev); err != nil {
+						return err
+					}
+					count++
+					if maxEvents > 0 && count >= maxEvents {
+						cancel()
+					}
+				case err, ok := <-errs:
+					if !ok {
+						errs = nil
+						continue
+					}
+					if err != nil && watchCtx.Err() == nil {
+						return err
+					}
+				case <-watchCtx.Done():
+					return nil
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().IntVar(&maxEvents, "max-events", 0, "Stop after this many events (0 = unbounded)")
+	cmd.Flags().DurationVar(&duration, "duration", 0, "Stop after this duration (0 = until cancelled)")
+	return cmd
+}
+
 func agLiveStateCmd() *cobra.Command {
 	var conversationID string
 	cmd := &cobra.Command{
@@ -909,6 +1008,111 @@ EXAMPLES:
 	cmd.Flags().StringVar(&busyPolicy, "busy-policy", "", "Runtime busy behavior, e.g. queue")
 	cmd.Flags().StringArrayVar(&attachmentPaths, "attach", nil, "Local file path to upload before sending (repeatable)")
 	cmd.Flags().StringArrayVar(&attachmentFilenames, "attachment-filename", nil, "Already-uploaded runtime filename to include (repeatable)")
+	return cmd
+}
+
+func agUploadAttachmentCmd() *cobra.Command {
+	var filePath, filename, conversationID string
+	cmd := &cobra.Command{
+		Use:     "upload-attachment <id-or-name>",
+		Aliases: []string{"upload"},
+		Short:   "Upload a runtime chat attachment",
+		Long: `Upload a file to an agent runtime through Rails.
+
+The returned filename can be passed to send-message with --attachment-filename
+or later downloaded with download-attachment.
+
+REQUIRED FLAGS:
+  --file              Local file path to upload
+
+OPTIONAL FLAGS:
+  --filename          Override uploaded filename
+  --conversation-id   Specific runtime conversation/thread ID
+
+EXAMPLES:
+  fibe agents upload-attachment my-agent --file ./context.zip
+  fibe ag upload my-agent --conversation-id conv-123 --file ./screenshot.png -o json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(filePath) == "" {
+				return fmt.Errorf("required field 'file' not set")
+			}
+			result, err := newClient().Agents.UploadByIdentifier(ctx(), args[0], &fibe.AgentUploadParams{
+				FilePath:       filePath,
+				FileName:       filename,
+				ConversationID: conversationID,
+			})
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(result)
+				return nil
+			}
+			fmt.Printf("Uploaded: %s\n", result.Filename)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&filePath, "file", "", "Local file path to upload (required)")
+	cmd.Flags().StringVar(&filename, "filename", "", "Override uploaded filename")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	return cmd
+}
+
+func agDownloadAttachmentCmd() *cobra.Command {
+	var to, conversationID string
+	cmd := &cobra.Command{
+		Use:     "download-attachment <id-or-name> <filename>",
+		Aliases: []string{"download-upload"},
+		Short:   "Download a runtime chat attachment",
+		Long: `Download an agent runtime attachment through Rails.
+
+REQUIRED FLAGS:
+  --to                Output file path (use - for stdout)
+
+OPTIONAL FLAGS:
+  --conversation-id   Specific runtime conversation/thread ID
+
+EXAMPLES:
+  fibe agents download-attachment my-agent runtime-file.zip --to ./runtime-file.zip
+  fibe ag download-upload my-agent screenshot.png --conversation-id conv-123 --to - > screenshot.png`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(to) == "" {
+				return fmt.Errorf("required field 'to' not set")
+			}
+			body, filename, contentType, err := newClient().Agents.DownloadAttachmentByIdentifier(ctx(), args[0], args[1], &fibe.AgentDataParams{ConversationID: conversationID})
+			if err != nil {
+				return err
+			}
+			defer body.Close()
+
+			var dst io.Writer
+			if to == "-" {
+				dst = os.Stdout
+			} else {
+				f, err := os.Create(to)
+				if err != nil {
+					return fmt.Errorf("create output file: %w", err)
+				}
+				defer f.Close()
+				dst = f
+			}
+			n, err := io.Copy(dst, body)
+			if err != nil {
+				return fmt.Errorf("write content: %w", err)
+			}
+			if to != "-" {
+				if filename == "" {
+					filename = args[1]
+				}
+				fmt.Fprintf(os.Stderr, "Wrote %d bytes (filename: %s, content-type: %s) to %s\n", n, filename, contentType, to)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&to, "to", "", "Output file path (required, use - for stdout)")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
 	return cmd
 }
 

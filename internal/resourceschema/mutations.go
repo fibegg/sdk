@@ -18,6 +18,7 @@ var mutationCaseKeys = []struct {
 	{resource: "agent", operation: "create"},
 	{resource: "agent", operation: "update"},
 	{resource: "agent", operation: "restart_chat"},
+	{resource: "agent", operation: "upload_attachment"},
 	{resource: "api_key", operation: "create"},
 	{resource: "artefact", operation: "create"},
 	{resource: "marquee", operation: "create"},

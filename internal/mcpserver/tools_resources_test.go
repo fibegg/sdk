@@ -292,8 +292,12 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_playgrounds_delete",
 		"fibe_playgrounds_create",
 		"fibe_playgrounds_update",
+		"fibe_agents_list",
 		"fibe_agents_create",
 		"fibe_agents_update",
+		"fibe_agents_watch",
+		"fibe_agents_upload_attachment",
+		"fibe_agents_download_attachment",
 		"fibe_artefacts_create",
 		"fibe_mutters_create",
 		"fibe_templates_versions_create",
@@ -391,8 +395,11 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		}
 		if entry.Name == "agent" {
 			foundAgent = true
-			if !containsString(entry.Operations, "create") || !containsString(entry.Operations, "update") {
-				t.Fatalf("agent catalog should include create/update operations: %#v", entry)
+			if !containsString(entry.Operations, "create") ||
+				!containsString(entry.Operations, "update") ||
+				!containsString(entry.Operations, "upload_attachment") ||
+				!containsString(entry.Operations, "watch") {
+				t.Fatalf("agent catalog should include expected operations: %#v", entry)
 			}
 		}
 	}
@@ -523,10 +530,25 @@ func TestResourceToolSchemasUseOperationSpecificEnums(t *testing.T) {
 	}
 
 	getEnum := toolPropertyEnum(t, tools["fibe_resource_get"].Tool, "resource")
+	for _, want := range []string{"agent-attachment", "agent-attachments"} {
+		if !containsString(getEnum, want) {
+			t.Fatalf("get enum missing %q: %#v", want, getEnum)
+		}
+	}
 	for _, disallowed := range []string{"api-key", "api-keys", "category", "audit-log"} {
 		if containsString(getEnum, disallowed) {
 			t.Fatalf("get enum should not include %q: %#v", disallowed, getEnum)
 		}
+	}
+
+	watchEnum := toolPropertyEnum(t, tools["fibe_resource_watch"].Tool, "resource")
+	for _, want := range []string{"agent", "agents"} {
+		if !containsString(watchEnum, want) {
+			t.Fatalf("watch enum missing %q: %#v", want, watchEnum)
+		}
+	}
+	if containsString(watchEnum, "playground") {
+		t.Fatalf("watch enum should be operation-specific: %#v", watchEnum)
 	}
 
 	deleteEnum := toolPropertyEnum(t, tools["fibe_resource_delete"].Tool, "resource")
@@ -550,14 +572,14 @@ func TestSchemaToolAdvertisesResourceAndOperationEnums(t *testing.T) {
 	tool := srv.mcp.ListTools()["fibe_schema"].Tool
 
 	resourceEnum := toolPropertyEnum(t, tool, "resource")
-	for _, want := range []string{"list", "agent", "agents", "api-key", "api-keys", "artefact", "artefacts", "template-version", "template-versions"} {
+	for _, want := range []string{"list", "agent", "agents", "agent-attachment", "api-key", "api-keys", "artefact", "artefacts", "template-version", "template-versions"} {
 		if !containsString(resourceEnum, want) {
 			t.Fatalf("fibe_schema resource enum missing %q: %#v", want, resourceEnum)
 		}
 	}
 
 	operationEnum := toolPropertyEnum(t, tool, "operation")
-	for _, want := range []string{"list", "get", "delete", "create", "update", "action", "develop", "validate", "event_types"} {
+	for _, want := range []string{"list", "get", "delete", "create", "update", "action", "develop", "validate", "event_types", "watch", "upload_attachment"} {
 		if !containsString(operationEnum, want) {
 			t.Fatalf("fibe_schema operation enum missing %q: %#v", want, operationEnum)
 		}

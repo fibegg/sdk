@@ -88,6 +88,22 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			return nil, err
 		}
 		return c.Agents.RestartChatByIdentifier(ctx, identifier)
+	case "agent.upload_attachment":
+		identifier, err := requiredIdentifier(payload, "agent_id", "")
+		if err != nil {
+			return nil, err
+		}
+		reader, err := decodeFileSource(payload)
+		if err != nil {
+			return nil, err
+		}
+		filename := argString(payload, "filename")
+		if filename == "" {
+			filename = filenameFromContentPath(argString(payload, "content_path"), "attachment")
+		}
+		return c.Agents.UploadReaderByIdentifier(ctx, identifier, reader, filename, &fibe.AgentUploadParams{
+			ConversationID: argString(payload, "conversation_id"),
+		})
 	case "api_key.create":
 		var p fibe.APIKeyCreateParams
 		if err := bindArgs(payload, &p); err != nil {

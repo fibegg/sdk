@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -389,6 +390,45 @@ func TestAgents_List(t *testing.T) {
 	}
 }
 
+func TestAgents_ListIncludeRuntimeStatus(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/agents" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("include_runtime_status"); got != "true" {
+			t.Fatalf("include_runtime_status = %q", got)
+		}
+		json.NewEncoder(w).Encode(listEnv([]Agent{
+			{
+				ID:            1,
+				Name:          "agent-1",
+				Provider:      ProviderOpenAICodex,
+				Authenticated: true,
+				RuntimeStatus: &AgentRuntimeStatus{
+					ID:               9,
+					Status:           "running",
+					RuntimeReachable: true,
+					Authenticated:    true,
+					IsProcessing:     true,
+					QueueCount:       2,
+				},
+			},
+		}))
+	})
+
+	include := true
+	result, err := c.Agents.List(context.Background(), &AgentListParams{IncludeRuntimeStatus: &include, PerPage: 100})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Data) != 1 || result.Data[0].RuntimeStatus == nil {
+		t.Fatalf("missing runtime status: %#v", result)
+	}
+	if result.Data[0].RuntimeStatus.Status != "running" || !result.Data[0].RuntimeStatus.RuntimeReachable || result.Data[0].RuntimeStatus.QueueCount != 2 {
+		t.Fatalf("unexpected runtime status: %#v", result.Data[0].RuntimeStatus)
+	}
+}
+
 func TestAgents_GetByIdentifierEscapesName(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/test-agent" {
@@ -500,6 +540,75 @@ func TestAgents_Upload(t *testing.T) {
 	}
 	if result.Filename != "runtime-file.txt" {
 		t.Errorf("unexpected upload result: %#v", result)
+	}
+}
+
+func TestAgents_UploadReaderAndDownloadAttachment(t *testing.T) {
+	step := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != "POST" || r.URL.Path != "/api/agents/test-agent/uploads" {
+				t.Fatalf("unexpected upload request %s %s", r.Method, r.URL.Path)
+			}
+			if err := r.ParseMultipartForm(8 << 20); err != nil {
+				t.Fatalf("ParseMultipartForm: %v", err)
+			}
+			if got := r.FormValue("conversation_id"); got != "thread-1" {
+				t.Fatalf("conversation_id = %q", got)
+			}
+			file, header, err := r.FormFile("file")
+			if err != nil {
+				t.Fatalf("FormFile: %v", err)
+			}
+			defer file.Close()
+			content, err := io.ReadAll(file)
+			if err != nil {
+				t.Fatalf("ReadAll: %v", err)
+			}
+			if string(content) != "zip-bytes" || header.Filename != "context.zip" {
+				t.Fatalf("unexpected uploaded file %q %q", header.Filename, string(content))
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]any{"filename": "runtime-context.zip"})
+		case 2:
+			if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/test-agent/uploads/runtime-context.zip" {
+				t.Fatalf("unexpected download request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			if got := r.URL.Query().Get("conversation_id"); got != "thread-1" {
+				t.Fatalf("conversation_id query = %q", got)
+			}
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `inline; filename="runtime-context.zip"`)
+			_, _ = w.Write([]byte("zip-bytes"))
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+	})
+
+	upload, err := c.Agents.UploadReaderByIdentifier(context.Background(), "test-agent", strings.NewReader("zip-bytes"), "context.zip", &AgentUploadParams{ConversationID: "thread-1"})
+	if err != nil {
+		t.Fatalf("upload reader: %v", err)
+	}
+	if upload.Filename != "runtime-context.zip" {
+		t.Fatalf("unexpected upload result: %#v", upload)
+	}
+
+	body, filename, contentType, err := c.Agents.DownloadAttachmentByIdentifier(context.Background(), "test-agent", upload.Filename, &AgentDataParams{ConversationID: "thread-1"})
+	if err != nil {
+		t.Fatalf("download attachment: %v", err)
+	}
+	defer body.Close()
+	data, err := io.ReadAll(body)
+	if err != nil {
+		t.Fatalf("read download: %v", err)
+	}
+	if string(data) != "zip-bytes" || filename != "runtime-context.zip" || contentType != "application/zip" {
+		t.Fatalf("unexpected download data=%q filename=%q contentType=%q", string(data), filename, contentType)
+	}
+	if step != 2 {
+		t.Fatalf("expected 2 requests, got %d", step)
 	}
 }
 

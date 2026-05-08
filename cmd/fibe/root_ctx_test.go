@@ -62,6 +62,9 @@ func TestLocalCommandPaths(t *testing.T) {
 	for _, args := range [][]string{
 		{"local", "playgrounds", "info"},
 		{"local", "conversations", "list"},
+		{"agents", "upload-attachment"},
+		{"agents", "download-attachment"},
+		{"agents", "watch"},
 	} {
 		cmd, remaining, err := root.Find(args)
 		if err != nil {

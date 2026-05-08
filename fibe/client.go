@@ -30,6 +30,7 @@ type Client struct {
 	Playgrounds            *PlaygroundService
 	Tricks                 *TrickService
 	Agents                 *AgentService
+	Cable                  *CableService
 	AgentDefaults          *AgentDefaultsService
 	Artefacts              *ArtefactService
 	Playspecs              *PlayspecService
@@ -116,6 +117,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.Playgrounds = &PlaygroundService{client: c}
 	c.Tricks = &TrickService{client: c}
 	c.Agents = &AgentService{client: c}
+	c.Cable = &CableService{client: c}
 	c.AgentDefaults = &AgentDefaultsService{client: c}
 	c.Artefacts = &ArtefactService{client: c}
 	c.Playspecs = &PlayspecService{client: c}

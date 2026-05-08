@@ -35,6 +35,20 @@ func TestSchemaResourceListOperation(t *testing.T) {
 	}
 }
 
+func TestSchemaAgentListIncludesRuntimeStatusFlag(t *testing.T) {
+	out, err := captureStdout(func() error {
+		cmd := schemaCmd()
+		cmd.SetArgs([]string{"agents", "list"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("schema agents list: %v", err)
+	}
+	if !strings.Contains(out, `"include_runtime_status"`) {
+		t.Fatalf("expected include_runtime_status in agent list schema, got:\n%s", out)
+	}
+}
+
 func TestSchemaResourceUpdateOperation(t *testing.T) {
 	out, err := captureStdout(func() error {
 		cmd := schemaCmd()

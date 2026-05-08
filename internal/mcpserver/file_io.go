@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // readLocalFile reads a file from the local filesystem. Used by tools that
@@ -53,6 +54,17 @@ func readInlineOrPathTextArg(args map[string]any, inlineKey, pathKey string) (st
 		return string(data), nil
 	}
 	return "", fmt.Errorf("required field missing: pass %s or %s", inlineKey, pathKey)
+}
+
+func filenameFromContentPath(path string, fallback string) string {
+	if strings.TrimSpace(path) == "" {
+		return fallback
+	}
+	name := filepath.Base(path)
+	if name == "." || name == string(filepath.Separator) || strings.TrimSpace(name) == "" {
+		return fallback
+	}
+	return name
 }
 
 func isNotExist(err error) bool {

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/fibegg/sdk/internal/resourceschema"
@@ -12,9 +13,10 @@ import (
 )
 
 type flatResourceTool struct {
-	list   func(context.Context, *fibe.Client, map[string]any) (any, error)
-	get    func(context.Context, *fibe.Client, string) (any, error)
-	delete func(context.Context, *fibe.Client, string) error
+	list        func(context.Context, *fibe.Client, map[string]any) (any, error)
+	get         func(context.Context, *fibe.Client, string) (any, error)
+	getWithArgs func(context.Context, *fibe.Client, map[string]any) (any, error)
+	delete      func(context.Context, *fibe.Client, string) error
 }
 
 func (s *Server) registerResourceTools() {
@@ -49,8 +51,34 @@ func (s *Server) registerResourceTools() {
 	))
 
 	s.addTool(&toolImpl{
+		name:        "fibe_resource_watch",
+		description: "[MODE:DIALOG] Watch supported Fibe resource events through AnyCable.",
+		tier:        tierBase,
+		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
+		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			resource := argString(args, "resource")
+			canonical, ok := resourceschema.CanonicalResource(resource)
+			if !ok {
+				return nil, fmt.Errorf("unknown resource %q", resource)
+			}
+			if _, _, _, ok := resourceschema.SchemaFor(canonical, "watch"); !ok {
+				return nil, fmt.Errorf("resource %q does not support watch", canonical)
+			}
+			if _, _, err := resourceschema.ValidatePayload(canonical, "watch", canonicalResourceArgs(args, canonical)); err != nil {
+				return nil, err
+			}
+			return s.runResourceWatch(ctx, c, canonical, args)
+		},
+	}, mcp.NewTool("fibe_resource_watch",
+		mcp.WithDescription("[MODE:DIALOG] Watch supported Fibe resource events through AnyCable. Currently supports agent resources."),
+		mcp.WithString("resource", mcp.Required(), mcp.Enum(resourceschema.ResourceSelectorsForOperation("watch")...), mcp.Description("Canonical resource name or explicit alias.")),
+		mcp.WithNumber("max_events", mcp.Description("Stop after N events (default: 25).")),
+		mcp.WithString("duration", mcp.Description("Max watch duration as Go duration (default: 30s, max: 30m).")),
+	))
+
+	s.addTool(&toolImpl{
 		name:        "fibe_resource_get",
-		description: "[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment to download an artefact's single attached file.",
+		description: "[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment or agent_attachment to download attached runtime file content.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -61,20 +89,26 @@ func (s *Server) registerResourceTools() {
 			if _, ok := args["reveal"]; ok {
 				return nil, fmt.Errorf("field 'reveal' is not supported by fibe_resource_get")
 			}
-			identifier, err := resourceIdentifierArg(name, args)
-			if err != nil {
+			if _, _, err := resourceschema.ValidatePayload(name, "get", canonicalResourceArgs(args, name)); err != nil {
 				return nil, err
 			}
-			if _, _, err := resourceschema.ValidatePayload(name, "get", canonicalResourceArgs(args, name)); err != nil {
+			if rt.getWithArgs != nil {
+				return rt.getWithArgs(ctx, c, args)
+			}
+			identifier, err := resourceIdentifierArg(name, args)
+			if err != nil {
 				return nil, err
 			}
 			return rt.get(ctx, c, identifier)
 		},
 	}, mcp.NewTool("fibe_resource_get",
-		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, or by name for playgrounds, tricks, playspecs, props, marquees, and agents. Secret and job_env reads do not reveal plaintext values; artefact_attachment returns base64 file content."),
+		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, or by name for playgrounds, tricks, playspecs, props, marquees, and agents. Secret and job_env reads do not reveal plaintext values; artefact_attachment and agent_attachment return base64 file content."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(getResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, playspec, prop, webhook.")),
 		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
 		mcp.WithString("identifier", mcp.Description("Numeric ID or name for playgrounds, tricks, playspecs, props, marquees, and agents.")),
+		mcp.WithString("agent_id", mcp.Description("Agent ID or name for resource-specific reads such as agent_attachment.")),
+		mcp.WithString("filename", mcp.Description("Runtime filename for resource-specific reads such as agent_attachment.")),
+		mcp.WithString("conversation_id", mcp.Description("Runtime conversation/thread ID for resource-specific reads such as agent_attachment.")),
 	))
 
 	s.addTool(&toolImpl{
@@ -147,6 +181,36 @@ func flatResourceTools() map[string]flatResourceTool {
 			},
 			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
 				return c.Agents.DeleteByIdentifier(ctx, identifier)
+			},
+		},
+		"agent_attachment": {
+			getWithArgs: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+				agentID, err := requiredIdentifier(args, "agent_id", "")
+				if err != nil {
+					return nil, err
+				}
+				filename := argString(args, "filename")
+				body, returnedFilename, contentType, err := c.Agents.DownloadAttachmentByIdentifier(ctx, agentID, filename, &fibe.AgentDataParams{ConversationID: argString(args, "conversation_id")})
+				if err != nil {
+					return nil, err
+				}
+				defer body.Close()
+				data, err := io.ReadAll(body)
+				if err != nil {
+					return nil, err
+				}
+				if returnedFilename == "" {
+					returnedFilename = filename
+				}
+				return map[string]any{
+					"resource":        "agent_attachment",
+					"agent_id":        agentID,
+					"filename":        returnedFilename,
+					"content_type":    contentType,
+					"content_base64":  base64.StdEncoding.EncodeToString(data),
+					"size":            len(data),
+					"conversation_id": argString(args, "conversation_id"),
+				}, nil
 			},
 		},
 		"artefact": {
@@ -398,6 +462,62 @@ func listResource[P any](fn func(context.Context, *fibe.Client, *P) (any, error)
 	}
 }
 
+func (s *Server) runResourceWatch(ctx context.Context, c *fibe.Client, resource string, args map[string]any) (any, error) {
+	maxEvents := 25
+	if n, ok := argInt64(args, "max_events"); ok && n > 0 {
+		maxEvents = int(n)
+	}
+	duration := parseDuration(argString(args, "duration"), 30*time.Second)
+	if duration > 30*time.Minute {
+		duration = 30 * time.Minute
+	}
+
+	streamCtx, cancel := context.WithTimeout(ctx, duration)
+	defer cancel()
+
+	events, errs := c.Cable.SubscribeResource(streamCtx, cableResourceName(resource))
+	progressToken := progressTokenFromCtx(ctx)
+	collected := make([]fibe.CableEvent, 0, maxEvents)
+
+	for events != nil || errs != nil {
+		select {
+		case ev, ok := <-events:
+			if !ok {
+				events = nil
+				continue
+			}
+			collected = append(collected, ev)
+			if progressToken != nil {
+				s.sendProgress(streamCtx, progressToken, float64(len(collected)), resource+" resource event")
+			}
+			if maxEvents > 0 && len(collected) >= maxEvents {
+				cancel()
+			}
+		case err, ok := <-errs:
+			if !ok {
+				errs = nil
+				continue
+			}
+			if err != nil && streamCtx.Err() == nil {
+				return nil, err
+			}
+		case <-streamCtx.Done():
+			return map[string]any{"resource": resource, "events": collected, "count": len(collected)}, nil
+		}
+	}
+
+	return map[string]any{"resource": resource, "events": collected, "count": len(collected)}, nil
+}
+
+func cableResourceName(resource string) string {
+	switch resource {
+	case "agent":
+		return "Agent"
+	default:
+		return resource
+	}
+}
+
 func resolveFlatResource(resources map[string]flatResourceTool, args map[string]any, operation string) (string, flatResourceTool, error) {
 	raw := argString(args, "resource")
 	if raw == "" {
@@ -417,7 +537,7 @@ func resolveFlatResource(resources map[string]flatResourceTool, args map[string]
 			return "", flatResourceTool{}, fmt.Errorf("resource %q does not support list", name)
 		}
 	case "get":
-		if rt.get == nil {
+		if rt.get == nil && rt.getWithArgs == nil {
 			return "", flatResourceTool{}, fmt.Errorf("resource %q does not support get", name)
 		}
 	case "delete":

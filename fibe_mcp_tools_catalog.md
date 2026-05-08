@@ -1,6 +1,6 @@
 # Fibe MCP Tools
 
-Total Tools: 40
+Total Tools: 41
 
 ## `fibe_agents_duplicate`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** True
@@ -186,7 +186,7 @@ Total Tools: 40
 **Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment to download an artefact's single attached file.
+[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment or agent_attachment to download attached runtime file content.
 
 ## `fibe_resource_list`
 **Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
@@ -199,6 +199,12 @@ Total Tools: 40
 
 ### Description
 [MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request.
+
+## `fibe_resource_watch`
+**Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
+
+### Description
+[MODE:DIALOG] Watch supported Fibe resource events through AnyCable.
 
 ## `fibe_run`
 **Tier:** meta | **Destructive:** False | **Idempotent:** False

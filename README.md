@@ -53,6 +53,16 @@ fibe schema agent create
 # Create an agent
 fibe agents create --name "My Assistant" --provider "claude-code"
 
+# List agents with bounded runtime status for the returned page
+fibe agents list --include-runtime-status --per-page 100 -o json
+
+# Work with runtime chat attachments through Rails
+fibe agents upload-attachment my-agent --file ./context.zip
+fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
+
+# Watch agent resource events through AnyCable
+fibe agents watch --max-events 5 --duration 1m
+
 # Block until playground starts running
 fibe wait playground 42 --status running --timeout 5m
 ```
@@ -130,7 +140,7 @@ Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments
 
 ### Tool surface
 
-The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, and `fibe_resource_mutate` plus high-value actions such as `fibe_greenfield_create` and `fibe_templates_launch`. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls. `FIBE_MCP_TOOLS=full` exposes the full registered catalog; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
+The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_templates_launch`. Agent list/runtime and attachment flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, and download runtime files through `fibe_resource_get` using `agent_attachment`. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls. `FIBE_MCP_TOOLS=full` exposes the full registered catalog; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
 
 Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` on delete/rollout/hard-restart. Destructive tools require `confirm:true` in their args unless the server is launched with `--yolo` (or `FIBE_MCP_YOLO=1`) for non-interactive environments.
 

@@ -30,7 +30,8 @@ type resourceDef struct {
 var flatResources = []resourceDef{
 	{name: "playground", aliases: []string{"playgrounds"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
 	{name: "trick", aliases: []string{"tricks"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
-	{name: "agent", aliases: []string{"agents"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.AgentListParams](), get: true, delete: true},
+	{name: "agent", aliases: []string{"agents"}, operations: []string{"list", "get", "delete", "watch"}, listSchema: listParamsSchema[fibe.AgentListParams](), get: true, delete: true},
+	{name: "agent_attachment", aliases: []string{"agent_attachments", "agent_upload", "agent_uploads"}, operations: []string{"get"}, get: true},
 	{name: "artefact", aliases: []string{"artefacts"}, operations: []string{"list", "get"}, listSchema: listParamsSchema[fibe.ArtefactListParams](), get: true},
 	{name: "artefact_attachment", aliases: []string{"artefact_attachments"}, operations: []string{"get"}, get: true},
 	{name: "playspec", aliases: []string{"playspecs"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlayspecListParams](), get: true, delete: true},
@@ -344,6 +345,8 @@ func buildRegistry() map[string]map[string]any {
 	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	out["agent"]["update"] = withPropertyEnum(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	out["agent"]["restart_chat"] = resourceActionIDSchema("agent_id", "Agent ID whose active chat runtime should be restarted.")
+	out["agent"]["upload_attachment"] = agentUploadAttachmentSchema()
+	out["agent"]["watch"] = resourceWatchSchema("agent")
 	out["artefact"]["create"] = artefactCreateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
 	out["playspec"]["create"] = paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml")
@@ -393,6 +396,7 @@ func buildRegistry() map[string]map[string]any {
 		}
 	}
 	overrideResourceIDDescription(out, "artefact_attachment", "get", "Artefact ID whose single file attachment should be downloaded.")
+	out["agent_attachment"]["get"] = agentAttachmentGetSchema()
 	overrideResourceIDDescription(out, "template_source", "delete", "Template ID whose tracked source configuration should be cleared.")
 	overrideResourceIDDescription(out, "template_version", "delete", "Template version ID to delete.")
 	return out
@@ -435,6 +439,55 @@ func artefactCreateSchema() map[string]any {
 			"content_path":   map[string]any{"type": "string", "description": "Absolute local file path to read and upload. Use either content_path or content_base64."},
 			"description":    map[string]any{"type": "string", "description": "Optional human-readable artefact description."},
 			"playground_id":  namedIdentifierSchema("playground_id", "Optional playground ID or slug-safe name to associate with the artefact."),
+		},
+	}
+}
+
+func agentUploadAttachmentSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"agent_id"},
+		"anyOf": []any{
+			map[string]any{"required": []string{"content_path"}},
+			map[string]any{"required": []string{"content_base64"}},
+		},
+		"properties": map[string]any{
+			"agent_id":       namedIdentifierSchema("agent_id", "Agent ID or name that owns the runtime attachment."),
+			"content_path":   map[string]any{"type": "string", "description": "Absolute local file path to upload."},
+			"content_base64": map[string]any{"type": "string", "description": "Base64-encoded file content to upload."},
+			"filename":       map[string]any{"type": "string", "description": "Runtime filename. Defaults to basename(content_path) or attachment."},
+			"conversation_id": map[string]any{
+				"type":        "string",
+				"description": "Specific runtime conversation/thread ID. Optional.",
+			},
+		},
+	}
+}
+
+func agentAttachmentGetSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"resource", "agent_id", "filename"},
+		"properties": map[string]any{
+			"resource":        map[string]any{"type": "string", "description": "Use agent_attachment or one of its aliases."},
+			"agent_id":        namedIdentifierSchema("agent_id", "Agent ID or name that owns the runtime attachment."),
+			"filename":        map[string]any{"type": "string", "description": "Runtime attachment filename returned by upload or stored in message history."},
+			"conversation_id": map[string]any{"type": "string", "description": "Specific runtime conversation/thread ID. Optional."},
+		},
+	}
+}
+
+func resourceWatchSchema(resource string) map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"resource"},
+		"properties": map[string]any{
+			"resource":   map[string]any{"type": "string", "description": "Resource to watch. Currently supports " + resource + "."},
+			"max_events": map[string]any{"type": "integer", "minimum": 1, "description": "Stop after this many events."},
+			"duration":   map[string]any{"type": "string", "description": "Max watch duration as a Go duration string, for example 30s or 5m."},
 		},
 	}
 }
