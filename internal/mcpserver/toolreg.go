@@ -156,6 +156,7 @@ func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 	mcp.WithDestructiveHintAnnotation(t.annotations.Destructive)(&tool)
 	mcp.WithIdempotentHintAnnotation(t.annotations.Idempotent)(&tool)
 	enrichToolInputSchema(t.name, &tool)
+	makeToolInputSchemaClientCompatible(&tool)
 	if schema, ok := toolInputSchemaToMap(tool).(map[string]any); ok {
 		s.toolSchemas[t.name] = schema
 	}

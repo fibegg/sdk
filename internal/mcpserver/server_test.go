@@ -281,6 +281,14 @@ func TestAdvertisedToolInputSchemasHaveObjectProperties(t *testing.T) {
 					t.Fatalf("%s input schema unmarshal: %v", tool.Tool.Name, err)
 				}
 
+				if schema["type"] != "object" {
+					t.Fatalf("%s inputSchema.type = %#v, want object", tool.Tool.Name, schema["type"])
+				}
+				for _, keyword := range forbiddenTopLevelToolSchemaKeywords {
+					if _, ok := schema[keyword]; ok {
+						t.Fatalf("%s inputSchema has top-level %q, which breaks OpenAI/Codex-style MCP clients: %#v", tool.Tool.Name, keyword, schema[keyword])
+					}
+				}
 				props, ok := schema["properties"].(map[string]any)
 				if !ok {
 					t.Fatalf("%s inputSchema.properties is %T, want object", tool.Tool.Name, schema["properties"])
