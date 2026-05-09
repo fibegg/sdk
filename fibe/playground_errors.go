@@ -6,6 +6,46 @@ import (
 	"strings"
 )
 
+const ErrCodePlaygroundTerminalState = "PLAYGROUND_TERMINAL_STATE"
+
+type PlaygroundTerminalError struct {
+	Status *PlaygroundStatus
+}
+
+func NewPlaygroundTerminalStateError(status *PlaygroundStatus) *PlaygroundTerminalError {
+	return &PlaygroundTerminalError{Status: status}
+}
+
+func (e *PlaygroundTerminalError) Error() string {
+	return PlaygroundTerminalStateError(e.Status)
+}
+
+func (e *PlaygroundTerminalError) Details() map[string]any {
+	if e == nil || e.Status == nil {
+		return nil
+	}
+	status := e.Status
+	details := map[string]any{
+		"status": status.Status,
+	}
+	if status.ErrorMessage != nil && strings.TrimSpace(*status.ErrorMessage) != "" {
+		details["error_message"] = strings.TrimSpace(*status.ErrorMessage)
+	}
+	if status.ErrorStep != nil && strings.TrimSpace(*status.ErrorStep) != "" {
+		details["error_step"] = strings.TrimSpace(*status.ErrorStep)
+	}
+	if status.ErrorStepLabel != nil && strings.TrimSpace(*status.ErrorStepLabel) != "" {
+		details["error_step_label"] = strings.TrimSpace(*status.ErrorStepLabel)
+	}
+	if len(status.FailureDiagnostics) > 0 {
+		details["failure_diagnostics"] = status.FailureDiagnostics
+	}
+	if len(status.ErrorDetails) > 0 {
+		details["error_details"] = status.ErrorDetails
+	}
+	return details
+}
+
 func PlaygroundTerminalStateError(status *PlaygroundStatus) string {
 	if status == nil {
 		return "playground reached terminal state"

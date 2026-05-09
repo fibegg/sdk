@@ -61,7 +61,7 @@ Examples:
 
 					// Terminal failure states
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fmt.Errorf("%s", fibe.PlaygroundTerminalStateError(status))
+						return fibe.NewPlaygroundTerminalStateError(status)
 					}
 
 					select {

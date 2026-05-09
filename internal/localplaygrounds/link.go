@@ -56,6 +56,31 @@ type MountEntry struct {
 	Branch  string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
+type BaseDirMissingError struct {
+	Path string
+	Err  error
+}
+
+func (e *BaseDirMissingError) Error() string {
+	return fmt.Sprintf("directory %q does not exist; set MARQUEE_ROOT to the Marquee root or playgrounds directory", e.Path)
+}
+
+func (e *BaseDirMissingError) Unwrap() error {
+	return e.Err
+}
+
+func (e *BaseDirMissingError) ErrorCode() string {
+	return "LOCAL_PLAYGROUNDS_DIR_MISSING"
+}
+
+func (e *BaseDirMissingError) ErrorStatus() int {
+	return 404
+}
+
+func (e *BaseDirMissingError) ErrorDetails() map[string]any {
+	return map[string]any{"path": e.Path}
+}
+
 func BaseDir() string {
 	if v := strings.TrimSpace(os.Getenv("MARQUEE_ROOT")); v != "" {
 		return resolveMarqueeRoot(v)
@@ -73,7 +98,10 @@ func RootDomain() string {
 func Scan(baseDir string) ([]Playground, error) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
-		return nil, fmt.Errorf("directory '%s' does not exist.\nYou can set the MARQUEE_ROOT environment variable", baseDir)
+		if os.IsNotExist(err) {
+			return nil, &BaseDirMissingError{Path: baseDir, Err: err}
+		}
+		return nil, err
 	}
 
 	var playgrounds []Playground

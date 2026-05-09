@@ -1,6 +1,7 @@
 package localplaygrounds
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -68,6 +69,17 @@ func TestBaseDirResolvesMarqueeRootPlaygroundsSubdirectory(t *testing.T) {
 
 	if got := BaseDir(); got != playgroundsRoot {
 		t.Fatalf("BaseDir()=%q want %q", got, playgroundsRoot)
+	}
+}
+
+func TestScanMissingBaseDirReturnsStructuredError(t *testing.T) {
+	_, err := Scan(filepath.Join(t.TempDir(), "missing"))
+	var missing *BaseDirMissingError
+	if !errors.As(err, &missing) {
+		t.Fatalf("expected BaseDirMissingError, got %T: %v", err, err)
+	}
+	if missing.ErrorCode() != "LOCAL_PLAYGROUNDS_DIR_MISSING" || missing.ErrorStatus() != 404 {
+		t.Fatalf("code=%q status=%d", missing.ErrorCode(), missing.ErrorStatus())
 	}
 }
 

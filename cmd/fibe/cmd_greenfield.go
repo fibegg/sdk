@@ -255,7 +255,7 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 			return c.Playgrounds.Get(ctx, id)
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
-			return nil, fmt.Errorf("%s", fibe.PlaygroundTerminalStateError(status))
+			return nil, fibe.NewPlaygroundTerminalStateError(status)
 		}
 		select {
 		case <-ctx.Done():

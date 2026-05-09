@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -361,21 +362,8 @@ func outputJSON(v any) {
 func outputError(err error) {
 	format := effectiveOutput()
 
-	// structured format requested by explicit format or flag
 	if format == "json" || format == "yaml" || flagExplainErrors {
-		// Attempt to extract the API error
-		var code = "UNKNOWN_ERROR"
-		var details map[string]any
-		var reqId string
-		var statusCode = 500
-
-		// If it's castable to an *APIError
-		if apiErr, ok := err.(*fibe.APIError); ok {
-			code = apiErr.Code
-			details = apiErr.Details
-			reqId = apiErr.RequestID
-			statusCode = apiErr.StatusCode
-		}
+		code, statusCode, details, reqId := structuredErrorFields(err)
 
 		errMap := map[string]any{
 			"error": map[string]any{
@@ -404,6 +392,40 @@ func outputError(err error) {
 	}
 
 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+}
+
+type structuredCLIError interface {
+	error
+	ErrorCode() string
+	ErrorStatus() int
+	ErrorDetails() map[string]any
+}
+
+func structuredErrorFields(err error) (string, int, map[string]any, string) {
+	var apiErr *fibe.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.Code, apiErr.StatusCode, apiErr.Details, apiErr.RequestID
+	}
+
+	var terminalErr *fibe.PlaygroundTerminalError
+	if errors.As(err, &terminalErr) {
+		return fibe.ErrCodePlaygroundTerminalState, 422, terminalErr.Details(), ""
+	}
+
+	var structured structuredCLIError
+	if errors.As(err, &structured) {
+		status := structured.ErrorStatus()
+		if status == 0 {
+			status = 500
+		}
+		code := structured.ErrorCode()
+		if code == "" {
+			code = "UNKNOWN_ERROR"
+		}
+		return code, status, structured.ErrorDetails(), ""
+	}
+
+	return "UNKNOWN_ERROR", 500, nil, ""
 }
 
 func outputTable(headers []string, rows [][]string) {
