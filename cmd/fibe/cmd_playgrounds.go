@@ -24,6 +24,9 @@ LIFECYCLE SUMMARY:
   - error:         Failed (Check error_message payload and logs)
   - has_changes:   Code drifted (Trigger 'fibe pg rollout')
   - completed:     Job watch finished
+  - stopping:      Stop requested and waiting for containers to stop
+  - stopped:       Containers stopped; can be started again
+  - destroying:    Delete requested and cleanup is in progress
 
 CORE TROUBLESHOOTING:
   - "Stuck in Pending": Valid marquee?
@@ -37,6 +40,8 @@ SUBCOMMANDS:
   delete <id-or-name>       Delete a playground
   rollout <id-or-name>      Recreate with latest config
   hard-restart <id-or-name> Hard restart all services
+  stop <id-or-name>         Stop playground containers
+  start <id-or-name>        Start a stopped playground
   extend <id-or-name>       Extend expiration time
   status <id-or-name>       Check playground status
   compose <id-or-name>      Get docker-compose configuration
@@ -53,6 +58,8 @@ SUBCOMMANDS:
 		pgDeleteCmd(),
 		pgRolloutCmd(),
 		pgHardRestartCmd(),
+		pgStopCmd(),
+		pgStartCmd(),
 		pgExtendCmd(),
 		pgStatusCmd(),
 		pgComposeCmd(),
@@ -74,7 +81,7 @@ Tricks (job-mode workloads) are excluded — use 'fibe tricks list' instead.
 
 FILTERS:
   -q, --query           Search across name (substring match)
-  --status              Filter by exact status. Values: pending, in_progress, running, error, stopped, destroying
+  --status              Filter by exact status. Values: pending, in_progress, running, error, has_changes, completed, stopping, stopped, destroying
   --name                Filter by name (substring match)
   --playspec-id         Filter by playspec ID or name
   --marquee-id          Filter by marquee ID or name
@@ -415,6 +422,68 @@ EXAMPLES:
 				return err
 			}
 			fmt.Printf("Hard restart initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	return cmd
+}
+
+func pgStopCmd() *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "stop <id-or-name>",
+		Short: "Stop playground containers",
+		Long: `Stop a running playground and preserve its record and persistent volumes.
+
+The server queues the normal playground stop path and moves the playground
+through stopping to stopped when container teardown completes.
+
+EXAMPLES:
+  fibe playgrounds stop 42`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionStop}
+			if cmd.Flags().Changed("force") {
+				params.Force = &force
+			}
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Stop initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	return cmd
+}
+
+func pgStartCmd() *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "start <id-or-name>",
+		Short: "Start a stopped playground",
+		Long: `Start a stopped playground using its current playspec and service settings.
+
+The server queues the normal deployment path and keeps persistent volumes unless
+the playspec itself is configured otherwise.
+
+EXAMPLES:
+  fibe playgrounds start 42`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionStart}
+			if cmd.Flags().Changed("force") {
+				params.Force = &force
+			}
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Start initiated for playground %d — status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
