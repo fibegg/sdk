@@ -108,6 +108,8 @@ EXAMPLES:
 			cfg.APIKey = auth.APIKey
 			cfg.Domain = auth.Domain
 			cfg.Profile = auth.Profile
+			cfg.AuthSource = auth.AuthSource
+			cfg.DomainSource = auth.DomainSource
 			cfg.Debug = flagDebug
 
 			cfg.ToolSet = resolveEnv("FIBE_MCP_TOOLS", toolSet, cfg.ToolSet)

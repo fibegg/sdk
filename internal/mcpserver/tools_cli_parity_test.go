@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fibegg/sdk/fibe"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -200,17 +199,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 			mcpRes, mcpErr := srv.dispatcher.dispatch(context.Background(), tc.mcpTool, tc.mcpArgs)
 			var mcpBytes []byte
 			if mcpErr != nil {
-				var code = "UNKNOWN_ERROR"
-				var details map[string]any
-				var reqId string
-				var statusCode = 500
-
-				if apiErr, ok := mcpErr.(*fibe.APIError); ok {
-					code = apiErr.Code
-					details = apiErr.Details
-					reqId = apiErr.RequestID
-					statusCode = apiErr.StatusCode
-				}
+				code, statusCode, details, reqId := structuredToolErrorFields(mcpErr)
 				errMap := map[string]any{
 					"error": map[string]any{
 						"message": mcpErr.Error(),
@@ -448,22 +437,19 @@ func TestCLIParity_GetTools(t *testing.T) {
 			}
 
 			// Format mcpErr the same way outputError does for JSON
+			code, statusCode, details, reqId := structuredToolErrorFields(mcpErr)
 			mcpErrMap := map[string]any{
 				"error": map[string]any{
 					"message": mcpErr.Error(),
-					"code":    "UNKNOWN_ERROR",
-					"status":  500,
+					"code":    code,
+					"status":  statusCode,
 				},
 			}
-			if apiErr, ok := mcpErr.(*fibe.APIError); ok {
-				mcpErrMap["error"].(map[string]any)["code"] = apiErr.Code
-				mcpErrMap["error"].(map[string]any)["status"] = apiErr.StatusCode
-				if apiErr.Details != nil {
-					mcpErrMap["error"].(map[string]any)["details"] = apiErr.Details
-				}
-				if apiErr.RequestID != "" {
-					mcpErrMap["error"].(map[string]any)["request_id"] = apiErr.RequestID
-				}
+			if details != nil {
+				mcpErrMap["error"].(map[string]any)["details"] = details
+			}
+			if reqId != "" {
+				mcpErrMap["error"].(map[string]any)["request_id"] = reqId
 			}
 			mcpBytes, _ := json.Marshal(mcpErrMap)
 

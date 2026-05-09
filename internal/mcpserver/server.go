@@ -59,6 +59,12 @@ type Config struct {
 	// APIKey/Domain, when the server was launched from profile-aware CLI code.
 	Profile string
 
+	// AuthSource and DomainSource describe how APIKey/Domain were resolved.
+	// They mirror the CLI doctor/config JSON fields when the server is
+	// launched through `fibe mcp serve`.
+	AuthSource   string
+	DomainSource string
+
 	// Debug turns on verbose logging to stderr.
 	Debug bool
 

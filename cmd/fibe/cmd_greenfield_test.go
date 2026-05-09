@@ -37,6 +37,20 @@ func TestParseGreenfieldVars(t *testing.T) {
 	}
 }
 
+func TestParseGreenfieldServiceSubdomains(t *testing.T) {
+	subdomains, err := parseGreenfieldStringMapFlags([]string{"app=tower", "admin=tower-admin"}, "service-subdomain")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if subdomains["app"] != "tower" || subdomains["admin"] != "tower-admin" {
+		t.Fatalf("unexpected subdomains: %#v", subdomains)
+	}
+
+	if _, err := parseGreenfieldStringMapFlags([]string{"broken"}, "service-subdomain"); err == nil {
+		t.Fatal("expected malformed service-subdomain error")
+	}
+}
+
 func TestGreenfieldHelpShowsOnlyPublicUXFlags(t *testing.T) {
 	cmd := greenfieldCmd()
 	var out bytes.Buffer
@@ -64,6 +78,8 @@ func TestGreenfieldHelpShowsOnlyPublicUXFlags(t *testing.T) {
 		"Target marquee ID or name (optional, default: current Marquee)",
 		"--var strings",
 		"Set template variables (e.g., --var app_name=Tower, optional)",
+		"--service-subdomain strings",
+		"Set an exposed service subdomain override",
 		"--wait-timeout duration",
 	} {
 		if !strings.Contains(got, want) {

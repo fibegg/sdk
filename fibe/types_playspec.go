@@ -182,15 +182,41 @@ type RegistryCredentialResult struct {
 }
 
 type PlayspecTemplateVersionSwitchParams struct {
-	TargetTemplateVersionID    int64          `json:"target_template_version_id"`
-	Variables                  map[string]any `json:"variables,omitempty"`
-	RegenerateVariables        []string       `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings            bool           `json:"confirm_warnings,omitempty"`
-	RolloutMode                string         `json:"rollout_mode,omitempty"`
-	TargetPlaygroundID         *int64         `json:"target_playground_id,omitempty"`
-	TargetPlaygroundIdentifier string         `json:"-"`
-	ResponseMode               string         `json:"response_mode,omitempty"`
-	Summary                    bool           `json:"summary,omitempty"`
+	TargetTemplateVersionID    int64                `json:"target_template_version_id"`
+	Variables                  map[string]any       `json:"variables,omitempty"`
+	RegenerateVariables        []string             `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings            bool                 `json:"confirm_warnings,omitempty"`
+	RolloutMode                string               `json:"rollout_mode,omitempty"`
+	TargetPlaygroundID         *int64               `json:"target_playground_id,omitempty"`
+	TargetPlaygroundIdentifier string               `json:"-"`
+	ResponseMode               string               `json:"response_mode,omitempty"`
+	Summary                    bool                 `json:"summary,omitempty"`
+	ProvisionMissingProps      string               `json:"provision_missing_props,omitempty"`
+	ProvisionPrivate           *bool                `json:"provision_private,omitempty"`
+	ProvisionInputs            []ProvisionPropInput `json:"provision_inputs,omitempty"`
+}
+
+// ProvisionPropInput optionally configures the per-URL provisioning of a
+// fresh git repository + Prop when switching a playspec/playground to a
+// template that references a repo the player does not yet own. Used together
+// with PlayspecTemplateVersionSwitchParams.ProvisionMissingProps.
+type ProvisionPropInput struct {
+	SourceRepoURL string  `json:"source_repo_url"`
+	NameOverride  *string `json:"name_override,omitempty"`
+	DefaultBranch *string `json:"default_branch,omitempty"`
+	Description   *string `json:"description,omitempty"`
+	AutoInit      *bool   `json:"auto_init,omitempty"`
+}
+
+// ProvisionedPropResult describes one Prop that the server provisioned during a
+// template_version_switch when ProvisionMissingProps was set.
+type ProvisionedPropResult struct {
+	SourceRepoURL string         `json:"source_repo_url,omitempty"`
+	ServiceName   string         `json:"service_name,omitempty"`
+	Provider      string         `json:"provider,omitempty"`
+	Repo          map[string]any `json:"repo,omitempty"`
+	PropID        int64          `json:"prop_id,omitempty"`
+	DefaultBranch string         `json:"default_branch,omitempty"`
 }
 
 func (p PlayspecTemplateVersionSwitchParams) MarshalJSON() ([]byte, error) {
@@ -220,6 +246,28 @@ type PlayspecTemplateVersionSwitchResult struct {
 	PlaygroundRolloutPlan TemplateSwitchPlaygroundPlan `json:"playground_rollout_plan"`
 	NoOp                  bool                         `json:"no_op"`
 	Playspec              *Playspec                    `json:"playspec"`
+	ProvisionedProps      []ProvisionedPropResult      `json:"provisioned_props,omitempty"`
+	PropResolutionPreview *PropResolutionPreview       `json:"prop_resolution_preview,omitempty"`
+}
+
+// PropResolutionPreview classifies each repo URL the target template version
+// references against the player's existing Props. Populated only on preview
+// (mode != apply) responses from /api/playspecs/:id/template_version_switch.
+type PropResolutionPreview struct {
+	Existing          []PropResolutionEntry `json:"existing,omitempty"`
+	ExistingForks     []PropResolutionEntry `json:"existing_forks,omitempty"`
+	WouldCreatePublic []PropResolutionEntry `json:"would_create_public,omitempty"`
+	WouldProvision    []PropResolutionEntry `json:"would_provision,omitempty"`
+	MissingPrivate    []PropResolutionEntry `json:"missing_private,omitempty"`
+}
+
+// PropResolutionEntry is one row inside PropResolutionPreview.
+type PropResolutionEntry struct {
+	URL              string `json:"url"`
+	NormalizedURL    string `json:"normalized_url,omitempty"`
+	ServiceName      string `json:"service_name,omitempty"`
+	PropID           int64  `json:"prop_id,omitempty"`
+	ProvisionProvider string `json:"provision_provider,omitempty"`
 }
 
 type PlayspecTemplateVersionSwitchPreview = PlayspecTemplateVersionSwitchResult

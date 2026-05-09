@@ -159,6 +159,7 @@ func TestGreenfield_Create(t *testing.T) {
 		GitProvider:       "github",
 		MarqueeID:         &marqueeID,
 		Variables:         map[string]any{"app_name": "Tower"},
+		ServiceSubdomains: map[string]string{"app": "tower", "admin": "tower-admin"},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -178,6 +179,10 @@ func TestGreenfield_Create(t *testing.T) {
 	vars := body["variables"].(map[string]any)
 	if vars["app_name"] != "Tower" {
 		t.Fatalf("unexpected variables: %#v", vars)
+	}
+	serviceSubdomains := body["service_subdomains"].(map[string]any)
+	if serviceSubdomains["app"] != "tower" || serviceSubdomains["admin"] != "tower-admin" {
+		t.Fatalf("unexpected service_subdomains: %#v", serviceSubdomains)
 	}
 }
 

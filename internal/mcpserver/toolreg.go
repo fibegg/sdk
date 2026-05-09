@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -188,8 +189,8 @@ func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 	})
 }
 
-// toolResultFromError preserves the structured fields of *fibe.APIError
-// (code, request_id, status, details) when surfacing errors to MCP hosts.
+// toolResultFromError preserves structured error fields such as code,
+// request_id, status, and details when surfacing errors to MCP hosts.
 // Agents then have enough context to decide whether to retry, branch, or
 // surface the failure to the user.
 func toolResultFromError(toolName string, err error) *mcp.CallToolResult {
@@ -198,7 +199,8 @@ func toolResultFromError(toolName string, err error) *mcp.CallToolResult {
 		"message": err.Error(),
 	}
 
-	if apiErr, ok := err.(*fibe.APIError); ok {
+	var apiErr *fibe.APIError
+	if errors.As(err, &apiErr) {
 		payload["code"] = apiErr.Code
 		payload["status"] = apiErr.StatusCode
 		payload["message"] = apiErr.Message
@@ -220,6 +222,15 @@ func toolResultFromError(toolName string, err error) *mcp.CallToolResult {
 	} else if _, ok := err.(*confirmRequiredError); ok {
 		payload["code"] = "CONFIRM_REQUIRED"
 		payload["hint"] = "pass confirm:true or run server with --yolo"
+	} else if code, status, details, reqID := structuredToolErrorFields(err); code != "UNKNOWN_ERROR" || status != 500 || details != nil || reqID != "" {
+		payload["code"] = code
+		payload["status"] = status
+		if details != nil {
+			payload["details"] = details
+		}
+		if reqID != "" {
+			payload["request_id"] = reqID
+		}
 	}
 
 	body, mErr := json.Marshal(payload)
@@ -230,6 +241,40 @@ func toolResultFromError(toolName string, err error) *mcp.CallToolResult {
 	// the structured payload as the error body so agents get everything in
 	// one string to parse.
 	return mcp.NewToolResultError(string(body))
+}
+
+type structuredToolError interface {
+	error
+	ErrorCode() string
+	ErrorStatus() int
+	ErrorDetails() map[string]any
+}
+
+func structuredToolErrorFields(err error) (string, int, map[string]any, string) {
+	var apiErr *fibe.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.Code, apiErr.StatusCode, apiErr.Details, apiErr.RequestID
+	}
+
+	var terminalErr *fibe.PlaygroundTerminalError
+	if errors.As(err, &terminalErr) {
+		return fibe.ErrCodePlaygroundTerminalState, 422, terminalErr.Details(), ""
+	}
+
+	var structured structuredToolError
+	if errors.As(err, &structured) {
+		status := structured.ErrorStatus()
+		if status == 0 {
+			status = 500
+		}
+		code := structured.ErrorCode()
+		if code == "" {
+			code = "UNKNOWN_ERROR"
+		}
+		return code, status, structured.ErrorDetails(), ""
+	}
+
+	return "UNKNOWN_ERROR", 500, nil, ""
 }
 
 // registerList registers a list endpoint. The generic type P is the list

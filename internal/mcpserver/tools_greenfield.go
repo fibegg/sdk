@@ -17,7 +17,7 @@ const greenfieldDefaultLinkDir = "/app/playground"
 
 func (s *Server) registerGreenfieldTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create a new repository, Prop, app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
+		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			params, waitTimeout, err := greenfieldArgs(args)
@@ -60,7 +60,7 @@ func (s *Server) registerGreenfieldTools() {
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_greenfield_create",
-		mcp.WithDescription("Create a greenfield app in one call: repo, Prop, app template version, deployed playground, wait until running, and local /app/playground link."),
+		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link."),
 		mcp.WithString("name", mcp.Required(), mcp.Description("Repository/app name; must be unique.")),
 		mcp.WithNumber("template_id", mcp.Description("Template ID to use. Optional; defaults to the base template.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id or version.")),
@@ -71,6 +71,7 @@ func (s *Server) registerGreenfieldTools() {
 		mcp.WithBoolean("private", mcp.Description("Create destination repository as private. Optional; Fibe defaults Gitea greenfield repos to private.")),
 		mcp.WithNumber("marquee_id", mcp.Description("Target marquee ID. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID.")),
 		mcp.WithObject("variables", mcp.Description("Template variables map, e.g. {\"app_name\":\"Tower\"}. Optional.")),
+		mcp.WithObject("service_subdomains", mcp.Description("Exposed service subdomain overrides, e.g. {\"app\":\"my-app\",\"admin\":\"my-app-admin\"}. Optional.")),
 		mcp.WithString("wait_timeout", mcp.Description("Max wait duration, e.g. 10m. Optional; default: 10m.")),
 	))
 }
@@ -138,6 +139,7 @@ func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Dur
 		Private:           private,
 		MarqueeID:         &marqueeID,
 		Variables:         greenfieldVariables(args["variables"]),
+		ServiceSubdomains: greenfieldStringMap(args["service_subdomains"]),
 	}
 	return params, timeout, nil
 }
@@ -164,6 +166,22 @@ func greenfieldVariables(raw any) map[string]any {
 		normalized := normalizeVariableKey(key)
 		if normalized != "" {
 			out[normalized] = value
+		}
+	}
+	return out
+}
+
+func greenfieldStringMap(raw any) map[string]string {
+	out := map[string]string{}
+	values, ok := raw.(map[string]any)
+	if !ok {
+		return out
+	}
+	for key, value := range values {
+		normalized := normalizeVariableKey(key)
+		item := strings.TrimSpace(fmt.Sprint(value))
+		if normalized != "" && item != "" && item != "<nil>" {
+			out[normalized] = item
 		}
 	}
 	return out

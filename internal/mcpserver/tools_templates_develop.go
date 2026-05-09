@@ -12,26 +12,29 @@ import (
 )
 
 type templateDevelopArgs struct {
-	TargetType              string                   `json:"target_type"`
-	TargetID                int64                    `json:"target_id"`
-	Mode                    string                   `json:"mode"`
-	ChangeType              string                   `json:"change_type"`
-	BaseVersionID           int64                    `json:"base_version_id,omitempty"`
-	TargetTemplateVersionID int64                    `json:"target_template_version_id,omitempty"`
-	Patches                 []fibe.TemplatePatchEdit `json:"patches,omitempty"`
-	Edits                   []fibe.TemplatePatchEdit `json:"edits,omitempty"`
-	TemplateBody            string                   `json:"template_body,omitempty"`
-	TemplateBodyPath        string                   `json:"template_body_path,omitempty"`
-	Changelog               string                   `json:"changelog,omitempty"`
-	Public                  *bool                    `json:"public,omitempty"`
-	SwitchVariables         map[string]any           `json:"switch_variables,omitempty"`
-	RegenerateVariables     []string                 `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings         bool                     `json:"confirm_warnings,omitempty"`
-	PostApply               string                   `json:"post_apply,omitempty"`
-	Wait                    bool                     `json:"wait,omitempty"`
-	WaitTimeoutSeconds      int64                    `json:"wait_timeout_seconds,omitempty"`
-	DiagnoseOnFailure       *bool                    `json:"diagnose_on_failure,omitempty"`
-	ResponseMode            string                   `json:"response_mode,omitempty"`
+	TargetType              string                    `json:"target_type"`
+	TargetID                int64                     `json:"target_id"`
+	Mode                    string                    `json:"mode"`
+	ChangeType              string                    `json:"change_type"`
+	BaseVersionID           int64                     `json:"base_version_id,omitempty"`
+	TargetTemplateVersionID int64                     `json:"target_template_version_id,omitempty"`
+	Patches                 []fibe.TemplatePatchEdit  `json:"patches,omitempty"`
+	Edits                   []fibe.TemplatePatchEdit  `json:"edits,omitempty"`
+	TemplateBody            string                    `json:"template_body,omitempty"`
+	TemplateBodyPath        string                    `json:"template_body_path,omitempty"`
+	Changelog               string                    `json:"changelog,omitempty"`
+	Public                  *bool                     `json:"public,omitempty"`
+	SwitchVariables         map[string]any            `json:"switch_variables,omitempty"`
+	RegenerateVariables     []string                  `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings         bool                      `json:"confirm_warnings,omitempty"`
+	PostApply               string                    `json:"post_apply,omitempty"`
+	Wait                    bool                      `json:"wait,omitempty"`
+	WaitTimeoutSeconds      int64                     `json:"wait_timeout_seconds,omitempty"`
+	DiagnoseOnFailure       *bool                     `json:"diagnose_on_failure,omitempty"`
+	ResponseMode            string                    `json:"response_mode,omitempty"`
+	ProvisionMissingProps   string                    `json:"provision_missing_props,omitempty"`
+	ProvisionPrivate        *bool                     `json:"provision_private,omitempty"`
+	ProvisionInputs         []fibe.ProvisionPropInput `json:"provision_inputs,omitempty"`
 }
 
 type templateDevelopTarget struct {
@@ -48,7 +51,7 @@ func (s *Server) registerTemplateDevelopTools() {
 	inputSchema, _ := schema.(map[string]any)
 	s.addTool(&toolImpl{
 		name:        "fibe_templates_develop",
-		description: "[MODE:BROWNFIELD] Preview or apply template changes, switch playspecs/playgrounds/tricks, and optionally roll out or trigger a fresh trick run.",
+		description: "[MODE:BROWNFIELD] Preview or apply template changes. With change_type=switch_existing on a playground, retemplates an existing deployed playground in-place: same playground id, same playspec id, services regenerated, props auto-reconciled (and optionally provisioned as private Gitea repos via provision_missing_props). Also handles patch/overwrite of the linked template version, optional rollout, and trick triggering.",
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -65,7 +68,7 @@ func (s *Server) registerTemplateDevelopTools() {
 			return runTemplateDevelop(ctx, c, &in)
 		},
 	}, mcp.NewTool("fibe_templates_develop",
-		mcp.WithDescription("[MODE:BROWNFIELD] Preview or apply brownfield template changes. Patch or overwrite a template version, switch a playspec/playground/trick, and optionally roll out a playground or trigger a fresh trick run."),
+		mcp.WithDescription("[MODE:BROWNFIELD] Preview or apply brownfield template changes. Use change_type=switch_existing with target_type=playground to retemplate a deployed playground in-place — preserves the playground id, repoints the playspec at a different (potentially totally different) template version, regenerates services, and reconciles props (set provision_missing_props=\"gitea\" to spin up private Gitea repos for new props). Also patches or overwrites a template version, switches a playspec/trick, and optionally rolls out or triggers a fresh trick run. For one-shot retemplating of a playground from a fresh template body, prefer fibe_playgrounds_retemplate."),
 		withRawInputSchema(inputSchema),
 	))
 }
@@ -233,6 +236,9 @@ func runTemplateDevelopSwitch(ctx context.Context, c *fibe.Client, in *templateD
 		RolloutMode:             rolloutModeForPostApply(in.PostApply),
 		TargetPlaygroundID:      target.playgroundID,
 		ResponseMode:            in.ResponseMode,
+		ProvisionMissingProps:   in.ProvisionMissingProps,
+		ProvisionPrivate:        in.ProvisionPrivate,
+		ProvisionInputs:         in.ProvisionInputs,
 	}
 	if in.Mode == "preview" {
 		return c.Playspecs.PreviewTemplateVersionSwitch(ctx, *target.playspecID, params)

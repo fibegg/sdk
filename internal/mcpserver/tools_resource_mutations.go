@@ -17,6 +17,7 @@ import (
 func (s *Server) registerResourceMutationTools() {
 	s.registerResourceMutateTool()
 	s.registerPlaygroundMutationTools()
+	s.registerPlaygroundRetemplateTools()
 	s.registerAgentMutationTools()
 	s.registerFeedbackMutationTools()
 }

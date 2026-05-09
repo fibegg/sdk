@@ -11,9 +11,10 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 	t.Setenv("FIBE_MARQUEE_ID", "88")
 
 	params, timeout, err := greenfieldArgs(map[string]any{
-		"name":      "tower-defence",
-		"private":   true,
-		"variables": map[string]any{"app_name": "Tower", "--subdomain": "x1"},
+		"name":               "tower-defence",
+		"private":            true,
+		"variables":          map[string]any{"app_name": "Tower", "--subdomain": "x1"},
+		"service_subdomains": map[string]any{"app": "tower", "admin": "tower-admin"},
 	})
 	if err != nil {
 		t.Fatalf("greenfieldArgs: %v", err)
@@ -32,6 +33,9 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 	}
 	if params.Variables["app_name"] != "Tower" || params.Variables["subdomain"] != "x1" {
 		t.Fatalf("variables=%#v", params.Variables)
+	}
+	if params.ServiceSubdomains["app"] != "tower" || params.ServiceSubdomains["admin"] != "tower-admin" {
+		t.Fatalf("service_subdomains=%#v", params.ServiceSubdomains)
 	}
 }
 

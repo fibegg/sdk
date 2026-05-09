@@ -37,9 +37,13 @@ func (s *Server) registerMetaTools() {
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			me, err := c.APIKeys.Me(ctx)
+			profile, authSource, domainSource := s.doctorAuthMetadata(ctx)
 			result := map[string]any{
-				"domain":  c.BaseURL(),
-				"version": Version,
+				"profile":       profile,
+				"domain":        c.BaseURL(),
+				"version":       Version,
+				"auth_source":   authSource,
+				"domain_source": domainSource,
 			}
 			if err != nil {
 				result["authenticated"] = false
@@ -679,6 +683,72 @@ func isCLIResourceMutationPath(path []string) bool {
 		"job-env update":                  true,
 	}
 	return known[key]
+}
+
+func (s *Server) doctorAuthMetadata(ctx context.Context) (profile, authSource, domainSource string) {
+	st := s.sessionFor(ctx)
+	st.mu.RLock()
+	sessionProfile, sessionKey, sessionDomain := st.profile, st.apiKey, st.domain
+	st.mu.RUnlock()
+
+	profile = sessionProfile
+	if profile == "" {
+		profile = s.cfg.Profile
+	}
+	if profile == "" {
+		profile = fibe.DefaultProfileName
+	}
+
+	authSource = s.cfg.AuthSource
+	domainSource = s.cfg.DomainSource
+	if sessionProfile != "" {
+		source := "profile " + sessionProfile
+		authSource = source
+		domainSource = source
+	} else {
+		if sessionKey != "" {
+			authSource = "session"
+		}
+		if sessionDomain != "" {
+			domainSource = "session"
+		}
+	}
+
+	if authSource == "" {
+		authSource = inferMCPAuthSource(s.cfg.APIKey, s.cfg.Profile)
+	}
+	if domainSource == "" {
+		domainSource = inferMCPDomainSource(s.cfg.Domain, s.cfg.Profile)
+	}
+	return profile, authSource, domainSource
+}
+
+func inferMCPAuthSource(apiKey, profile string) string {
+	apiKey = strings.TrimSpace(apiKey)
+	if apiKey == "" {
+		return "none"
+	}
+	if envKey := strings.TrimSpace(os.Getenv("FIBE_API_KEY")); envKey != "" && envKey == apiKey {
+		return "FIBE_API_KEY env"
+	}
+	if profile = strings.TrimSpace(profile); profile != "" {
+		return "profile " + profile
+	}
+	return "server config"
+}
+
+func inferMCPDomainSource(domain, profile string) string {
+	domain = strings.TrimSpace(domain)
+	if domain == "" {
+		return "default"
+	}
+	if envDomain := strings.TrimSpace(os.Getenv("FIBE_DOMAIN")); envDomain != "" && normalizeMCPDomain(envDomain) == normalizeMCPDomain(domain) {
+		return "FIBE_DOMAIN env"
+	}
+	if profile = strings.TrimSpace(profile); profile != "" {
+		return "profile " + profile
+	}
+	return "server config"
 }
 
 type truncatingBuffer struct {

@@ -324,17 +324,17 @@ func (f *pipelineFailure) toMap() map[string]any {
 		"tool":       f.tool,
 		"message":    f.err.Error(),
 	}
-	// Unwrap *fibe.APIError so agents can branch on code / status without
+	// Preserve structured error fields so agents can branch without
 	// string-matching. Mirrors the toolResultFromError surface.
-	var apiErr *fibe.APIError
-	if errors.As(f.err, &apiErr) {
-		out["code"] = apiErr.Code
-		out["status"] = apiErr.StatusCode
-		if apiErr.RequestID != "" {
-			out["request_id"] = apiErr.RequestID
+	code, status, details, reqID := structuredToolErrorFields(f.err)
+	if code != "UNKNOWN_ERROR" || status != 500 || details != nil || reqID != "" {
+		out["code"] = code
+		out["status"] = status
+		if reqID != "" {
+			out["request_id"] = reqID
 		}
-		if apiErr.Details != nil {
-			out["details"] = apiErr.Details
+		if details != nil {
+			out["details"] = details
 		}
 	}
 	return out

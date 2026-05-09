@@ -30,13 +30,14 @@ func greenfieldCmd() *cobra.Command {
 		marqueeID              string
 		marqueeIDTypoMarque    int64
 		vars                   []string
+		serviceSubdomains      []string
 		waitTimeout            time.Duration
 	)
 
 	cmd := &cobra.Command{
 		Use:   "greenfield",
 		Short: "Create a new greenfield app from the platform template flow",
-		Long: `Create a new app repository, Prop, app-owned template version, and deployed playground.
+		Long: `Create a new app from a template, including one or more destination repositories and Props, an app-owned template version, and a deployed playground.
 
 The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
@@ -44,6 +45,7 @@ and links the local playground checkout into /app/playground by default.
 Examples:
   fibe greenfield --name my-app --template-id 347
   fibe greenfield --name my-app --template-version-id 912
+  fibe greenfield --name my-app --service-subdomain app=my-app --service-subdomain admin=my-app-admin
   fibe greenfield --name my-app -f my-template.yml
   fibe greenfield --name my-app --template-body 'services:\n  web:\n    image: nginx'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -106,6 +108,13 @@ Examples:
 				}
 				params.Variables = parsed
 			}
+			if cmd.Flags().Changed("service-subdomain") && len(serviceSubdomains) > 0 {
+				parsed, err := parseGreenfieldStringMapFlags(serviceSubdomains, "--service-subdomain")
+				if err != nil {
+					return err
+				}
+				params.ServiceSubdomains = parsed
+			}
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
 			}
@@ -149,6 +158,7 @@ Examples:
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional, default: current Marquee)")
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "Set template variables (e.g., --var app_name=Tower, optional)")
+	cmd.Flags().StringSliceVar(&serviceSubdomains, "service-subdomain", nil, "Set an exposed service subdomain override (repeatable, e.g., --service-subdomain app=my-app)")
 	cmd.Flags().DurationVar(&waitTimeout, "wait-timeout", 10*time.Minute, "Maximum time to wait for the playground to reach running (optional, default 10m0s)")
 	cmd.Flags().Int64Var(&templateIDTypoTempalte, "tempalte-id", 0, "Alias for --template-id")
 	cmd.Flags().Int64Var(&templateIDTypoTemlate, "temlate-id", 0, "Alias for --template-id")
@@ -220,6 +230,23 @@ func parseGreenfieldVars(values []string) (map[string]any, error) {
 			return nil, fmt.Errorf("invalid --var %q, expected key=value", value)
 		}
 		out[key] = parts[1]
+	}
+	return out, nil
+}
+
+func parseGreenfieldStringMapFlags(values []string, flagName string) (map[string]string, error) {
+	out := make(map[string]string, len(values))
+	for _, value := range values {
+		parts := strings.SplitN(value, "=", 2)
+		key := normalizeVariableFlagKey(parts[0])
+		if len(parts) != 2 || key == "" {
+			return nil, fmt.Errorf("invalid %s %q, expected key=value", flagName, value)
+		}
+		item := strings.TrimSpace(parts[1])
+		if item == "" {
+			return nil, fmt.Errorf("invalid %s %q, value cannot be blank", flagName, value)
+		}
+		out[key] = item
 	}
 	return out, nil
 }

@@ -84,7 +84,7 @@ Total Tools: 41
 **Tier:** greenfield | **Destructive:** False | **Idempotent:** False
 
 ### Description
-[MODE:GREENFIELD] Create a new repository, Prop, app-owned template version, deployed playground, wait for running, and link it locally.
+[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally.
 
 ## `fibe_help`
 **Tier:** meta | **Destructive:** False | **Idempotent:** True | **Read-only:** True

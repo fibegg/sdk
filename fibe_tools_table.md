@@ -15,7 +15,7 @@
 | `fibe_get_github_token` | [MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct installation. |
 | `fibe_gitea_repos_create` | [MODE:GREENFIELD] Register and connect a new Gitea repository |
 | `fibe_github_repos_create` | [MODE:GREENFIELD] Register and connect a new GitHub repository |
-| `fibe_greenfield_create` | [MODE:GREENFIELD] Create a new repository, Prop, app-owned template version, deployed playground, wait for running, and link it locally. |
+| `fibe_greenfield_create` | [MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally. |
 | `fibe_help` | [MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes. |
 | `fibe_local_playgrounds_info` | [MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT. |
 | `fibe_local_playgrounds_link` | [MODE:BROWNFIELD] Link local playground mounts into a working directory. |
