@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func TestPlaygroundsRetemplateApplyRequiresConfirm(t *testing.T) {
+func TestPlaygroundsTransformApplyRequiresConfirm(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_retemplate", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
 		"playground_id":       1,
 		"template_version_id": 2,
 	})
@@ -21,13 +21,13 @@ func TestPlaygroundsRetemplateApplyRequiresConfirm(t *testing.T) {
 	}
 }
 
-func TestPlaygroundsRetemplatePreviewDoesNotRequireConfirm(t *testing.T) {
+func TestPlaygroundsTransformPreviewDoesNotRequireConfirm(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_retemplate", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
 		"playground_id":       1,
 		"template_version_id": 2,
 		"mode":                "preview",
@@ -40,17 +40,39 @@ func TestPlaygroundsRetemplatePreviewDoesNotRequireConfirm(t *testing.T) {
 	}
 }
 
-func TestPlaygroundsRetemplateValidatesTargetSelectors(t *testing.T) {
+func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_retemplate", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
 		"playground_id": 1,
 		"confirm":       true,
 	})
 	if err == nil {
 		t.Fatal("expected validation error when no template target provided")
+	}
+}
+
+func TestPlaygroundsRetemplateAliasIsCallableThroughFibeCall(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_call", map[string]any{
+		"tool": "fibe_playgrounds_retemplate",
+		"args": map[string]any{
+			"playground_id":       1,
+			"template_version_id": 2,
+		},
+		"confirm": true,
+	})
+	if err == nil {
+		t.Fatal("expected mock network error")
+	}
+	if strings.Contains(err.Error(), "confirm:true") {
+		t.Fatalf("fibe_call should forward confirm to legacy alias, got %v", err)
 	}
 }

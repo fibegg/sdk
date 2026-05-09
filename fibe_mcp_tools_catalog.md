@@ -164,6 +164,12 @@ Total Tools: 41
 ### Description
 [MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications
 
+## `fibe_playgrounds_transform`
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** False
+
+### Description
+[MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create.
+
 ## `fibe_playgrounds_wait`
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
@@ -224,11 +230,11 @@ Total Tools: 41
 ### Description
 [MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.
 
-## `fibe_templates_develop`
+## `fibe_templates_change`
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** False
 
 ### Description
-[MODE:BROWNFIELD] Preview or apply template changes, switch playspecs/playgrounds/tricks, and optionally roll out or trigger a fresh trick run.
+[MODE:BROWNFIELD] Hidden advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run.
 
 ## `fibe_templates_launch`
 **Tier:** greenfield | **Destructive:** False | **Idempotent:** True

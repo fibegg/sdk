@@ -352,7 +352,10 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 	for _, name := range []string{
 		"fibe_resource_mutate",
 		"fibe_mutter",
+		"fibe_playgrounds_transform",
+		"fibe_templates_change",
 		"fibe_templates_develop",
+		"fibe_playgrounds_retemplate",
 		"fibe_playgrounds_action",
 		"fibe_feedbacks_get",
 		"fibe_templates_launch",
@@ -498,15 +501,15 @@ func TestResourceSchemaCatalog(t *testing.T) {
 
 	developSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
 		"resource":  "template",
-		"operation": "develop",
+		"operation": "change",
 	})
 	if err != nil {
-		t.Fatalf("fibe_schema template develop: %v", err)
+		t.Fatalf("fibe_schema template change: %v", err)
 	}
 	developProps := developSchema.(map[string]any)["properties"].(map[string]any)
 	postApplyEnum := developProps["post_apply"].(map[string]any)["enum"].([]string)
 	if !containsString(postApplyEnum, "trigger_trick") {
-		t.Fatalf("template.develop post_apply enum missing trigger_trick: %#v", postApplyEnum)
+		t.Fatalf("template.change post_apply enum missing trigger_trick: %#v", postApplyEnum)
 	}
 }
 

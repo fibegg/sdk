@@ -341,7 +341,9 @@ func buildRegistry() map[string]map[string]any {
 			"force":         map[string]any{"type": "boolean", "description": "Bypass normal state guards when the server permits forced execution."},
 		},
 	}
-	out["playground"]["retemplate"] = playgroundRetemplateSchema()
+	playgroundTransform := playgroundTransformSchema()
+	out["playground"]["transform"] = playgroundTransform
+	out["playground"]["retemplate"] = deprecatedOperationSchema(playgroundTransform, "Deprecated alias for playground.transform. Use transform for end-to-end deployed playground transformation.")
 	agentCreate := withPropertyEnum(paramsSchema[fibe.AgentCreateParams]("name", "provider"), "provider", fibe.ValidProviders)
 	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	out["agent"]["update"] = withPropertyEnum(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
@@ -372,7 +374,9 @@ func buildRegistry() map[string]map[string]any {
 	out["compose"]["validate"] = composeValidateSchema()
 	out["template"]["create"] = paramsSchema[fibe.ImportTemplateCreateParams]("name", "category_id", "template_body")
 	out["template"]["update"] = templateUpdateSchema()
-	out["template"]["develop"] = templateDevelopSchema()
+	templateChange := templateChangeSchema()
+	out["template"]["change"] = templateChange
+	out["template"]["develop"] = deprecatedOperationSchema(templateChange, "Deprecated alias for template.change. Use change for advanced template version patch/overwrite/switch workflows.")
 	out["template"]["fork"] = resourceActionIDSchema("template_id", "Template ID to fork into a new standalone template.")
 	out["template"]["source_refresh"] = resourceActionIDSchema("template_id", "Template ID whose tracked source file should be refreshed.")
 	out["template"]["source_set"] = templateSourceSetSchema()
@@ -813,26 +817,32 @@ func composeValidateSchema() map[string]any {
 	}
 }
 
-func playgroundRetemplateSchema() map[string]any {
+func playgroundTransformSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{"playground_id"},
+		"anyOf": []any{
+			map[string]any{"required": []string{"template_body"}},
+			map[string]any{"required": []string{"template_body_path"}},
+			map[string]any{"required": []string{"template_id"}},
+			map[string]any{"required": []string{"template_version_id"}},
+		},
 		"properties": map[string]any{
-			"playground_id":              map[string]any{"type": "integer", "description": "Numeric ID of the deployed playground to retemplate. The id is preserved across the retemplating.", "minimum": 1},
-			"playground_identifier":      map[string]any{"type": "string", "description": "Alternative to playground_id: numeric ID or slug-safe name."},
-			"mode":                       map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and reports diffs/warnings/required variables without writes; apply commits the change. Defaults to apply."},
-			"template_body":              map[string]any{"type": "string", "description": "Inline template YAML. Authoring a fresh template on the fly: a new ImportTemplate (auto-named for this playground unless template_name is set, or provided template_id is used) and a first ImportTemplateVersion are created, then the playground is switched to it. Mutually exclusive with template_version_id."},
-			"template_body_path":         map[string]any{"type": "string", "description": "Absolute local path to template YAML (local MCP only)."},
-			"template_id":                map[string]any{"type": "integer", "description": "Existing ImportTemplate to use. Without template_body, the latest version is selected. With template_body, a new version is published under this template.", "minimum": 1},
-			"template_version_id":        map[string]any{"type": "integer", "description": "Exact existing ImportTemplateVersion to switch to. Mutually exclusive with template_body.", "minimum": 1},
-			"template_name":              map[string]any{"type": "string", "description": "Optional name for the freshly created ImportTemplate when template_body is provided and template_id is not. Auto-generated otherwise."},
-			"variables":                  map[string]any{"type": "object", "description": "Template variable values for the new template version."},
-			"regenerate_variables":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate from defaults instead of carrying over."},
-			"confirm_warnings":           map[string]any{"type": "boolean", "description": "Allow apply to proceed when preview reports switch warnings (e.g. dropped services)."},
-			"confirm":                    map[string]any{"type": "boolean", "description": "Required true for mode=apply unless server runs with --yolo."},
-			"provision_missing_props":    map[string]any{"type": "string", "enum": []string{"off", "gitea", "github"}, "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Props."},
-			"provision_private":          map[string]any{"type": "boolean", "description": "Whether the freshly provisioned repos should be private. Defaults to true."},
+			"playground_id":           map[string]any{"type": "integer", "description": "Numeric ID of the deployed playground to transform. The id is preserved across the transformation.", "minimum": 1},
+			"playground_identifier":   map[string]any{"type": "string", "description": "Alternative to playground_id: numeric ID or slug-safe name."},
+			"mode":                    map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and reports diffs/warnings/required variables without writes; apply commits the change. Defaults to apply."},
+			"template_body":           map[string]any{"type": "string", "description": "Inline template YAML. Authoring a new target shape on the fly: a new ImportTemplateVersion is created, then the playground is switched to it. Mutually exclusive with template_version_id."},
+			"template_body_path":      map[string]any{"type": "string", "description": "Absolute local path to template YAML (local MCP only)."},
+			"template_id":             map[string]any{"type": "integer", "description": "Existing ImportTemplate to use. Without template_body, the latest version is selected. With template_body, a new version is published under this template.", "minimum": 1},
+			"template_version_id":     map[string]any{"type": "integer", "description": "Exact existing ImportTemplateVersion to switch to. Mutually exclusive with template_body.", "minimum": 1},
+			"template_name":           map[string]any{"type": "string", "description": "Optional name for the freshly created ImportTemplate when template_body is provided and template_id is not. Auto-generated otherwise."},
+			"variables":               map[string]any{"type": "object", "description": "Template variable values for the new template version."},
+			"regenerate_variables":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate from defaults instead of carrying over."},
+			"confirm_warnings":        map[string]any{"type": "boolean", "description": "Allow apply to proceed when preview reports switch warnings (e.g. dropped services)."},
+			"confirm":                 map[string]any{"type": "boolean", "description": "Required true for mode=apply unless server runs with --yolo."},
+			"provision_missing_props": map[string]any{"type": "string", "enum": []string{"off", "gitea", "github"}, "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Props."},
+			"provision_private":       map[string]any{"type": "boolean", "description": "Whether the freshly provisioned repos should be private. Defaults to true."},
 			"provision_inputs": map[string]any{
 				"type":        "array",
 				"description": "Per-URL overrides for provisioning. Each item: {source_repo_url, name_override?, default_branch?, description?, auto_init?}.",
@@ -858,16 +868,16 @@ func playgroundRetemplateSchema() map[string]any {
 	}
 }
 
-func templateDevelopSchema() map[string]any {
+func templateChangeSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{"target_type", "target_id", "mode", "change_type"},
 		"properties": map[string]any{
-			"target_type":                map[string]any{"type": "string", "enum": []string{"template", "playspec", "playground", "trick"}, "description": "Object to start from. With target_type=playground and change_type=switch_existing, this performs an in-place retemplating of a deployed playground (the playground id is preserved; only its playspec is repointed)."},
+			"target_type":                map[string]any{"type": "string", "enum": []string{"template", "playspec", "playground", "trick"}, "description": "Object to start from. With target_type=playground and change_type=switch_existing, this performs an advanced template-version switch for a deployed playground."},
 			"target_id":                  map[string]any{"type": "integer", "description": "ID of the target object.", "minimum": 1},
 			"mode":                       map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and diffs without writes; apply creates/switches resources."},
-			"change_type":                map[string]any{"type": "string", "enum": []string{"patch", "overwrite", "switch_existing"}, "description": "Template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the playspec/playground/trick at a different (possibly entirely different) template version, preserving its id and reconciling props automatically."},
+			"change_type":                map[string]any{"type": "string", "enum": []string{"patch", "overwrite", "switch_existing"}, "description": "Advanced template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the playspec/playground/trick at a different template version."},
 			"base_version_id":            map[string]any{"type": "integer", "description": "Base template version ID for patch or overwrite. Defaults from target when possible.", "minimum": 1},
 			"target_template_version_id": map[string]any{"type": "integer", "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template — the server reconciles the prop set and regenerates services.", "minimum": 1},
 			"patches":                    map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Patch entries: YAML path set/remove or exact search/replace."},
@@ -931,6 +941,15 @@ func schemaMap(v any) map[string]any {
 		return m
 	}
 	return map[string]any{}
+}
+
+func deprecatedOperationSchema(schema map[string]any, description string) map[string]any {
+	out := cloneMap(schema)
+	out["deprecated"] = true
+	if description != "" {
+		out["description"] = description
+	}
+	return out
 }
 
 func cloneMap(in map[string]any) map[string]any {

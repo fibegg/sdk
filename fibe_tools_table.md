@@ -29,6 +29,7 @@
 | `fibe_playgrounds_debug` | [MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment. |
 | `fibe_playgrounds_logs` | [MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors. |
 | `fibe_playgrounds_logs_follow` | [MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications |
+| `fibe_playgrounds_transform` | [MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. |
 | `fibe_playgrounds_wait` | [MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout) |
 | `fibe_repo_status_check` | [MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs. |
 | `fibe_resource_delete` | [MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID. |
@@ -39,7 +40,7 @@
 | `fibe_run` | [MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly. |
 | `fibe_schema` | [MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog. |
 | `fibe_status` | [MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account. |
-| `fibe_templates_develop` | [MODE:BROWNFIELD] Preview or apply template changes, switch playspecs/playgrounds/tricks, and optionally roll out or trigger a fresh trick run. |
+| `fibe_templates_change` | [MODE:BROWNFIELD] Hidden advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run. |
 | `fibe_templates_launch` | [MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template. |
 | `fibe_templates_search` | [MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering. |
 | `fibe_tools_catalog` | [MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds |

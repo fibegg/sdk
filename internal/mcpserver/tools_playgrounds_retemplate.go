@@ -10,19 +10,33 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func (s *Server) registerPlaygroundRetemplateTools() {
-	schema, _, _, _ := resourceschema.SchemaFor("playground", "retemplate")
+const (
+	playgroundTransformToolName               = "fibe_playgrounds_transform"
+	playgroundRetemplateCompatibilityToolName = "fibe_playgrounds_retemplate"
+)
+
+func (s *Server) registerPlaygroundTransformTools() {
+	s.registerPlaygroundTransformTool(playgroundTransformToolName, false)
+	s.registerPlaygroundTransformTool(playgroundRetemplateCompatibilityToolName, true)
+}
+
+func (s *Server) registerPlaygroundTransformTool(name string, hidden bool) {
+	schema, _, _, _ := resourceschema.SchemaFor("playground", "transform")
 	inputSchema, _ := schema.(map[string]any)
 
-	const description = "[MODE:BROWNFIELD] Retemplate a deployed playground in-place: preserves the playground id, swaps it onto a (potentially fresh) template, optionally provisions new private Gitea-backed Props for repos the player doesn't yet own, and rolls it out. Single-call brownfield analog of fibe_greenfield_create. Pass template_body to author a new template inline (the server creates the ImportTemplate + first version), or template_id/template_version_id to use an existing one."
+	description := "[MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create."
+	if hidden {
+		description = "[DEPRECATED alias for fibe_playgrounds_transform] " + description
+	}
 
 	s.addTool(&toolImpl{
-		name:        "fibe_playgrounds_retemplate",
+		name:        name,
 		description: description,
 		tier:        tierBrownfield,
+		hidden:      hidden,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if _, _, err := resourceschema.ValidatePayload("playground", "retemplate", args); err != nil {
+			if _, _, err := resourceschema.ValidatePayload("playground", "transform", args); err != nil {
 				return nil, err
 			}
 			mode := strings.ToLower(strings.TrimSpace(argString(args, "mode")))
@@ -30,7 +44,7 @@ func (s *Server) registerPlaygroundRetemplateTools() {
 				mode = "apply"
 			}
 			if mode == "apply" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
-				return nil, &confirmRequiredError{tool: "fibe_playgrounds_retemplate"}
+				return nil, &confirmRequiredError{tool: name}
 			}
 			params, err := buildRetemplateParams(args, mode)
 			if err != nil {
@@ -38,7 +52,7 @@ func (s *Server) registerPlaygroundRetemplateTools() {
 			}
 			return c.Retemplate(ctx, params)
 		},
-	}, mcp.NewTool("fibe_playgrounds_retemplate",
+	}, mcp.NewTool(name,
 		mcp.WithDescription(description),
 		withRawInputSchema(inputSchema),
 	))
@@ -49,7 +63,16 @@ func buildRetemplateParams(args map[string]any, mode string) (*fibe.PlaygroundRe
 	if err != nil {
 		return nil, err
 	}
-	body := argString(args, "template_body")
+	inlineBody := argString(args, "template_body")
+	bodyPath := argString(args, "template_body_path")
+	versionID, versionIDHasValue := argInt64(args, "template_version_id")
+	if inlineBody != "" && bodyPath != "" {
+		return nil, fmt.Errorf("template_body cannot be combined with template_body_path")
+	}
+	if versionIDHasValue && versionID > 0 && (inlineBody != "" || bodyPath != "") {
+		return nil, fmt.Errorf("template_version_id cannot be combined with template_body or template_body_path")
+	}
+	body := inlineBody
 	if body == "" {
 		read, perr := readInlineOrPathTextArgOptional(args, "template_body", "template_body_path")
 		if perr != nil {
@@ -59,7 +82,6 @@ func buildRetemplateParams(args map[string]any, mode string) (*fibe.PlaygroundRe
 	}
 
 	templateID, _ := argInt64(args, "template_id")
-	versionID, _ := argInt64(args, "template_version_id")
 	if body == "" && templateID == 0 && versionID == 0 {
 		return nil, fmt.Errorf("must provide template_body, template_body_path, template_id, or template_version_id")
 	}

@@ -164,17 +164,17 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("memory.memorize should validate: %v", err)
 	}
 
-	templateDevelop, _, op, ok := SchemaFor("template", "develop")
-	if !ok || op != "develop" {
-		t.Fatalf("template.develop schema missing")
+	templateDevelop, _, op, ok := SchemaFor("template", "change")
+	if !ok || op != "change" {
+		t.Fatalf("template.change schema missing")
 	}
 	developProps := templateDevelop.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"target_type", "target_id", "mode", "change_type", "confirm", "post_apply", "template_body", "template_body_path"} {
 		if _, ok := developProps[want]; !ok {
-			t.Fatalf("template.develop missing property %q: %#v", want, developProps)
+			t.Fatalf("template.change missing property %q: %#v", want, developProps)
 		}
 	}
-	if _, _, err := ValidatePayload("template", "develop", map[string]any{
+	if _, _, err := ValidatePayload("template", "change", map[string]any{
 		"target_type":      "playground",
 		"target_id":        42,
 		"mode":             "apply",
@@ -187,7 +187,49 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 			map[string]any{"op": "set", "path": "services.redis.image", "value": "redis:7-alpine", "create_missing": true},
 		},
 	}); err != nil {
-		t.Fatalf("template.develop should validate project-local rollout payload: %v", err)
+		t.Fatalf("template.change should validate project-local rollout payload: %v", err)
+	}
+	if _, _, err := ValidatePayload("template", "change", map[string]any{
+		"target_type":        "template",
+		"target_id":          42,
+		"mode":               "preview",
+		"change_type":        "overwrite",
+		"template_body":      "services: {}\n",
+		"template_body_path": "/tmp/template.yml",
+	}); err == nil {
+		t.Fatalf("template.change should reject ambiguous template_body/template_body_path selectors")
+	}
+	if legacyTemplateDevelop, _, op, ok := SchemaFor("template", "develop"); !ok || op != "develop" {
+		t.Fatalf("template.develop legacy schema missing")
+	} else if legacyTemplateDevelop.(map[string]any)["deprecated"] != true {
+		t.Fatalf("template.develop legacy schema should be marked deprecated: %#v", legacyTemplateDevelop)
+	}
+	if playgroundTransform, _, op, ok := SchemaFor("playground", "transform"); !ok || op != "transform" {
+		t.Fatalf("playground.transform schema missing")
+	} else {
+		props := playgroundTransform.(map[string]any)["properties"].(map[string]any)
+		for _, want := range []string{"playground_id", "template_body", "template_body_path", "template_id", "template_version_id", "provision_missing_props"} {
+			if _, ok := props[want]; !ok {
+				t.Fatalf("playground.transform missing property %q: %#v", want, props)
+			}
+		}
+	}
+	if _, _, err := ValidatePayload("playground", "transform", map[string]any{
+		"playground_id": 42,
+	}); err == nil {
+		t.Fatalf("playground.transform should require a template selector")
+	}
+	if _, _, err := ValidatePayload("playground", "transform", map[string]any{
+		"playground_id":       42,
+		"template_body":       "services: {}\n",
+		"template_version_id": 123,
+	}); err == nil {
+		t.Fatalf("playground.transform should reject ambiguous template selectors")
+	}
+	if legacyRetemplate, _, op, ok := SchemaFor("playground", "retemplate"); !ok || op != "retemplate" {
+		t.Fatalf("playground.retemplate legacy schema missing")
+	} else if legacyRetemplate.(map[string]any)["deprecated"] != true {
+		t.Fatalf("playground.retemplate legacy schema should be marked deprecated: %#v", legacyRetemplate)
 	}
 
 	marqueeCreate, _, op, ok := SchemaFor("marquee", "create")

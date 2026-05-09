@@ -439,6 +439,28 @@ func TestPlayspecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
 	}
 }
 
+func TestVerifyTemplateVersionSwitchResult(t *testing.T) {
+	targetID := int64(42)
+	result := &PlayspecTemplateVersionSwitchResult{
+		TargetTemplateVersion: &TemplateVersionRef{ID: &targetID},
+		Playspec:              &Playspec{SourceTemplateVersionID: &targetID},
+	}
+
+	if err := VerifyTemplateVersionSwitchResult(result, targetID); err != nil {
+		t.Fatalf("expected valid switch result: %v", err)
+	}
+
+	if err := VerifyTemplateVersionSwitchResult(&PlayspecTemplateVersionSwitchResult{}, targetID); err == nil || !strings.Contains(err.Error(), "target_template_version") {
+		t.Fatalf("expected missing target error, got %v", err)
+	}
+
+	wrongID := int64(41)
+	result.Playspec.SourceTemplateVersionID = &wrongID
+	if err := VerifyTemplateVersionSwitchResult(result, targetID); err == nil || !strings.Contains(err.Error(), "did not apply target version") {
+		t.Fatalf("expected source version mismatch error, got %v", err)
+	}
+}
+
 func TestMemories_MemorizePollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
@@ -628,7 +650,7 @@ func TestAgents_Chat(t *testing.T) {
 }
 
 func TestAgents_Upload(t *testing.T) {
-	tmp, err := os.CreateTemp(t.TempDir(), "attachment-*.txt")
+	tmp, err := os.CreateTemp(t.TempDir(), "attachment-*.webp")
 	if err != nil {
 		t.Fatalf("CreateTemp: %v", err)
 	}
@@ -666,6 +688,9 @@ func TestAgents_Upload(t *testing.T) {
 		}
 		if string(content) != "hello" || header.Filename == "" {
 			t.Errorf("unexpected uploaded file %q %q", header.Filename, string(content))
+		}
+		if got := header.Header.Get("Content-Type"); got != "image/webp" {
+			t.Errorf("Content-Type = %q, want image/webp", got)
 		}
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]any{"filename": "runtime-file.txt"})
@@ -709,6 +734,9 @@ func TestAgents_UploadReaderAndDownloadAttachment(t *testing.T) {
 			}
 			if string(content) != "zip-bytes" || header.Filename != "context.zip" {
 				t.Fatalf("unexpected uploaded file %q %q", header.Filename, string(content))
+			}
+			if got := header.Header.Get("Content-Type"); got != "application/zip" {
+				t.Fatalf("Content-Type = %q, want application/zip", got)
 			}
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]any{"filename": "runtime-context.zip"})

@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/fibegg/sdk/internal/resourceschema"
@@ -17,7 +18,7 @@ import (
 func (s *Server) registerResourceMutationTools() {
 	s.registerResourceMutateTool()
 	s.registerPlaygroundMutationTools()
-	s.registerPlaygroundRetemplateTools()
+	s.registerPlaygroundTransformTools()
 	s.registerAgentMutationTools()
 	s.registerFeedbackMutationTools()
 }
@@ -54,7 +55,7 @@ func (s *Server) registerResourceMutateTool() {
 					"message":   "Payload is valid; no request was sent.",
 				}, nil
 			}
-			if canonicalResource == "playground" && canonicalOperation == "action" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
+			if mutationRequiresConfirm(canonicalResource, canonicalOperation, payload) && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
 				return nil, &confirmRequiredError{tool: "fibe_resource_mutate"}
 			}
 			return dispatchResourceMutation(ctx, c, canonicalResource, canonicalOperation, payload)
@@ -63,6 +64,20 @@ func (s *Server) registerResourceMutateTool() {
 		mcp.WithDescription("[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation. Call fibe_schema(resource:<name>, operation:<operation>) for the exact payload schema; this tool validates that payload locally before any API request. Pass dry_run=true to validate only."),
 		withRawInputSchema(resourceschema.MutationToolInputSchema()),
 	))
+}
+
+func mutationRequiresConfirm(resource, operation string, payload map[string]any) bool {
+	switch resource + "." + operation {
+	case "playground.action":
+		return true
+	case "playground.transform", "playground.retemplate":
+		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
+		return mode == "" || mode == "apply"
+	case "template.change", "template.develop":
+		return strings.EqualFold(strings.TrimSpace(argString(payload, "mode")), "apply")
+	default:
+		return false
+	}
 }
 
 func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, operation string, payload map[string]any) (any, error) {
@@ -179,6 +194,16 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			p.Force = &force
 		}
 		return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
+	case "playground.transform", "playground.retemplate":
+		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
+		if mode == "" {
+			mode = "apply"
+		}
+		params, err := buildRetemplateParams(payload, mode)
+		if err != nil {
+			return nil, err
+		}
+		return c.Retemplate(ctx, params)
 	case "playspec.create":
 		var p fibe.PlayspecCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -249,6 +274,12 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		return c.ImportTemplates.Create(ctx, &p)
 	case "template.update":
 		return mutateTemplateUpdate(ctx, c, payload)
+	case "template.change", "template.develop":
+		var in templateDevelopArgs
+		if err := bindArgs(payload, &in); err != nil {
+			return nil, err
+		}
+		return runTemplateDevelop(ctx, c, &in)
 	case "template.fork":
 		id, _ := argInt64(payload, "template_id")
 		return c.ImportTemplates.Fork(ctx, id)

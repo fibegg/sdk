@@ -8,7 +8,7 @@ import (
 )
 
 // PlaygroundRetemplateParams configures the brownfield analog of greenfield_create:
-// take an existing deployed playground, swap it onto a (potentially fresh) template,
+// take an existing deployed playground, transform it onto a (potentially fresh) template,
 // optionally provision new private Gitea-backed Props on the fly, and roll it out.
 //
 // One of the following must be provided to identify the new template version:
@@ -39,20 +39,20 @@ type PlaygroundRetemplateParams struct {
 	Changelog             string               `json:"changelog,omitempty"`
 }
 
-// PlaygroundRetemplateResult is the composite response from a retemplate run.
+// PlaygroundRetemplateResult is the composite response from a playground transform run.
 type PlaygroundRetemplateResult struct {
-	Mode             string                              `json:"mode"`
-	Playground       *Playground                         `json:"playground,omitempty"`
-	Template         *ImportTemplate                     `json:"template,omitempty"`
-	TemplateVersion  *ImportTemplateVersion              `json:"template_version,omitempty"`
+	Mode             string                               `json:"mode"`
+	Playground       *Playground                          `json:"playground,omitempty"`
+	Template         *ImportTemplate                      `json:"template,omitempty"`
+	TemplateVersion  *ImportTemplateVersion               `json:"template_version,omitempty"`
 	SwitchResult     *PlayspecTemplateVersionSwitchResult `json:"switch_result,omitempty"`
-	ProvisionedProps []ProvisionedPropResult             `json:"provisioned_props,omitempty"`
-	WaitResults      []map[string]any                    `json:"wait_results,omitempty"`
-	Diagnostics      map[string]any                      `json:"diagnostics,omitempty"`
+	ProvisionedProps []ProvisionedPropResult              `json:"provisioned_props,omitempty"`
+	WaitResults      []map[string]any                     `json:"wait_results,omitempty"`
+	Diagnostics      map[string]any                       `json:"diagnostics,omitempty"`
 }
 
 // Retemplate composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
-// + post-rollout wait into a single brownfield retemplating flow.
+// + post-rollout wait into a single brownfield playground transform flow.
 func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplateParams) (*PlaygroundRetemplateResult, error) {
 	if params == nil {
 		return nil, fmt.Errorf("params is required")
@@ -124,6 +124,9 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 	if serr != nil {
 		return out, serr
 	}
+	if err := VerifyTemplateVersionSwitchResult(switchResult, versionID); err != nil {
+		return out, err
+	}
 	out.SwitchResult = switchResult
 	if switchResult != nil {
 		out.ProvisionedProps = switchResult.ProvisionedProps
@@ -178,7 +181,7 @@ func (c *Client) resolveRetemplateTarget(ctx context.Context, pg *Playground, pa
 		if templateID <= 0 {
 			name := params.TemplateName
 			if name == "" {
-				name = fmt.Sprintf("playground-%d-retemplate-%d", pg.ID, time.Now().UnixNano())
+				name = fmt.Sprintf("playground-%d-transform-%d", pg.ID, time.Now().UnixNano())
 			}
 			created, err := c.ImportTemplates.Create(ctx, &ImportTemplateCreateParams{
 				Name:         name,

@@ -259,6 +259,7 @@ type ToolInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Tier        string `json:"tier"`
+	Hidden      bool   `json:"hidden,omitempty"`
 	ReadOnly    bool   `json:"read_only,omitempty"`
 	Destructive bool   `json:"destructive,omitempty"`
 	Idempotent  bool   `json:"idempotent,omitempty"`
@@ -283,6 +284,7 @@ func (s *Server) AllTools() []ToolInfo {
 			Name:        t.name,
 			Description: t.description,
 			Tier:        tierToString(t.tier),
+			Hidden:      t.hidden,
 			ReadOnly:    t.annotations.ReadOnly,
 			Destructive: t.annotations.Destructive,
 			Idempotent:  t.annotations.Idempotent,

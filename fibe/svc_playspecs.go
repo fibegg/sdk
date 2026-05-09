@@ -2,6 +2,7 @@ package fibe
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -103,6 +104,31 @@ func (s *PlayspecService) SwitchTemplateVersionByIdentifier(ctx context.Context,
 	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch"
 	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", params, &result)
 	return &result, err
+}
+
+func VerifyTemplateVersionSwitchResult(result *PlayspecTemplateVersionSwitchResult, targetVersionID int64) error {
+	if result == nil {
+		return fmt.Errorf("template version switch did not return a result")
+	}
+	if result.TargetTemplateVersion == nil || result.TargetTemplateVersion.ID == nil {
+		return fmt.Errorf("template version switch did not return target_template_version")
+	}
+	if *result.TargetTemplateVersion.ID != targetVersionID {
+		return fmt.Errorf("template version switch returned target_template_version %d, expected %d", *result.TargetTemplateVersion.ID, targetVersionID)
+	}
+	if result.NoOp {
+		return nil
+	}
+	if result.Playspec == nil {
+		return fmt.Errorf("template version switch did not return the updated playspec")
+	}
+	if result.Playspec.SourceTemplateVersionID == nil {
+		return fmt.Errorf("template version switch result missing playspec.source_template_version_id")
+	}
+	if *result.Playspec.SourceTemplateVersionID != targetVersionID {
+		return fmt.Errorf("template version switch did not apply target version %d; playspec has source_template_version_id %d", targetVersionID, *result.Playspec.SourceTemplateVersionID)
+	}
+	return nil
 }
 
 func (s *PlayspecService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) error {

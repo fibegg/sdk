@@ -55,7 +55,8 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_agent_defaults_update",
 		"fibe_agent_defaults_reset",
 		"fibe_mutter",
-		"fibe_templates_develop",
+		"fibe_playgrounds_transform",
+		"fibe_templates_change",
 		"fibe_playgrounds_wait",
 		"fibe_playgrounds_logs",
 		"fibe_monitor_list",
@@ -208,7 +209,7 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 
 	advertised := advertisedToolNames(srv)
 	for _, name := range []string{
-		"fibe_templates_develop",
+		"fibe_playgrounds_transform",
 		"fibe_resource_mutate",
 		"fibe_playgrounds_action",
 		"fibe_playgrounds_debug",
@@ -220,6 +221,18 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 	} {
 		if !advertised[name] {
 			t.Errorf("%s should be advertised in core mode", name)
+		}
+	}
+	for _, name := range []string{
+		"fibe_templates_change",
+		"fibe_templates_develop",
+		"fibe_playgrounds_retemplate",
+	} {
+		if advertised[name] {
+			t.Errorf("%s should not be advertised in core mode", name)
+		}
+		if _, ok := srv.dispatcher.lookup(name); !ok {
+			t.Errorf("%s should remain registered as a hidden callable tool", name)
 		}
 	}
 }
@@ -460,12 +473,16 @@ func catalogToolsFromResult(t *testing.T, out any) []map[string]any {
 }
 
 func catalogHasTool(tools []map[string]any, name string) bool {
+	return catalogTool(tools, name) != nil
+}
+
+func catalogTool(tools []map[string]any, name string) map[string]any {
 	for _, tool := range tools {
 		if tool["name"] == name {
-			return true
+			return tool
 		}
 	}
-	return false
+	return nil
 }
 
 func numericMinimum(v any) (float64, bool) {
@@ -534,7 +551,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		"fibe_github_repos_create",
 		"fibe_templates_search",
 		"fibe_templates_launch",
-		"fibe_templates_develop",
+		"fibe_playgrounds_transform",
 		"fibe_playgrounds_debug",
 		"fibe_playgrounds_logs",
 		"fibe_playgrounds_wait",
@@ -542,6 +559,15 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 	} {
 		if !advertised[name] {
 			t.Errorf("%s should be advertised in core mode", name)
+		}
+	}
+	for _, name := range []string{
+		"fibe_templates_change",
+		"fibe_templates_develop",
+		"fibe_playgrounds_retemplate",
+	} {
+		if advertised[name] {
+			t.Errorf("%s should not be advertised in core mode", name)
 		}
 	}
 
@@ -647,6 +673,18 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	}
 	if catalogHasTool(coreTools, "fibe_agents_runtime_status") {
 		t.Fatalf("core catalog should not include overseer tools")
+	}
+	if !catalogHasTool(coreTools, "fibe_playgrounds_transform") {
+		t.Fatalf("core catalog missing canonical playground transform tool: %#v", coreTools)
+	}
+	for _, name := range []string{"fibe_templates_change", "fibe_templates_develop", "fibe_playgrounds_retemplate"} {
+		tool := catalogTool(coreTools, name)
+		if tool == nil {
+			t.Fatalf("core catalog should discover hidden tool %s", name)
+		}
+		if tool["hidden"] != true || tool["advertised"] != false {
+			t.Fatalf("hidden catalog entry %s should be hidden and unadvertised: %#v", name, tool)
+		}
 	}
 
 	out, err = srv.dispatcher.dispatch(context.Background(), "fibe_tools_catalog", map[string]any{

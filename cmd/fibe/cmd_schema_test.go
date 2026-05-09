@@ -89,7 +89,8 @@ func TestSchemaCustomCreateOperations(t *testing.T) {
 		{args: []string{"artefact", "create"}, want: []string{`"artefact.create"`, `"agent_id"`, `"playground_id"`, `"content_base64"`}},
 		{args: []string{"mutter", "create"}, want: []string{`"mutter.create"`, `"agent_id"`, `"type"`, `"body"`}},
 		{args: []string{"template_version", "create"}, want: []string{`"template_version.create"`, `"template_id"`, `"template_body_path"`, `"response_mode"`}},
-		{args: []string{"template", "develop"}, want: []string{`"template.develop"`, `"target_type"`, `"base_version_id"`, `"post_apply"`}},
+		{args: []string{"template", "change"}, want: []string{`"template.change"`, `"target_type"`, `"base_version_id"`, `"post_apply"`}},
+		{args: []string{"playground", "transform"}, want: []string{`"playground.transform"`, `"playground_id"`, `"provision_missing_props"`}},
 	} {
 		out, err := captureStdout(func() error {
 			cmd := schemaCmd()

@@ -12,7 +12,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestE2E_TemplatesDevelopFlow(t *testing.T) {
+func TestE2E_TemplatesChangeFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -78,8 +78,8 @@ services:
 	baseVersionID := int(*m.ImportTemplateVersion.ID)
 	playgroundID := int(m.Playground.ID)
 
-	// 2. Test fibe_templates_develop (patch preview)
-	previewRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+	// 2. Test fibe_templates_change (patch preview)
+	previewRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":     "playspec",
 		"target_id":       playspecID,
 		"mode":            "preview",
@@ -88,15 +88,15 @@ services:
 		"patches":         []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2", "create_missing": true}},
 	})
 	if err != nil {
-		t.Fatalf("fibe_templates_develop patch preview failed: %v", err)
+		t.Fatalf("fibe_templates_change patch preview failed: %v", err)
 	}
 	previewResTyped := previewRes.(*fibe.TemplateVersionPatchResult)
 	if (*previewResTyped)["validation"] == nil {
 		t.Errorf("expected validation in patch preview")
 	}
 
-	// 3. Test fibe_templates_develop (patch apply with auto_switch)
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+	// 3. Test fibe_templates_change (patch apply with auto_switch)
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":      "playspec",
 		"target_id":        playspecID,
 		"mode":             "apply",
@@ -106,7 +106,7 @@ services:
 		"confirm_warnings": true,
 	})
 	if err != nil {
-		t.Fatalf("fibe_templates_develop patch apply failed: %v", err)
+		t.Fatalf("fibe_templates_change patch apply failed: %v", err)
 	}
 
 	// 4. Test creating template version with inline template_body
@@ -171,20 +171,20 @@ services:
 	// 8. Test wait tool
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"playground_id": playgroundID, "status": "running", "timeout": "10s"})
 	if err != nil {
-		if strings.Contains(err.Error(), "terminal state: error") || strings.Contains(err.Error(), "context deadline exceeded") {
+		if strings.Contains(err.Error(), "terminal state: error") || strings.Contains(err.Error(), "context deadline exceeded") || strings.Contains(err.Error(), "timeout after") {
 			t.Skipf("infrastructure failure or timeout during wait, skipping remainder of E2E: %v", err)
 		}
 		t.Fatalf("fibe_playgrounds_wait failed: %v", err)
 	}
 }
 
-func TestTemplatesDevelopApplyRequiresConfirm(t *testing.T) {
+func TestTemplatesChangeApplyRequiresConfirm(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
 		"target_id":                  1,
 		"mode":                       "apply",
@@ -196,13 +196,13 @@ func TestTemplatesDevelopApplyRequiresConfirm(t *testing.T) {
 	}
 }
 
-func TestTemplatesDevelopPreviewDoesNotRequireConfirm(t *testing.T) {
+func TestTemplatesChangePreviewDoesNotRequireConfirm(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
 		"target_id":                  1,
 		"mode":                       "preview",
@@ -217,13 +217,13 @@ func TestTemplatesDevelopPreviewDoesNotRequireConfirm(t *testing.T) {
 	}
 }
 
-func TestTemplatesDevelopApplyAcceptsConfirm(t *testing.T) {
+func TestTemplatesChangeApplyAcceptsConfirm(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_develop", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
 		"target_id":                  1,
 		"mode":                       "apply",
@@ -235,6 +235,31 @@ func TestTemplatesDevelopApplyAcceptsConfirm(t *testing.T) {
 		t.Fatal("expected mock network error")
 	}
 	if strings.Contains(err.Error(), "confirm:true") || strings.Contains(err.Error(), "destructive") {
-		t.Fatalf("confirm:true should pass the template develop gate, got %v", err)
+		t.Fatalf("confirm:true should pass the template change gate, got %v", err)
+	}
+}
+
+func TestTemplatesDevelopAliasIsCallableThroughFibeCall(t *testing.T) {
+	srv := New(mockServerConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_call", map[string]any{
+		"tool": "fibe_templates_develop",
+		"args": map[string]any{
+			"target_type":                "playspec",
+			"target_id":                  1,
+			"mode":                       "apply",
+			"change_type":                "switch_existing",
+			"target_template_version_id": 2,
+		},
+		"confirm": true,
+	})
+	if err == nil {
+		t.Fatal("expected mock network error")
+	}
+	if strings.Contains(err.Error(), "confirm:true") {
+		t.Fatalf("fibe_call should forward confirm to legacy alias, got %v", err)
 	}
 }

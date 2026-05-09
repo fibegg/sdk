@@ -10,6 +10,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path"
@@ -349,7 +350,7 @@ func (c *Client) doMultipart(ctx context.Context, method, path string, fields ma
 	}
 
 	if fileReader != nil {
-		part, err := writer.CreateFormFile(fileField, fileName)
+		part, err := createMultipartFilePart(writer, fileField, fileName)
 		if err != nil {
 			return fmt.Errorf("fibe: create form file: %w", err)
 		}
@@ -416,6 +417,25 @@ func (c *Client) doMultipart(ctx context.Context, method, path string, fields ma
 		c.breaker.recordFailure()
 	}
 	return c.parseError(resp)
+}
+
+func createMultipartFilePart(writer *multipart.Writer, fileField, fileName string) (io.Writer, error) {
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, multipartQuote(fileField), multipartQuote(fileName)))
+	contentType := mime.TypeByExtension(path.Ext(fileName))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	header.Set("Content-Type", contentType)
+	return writer.CreatePart(header)
+}
+
+func multipartQuote(value string) string {
+	value = strings.ReplaceAll(value, "\\", "\\\\")
+	value = strings.ReplaceAll(value, `"`, `\"`)
+	value = strings.ReplaceAll(value, "\r", " ")
+	value = strings.ReplaceAll(value, "\n", " ")
+	return value
 }
 
 func (c *Client) doStream(ctx context.Context, method, path string, body any) (io.ReadCloser, error) {

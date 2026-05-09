@@ -30,6 +30,9 @@ func ValidateMutationPayload(rawResource, rawOperation string, payload map[strin
 	if err := validateObjectPayload(resource+"."+operation+".payload", payload, schema); err != nil {
 		return "", "", err
 	}
+	if err := validateOperationPayloadCombination(resource, operation, payload); err != nil {
+		return "", "", err
+	}
 	if operation == "update" && !hasMutationUpdateFields(payload, requiredFields(schema)...) {
 		return "", "", fmt.Errorf("%s.%s payload must include at least one field to update besides %s", resource, operation, strings.Join(requiredFields(schema), ", "))
 	}
@@ -50,7 +53,75 @@ func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (
 	if err := validateObjectPayload(resource+"."+operation+".payload", payload, cloneMap(schemaMap(schema))); err != nil {
 		return "", "", err
 	}
+	if err := validateOperationPayloadCombination(resource, operation, payload); err != nil {
+		return "", "", err
+	}
 	return resource, operation, nil
+}
+
+func validateOperationPayloadCombination(resource, operation string, payload map[string]any) error {
+	switch resource + "." + operation {
+	case "playground.transform", "playground.retemplate":
+		return validatePlaygroundTransformPayloadCombination(resource, operation, payload)
+	case "template.change", "template.develop":
+		return validateTemplateChangePayloadCombination(resource, operation, payload)
+	default:
+		return nil
+	}
+}
+
+func validatePlaygroundTransformPayloadCombination(resource, operation string, payload map[string]any) error {
+	path := resource + "." + operation + ".payload"
+	hasBody := hasNonEmptyPayloadField(payload, "template_body")
+	hasBodyPath := hasNonEmptyPayloadField(payload, "template_body_path")
+	hasTemplateID := hasPositiveNumericPayloadField(payload, "template_id")
+	hasTemplateVersionID := hasPositiveNumericPayloadField(payload, "template_version_id")
+
+	if !hasBody && !hasBodyPath && !hasTemplateID && !hasTemplateVersionID {
+		return fmt.Errorf("%s must include template_body, template_body_path, template_id, or template_version_id", path)
+	}
+	if hasBody && hasBodyPath {
+		return fmt.Errorf("%s cannot include both template_body and template_body_path", path)
+	}
+	if hasTemplateVersionID && (hasBody || hasBodyPath) {
+		return fmt.Errorf("%s cannot combine template_version_id with template_body or template_body_path", path)
+	}
+	return nil
+}
+
+func validateTemplateChangePayloadCombination(resource, operation string, payload map[string]any) error {
+	path := resource + "." + operation + ".payload"
+	changeType, _ := payload["change_type"].(string)
+	hasBody := hasNonEmptyPayloadField(payload, "template_body")
+	hasBodyPath := hasNonEmptyPayloadField(payload, "template_body_path")
+
+	if hasBody && hasBodyPath {
+		return fmt.Errorf("%s cannot include both template_body and template_body_path", path)
+	}
+	if changeType == "overwrite" && !hasBody && !hasBodyPath {
+		return fmt.Errorf("%s overwrite change_type requires template_body or template_body_path", path)
+	}
+	return nil
+}
+
+func hasNonEmptyPayloadField(payload map[string]any, name string) bool {
+	value, ok := payload[name]
+	if !ok || value == nil {
+		return false
+	}
+	if s, ok := value.(string); ok {
+		return strings.TrimSpace(s) != ""
+	}
+	return true
+}
+
+func hasPositiveNumericPayloadField(payload map[string]any, name string) bool {
+	value, ok := payload[name]
+	if !ok || value == nil {
+		return false
+	}
+	n, ok := numericValue(value)
+	return ok && n > 0
 }
 
 func validateObjectPayload(path string, payload map[string]any, schema map[string]any) error {

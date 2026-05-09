@@ -46,20 +46,35 @@ type templateDevelopTarget struct {
 	baseVersion  int64
 }
 
+const (
+	templateChangeToolName               = "fibe_templates_change"
+	templateDevelopCompatibilityToolName = "fibe_templates_develop"
+)
+
 func (s *Server) registerTemplateDevelopTools() {
-	schema, _, _, _ := resourceschema.SchemaFor("template", "develop")
+	s.registerTemplateChangeTool(templateChangeToolName, true)
+	s.registerTemplateChangeTool(templateDevelopCompatibilityToolName, true)
+}
+
+func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
+	schema, _, _, _ := resourceschema.SchemaFor("template", "change")
 	inputSchema, _ := schema.(map[string]any)
+	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run."
+	if name == templateDevelopCompatibilityToolName {
+		description = "[DEPRECATED alias for fibe_templates_change] " + description
+	}
 	s.addTool(&toolImpl{
-		name:        "fibe_templates_develop",
-		description: "[MODE:BROWNFIELD] Preview or apply template changes. With change_type=switch_existing on a playground, retemplates an existing deployed playground in-place: same playground id, same playspec id, services regenerated, props auto-reconciled (and optionally provisioned as private Gitea repos via provision_missing_props). Also handles patch/overwrite of the linked template version, optional rollout, and trick triggering.",
+		name:        name,
+		description: description,
 		tier:        tierBrownfield,
+		hidden:      hidden,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if _, _, err := resourceschema.ValidatePayload("template", "develop", args); err != nil {
+			if _, _, err := resourceschema.ValidatePayload("template", "change", args); err != nil {
 				return nil, err
 			}
 			if argString(args, "mode") == "apply" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
-				return nil, &confirmRequiredError{tool: "fibe_templates_develop"}
+				return nil, &confirmRequiredError{tool: name}
 			}
 			var in templateDevelopArgs
 			if err := bindArgs(args, &in); err != nil {
@@ -67,8 +82,8 @@ func (s *Server) registerTemplateDevelopTools() {
 			}
 			return runTemplateDevelop(ctx, c, &in)
 		},
-	}, mcp.NewTool("fibe_templates_develop",
-		mcp.WithDescription("[MODE:BROWNFIELD] Preview or apply brownfield template changes. Use change_type=switch_existing with target_type=playground to retemplate a deployed playground in-place — preserves the playground id, repoints the playspec at a different (potentially totally different) template version, regenerates services, and reconciles props (set provision_missing_props=\"gitea\" to spin up private Gitea repos for new props). Also patches or overwrites a template version, switches a playspec/trick, and optionally rolls out or triggers a fresh trick run. For one-shot retemplating of a playground from a fresh template body, prefer fibe_playgrounds_retemplate."),
+	}, mcp.NewTool(name,
+		mcp.WithDescription(description),
 		withRawInputSchema(inputSchema),
 	))
 }
@@ -221,6 +236,9 @@ func validateTemplateDevelopCombination(in *templateDevelopArgs, target *templat
 	if in.ChangeType == "patch" && len(in.Patches) == 0 && len(in.Edits) == 0 {
 		return fmt.Errorf("patch change_type requires patches or edits")
 	}
+	if in.TemplateBody != "" && in.TemplateBodyPath != "" {
+		return fmt.Errorf("template_body cannot be combined with template_body_path")
+	}
 	if in.ChangeType == "overwrite" && in.TemplateBody == "" && in.TemplateBodyPath == "" {
 		return fmt.Errorf("overwrite change_type requires template_body or template_body_path")
 	}
@@ -245,6 +263,9 @@ func runTemplateDevelopSwitch(ctx context.Context, c *fibe.Client, in *templateD
 	}
 	result, err := c.Playspecs.SwitchTemplateVersion(ctx, *target.playspecID, params)
 	if err != nil {
+		return nil, err
+	}
+	if err := fibe.VerifyTemplateVersionSwitchResult(result, in.TargetTemplateVersionID); err != nil {
 		return nil, err
 	}
 	out := map[string]any{"result": result}
