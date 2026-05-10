@@ -31,8 +31,8 @@ func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 	if art.Name == "" {
 		t.Error("Artefact.Name should be populated")
 	}
-	if art.AgentID != ag.ID {
-		t.Errorf("Artefact.AgentID mismatch: want %d, got %d", ag.ID, art.AgentID)
+	if art.AgentID == nil || *art.AgentID != ag.ID {
+		t.Errorf("Artefact.AgentID mismatch: want %d, got %v", ag.ID, art.AgentID)
 	}
 }
 
