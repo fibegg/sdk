@@ -841,6 +841,7 @@ func playgroundTransformSchema() map[string]any {
 			"regenerate_variables":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate from defaults instead of carrying over."},
 			"confirm_warnings":        map[string]any{"type": "boolean", "description": "Allow apply to proceed when preview reports switch warnings (e.g. dropped services)."},
 			"confirm":                 map[string]any{"type": "boolean", "description": "Required true for mode=apply unless server runs with --yolo."},
+			"reuse_existing_props":    map[string]any{"type": "boolean", "description": "Reuse the playground's existing dynamic service Props for the target template before creating new ones. Matching keeps same service names first, then current service order; extra old Props are retired after the switch when they are no longer referenced."},
 			"provision_missing_props": map[string]any{"type": "string", "enum": []string{"off", "gitea", "github"}, "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Props."},
 			"provision_private":       map[string]any{"type": "boolean", "description": "Whether the freshly provisioned repos should be private. Defaults to true."},
 			"provision_inputs": map[string]any{
@@ -890,6 +891,7 @@ func templateChangeSchema() map[string]any {
 			"regenerate_variables":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate while switching."},
 			"confirm_warnings":           map[string]any{"type": "boolean", "description": "Allow apply when preview reports switch warnings."},
 			"confirm":                    map[string]any{"type": "boolean", "description": "Required for mode=apply unless the MCP server runs with --yolo. Not required for previews."},
+			"reuse_existing_props":       map[string]any{"type": "boolean", "description": "Reuse the target playspec/playground's current dynamic service Props before provisioning new ones. Same-name services keep their Prop first; remaining services reuse existing Props in current service order; extras are retired after apply when no longer referenced."},
 			"post_apply":                 map[string]any{"type": "string", "enum": []string{"none", "rollout_target", "rollout_all", "trigger_trick"}, "description": "Optional action after apply. Tricks should use trigger_trick; normal playgrounds can use rollout_target or rollout_all."},
 			"wait":                       map[string]any{"type": "boolean", "description": "Wait for rollout targets or triggered trick completion."},
 			"wait_timeout_seconds":       map[string]any{"type": "integer", "description": "Maximum seconds to wait.", "minimum": 1},

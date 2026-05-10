@@ -55,6 +55,32 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 	}
 }
 
+func TestBuildRetemplateParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
+	params, err := buildRetemplateParams(map[string]any{
+		"playground_id":        7,
+		"template_version_id":  22,
+		"reuse_existing_props": true,
+	}, "apply")
+	if err != nil {
+		t.Fatalf("buildRetemplateParams: %v", err)
+	}
+	if params.PlaygroundID != 7 || params.PlaygroundIdentifier != "7" {
+		t.Fatalf("unexpected playground identifiers: %#v", params)
+	}
+	if params.TemplateVersionID != 22 {
+		t.Fatalf("template_version_id=%d want 22", params.TemplateVersionID)
+	}
+	if !params.Wait {
+		t.Fatal("transform apply should wait by default")
+	}
+	if params.ProvisionMissingProps != "gitea" {
+		t.Fatalf("provision_missing_props=%q want gitea", params.ProvisionMissingProps)
+	}
+	if !params.ReuseExistingProps {
+		t.Fatal("reuse_existing_props=false want true")
+	}
+}
+
 func TestPlaygroundsRetemplateAliasIsCallableThroughFibeCall(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {

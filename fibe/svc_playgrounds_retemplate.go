@@ -32,6 +32,7 @@ type PlaygroundRetemplateParams struct {
 	ProvisionMissingProps string               `json:"provision_missing_props,omitempty"`
 	ProvisionPrivate      *bool                `json:"provision_private,omitempty"`
 	ProvisionInputs       []ProvisionPropInput `json:"provision_inputs,omitempty"`
+	ReuseExistingProps    bool                 `json:"reuse_existing_props,omitempty"`
 	Wait                  bool                 `json:"wait,omitempty"`
 	WaitTimeoutSeconds    int64                `json:"wait_timeout_seconds,omitempty"`
 	DiagnoseOnFailure     *bool                `json:"diagnose_on_failure,omitempty"`
@@ -82,6 +83,9 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 	}
 
 	out := &PlaygroundRetemplateResult{Mode: mode, Playground: pg}
+	if err := c.ensureRetemplateSourceTemplate(ctx, pg); err != nil {
+		return out, err
+	}
 
 	templateID, versionID, tmpl, version, err := c.resolveRetemplateTarget(ctx, pg, params)
 	if err != nil {
@@ -105,6 +109,7 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 		ProvisionMissingProps:   params.ProvisionMissingProps,
 		ProvisionPrivate:        params.ProvisionPrivate,
 		ProvisionInputs:         params.ProvisionInputs,
+		ReuseExistingProps:      params.ReuseExistingProps,
 	}
 
 	if mode == "preview" {
@@ -152,6 +157,20 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 		}
 	}
 	return out, nil
+}
+
+func (c *Client) ensureRetemplateSourceTemplate(ctx context.Context, pg *Playground) error {
+	if pg == nil || pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
+		return fmt.Errorf("playground has no playspec_id")
+	}
+	ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
+	if err != nil {
+		return fmt.Errorf("could not load playspec %d before transform: %w", *pg.PlayspecID, err)
+	}
+	if ps.SourceTemplateVersionID == nil || *ps.SourceTemplateVersionID <= 0 {
+		return fmt.Errorf("playground %d cannot be transformed because playspec %d was not launched from a template version", pg.ID, *pg.PlayspecID)
+	}
+	return nil
 }
 
 func retemplateRolloutMode(mode string) string {

@@ -16,6 +16,8 @@ func playgroundsCmd() *cobra.Command {
 
 A playground is a live environment created from a playspec (service template).
 Playgrounds can be started, stopped, restarted, and monitored.
+Maintenance mode is an overlay: a playground can keep its runtime status while
+exposed service URLs route to a 503 maintenance page.
 
 LIFECYCLE SUMMARY:
   - pending:       Queued for deployment (Wait for start)
@@ -42,6 +44,8 @@ SUBCOMMANDS:
   hard-restart <id-or-name> Hard restart all services
   stop <id-or-name>         Stop playground containers
   start <id-or-name>        Start a stopped playground
+  maintenance enable <id-or-name>   Enable maintenance routing
+  maintenance disable <id-or-name>  Disable maintenance routing
   extend <id-or-name>       Extend expiration time
   status <id-or-name>       Check playground status
   compose <id-or-name>      Get docker-compose configuration
@@ -60,6 +64,7 @@ SUBCOMMANDS:
 		pgHardRestartCmd(),
 		pgStopCmd(),
 		pgStartCmd(),
+		pgMaintenanceCmd(),
 		pgExtendCmd(),
 		pgStatusCmd(),
 		pgComposeCmd(),
@@ -98,7 +103,7 @@ SORTING:
                         Example: --sort name_asc
 
 OUTPUT:
-  Columns: ID, NAME, STATUS, PLAYSPEC, EXPIRES
+  Columns: ID, NAME, STATUS, MAINT, PLAYSPEC, EXPIRES
   Use --output json for full details.
 
 EXAMPLES:
@@ -149,11 +154,11 @@ EXAMPLES:
 				outputJSON(pgs)
 				return nil
 			}
-			headers := []string{"ID", "NAME", "STATUS", "PLAYSPEC", "EXPIRES"}
+			headers := []string{"ID", "NAME", "STATUS", "MAINT", "PLAYSPEC", "EXPIRES"}
 			rows := make([][]string, len(pgs.Data))
 			for i, pg := range pgs.Data {
 				rows[i] = []string{
-					fmtInt64(pg.ID), pg.Name, pg.Status,
+					fmtInt64(pg.ID), pg.Name, pg.Status, fmtMaintenance(pg.MaintenanceEnabled),
 					fmtStr(pg.PlayspecName), fmtTime(pg.ExpiresAt),
 				}
 			}
@@ -199,6 +204,7 @@ EXAMPLES:
 			fmt.Printf("ID:        %d\n", pg.ID)
 			fmt.Printf("Name:      %s\n", pg.Name)
 			fmt.Printf("Status:    %s\n", pg.Status)
+			fmt.Printf("Maintenance: %s\n", fmtMaintenance(pg.MaintenanceEnabled))
 			fmt.Printf("Playspec:  %s\n", fmtStr(pg.PlayspecName))
 			fmt.Printf("Expires:   %s\n", fmtTime(pg.ExpiresAt))
 			fmt.Printf("Created:   %s\n", fmtTimeVal(pg.CreatedAt))
@@ -491,6 +497,54 @@ EXAMPLES:
 	return cmd
 }
 
+func pgMaintenanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "maintenance",
+		Short: "Manage playground maintenance routing",
+		Long: `Manage playground maintenance routing.
+
+Maintenance mode does not start, stop, retry, or redeploy the playground.
+It keeps the playground status unchanged while exposed service URLs route to
+a static 503 page that says "maintenance is ongoing".`,
+	}
+	cmd.AddCommand(pgMaintenanceEnableCmd(), pgMaintenanceDisableCmd())
+	return cmd
+}
+
+func pgMaintenanceEnableCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "enable <id-or-name>",
+		Short: "Enable playground maintenance routing",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionEnableMaintenance})
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Maintenance enabled for playground %d — status: %s\n", pg.ID, pg.Status)
+			return nil
+		},
+	}
+}
+
+func pgMaintenanceDisableCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "disable <id-or-name>",
+		Short: "Disable playground maintenance routing",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionDisableMaintenance})
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Maintenance disabled for playground %d — status: %s\n", pg.ID, pg.Status)
+			return nil
+		},
+	}
+}
+
 func pgExtendCmd() *cobra.Command {
 	var hours int
 
@@ -549,7 +603,7 @@ EXAMPLES:
 				outputJSON(status)
 				return nil
 			}
-			fmt.Printf("Playground %d: %s\n", status.ID, status.Status)
+			fmt.Printf("Playground %d: %s (maintenance: %s)\n", status.ID, status.Status, fmtMaintenance(status.MaintenanceEnabled))
 			return nil
 		},
 	}
@@ -679,4 +733,11 @@ EXAMPLES:
 			return nil
 		},
 	}
+}
+
+func fmtMaintenance(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
 }

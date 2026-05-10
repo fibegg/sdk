@@ -346,7 +346,7 @@ func TestImportantToolEnumsAreAdvertised(t *testing.T) {
 	}
 
 	actions := schemaPropertyEnum(t, srv.toolSchemas["fibe_playgrounds_action"], "action_type")
-	for _, want := range []string{"rollout", "hard_restart", "stop", "start", "retry_compose"} {
+	for _, want := range []string{"rollout", "hard_restart", "stop", "start", "retry_compose", "enable_maintenance", "disable_maintenance"} {
 		if !containsString(actions, want) {
 			t.Fatalf("fibe_playgrounds_action.action_type enum missing %q: %#v", want, actions)
 		}
@@ -678,6 +678,9 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	}
 	if !catalogHasTool(coreTools, "fibe_resource_list") || !catalogHasTool(coreTools, "fibe_playgrounds_action") {
 		t.Fatalf("core catalog missing expected base/brownfield tools: %#v", coreTools)
+	}
+	if desc, _ := catalogTool(coreTools, "fibe_playgrounds_action")["description"].(string); !strings.Contains(desc, "enable_maintenance") || !strings.Contains(desc, "disable_maintenance") {
+		t.Fatalf("playgrounds action catalog description missing maintenance actions")
 	}
 	if catalogHasTool(coreTools, "fibe_agents_runtime_status") {
 		t.Fatalf("core catalog should not include overseer tools")

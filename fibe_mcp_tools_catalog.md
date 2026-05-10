@@ -144,7 +144,7 @@ Total Tools: 41
 **Tier:** brownfield | **Destructive:** True | **Idempotent:** True
 
 ### Description
-[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, or retry_compose.
+[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.
 
 ## `fibe_playgrounds_debug`
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True

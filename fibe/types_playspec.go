@@ -194,6 +194,7 @@ type PlayspecTemplateVersionSwitchParams struct {
 	ProvisionMissingProps      string               `json:"provision_missing_props,omitempty"`
 	ProvisionPrivate           *bool                `json:"provision_private,omitempty"`
 	ProvisionInputs            []ProvisionPropInput `json:"provision_inputs,omitempty"`
+	ReuseExistingProps         bool                 `json:"reuse_existing_props,omitempty"`
 }
 
 // ProvisionPropInput optionally configures the per-URL provisioning of a
@@ -247,6 +248,7 @@ type PlayspecTemplateVersionSwitchResult struct {
 	NoOp                  bool                         `json:"no_op"`
 	Playspec              *Playspec                    `json:"playspec"`
 	ProvisionedProps      []ProvisionedPropResult      `json:"provisioned_props,omitempty"`
+	PropReusePlan         map[string]any               `json:"prop_reuse_plan,omitempty"`
 	PropResolutionPreview *PropResolutionPreview       `json:"prop_resolution_preview,omitempty"`
 }
 
@@ -263,10 +265,10 @@ type PropResolutionPreview struct {
 
 // PropResolutionEntry is one row inside PropResolutionPreview.
 type PropResolutionEntry struct {
-	URL              string `json:"url"`
-	NormalizedURL    string `json:"normalized_url,omitempty"`
-	ServiceName      string `json:"service_name,omitempty"`
-	PropID           int64  `json:"prop_id,omitempty"`
+	URL               string `json:"url"`
+	NormalizedURL     string `json:"normalized_url,omitempty"`
+	ServiceName       string `json:"service_name,omitempty"`
+	PropID            int64  `json:"prop_id,omitempty"`
 	ProvisionProvider string `json:"provision_provider,omitempty"`
 }
 

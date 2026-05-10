@@ -35,6 +35,7 @@ type templateDevelopArgs struct {
 	ProvisionMissingProps   string                    `json:"provision_missing_props,omitempty"`
 	ProvisionPrivate        *bool                     `json:"provision_private,omitempty"`
 	ProvisionInputs         []fibe.ProvisionPropInput `json:"provision_inputs,omitempty"`
+	ReuseExistingProps      bool                      `json:"reuse_existing_props,omitempty"`
 }
 
 type templateDevelopTarget struct {
@@ -257,6 +258,7 @@ func runTemplateDevelopSwitch(ctx context.Context, c *fibe.Client, in *templateD
 		ProvisionMissingProps:   in.ProvisionMissingProps,
 		ProvisionPrivate:        in.ProvisionPrivate,
 		ProvisionInputs:         in.ProvisionInputs,
+		ReuseExistingProps:      in.ReuseExistingProps,
 	}
 	if in.Mode == "preview" {
 		return c.Playspecs.PreviewTemplateVersionSwitch(ctx, *target.playspecID, params)

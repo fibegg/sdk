@@ -25,7 +25,7 @@
 | `fibe_mutters_get` | [MODE:OVERSEER] Retrieve an agent's mutter stream by agent_id, with optional query/status/severity/playground filters. |
 | `fibe_pipeline` | [MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs. |
 | `fibe_pipeline_result` | [MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution |
-| `fibe_playgrounds_action` | [MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, or retry_compose. |
+| `fibe_playgrounds_action` | [MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. |
 | `fibe_playgrounds_debug` | [MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment. |
 | `fibe_playgrounds_logs` | [MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors. |
 | `fibe_playgrounds_logs_follow` | [MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications |

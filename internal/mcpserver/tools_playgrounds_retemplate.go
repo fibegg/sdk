@@ -102,6 +102,7 @@ func buildRetemplateParams(args map[string]any, mode string) (*fibe.PlaygroundRe
 		Wait:                  argBoolDefault(args, "wait", true),
 		ResponseMode:          argString(args, "response_mode"),
 		Changelog:             argString(args, "changelog"),
+		ReuseExistingProps:    argBool(args, "reuse_existing_props"),
 	}
 	if v, ok := args["provision_private"]; ok {
 		if b, ok := v.(bool); ok {

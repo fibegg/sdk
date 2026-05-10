@@ -7,16 +7,17 @@ import (
 
 // Playground represents a running environment instance.
 type Playground struct {
-	ID              int64          `json:"id"`
-	Name            string         `json:"name"`
-	Status          string         `json:"status"`
-	JobMode         bool           `json:"job_mode"`
-	PlayspecID      *int64         `json:"playspec_id"`
-	PlayspecName    *string        `json:"playspec_name"`
-	MarqueeID       *int64         `json:"marquee_id,omitempty"`
-	ServiceBranches map[string]any `json:"service_branches"`
-	ExpiresAt       *time.Time     `json:"expires_at"`
-	CreatedAt       time.Time      `json:"created_at"`
+	ID                 int64          `json:"id"`
+	Name               string         `json:"name"`
+	Status             string         `json:"status"`
+	MaintenanceEnabled bool           `json:"maintenance_enabled"`
+	JobMode            bool           `json:"job_mode"`
+	PlayspecID         *int64         `json:"playspec_id"`
+	PlayspecName       *string        `json:"playspec_name"`
+	MarqueeID          *int64         `json:"marquee_id,omitempty"`
+	ServiceBranches    map[string]any `json:"service_branches"`
+	ExpiresAt          *time.Time     `json:"expires_at"`
+	CreatedAt          time.Time      `json:"created_at"`
 
 	// Detail fields (only present on Get, not List)
 	ComposeProject       *string                 `json:"compose_project,omitempty"`
@@ -175,6 +176,7 @@ func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
 type PlaygroundStatus struct {
 	ID                 int64          `json:"id"`
 	Status             string         `json:"status"`
+	MaintenanceEnabled bool           `json:"maintenance_enabled"`
 	CreationStep       *string        `json:"creation_step,omitempty"`
 	CreationStepLabel  *string        `json:"creation_step_label,omitempty"`
 	ErrorMessage       *string        `json:"error_message,omitempty"`
@@ -188,11 +190,13 @@ type PlaygroundStatus struct {
 }
 
 const (
-	PlaygroundActionRollout      = "rollout"
-	PlaygroundActionHardRestart  = "hard_restart"
-	PlaygroundActionStop         = "stop"
-	PlaygroundActionStart        = "start"
-	PlaygroundActionRetryCompose = "retry_compose"
+	PlaygroundActionRollout            = "rollout"
+	PlaygroundActionHardRestart        = "hard_restart"
+	PlaygroundActionStop               = "stop"
+	PlaygroundActionStart              = "start"
+	PlaygroundActionRetryCompose       = "retry_compose"
+	PlaygroundActionEnableMaintenance  = "enable_maintenance"
+	PlaygroundActionDisableMaintenance = "disable_maintenance"
 )
 
 var ValidPlaygroundActions = []string{
@@ -201,6 +205,8 @@ var ValidPlaygroundActions = []string{
 	PlaygroundActionStop,
 	PlaygroundActionStart,
 	PlaygroundActionRetryCompose,
+	PlaygroundActionEnableMaintenance,
+	PlaygroundActionDisableMaintenance,
 }
 
 type PlaygroundActionParams struct {

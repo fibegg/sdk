@@ -55,7 +55,7 @@ func (s *PlaygroundService) DeleteByIdentifier(ctx context.Context, identifier s
 	return s.client.do(ctx, http.MethodDelete, identifierPath("/api/playgrounds", identifier), nil, nil)
 }
 
-// Action performs a lifecycle action (rollout, hard_restart, stop, start, retry_compose).
+// Action performs a lifecycle action (rollout, hard_restart, stop, start, retry_compose, enable_maintenance, disable_maintenance).
 // The API returns 202 Accepted; this method polls until the operation completes.
 func (s *PlaygroundService) Action(ctx context.Context, id int64, params *PlaygroundActionParams) (*PlaygroundStatus, error) {
 	return s.ActionByIdentifier(ctx, int64Identifier(id), params)

@@ -471,7 +471,7 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("expected playground_id in playground.action schema, got %#v", actionProps)
 	}
 	actionEnum, ok := actionProps["action_type"].(map[string]any)["enum"].([]string)
-	if !ok || !containsString(actionEnum, "retry_compose") {
+	if !ok || !containsString(actionEnum, "retry_compose") || !containsString(actionEnum, "enable_maintenance") || !containsString(actionEnum, "disable_maintenance") {
 		t.Fatalf("expected action_type enum in playground.action schema, got %#v", actionProps["action_type"])
 	}
 

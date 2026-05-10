@@ -78,6 +78,14 @@ func TestPlaygrounds_List(t *testing.T) {
 	}
 }
 
+func TestPlaygroundActionValidationIncludesMaintenanceActions(t *testing.T) {
+	for _, action := range []string{PlaygroundActionEnableMaintenance, PlaygroundActionDisableMaintenance} {
+		if err := (&PlaygroundActionParams{ActionType: action}).Validate(); err != nil {
+			t.Fatalf("expected %s to validate: %v", action, err)
+		}
+	}
+}
+
 func TestPlaygrounds_Get(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/playgrounds/42" {

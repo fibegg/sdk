@@ -10,7 +10,7 @@ import (
 
 func (s *Server) registerPlaygroundMutationTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, or retry_compose.", tier: tierBrownfield,
+		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.", tier: tierBrownfield,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
@@ -29,7 +29,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 			return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
 		},
 	}, mcp.NewTool("fibe_playgrounds_action",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, or retry_compose."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance."),
 		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
 		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("action_type", mcp.Required(), mcp.Description("Lifecycle action to perform.")),
