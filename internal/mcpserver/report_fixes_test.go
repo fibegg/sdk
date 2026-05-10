@@ -128,7 +128,7 @@ func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
 	}
 }
 
-// Note: HTTP tests have been moved to real integration tests in tools_templates_develop_test.go
+// Note: HTTP tests have been moved to real integration tests in tools_templates_change_test.go
 
 // ---------- Props attach: URL-to-short-form parsing ----------
 

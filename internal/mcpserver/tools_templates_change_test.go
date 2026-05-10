@@ -239,27 +239,13 @@ func TestTemplatesChangeApplyAcceptsConfirm(t *testing.T) {
 	}
 }
 
-func TestTemplatesDevelopAliasIsCallableThroughFibeCall(t *testing.T) {
+func TestTemplatesDevelopAliasIsRemoved(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_call", map[string]any{
-		"tool": "fibe_templates_develop",
-		"args": map[string]any{
-			"target_type":                "playspec",
-			"target_id":                  1,
-			"mode":                       "apply",
-			"change_type":                "switch_existing",
-			"target_template_version_id": 2,
-		},
-		"confirm": true,
-	})
-	if err == nil {
-		t.Fatal("expected mock network error")
-	}
-	if strings.Contains(err.Error(), "confirm:true") {
-		t.Fatalf("fibe_call should forward confirm to legacy alias, got %v", err)
+	if _, ok := srv.dispatcher.lookup("fibe_templates_develop"); ok {
+		t.Fatal("fibe_templates_develop should not be registered")
 	}
 }

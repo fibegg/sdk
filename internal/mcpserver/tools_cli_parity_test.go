@@ -13,7 +13,7 @@ import (
 )
 
 // requireRealServer returns the active test credentials.
-// Assuming requireRealServer is defined in another test file in this package (e.g. tools_templates_develop_test.go)
+// Assuming requireRealServer is defined in another test file in this package (e.g. tools_templates_change_test.go)
 
 func TestCLIParity_ListTools(t *testing.T) {
 	if testing.Short() {

@@ -9,7 +9,7 @@ func (s *Server) registerDomainActionTools() {
 	s.registerAgentActionTools()
 	s.registerAgentDefaultsTools()
 	s.registerImportTemplateActionTools()
-	s.registerTemplateDevelopTools()
+	s.registerTemplateChangeTools()
 	s.registerInstallationActionTools()
 	s.registerMutterActionTools()
 	s.registerGitRepoActionTools()

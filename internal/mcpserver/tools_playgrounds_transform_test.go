@@ -55,14 +55,14 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 	}
 }
 
-func TestBuildRetemplateParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
-	params, err := buildRetemplateParams(map[string]any{
+func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
+	params, err := buildTransformParams(map[string]any{
 		"playground_id":        7,
 		"template_version_id":  22,
 		"reuse_existing_props": true,
 	}, "apply")
 	if err != nil {
-		t.Fatalf("buildRetemplateParams: %v", err)
+		t.Fatalf("buildTransformParams: %v", err)
 	}
 	if params.PlaygroundID != 7 || params.PlaygroundIdentifier != "7" {
 		t.Fatalf("unexpected playground identifiers: %#v", params)
@@ -81,24 +81,13 @@ func TestBuildRetemplateParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 	}
 }
 
-func TestPlaygroundsRetemplateAliasIsCallableThroughFibeCall(t *testing.T) {
+func TestPlaygroundsRetemplateAliasIsRemoved(t *testing.T) {
 	srv := New(mockServerConfig())
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_call", map[string]any{
-		"tool": "fibe_playgrounds_retemplate",
-		"args": map[string]any{
-			"playground_id":       1,
-			"template_version_id": 2,
-		},
-		"confirm": true,
-	})
-	if err == nil {
-		t.Fatal("expected mock network error")
-	}
-	if strings.Contains(err.Error(), "confirm:true") {
-		t.Fatalf("fibe_call should forward confirm to legacy alias, got %v", err)
+	if _, ok := srv.dispatcher.lookup("fibe_playgrounds_retemplate"); ok {
+		t.Fatal("fibe_playgrounds_retemplate should not be registered")
 	}
 }

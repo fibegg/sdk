@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// PlaygroundRetemplateParams configures the brownfield analog of greenfield_create:
+// PlaygroundTransformParams configures the brownfield analog of greenfield_create:
 // take an existing deployed playground, transform it onto a (potentially fresh) template,
 // optionally provision new private Gitea-backed Props on the fly, and roll it out.
 //
@@ -18,7 +18,7 @@ import (
 //     template version on the fly. If TemplateID is omitted, a new ImportTemplate
 //     is created (auto-named for the playground) and a first version is published
 //     under it.
-type PlaygroundRetemplateParams struct {
+type PlaygroundTransformParams struct {
 	PlaygroundID          int64                `json:"playground_id"`
 	PlaygroundIdentifier  string               `json:"playground_identifier,omitempty"`
 	Mode                  string               `json:"mode,omitempty"` // "preview" | "apply" (default)
@@ -40,8 +40,8 @@ type PlaygroundRetemplateParams struct {
 	Changelog             string               `json:"changelog,omitempty"`
 }
 
-// PlaygroundRetemplateResult is the composite response from a playground transform run.
-type PlaygroundRetemplateResult struct {
+// PlaygroundTransformResult is the composite response from a playground transform run.
+type PlaygroundTransformResult struct {
 	Mode             string                               `json:"mode"`
 	Playground       *Playground                          `json:"playground,omitempty"`
 	Template         *ImportTemplate                      `json:"template,omitempty"`
@@ -52,9 +52,9 @@ type PlaygroundRetemplateResult struct {
 	Diagnostics      map[string]any                       `json:"diagnostics,omitempty"`
 }
 
-// Retemplate composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
+// Transform composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
 // + post-rollout wait into a single brownfield playground transform flow.
-func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplateParams) (*PlaygroundRetemplateResult, error) {
+func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParams) (*PlaygroundTransformResult, error) {
 	if params == nil {
 		return nil, fmt.Errorf("params is required")
 	}
@@ -82,12 +82,12 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 		return nil, fmt.Errorf("playground %d has no playspec_id", pg.ID)
 	}
 
-	out := &PlaygroundRetemplateResult{Mode: mode, Playground: pg}
-	if err := c.ensureRetemplateSourceTemplate(ctx, pg); err != nil {
+	out := &PlaygroundTransformResult{Mode: mode, Playground: pg}
+	if err := c.ensureTransformSourceTemplate(ctx, pg); err != nil {
 		return out, err
 	}
 
-	templateID, versionID, tmpl, version, err := c.resolveRetemplateTarget(ctx, pg, params)
+	templateID, versionID, tmpl, version, err := c.resolveTransformTarget(ctx, pg, params)
 	if err != nil {
 		return out, err
 	}
@@ -103,7 +103,7 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 		Variables:               params.Variables,
 		RegenerateVariables:     params.RegenerateVariables,
 		ConfirmWarnings:         params.ConfirmWarnings,
-		RolloutMode:             retemplateRolloutMode(mode),
+		RolloutMode:             transformRolloutMode(mode),
 		TargetPlaygroundID:      &pg.ID,
 		ResponseMode:            params.ResponseMode,
 		ProvisionMissingProps:   params.ProvisionMissingProps,
@@ -145,9 +145,9 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 	if timeout <= 0 {
 		timeout = 180 * time.Second
 	}
-	waitResult := waitForRetemplateRollout(ctx, c, pg.ID, timeout)
+	waitResult := waitForTransformRollout(ctx, c, pg.ID, timeout)
 	out.WaitResults = []map[string]any{waitResult}
-	if diagnoseRetemplate(params) && waitResult["success"] != true {
+	if diagnoseTransform(params) && waitResult["success"] != true {
 		refresh := true
 		debug, derr := c.Playgrounds.DebugWithParams(ctx, pg.ID, &PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
 		if derr != nil {
@@ -159,7 +159,7 @@ func (c *Client) Retemplate(ctx context.Context, params *PlaygroundRetemplatePar
 	return out, nil
 }
 
-func (c *Client) ensureRetemplateSourceTemplate(ctx context.Context, pg *Playground) error {
+func (c *Client) ensureTransformSourceTemplate(ctx context.Context, pg *Playground) error {
 	if pg == nil || pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
 		return fmt.Errorf("playground has no playspec_id")
 	}
@@ -173,21 +173,21 @@ func (c *Client) ensureRetemplateSourceTemplate(ctx context.Context, pg *Playgro
 	return nil
 }
 
-func retemplateRolloutMode(mode string) string {
+func transformRolloutMode(mode string) string {
 	if mode == "apply" {
 		return "target"
 	}
 	return "none"
 }
 
-func diagnoseRetemplate(params *PlaygroundRetemplateParams) bool {
+func diagnoseTransform(params *PlaygroundTransformParams) bool {
 	if params == nil || params.DiagnoseOnFailure == nil {
 		return true
 	}
 	return *params.DiagnoseOnFailure
 }
 
-func (c *Client) resolveRetemplateTarget(ctx context.Context, pg *Playground, params *PlaygroundRetemplateParams) (int64, int64, *ImportTemplate, *ImportTemplateVersion, error) {
+func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, params *PlaygroundTransformParams) (int64, int64, *ImportTemplate, *ImportTemplateVersion, error) {
 	body := params.TemplateBody
 
 	switch {
@@ -253,7 +253,7 @@ func (c *Client) resolveRetemplateTarget(ctx context.Context, pg *Playground, pa
 	}
 }
 
-func waitForRetemplateRollout(ctx context.Context, c *Client, playgroundID int64, timeout time.Duration) map[string]any {
+func waitForTransformRollout(ctx context.Context, c *Client, playgroundID int64, timeout time.Duration) map[string]any {
 	deadline := time.Now().Add(timeout)
 	var lastStatus string
 	for {

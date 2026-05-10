@@ -343,7 +343,6 @@ func buildRegistry() map[string]map[string]any {
 	}
 	playgroundTransform := playgroundTransformSchema()
 	out["playground"]["transform"] = playgroundTransform
-	out["playground"]["retemplate"] = deprecatedOperationSchema(playgroundTransform, "Deprecated alias for playground.transform. Use transform for end-to-end deployed playground transformation.")
 	agentCreate := withPropertyEnum(paramsSchema[fibe.AgentCreateParams]("name", "provider"), "provider", fibe.ValidProviders)
 	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	out["agent"]["update"] = withPropertyEnum(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
@@ -376,7 +375,6 @@ func buildRegistry() map[string]map[string]any {
 	out["template"]["update"] = templateUpdateSchema()
 	templateChange := templateChangeSchema()
 	out["template"]["change"] = templateChange
-	out["template"]["develop"] = deprecatedOperationSchema(templateChange, "Deprecated alias for template.change. Use change for advanced template version patch/overwrite/switch workflows.")
 	out["template"]["fork"] = resourceActionIDSchema("template_id", "Template ID to fork into a new standalone template.")
 	out["template"]["source_refresh"] = resourceActionIDSchema("template_id", "Template ID whose tracked source file should be refreshed.")
 	out["template"]["source_set"] = templateSourceSetSchema()
@@ -943,15 +941,6 @@ func schemaMap(v any) map[string]any {
 		return m
 	}
 	return map[string]any{}
-}
-
-func deprecatedOperationSchema(schema map[string]any, description string) map[string]any {
-	out := cloneMap(schema)
-	out["deprecated"] = true
-	if description != "" {
-		out["description"] = description
-	}
-	return out
 }
 
 func cloneMap(in map[string]any) map[string]any {

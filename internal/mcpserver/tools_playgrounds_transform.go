@@ -10,30 +10,22 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-const (
-	playgroundTransformToolName               = "fibe_playgrounds_transform"
-	playgroundRetemplateCompatibilityToolName = "fibe_playgrounds_retemplate"
-)
+const playgroundTransformToolName = "fibe_playgrounds_transform"
 
 func (s *Server) registerPlaygroundTransformTools() {
-	s.registerPlaygroundTransformTool(playgroundTransformToolName, false)
-	s.registerPlaygroundTransformTool(playgroundRetemplateCompatibilityToolName, true)
+	s.registerPlaygroundTransformTool(playgroundTransformToolName)
 }
 
-func (s *Server) registerPlaygroundTransformTool(name string, hidden bool) {
+func (s *Server) registerPlaygroundTransformTool(name string) {
 	schema, _, _, _ := resourceschema.SchemaFor("playground", "transform")
 	inputSchema, _ := schema.(map[string]any)
 
 	description := "[MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create."
-	if hidden {
-		description = "[DEPRECATED alias for fibe_playgrounds_transform] " + description
-	}
 
 	s.addTool(&toolImpl{
 		name:        name,
 		description: description,
 		tier:        tierBrownfield,
-		hidden:      hidden,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			if _, _, err := resourceschema.ValidatePayload("playground", "transform", args); err != nil {
@@ -46,11 +38,11 @@ func (s *Server) registerPlaygroundTransformTool(name string, hidden bool) {
 			if mode == "apply" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
 				return nil, &confirmRequiredError{tool: name}
 			}
-			params, err := buildRetemplateParams(args, mode)
+			params, err := buildTransformParams(args, mode)
 			if err != nil {
 				return nil, err
 			}
-			return c.Retemplate(ctx, params)
+			return c.Transform(ctx, params)
 		},
 	}, mcp.NewTool(name,
 		mcp.WithDescription(description),
@@ -58,7 +50,7 @@ func (s *Server) registerPlaygroundTransformTool(name string, hidden bool) {
 	))
 }
 
-func buildRetemplateParams(args map[string]any, mode string) (*fibe.PlaygroundRetemplateParams, error) {
+func buildTransformParams(args map[string]any, mode string) (*fibe.PlaygroundTransformParams, error) {
 	identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
 	if err != nil {
 		return nil, err
@@ -87,7 +79,7 @@ func buildRetemplateParams(args map[string]any, mode string) (*fibe.PlaygroundRe
 	}
 
 	playgroundID, _ := argInt64(args, "playground_id")
-	params := &fibe.PlaygroundRetemplateParams{
+	params := &fibe.PlaygroundTransformParams{
 		PlaygroundID:          playgroundID,
 		PlaygroundIdentifier:  identifier,
 		Mode:                  mode,

@@ -343,6 +343,8 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_templates_versions_patch_preview",
 		"fibe_playspecs_switch_version",
 		"fibe_playspecs_switch_version_preview",
+		"fibe_templates_develop",
+		"fibe_playgrounds_retemplate",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); ok {
 			t.Fatalf("%s should not be registered", name)
@@ -354,8 +356,6 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_mutter",
 		"fibe_playgrounds_transform",
 		"fibe_templates_change",
-		"fibe_templates_develop",
-		"fibe_playgrounds_retemplate",
 		"fibe_playgrounds_action",
 		"fibe_feedbacks_get",
 		"fibe_templates_launch",
@@ -499,15 +499,15 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("expected webhook event types in schema: %#v", eventSchema)
 	}
 
-	developSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
+	changeSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
 		"resource":  "template",
 		"operation": "change",
 	})
 	if err != nil {
 		t.Fatalf("fibe_schema template change: %v", err)
 	}
-	developProps := developSchema.(map[string]any)["properties"].(map[string]any)
-	postApplyEnum := developProps["post_apply"].(map[string]any)["enum"].([]string)
+	changeProps := changeSchema.(map[string]any)["properties"].(map[string]any)
+	postApplyEnum := changeProps["post_apply"].(map[string]any)["enum"].([]string)
 	if !containsString(postApplyEnum, "trigger_trick") {
 		t.Fatalf("template.change post_apply enum missing trigger_trick: %#v", postApplyEnum)
 	}
@@ -582,9 +582,14 @@ func TestSchemaToolAdvertisesResourceAndOperationEnums(t *testing.T) {
 	}
 
 	operationEnum := toolPropertyEnum(t, tool, "operation")
-	for _, want := range []string{"list", "get", "delete", "create", "update", "action", "develop", "validate", "event_types", "watch", "upload_attachment"} {
+	for _, want := range []string{"list", "get", "delete", "create", "update", "action", "change", "validate", "event_types", "watch", "upload_attachment"} {
 		if !containsString(operationEnum, want) {
 			t.Fatalf("fibe_schema operation enum missing %q: %#v", want, operationEnum)
+		}
+	}
+	for _, removed := range []string{"develop", "retemplate"} {
+		if containsString(operationEnum, removed) {
+			t.Fatalf("fibe_schema operation enum should not include removed alias %q: %#v", removed, operationEnum)
 		}
 	}
 }

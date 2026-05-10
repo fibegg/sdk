@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRetemplateRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
+func TestTransformRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 	var sawTemplateCreate bool
 	playspecID := int64(9)
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +26,7 @@ func TestRetemplateRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 		}
 	})
 
-	result, err := c.Retemplate(context.Background(), &PlaygroundRetemplateParams{
+	result, err := c.Transform(context.Background(), &PlaygroundTransformParams{
 		PlaygroundID: 7,
 		TemplateBody: "services: {}\n",
 	})
@@ -37,11 +37,11 @@ func TestRetemplateRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 		t.Fatalf("expected partial result with playground, got %#v", result)
 	}
 	if sawTemplateCreate {
-		t.Fatal("Retemplate created an import template before checking template origin")
+		t.Fatal("Transform created an import template before checking template origin")
 	}
 }
 
-func TestRetemplateCreatesTemplateSwitchesAndWaits(t *testing.T) {
+func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	playspecID := int64(9)
 	sourceVersionID := int64(33)
 	templateID := int64(11)
@@ -89,7 +89,7 @@ func TestRetemplateCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	})
 
 	provisionPrivate := false
-	result, err := c.Retemplate(context.Background(), &PlaygroundRetemplateParams{
+	result, err := c.Transform(context.Background(), &PlaygroundTransformParams{
 		PlaygroundID:          7,
 		TemplateBody:          "services:\n  web:\n    image: nginx\n",
 		TemplateName:          "pg-transform",
@@ -99,7 +99,7 @@ func TestRetemplateCreatesTemplateSwitchesAndWaits(t *testing.T) {
 		Wait:                  true,
 	})
 	if err != nil {
-		t.Fatalf("Retemplate: %v", err)
+		t.Fatalf("Transform: %v", err)
 	}
 	if result.Template == nil || result.Template.ID == nil || *result.Template.ID != templateID {
 		t.Fatalf("expected created template in result, got %#v", result.Template)

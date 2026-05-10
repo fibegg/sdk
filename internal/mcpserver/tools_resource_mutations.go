@@ -70,10 +70,10 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 	switch resource + "." + operation {
 	case "playground.action":
 		return true
-	case "playground.transform", "playground.retemplate":
+	case "playground.transform":
 		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
 		return mode == "" || mode == "apply"
-	case "template.change", "template.develop":
+	case "template.change":
 		return strings.EqualFold(strings.TrimSpace(argString(payload, "mode")), "apply")
 	default:
 		return false
@@ -194,16 +194,16 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			p.Force = &force
 		}
 		return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
-	case "playground.transform", "playground.retemplate":
+	case "playground.transform":
 		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
 		if mode == "" {
 			mode = "apply"
 		}
-		params, err := buildRetemplateParams(payload, mode)
+		params, err := buildTransformParams(payload, mode)
 		if err != nil {
 			return nil, err
 		}
-		return c.Retemplate(ctx, params)
+		return c.Transform(ctx, params)
 	case "playspec.create":
 		var p fibe.PlayspecCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -274,12 +274,12 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		return c.ImportTemplates.Create(ctx, &p)
 	case "template.update":
 		return mutateTemplateUpdate(ctx, c, payload)
-	case "template.change", "template.develop":
-		var in templateDevelopArgs
+	case "template.change":
+		var in templateChangeArgs
 		if err := bindArgs(payload, &in); err != nil {
 			return nil, err
 		}
-		return runTemplateDevelop(ctx, c, &in)
+		return runTemplateChange(ctx, c, &in)
 	case "template.fork":
 		id, _ := argInt64(payload, "template_id")
 		return c.ImportTemplates.Fork(ctx, id)

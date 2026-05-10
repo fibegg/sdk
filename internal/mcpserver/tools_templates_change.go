@@ -11,7 +11,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-type templateDevelopArgs struct {
+type templateChangeArgs struct {
 	TargetType              string                    `json:"target_type"`
 	TargetID                int64                     `json:"target_id"`
 	Mode                    string                    `json:"mode"`
@@ -38,7 +38,7 @@ type templateDevelopArgs struct {
 	ReuseExistingProps      bool                      `json:"reuse_existing_props,omitempty"`
 }
 
-type templateDevelopTarget struct {
+type templateChangeTarget struct {
 	templateID   int64
 	playspecID   *int64
 	playgroundID *int64
@@ -47,23 +47,16 @@ type templateDevelopTarget struct {
 	baseVersion  int64
 }
 
-const (
-	templateChangeToolName               = "fibe_templates_change"
-	templateDevelopCompatibilityToolName = "fibe_templates_develop"
-)
+const templateChangeToolName = "fibe_templates_change"
 
-func (s *Server) registerTemplateDevelopTools() {
+func (s *Server) registerTemplateChangeTools() {
 	s.registerTemplateChangeTool(templateChangeToolName, true)
-	s.registerTemplateChangeTool(templateDevelopCompatibilityToolName, true)
 }
 
 func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	schema, _, _, _ := resourceschema.SchemaFor("template", "change")
 	inputSchema, _ := schema.(map[string]any)
 	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run."
-	if name == templateDevelopCompatibilityToolName {
-		description = "[DEPRECATED alias for fibe_templates_change] " + description
-	}
 	s.addTool(&toolImpl{
 		name:        name,
 		description: description,
@@ -77,11 +70,11 @@ func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 			if argString(args, "mode") == "apply" && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
 				return nil, &confirmRequiredError{tool: name}
 			}
-			var in templateDevelopArgs
+			var in templateChangeArgs
 			if err := bindArgs(args, &in); err != nil {
 				return nil, err
 			}
-			return runTemplateDevelop(ctx, c, &in)
+			return runTemplateChange(ctx, c, &in)
 		},
 	}, mcp.NewTool(name,
 		mcp.WithDescription(description),
@@ -89,28 +82,28 @@ func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	))
 }
 
-func runTemplateDevelop(ctx context.Context, c *fibe.Client, in *templateDevelopArgs) (any, error) {
-	if err := normalizeTemplateDevelopArgs(in); err != nil {
+func runTemplateChange(ctx context.Context, c *fibe.Client, in *templateChangeArgs) (any, error) {
+	if err := normalizeTemplateChangeArgs(in); err != nil {
 		return nil, err
 	}
-	target, err := resolveTemplateDevelopTarget(ctx, c, in)
+	target, err := resolveTemplateChangeTarget(ctx, c, in)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateTemplateDevelopCombination(in, target); err != nil {
+	if err := validateTemplateChangeCombination(in, target); err != nil {
 		return nil, err
 	}
 	switch in.ChangeType {
 	case "switch_existing":
-		return runTemplateDevelopSwitch(ctx, c, in, target)
+		return runTemplateChangeSwitch(ctx, c, in, target)
 	case "patch", "overwrite":
-		return runTemplateDevelopPatch(ctx, c, in, target)
+		return runTemplateChangePatch(ctx, c, in, target)
 	default:
 		return nil, fmt.Errorf("unsupported change_type %q", in.ChangeType)
 	}
 }
 
-func normalizeTemplateDevelopArgs(in *templateDevelopArgs) error {
+func normalizeTemplateChangeArgs(in *templateChangeArgs) error {
 	if in.TargetType == "" {
 		return fmt.Errorf("required field 'target_type' not set")
 	}
@@ -141,8 +134,8 @@ func normalizeTemplateDevelopArgs(in *templateDevelopArgs) error {
 	return nil
 }
 
-func resolveTemplateDevelopTarget(ctx context.Context, c *fibe.Client, in *templateDevelopArgs) (*templateDevelopTarget, error) {
-	target := &templateDevelopTarget{baseVersion: in.BaseVersionID}
+func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templateChangeArgs) (*templateChangeTarget, error) {
+	target := &templateChangeTarget{baseVersion: in.BaseVersionID}
 	switch in.TargetType {
 	case "template":
 		target.templateID = in.TargetID
@@ -158,7 +151,7 @@ func resolveTemplateDevelopTarget(ctx context.Context, c *fibe.Client, in *templ
 		if err != nil {
 			return nil, err
 		}
-		fillTemplateDevelopTargetFromPlayspec(target, ps)
+		fillTemplateChangeTargetFromPlayspec(target, ps)
 	case "playground", "trick":
 		pg, err := c.Playgrounds.Get(ctx, in.TargetID)
 		if err != nil {
@@ -174,7 +167,7 @@ func resolveTemplateDevelopTarget(ctx context.Context, c *fibe.Client, in *templ
 		if err != nil {
 			return nil, err
 		}
-		fillTemplateDevelopTargetFromPlayspec(target, ps)
+		fillTemplateChangeTargetFromPlayspec(target, ps)
 		target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
 		if in.TargetType == "trick" && !target.jobMode {
 			return nil, fmt.Errorf("target_type trick requires a job-mode playground or playspec")
@@ -194,7 +187,7 @@ func resolveTemplateDevelopTarget(ctx context.Context, c *fibe.Client, in *templ
 	return target, nil
 }
 
-func fillTemplateDevelopTargetFromPlayspec(target *templateDevelopTarget, ps *fibe.Playspec) {
+func fillTemplateChangeTargetFromPlayspec(target *templateChangeTarget, ps *fibe.Playspec) {
 	if ps.ID != nil {
 		target.playspecID = ps.ID
 	}
@@ -210,7 +203,7 @@ func fillTemplateDevelopTargetFromPlayspec(target *templateDevelopTarget, ps *fi
 	}
 }
 
-func validateTemplateDevelopCombination(in *templateDevelopArgs, target *templateDevelopTarget) error {
+func validateTemplateChangeCombination(in *templateChangeArgs, target *templateChangeTarget) error {
 	switch in.PostApply {
 	case "none", "rollout_target", "rollout_all", "trigger_trick":
 	default:
@@ -246,7 +239,7 @@ func validateTemplateDevelopCombination(in *templateDevelopArgs, target *templat
 	return nil
 }
 
-func runTemplateDevelopSwitch(ctx context.Context, c *fibe.Client, in *templateDevelopArgs, target *templateDevelopTarget) (any, error) {
+func runTemplateChangeSwitch(ctx context.Context, c *fibe.Client, in *templateChangeArgs, target *templateChangeTarget) (any, error) {
 	params := &fibe.PlayspecTemplateVersionSwitchParams{
 		TargetTemplateVersionID: in.TargetTemplateVersionID,
 		Variables:               in.SwitchVariables,
@@ -271,13 +264,13 @@ func runTemplateDevelopSwitch(ctx context.Context, c *fibe.Client, in *templateD
 		return nil, err
 	}
 	out := map[string]any{"result": result}
-	if err := runTemplateDevelopPostApply(ctx, c, in, target, out, rolloutIDsFromAny(result)); err != nil {
+	if err := runTemplateChangePostApply(ctx, c, in, target, out, rolloutIDsFromAny(result)); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func runTemplateDevelopPatch(ctx context.Context, c *fibe.Client, in *templateDevelopArgs, target *templateDevelopTarget) (any, error) {
+func runTemplateChangePatch(ctx context.Context, c *fibe.Client, in *templateChangeArgs, target *templateChangeTarget) (any, error) {
 	body := in.TemplateBody
 	if in.ChangeType == "overwrite" && body == "" {
 		read, err := readInlineOrPathTextArg(map[string]any{"template_body_path": in.TemplateBodyPath}, "template_body", "template_body_path")
@@ -313,13 +306,13 @@ func runTemplateDevelopPatch(ctx context.Context, c *fibe.Client, in *templateDe
 		return nil, err
 	}
 	out := map[string]any{"result": result}
-	if err := runTemplateDevelopPostApply(ctx, c, in, target, out, rolloutIDsFromPatchResult(result)); err != nil {
+	if err := runTemplateChangePostApply(ctx, c, in, target, out, rolloutIDsFromPatchResult(result)); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func runTemplateDevelopPostApply(ctx context.Context, c *fibe.Client, in *templateDevelopArgs, target *templateDevelopTarget, out map[string]any, rolloutIDs []int64) error {
+func runTemplateChangePostApply(ctx context.Context, c *fibe.Client, in *templateChangeArgs, target *templateChangeTarget, out map[string]any, rolloutIDs []int64) error {
 	if in.PostApply == "trigger_trick" {
 		if target.playspecID == nil {
 			return fmt.Errorf("cannot trigger trick without playspec_id")
@@ -332,7 +325,7 @@ func runTemplateDevelopPostApply(ctx context.Context, c *fibe.Client, in *templa
 		if in.Wait {
 			result := waitForSingleTemplatePatchRollout(ctx, c, trick.ID, time.Duration(in.WaitTimeoutSeconds)*time.Second)
 			out["wait_results"] = []map[string]any{result}
-			if diagnoseTemplateDevelop(in) && result["success"] != true {
+			if diagnoseTemplateChange(in) && result["success"] != true {
 				refresh := true
 				debug, err := c.Playgrounds.DebugWithParams(ctx, trick.ID, &fibe.PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
 				if err != nil {
@@ -345,7 +338,7 @@ func runTemplateDevelopPostApply(ctx context.Context, c *fibe.Client, in *templa
 		return nil
 	}
 	if in.Wait && len(rolloutIDs) > 0 {
-		waitResults, diagnostics := waitForTemplatePatchRollouts(ctx, c, rolloutIDs, time.Duration(in.WaitTimeoutSeconds)*time.Second, diagnoseTemplateDevelop(in))
+		waitResults, diagnostics := waitForTemplatePatchRollouts(ctx, c, rolloutIDs, time.Duration(in.WaitTimeoutSeconds)*time.Second, diagnoseTemplateChange(in))
 		out["wait_results"] = waitResults
 		if len(diagnostics) > 0 {
 			out["diagnostics"] = diagnostics
@@ -365,7 +358,7 @@ func rolloutModeForPostApply(postApply string) string {
 	}
 }
 
-func diagnoseTemplateDevelop(in *templateDevelopArgs) bool {
+func diagnoseTemplateChange(in *templateChangeArgs) bool {
 	if in.DiagnoseOnFailure == nil {
 		return true
 	}

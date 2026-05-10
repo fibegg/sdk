@@ -223,16 +223,18 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 			t.Errorf("%s should be advertised in core mode", name)
 		}
 	}
-	for _, name := range []string{
-		"fibe_templates_change",
-		"fibe_templates_develop",
-		"fibe_playgrounds_retemplate",
-	} {
+	if advertised["fibe_templates_change"] {
+		t.Errorf("fibe_templates_change should not be advertised in core mode")
+	}
+	if _, ok := srv.dispatcher.lookup("fibe_templates_change"); !ok {
+		t.Errorf("fibe_templates_change should remain registered as a hidden callable tool")
+	}
+	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
-		if _, ok := srv.dispatcher.lookup(name); !ok {
-			t.Errorf("%s should remain registered as a hidden callable tool", name)
+		if _, ok := srv.dispatcher.lookup(name); ok {
+			t.Errorf("%s should not remain registered", name)
 		}
 	}
 }
@@ -569,13 +571,15 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 			t.Errorf("%s should be advertised in core mode", name)
 		}
 	}
-	for _, name := range []string{
-		"fibe_templates_change",
-		"fibe_templates_develop",
-		"fibe_playgrounds_retemplate",
-	} {
+	if advertised["fibe_templates_change"] {
+		t.Errorf("fibe_templates_change should not be advertised in core mode")
+	}
+	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
+		}
+		if _, ok := srv.dispatcher.lookup(name); ok {
+			t.Errorf("%s should not be registered", name)
 		}
 	}
 
@@ -688,13 +692,16 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	if !catalogHasTool(coreTools, "fibe_playgrounds_transform") {
 		t.Fatalf("core catalog missing canonical playground transform tool: %#v", coreTools)
 	}
-	for _, name := range []string{"fibe_templates_change", "fibe_templates_develop", "fibe_playgrounds_retemplate"} {
-		tool := catalogTool(coreTools, name)
-		if tool == nil {
-			t.Fatalf("core catalog should discover hidden tool %s", name)
-		}
-		if tool["hidden"] != true || tool["advertised"] != false {
-			t.Fatalf("hidden catalog entry %s should be hidden and unadvertised: %#v", name, tool)
+	tool := catalogTool(coreTools, "fibe_templates_change")
+	if tool == nil {
+		t.Fatalf("core catalog should discover hidden tool fibe_templates_change")
+	}
+	if tool["hidden"] != true || tool["advertised"] != false {
+		t.Fatalf("hidden catalog entry fibe_templates_change should be hidden and unadvertised: %#v", tool)
+	}
+	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
+		if catalogHasTool(coreTools, name) {
+			t.Fatalf("core catalog should not include removed deprecated alias %s", name)
 		}
 	}
 

@@ -61,9 +61,9 @@ func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (
 
 func validateOperationPayloadCombination(resource, operation string, payload map[string]any) error {
 	switch resource + "." + operation {
-	case "playground.transform", "playground.retemplate":
+	case "playground.transform":
 		return validatePlaygroundTransformPayloadCombination(resource, operation, payload)
-	case "template.change", "template.develop":
+	case "template.change":
 		return validateTemplateChangePayloadCombination(resource, operation, payload)
 	default:
 		return nil

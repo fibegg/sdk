@@ -164,14 +164,14 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("memory.memorize should validate: %v", err)
 	}
 
-	templateDevelop, _, op, ok := SchemaFor("template", "change")
+	templateChange, _, op, ok := SchemaFor("template", "change")
 	if !ok || op != "change" {
 		t.Fatalf("template.change schema missing")
 	}
-	developProps := templateDevelop.(map[string]any)["properties"].(map[string]any)
+	changeProps := templateChange.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"target_type", "target_id", "mode", "change_type", "confirm", "post_apply", "template_body", "template_body_path"} {
-		if _, ok := developProps[want]; !ok {
-			t.Fatalf("template.change missing property %q: %#v", want, developProps)
+		if _, ok := changeProps[want]; !ok {
+			t.Fatalf("template.change missing property %q: %#v", want, changeProps)
 		}
 	}
 	if _, _, err := ValidatePayload("template", "change", map[string]any{
@@ -199,10 +199,8 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	}); err == nil {
 		t.Fatalf("template.change should reject ambiguous template_body/template_body_path selectors")
 	}
-	if legacyTemplateDevelop, _, op, ok := SchemaFor("template", "develop"); !ok || op != "develop" {
-		t.Fatalf("template.develop legacy schema missing")
-	} else if legacyTemplateDevelop.(map[string]any)["deprecated"] != true {
-		t.Fatalf("template.develop legacy schema should be marked deprecated: %#v", legacyTemplateDevelop)
+	if _, _, _, ok := SchemaFor("template", "develop"); ok {
+		t.Fatalf("template.develop legacy schema should be removed")
 	}
 	if playgroundTransform, _, op, ok := SchemaFor("playground", "transform"); !ok || op != "transform" {
 		t.Fatalf("playground.transform schema missing")
@@ -226,10 +224,8 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	}); err == nil {
 		t.Fatalf("playground.transform should reject ambiguous template selectors")
 	}
-	if legacyRetemplate, _, op, ok := SchemaFor("playground", "retemplate"); !ok || op != "retemplate" {
-		t.Fatalf("playground.retemplate legacy schema missing")
-	} else if legacyRetemplate.(map[string]any)["deprecated"] != true {
-		t.Fatalf("playground.retemplate legacy schema should be marked deprecated: %#v", legacyRetemplate)
+	if _, _, _, ok := SchemaFor("playground", "retemplate"); ok {
+		t.Fatalf("playground.retemplate legacy schema should be removed")
 	}
 
 	marqueeCreate, _, op, ok := SchemaFor("marquee", "create")
