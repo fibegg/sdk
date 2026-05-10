@@ -439,7 +439,7 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("fibe_schema agent update: %v", err)
 	}
 	updateProps := updateSchema.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"agent_id", "name", "mode", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
+	for _, want := range []string{"agent_id", "name", "model_options", "prompt", "system_prompt_mode", "main_md", "main_md_mode", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
 		if _, ok := updateProps[want]; !ok {
 			t.Fatalf("expected %s in agent.update schema, got %#v", want, updateProps)
 		}

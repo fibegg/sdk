@@ -53,18 +53,7 @@ func (s *ArtefactService) Create(ctx context.Context, agentID int64, params *Art
 }
 
 func (s *ArtefactService) CreateByAgentIdentifier(ctx context.Context, agentIdentifier string, params *ArtefactCreateParams, file io.Reader, fileName string) (*Artefact, error) {
-	fields := map[string]string{
-		"name": params.Name,
-	}
-	if params.Description != "" {
-		fields["description"] = params.Description
-	}
-	if params.PlaygroundID != nil {
-		fields["playground_id"] = fmt.Sprintf("%d", *params.PlaygroundID)
-	}
-	if params.PlaygroundIdentifier != "" {
-		fields["playground_id"] = params.PlaygroundIdentifier
-	}
+	fields := artefactCreateFields(params)
 	path := identifierPath("/api/agents", agentIdentifier) + "/artefacts"
 	var result Artefact
 	err := s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, &result)
@@ -72,6 +61,63 @@ func (s *ArtefactService) CreateByAgentIdentifier(ctx context.Context, agentIden
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (s *ArtefactService) CreateOwned(ctx context.Context, params *ArtefactCreateParams, file io.Reader, fileName string) (*Artefact, error) {
+	fields := artefactCreateFields(params)
+	var result Artefact
+	err := s.client.doMultipart(ctx, http.MethodPost, "/api/artefacts", fields, "file", fileName, file, &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (s *ArtefactService) UpdateByID(ctx context.Context, id int64, params *ArtefactUpdateParams) (*Artefact, error) {
+	var result Artefact
+	err := s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/artefacts/%d", id), params, &result)
+	return &result, err
+}
+
+func (s *ArtefactService) UpdateByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64, params *ArtefactUpdateParams) (*Artefact, error) {
+	var result Artefact
+	path := fmt.Sprintf("%s/artefacts/%d", identifierPath("/api/agents", agentIdentifier), id)
+	err := s.client.do(ctx, http.MethodPatch, path, params, &result)
+	return &result, err
+}
+
+func artefactCreateFields(params *ArtefactCreateParams) map[string]string {
+	fields := map[string]string{
+		"name": params.Name,
+	}
+	if params.Description != "" {
+		fields["description"] = params.Description
+	}
+	if params.Body != "" {
+		fields["body"] = params.Body
+	}
+	if params.PlainText != nil {
+		fields["plain_text"] = fmt.Sprintf("%t", *params.PlainText)
+	}
+	if params.Skill != nil {
+		fields["skill"] = fmt.Sprintf("%t", *params.Skill)
+	}
+	if params.SkillEnabled != nil {
+		fields["skill_enabled"] = fmt.Sprintf("%t", *params.SkillEnabled)
+	}
+	if params.AgentID != nil {
+		fields["agent_id"] = fmt.Sprintf("%d", *params.AgentID)
+	}
+	if params.AgentIdentifier != "" {
+		fields["agent_id"] = params.AgentIdentifier
+	}
+	if params.PlaygroundID != nil {
+		fields["playground_id"] = fmt.Sprintf("%d", *params.PlaygroundID)
+	}
+	if params.PlaygroundIdentifier != "" {
+		fields["playground_id"] = params.PlaygroundIdentifier
+	}
+	return fields
 }
 
 func (s *ArtefactService) Download(ctx context.Context, agentID, id int64) (io.ReadCloser, string, string, error) {

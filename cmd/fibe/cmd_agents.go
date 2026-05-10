@@ -239,11 +239,11 @@ func agentRuntimeStatusColumns(status *fibe.AgentRuntimeStatus) []string {
 
 func agCreateCmd() *cobra.Command {
 	var name, provider, modelOptions, memoryLimit, cpuLimit string
-	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
+	var prompt, systemPromptMode, mainMD, mainMDMode, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
 	var skillToggleFlags []string
 	var mountFiles, mountArtefacts []string
 	var playgroundCrumbsID string
-	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
+	var syncEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -256,7 +256,6 @@ REQUIRED FLAGS:
 
 OPTIONAL FLAGS:
   --sync           Enable sync
-  --sync-skills    Enable Fibe system skill sync
   --syscheck       Enable system checks
   --provider-api-key-mode
                   Use provider API key authentication instead of subscription/OAuth mode
@@ -264,6 +263,9 @@ OPTIONAL FLAGS:
   --memory-limit   Memory limit, for example 2G
   --cpu-limit      CPU limit, for example 1.5
   --prompt         Agent-specific system prompt override
+  --system-prompt-mode default, append, or override
+  --main-md        Agent-specific main.md override
+  --main-md-mode   default, append, or override
   --mcp-json       MCP configuration JSON for the runtime
   --post-init-script
                   Shell script run after agent initialization
@@ -297,9 +299,6 @@ EXAMPLES:
 			if cmd.Flags().Changed("sync") {
 				params.SyncEnabled = &syncEnabled
 			}
-			if cmd.Flags().Changed("sync-skills") {
-				params.SyncSkillsEnabled = &syncSkillsEnabled
-			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
 			}
@@ -323,6 +322,15 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("prompt") {
 				params.Prompt = &prompt
+			}
+			if cmd.Flags().Changed("system-prompt-mode") {
+				params.SystemPromptMode = &systemPromptMode
+			}
+			if cmd.Flags().Changed("main-md") {
+				params.MainMD = &mainMD
+			}
+			if cmd.Flags().Changed("main-md-mode") {
+				params.MainMDMode = &mainMDMode
 			}
 			if cmd.Flags().Changed("mcp-json") {
 				params.MCPJSON = &mcpJSON
@@ -374,7 +382,6 @@ EXAMPLES:
 	cmd.Flags().StringVar(&name, "name", "", "Agent name (required)")
 	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, claude-code, openai-codex, opencode, cursor")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
-	cmd.Flags().BoolVar(&syncSkillsEnabled, "sync-skills", false, "Enable Fibe system skill sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
 	cmd.Flags().BoolVar(&buildInPublic, "build-in-public", false, "Show this agent on the public profile")
 	cmd.Flags().StringVar(&playgroundCrumbsID, "playground-crumbs-id", "", "Playground ID or name for public timeline crumbs")
@@ -383,6 +390,9 @@ EXAMPLES:
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
 	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
 	cmd.Flags().StringVar(&prompt, "prompt", "", "Agent-specific system prompt override")
+	cmd.Flags().StringVar(&systemPromptMode, "system-prompt-mode", "", "System prompt mode: default, append, override")
+	cmd.Flags().StringVar(&mainMD, "main-md", "", "Agent-specific main.md override")
+	cmd.Flags().StringVar(&mainMDMode, "main-md-mode", "", "main.md mode: default, append, override")
 	cmd.Flags().StringVar(&mcpJSON, "mcp-json", "", "MCP configuration JSON")
 	cmd.Flags().StringVar(&postInitScript, "post-init-script", "", "Shell script run after agent initialization")
 	cmd.Flags().StringVar(&customEnv, "custom-env", "", "KEY=VALUE lines injected into the agent runtime")
@@ -396,9 +406,9 @@ EXAMPLES:
 
 func agUpdateCmd() *cobra.Command {
 	var name, modelOptions, memoryLimit, cpuLimit string
-	var prompt, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
+	var prompt, systemPromptMode, mainMD, mainMDMode, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
 	var skillToggleFlags []string
-	var syncEnabled, syncSkillsEnabled, syscheckEnabled, providerAPIKeyMode bool
+	var syncEnabled, syscheckEnabled bool
 	var buildInPublicPlaygroundID string
 
 	cmd := &cobra.Command{
@@ -409,13 +419,14 @@ func agUpdateCmd() *cobra.Command {
 OPTIONAL FLAGS:
   --name                          New agent name
   --sync                          Enable/disable sync
-  --sync-skills                   Enable/disable Fibe system skill sync
   --syscheck                      Enable/disable system checks
-  --provider-api-key-mode         Enable/disable provider API key auth mode
   --model-options                 Provider model option
   --memory-limit                  Memory limit, for example 2G
   --cpu-limit                     CPU limit, for example 1.5
   --prompt                        Agent-specific system prompt override
+  --system-prompt-mode            default, append, or override
+  --main-md                       Agent-specific main.md override
+  --main-md-mode                  default, append, or override
   --mcp-json                      MCP configuration JSON for the runtime
   --post-init-script              Shell script run after agent initialization
   --custom-env                    KEY=VALUE lines injected into the agent runtime
@@ -440,14 +451,8 @@ EXAMPLES:
 			if cmd.Flags().Changed("sync") {
 				params.SyncEnabled = &syncEnabled
 			}
-			if cmd.Flags().Changed("sync-skills") {
-				params.SyncSkillsEnabled = &syncSkillsEnabled
-			}
 			if cmd.Flags().Changed("syscheck") {
 				params.SyscheckEnabled = &syscheckEnabled
-			}
-			if cmd.Flags().Changed("provider-api-key-mode") {
-				params.ProviderAPIKeyMode = &providerAPIKeyMode
 			}
 			if cmd.Flags().Changed("model-options") {
 				params.ModelOptions = &modelOptions
@@ -463,6 +468,15 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("prompt") {
 				params.Prompt = &prompt
+			}
+			if cmd.Flags().Changed("system-prompt-mode") {
+				params.SystemPromptMode = &systemPromptMode
+			}
+			if cmd.Flags().Changed("main-md") {
+				params.MainMD = &mainMD
+			}
+			if cmd.Flags().Changed("main-md-mode") {
+				params.MainMDMode = &mainMDMode
 			}
 			if cmd.Flags().Changed("mcp-json") {
 				params.MCPJSON = &mcpJSON
@@ -501,13 +515,14 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&name, "name", "", "New agent name")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
-	cmd.Flags().BoolVar(&syncSkillsEnabled, "sync-skills", false, "Enable Fibe system skill sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
-	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
 	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "CPU limit, for example 1.5")
 	cmd.Flags().StringVar(&prompt, "prompt", "", "Agent-specific system prompt override")
+	cmd.Flags().StringVar(&systemPromptMode, "system-prompt-mode", "", "System prompt mode: default, append, override")
+	cmd.Flags().StringVar(&mainMD, "main-md", "", "Agent-specific main.md override")
+	cmd.Flags().StringVar(&mainMDMode, "main-md-mode", "", "main.md mode: default, append, override")
 	cmd.Flags().StringVar(&mcpJSON, "mcp-json", "", "MCP configuration JSON")
 	cmd.Flags().StringVar(&postInitScript, "post-init-script", "", "Shell script run after agent initialization")
 	cmd.Flags().StringVar(&customEnv, "custom-env", "", "KEY=VALUE lines injected into the agent runtime")

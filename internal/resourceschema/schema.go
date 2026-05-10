@@ -345,7 +345,7 @@ func buildRegistry() map[string]map[string]any {
 	out["playground"]["transform"] = playgroundTransform
 	agentCreate := withPropertyEnum(paramsSchema[fibe.AgentCreateParams]("name", "provider"), "provider", fibe.ValidProviders)
 	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
-	out["agent"]["update"] = withPropertyEnum(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
+	out["agent"]["update"] = updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id")
 	out["agent"]["restart_chat"] = resourceActionIDSchema("agent_id", "Agent ID whose active chat runtime should be restarted.")
 	out["agent"]["upload_attachment"] = agentUploadAttachmentSchema()
 	out["agent"]["watch"] = resourceWatchSchema("agent")
@@ -1406,8 +1406,13 @@ var schemaFieldDescriptions = map[string]string{
 	"ssh_private_key":        "SSH private key.",
 	"status":                 "Resource status filter or target playground status.",
 	"sync_enabled":           "Enable repository sync for the agent.",
-	"sync_skills_enabled":    "Enable skill sync for the agent.",
 	"syscheck_enabled":       "Enable system checks for the agent.",
+	"system_prompt_mode":     "System prompt mode: default, append, or override.",
+	"main_md":                "Agent-specific main.md content.",
+	"main_md_mode":           "main.md mode: default, append, or override.",
+	"skill":                  "Expose the artefact as a skill.",
+	"skill_enabled":          "Enable the artefact skill by default.",
+	"skill_path":             "Generated skill filesystem path.",
 	"skill_toggles":          "Per-skill enabled/disabled overrides.",
 	"target_services":        "Compose service names affected by this file or operation.",
 	"template_body":          "Import template YAML body.",

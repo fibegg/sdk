@@ -25,9 +25,10 @@ SUBCOMMANDS:
   list <agent-id-or-name>          List artefacts
   get <agent-id-or-name> <id>      Show artefact details
   create <agent-id-or-name>        Upload an artefact
+  update <id>                      Update artefact metadata or player-owned body
   download <agent-id-or-name> <id> Download artefact file content`,
 	}
-	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artDownloadCmd())
+	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artUpdateCmd(), artDownloadCmd())
 	return cmd
 }
 
@@ -138,12 +139,25 @@ func artGetCmd() *cobra.Command {
 }
 
 func artCreateCmd() *cobra.Command {
-	var name, desc, file string
+	var name, desc, file, body string
+	var skill, skillEnabled, plainText bool
 	cmd := &cobra.Command{
-		Use: "create <agent-id-or-name>", Short: "Create/upload an artefact", Args: cobra.ExactArgs(1),
+		Use: "create [agent-id-or-name]", Short: "Create/upload an artefact", Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ArtefactCreateParams{Name: name, Description: desc}
+			if body != "" {
+				params.Body = body
+			}
+			if cmd.Flags().Changed("plain-text") {
+				params.PlainText = &plainText
+			}
+			if cmd.Flags().Changed("skill") {
+				params.Skill = &skill
+			}
+			if cmd.Flags().Changed("skill-enabled") {
+				params.SkillEnabled = &skillEnabled
+			}
 
 			var fileReader io.Reader
 			var err error
@@ -163,10 +177,17 @@ func artCreateCmd() *cobra.Command {
 					fileName = file
 				}
 			} else {
-				return fmt.Errorf("required flag --file not provided")
+				if body == "" {
+					return fmt.Errorf("required flag --file or --body not provided")
+				}
 			}
 
-			art, err := c.Artefacts.CreateByAgentIdentifier(ctx(), args[0], params, fileReader, fileName)
+			var art *fibe.Artefact
+			if len(args) > 0 {
+				art, err = c.Artefacts.CreateByAgentIdentifier(ctx(), args[0], params, fileReader, fileName)
+			} else {
+				art, err = c.Artefacts.CreateOwned(ctx(), params, fileReader, fileName)
+			}
 			if err != nil {
 				return err
 			}
@@ -181,6 +202,54 @@ func artCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&name, "name", "", "Name")
 	cmd.Flags().StringVar(&desc, "description", "", "Description")
 	cmd.Flags().StringVar(&file, "file", "", "File to upload (or - for stdin)")
+	cmd.Flags().StringVar(&body, "body", "", "Inline artefact body")
+	cmd.Flags().BoolVar(&plainText, "plain-text", false, "Render body as plain text")
+	cmd.Flags().BoolVar(&skill, "skill", false, "Expose this artefact as a skill")
+	cmd.Flags().BoolVar(&skillEnabled, "skill-enabled", false, "Enable this artefact skill by default")
+	return cmd
+}
+
+func artUpdateCmd() *cobra.Command {
+	var name, desc, body string
+	var skill, skillEnabled, plainText bool
+	cmd := &cobra.Command{
+		Use: "update <id>", Short: "Update artefact metadata or body", Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			id, _ := strconv.ParseInt(args[0], 10, 64)
+			params := &fibe.ArtefactUpdateParams{}
+			if cmd.Flags().Changed("name") {
+				params.Name = &name
+			}
+			if cmd.Flags().Changed("description") {
+				params.Description = &desc
+			}
+			if cmd.Flags().Changed("body") {
+				params.Body = &body
+			}
+			if cmd.Flags().Changed("plain-text") {
+				params.PlainText = &plainText
+			}
+			if cmd.Flags().Changed("skill") {
+				params.Skill = &skill
+			}
+			if cmd.Flags().Changed("skill-enabled") {
+				params.SkillEnabled = &skillEnabled
+			}
+			art, err := c.Artefacts.UpdateByID(ctx(), id, params)
+			if err != nil {
+				return err
+			}
+			outputJSON(art)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&name, "name", "", "Name")
+	cmd.Flags().StringVar(&desc, "description", "", "Description")
+	cmd.Flags().StringVar(&body, "body", "", "Inline artefact body")
+	cmd.Flags().BoolVar(&plainText, "plain-text", false, "Render body as plain text")
+	cmd.Flags().BoolVar(&skill, "skill", false, "Expose this artefact as a skill")
+	cmd.Flags().BoolVar(&skillEnabled, "skill-enabled", false, "Enable this artefact skill by default")
 	return cmd
 }
 

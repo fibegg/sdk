@@ -23,7 +23,6 @@ type Agent struct {
 	Provider                  string              `json:"provider"`
 	Status                    string              `json:"status"`
 	SyncEnabled               bool                `json:"sync_enabled"`
-	SyncSkillsEnabled         bool                `json:"sync_skills_enabled"`
 	SyscheckEnabled           bool                `json:"syscheck_enabled"`
 	BuildInPublic             bool                `json:"build_in_public"`
 	BuildInPublicPlaygroundID *int64              `json:"build_in_public_playground_id"`
@@ -31,6 +30,10 @@ type Agent struct {
 	Mode                      string              `json:"mode"`
 	Settings                  map[string]any      `json:"settings,omitempty"`
 	Prompt                    *string             `json:"prompt"`
+	SystemPrompt              *string             `json:"system_prompt"`
+	SystemPromptMode          string              `json:"system_prompt_mode"`
+	MainMD                    *string             `json:"main_md"`
+	MainMDMode                string              `json:"main_md_mode"`
 	MCPJSON                   *string             `json:"mcp_json"`
 	PostInitScript            *string             `json:"post_init_script"`
 	CustomEnv                 *string             `json:"custom_env"`
@@ -41,6 +44,7 @@ type Agent struct {
 	MemoryLimit               *string             `json:"memory_limit"`
 	CpuLimit                  *string             `json:"cpu_limit"`
 	EffectivePrompt           *string             `json:"effective_prompt"`
+	EffectiveMainMD           *string             `json:"effective_main_md"`
 	EffectiveModelOptions     *string             `json:"effective_model_options"`
 	EffectiveMemoryLimit      *string             `json:"effective_memory_limit"`
 	EffectiveCpuLimit         *string             `json:"effective_cpu_limit"`
@@ -70,7 +74,6 @@ type AgentCreateParams struct {
 	Provider                          string           `json:"provider"`
 	APIKeyID                          *int64           `json:"api_key_id,omitempty"`
 	SyncEnabled                       *bool            `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled                 *bool            `json:"sync_skills_enabled,omitempty"`
 	SyscheckEnabled                   *bool            `json:"syscheck_enabled,omitempty"`
 	BuildInPublic                     *bool            `json:"build_in_public,omitempty"`
 	BuildInPublicPlaygroundID         *int64           `json:"build_in_public_playground_id,omitempty"`
@@ -83,6 +86,10 @@ type AgentCreateParams struct {
 	CpuLimit                          *string          `json:"cpu_limit,omitempty"`
 	Settings                          map[string]any   `json:"settings,omitempty"`
 	Prompt                            *string          `json:"prompt,omitempty"`
+	SystemPrompt                      *string          `json:"system_prompt,omitempty"`
+	SystemPromptMode                  *string          `json:"system_prompt_mode,omitempty"`
+	MainMD                            *string          `json:"main_md,omitempty"`
+	MainMDMode                        *string          `json:"main_md_mode,omitempty"`
 	MCPJSON                           *string          `json:"mcp_json,omitempty"`
 	PostInitScript                    *string          `json:"post_init_script,omitempty"`
 	CustomEnv                         *string          `json:"custom_env,omitempty"`
@@ -121,12 +128,9 @@ type AgentUpdateParams struct {
 	Name                              *string             `json:"name,omitempty"`
 	APIKeyID                          *int64              `json:"api_key_id,omitempty"`
 	SyncEnabled                       *bool               `json:"sync_enabled,omitempty"`
-	SyncSkillsEnabled                 *bool               `json:"sync_skills_enabled,omitempty"`
 	SyscheckEnabled                   *bool               `json:"syscheck_enabled,omitempty"`
 	BuildInPublic                     *bool               `json:"build_in_public,omitempty"`
 	Description                       *string             `json:"description,omitempty"`
-	ProviderAPIKeyMode                *bool               `json:"provider_api_key_mode,omitempty"`
-	Mode                              *string             `json:"mode,omitempty"`
 	ModelOptions                      *string             `json:"model_options,omitempty"`
 	MemoryLimit                       *string             `json:"memory_limit,omitempty"`
 	CpuLimit                          *string             `json:"cpu_limit,omitempty"`
@@ -134,6 +138,10 @@ type AgentUpdateParams struct {
 	BuildInPublicPlaygroundIdentifier string              `json:"-"`
 	Settings                          map[string]any      `json:"settings,omitempty"`
 	Prompt                            *string             `json:"prompt,omitempty"`
+	SystemPrompt                      *string             `json:"system_prompt,omitempty"`
+	SystemPromptMode                  *string             `json:"system_prompt_mode,omitempty"`
+	MainMD                            *string             `json:"main_md,omitempty"`
+	MainMDMode                        *string             `json:"main_md_mode,omitempty"`
 	MCPJSON                           *string             `json:"mcp_json,omitempty"`
 	PostInitScript                    *string             `json:"post_init_script,omitempty"`
 	CustomEnv                         *string             `json:"custom_env,omitempty"`

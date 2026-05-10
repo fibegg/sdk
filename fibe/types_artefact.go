@@ -8,13 +8,16 @@ import (
 // Artefact represents a file produced by an agent.
 type Artefact struct {
 	ID           int64     `json:"id"`
-	AgentID      int64     `json:"agent_id"`
+	AgentID      *int64    `json:"agent_id"`
 	PlayerID     *int64    `json:"player_id"`
 	PlaygroundID *int64    `json:"playground_id"`
 	Name         string    `json:"name"`
 	Description  *string   `json:"description"`
 	Body         *string   `json:"body"`
 	PlainText    *bool     `json:"plain_text"`
+	Skill        bool      `json:"skill"`
+	SkillEnabled bool      `json:"skill_enabled"`
+	SkillPath    string    `json:"skill_path"`
 	Filename     *string   `json:"filename"`
 	ContentType  *string   `json:"content_type"`
 	ByteSize     *int64    `json:"byte_size"`
@@ -38,8 +41,14 @@ type ArtefactListParams struct {
 type ArtefactCreateParams struct {
 	Name                 string `json:"name"`
 	Description          string `json:"description,omitempty"`
+	AgentID              *int64 `json:"agent_id,omitempty"`
+	AgentIdentifier      string `json:"-"`
 	PlaygroundID         *int64 `json:"playground_id,omitempty"`
 	PlaygroundIdentifier string `json:"-"`
+	Body                 string `json:"body,omitempty"`
+	PlainText            *bool  `json:"plain_text,omitempty"`
+	Skill                *bool  `json:"skill,omitempty"`
+	SkillEnabled         *bool  `json:"skill_enabled,omitempty"`
 }
 
 func (p ArtefactCreateParams) MarshalJSON() ([]byte, error) {
@@ -55,5 +64,17 @@ func (p ArtefactCreateParams) MarshalJSON() ([]byte, error) {
 	if p.PlaygroundIdentifier != "" {
 		body["playground_id"] = p.PlaygroundIdentifier
 	}
+	if p.AgentIdentifier != "" {
+		body["agent_id"] = p.AgentIdentifier
+	}
 	return json.Marshal(body)
+}
+
+type ArtefactUpdateParams struct {
+	Name         *string `json:"name,omitempty"`
+	Description  *string `json:"description,omitempty"`
+	Body         *string `json:"body,omitempty"`
+	PlainText    *bool   `json:"plain_text,omitempty"`
+	Skill        *bool   `json:"skill,omitempty"`
+	SkillEnabled *bool   `json:"skill_enabled,omitempty"`
 }
