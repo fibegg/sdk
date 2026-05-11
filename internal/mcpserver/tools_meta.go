@@ -261,15 +261,14 @@ selected profile with /api/me before keeping the new session client.`),
 		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
 
 Views:
-  names    list all local playground names, playspecs, IDs, and paths; omit playground/playground_id
+  names    list all local playground names, playspecs, IDs, and paths; omit id_or_name
   urls     exposed service URLs for one playground
   mounts   source-code mount locations for one playground
   details  full local metadata for one playground
 
 Selectors accept local numeric playground ID, compose project/name, playspec, or unique playspec prefix.`),
 		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, urls, mounts, or details.")),
-		mcp.WithString("playground", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
-		mcp.WithNumber("playground_id", mcp.Description("Local playground numeric ID. Omit for view=names.")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
 	))
 
 	s.addTool(&toolImpl{
@@ -288,8 +287,7 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_link",
 		mcp.WithDescription("[MODE:BROWNFIELD] Link local playground mounts into a working directory."),
-		mcp.WithString("playground", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix")),
-		mcp.WithNumber("playground_id", mcp.Description("Local playground numeric ID")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix")),
 		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: /app/playground)")),
 	))
 
@@ -545,12 +543,12 @@ func localPlaygroundSelectorFromArgs(args map[string]any, view string) (string, 
 	}
 	if view == "names" {
 		if selector != "" {
-			return "", fmt.Errorf("view 'names' does not accept playground or playground_id")
+			return "", fmt.Errorf("view 'names' does not accept id_or_name")
 		}
 		return "", nil
 	}
 	if selector == "" {
-		return "", fmt.Errorf("view '%s' requires playground or playground_id", view)
+		return "", fmt.Errorf("view '%s' requires id_or_name", view)
 	}
 	return selector, nil
 }
@@ -561,31 +559,13 @@ func localPlaygroundTargetFromArgs(args map[string]any) (string, error) {
 		return "", err
 	}
 	if selector == "" {
-		return "", fmt.Errorf("required field 'playground' or 'playground_id' not set")
+		return "", fmt.Errorf("required field 'id_or_name' not set")
 	}
 	return selector, nil
 }
 
 func localPlaygroundOptionalSelectorFromArgs(args map[string]any) (string, error) {
-	playground := strings.TrimSpace(argString(args, "playground"))
-	var playgroundID string
-	if _, ok := args["playground_id"]; ok {
-		id, ok := argInt64(args, "playground_id")
-		if !ok {
-			return "", fmt.Errorf("field 'playground_id' must be numeric")
-		}
-		if id <= 0 {
-			return "", fmt.Errorf("field 'playground_id' must be > 0")
-		}
-		playgroundID = fmt.Sprint(id)
-	}
-	if playground != "" && playgroundID != "" {
-		return "", fmt.Errorf("pass only one of playground or playground_id")
-	}
-	if playgroundID != "" {
-		return playgroundID, nil
-	}
-	return playground, nil
+	return strings.TrimSpace(argString(args, "id_or_name")), nil
 }
 
 var fibeRunCaptureMaxBytes = 1 << 20

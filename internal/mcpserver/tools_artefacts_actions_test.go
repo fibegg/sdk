@@ -37,7 +37,7 @@ func TestArtefactUploadUsesFilePayload(t *testing.T) {
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_artefact_upload", map[string]any{
-		"name":           "report.txt",
+		"name":           fmt.Sprintf("%s-report.txt", agentName),
 		"content_base64": "aGVsbG8=", // "hello"
 	}); err != nil {
 		t.Fatalf("dispatch fibe_artefact_upload: %v", err)
@@ -74,14 +74,15 @@ func TestArtefactUploadWorkspaceWrite(t *testing.T) {
 	os.Setenv("FIBE_WORKSPACE_PATH", tmpDir)
 	defer os.Unsetenv("FIBE_WORKSPACE_PATH")
 
+	filename := fmt.Sprintf("%s-report-workspace.txt", agentName)
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_artefact_upload", map[string]any{
-		"name":           "report_workspace.txt",
+		"name":           filename,
 		"content_base64": "aGVsbG8=",
 	}); err != nil {
 		t.Fatalf("dispatch fibe_artefact_upload: %v", err)
 	}
 
-	content, err := os.ReadFile(tmpDir + "/report_workspace.txt")
+	content, err := os.ReadFile(tmpDir + "/" + filename)
 	if err != nil {
 		t.Fatalf("failed to read written file: %v", err)
 	}

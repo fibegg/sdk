@@ -681,7 +681,7 @@ func MemoryMemorizeSchema() map[string]any {
 				"minLength":   1,
 				"description": "Durable memory text.",
 			},
-			"agent_id": map[string]any{
+			"agent_id_or_name": map[string]any{
 				"oneOf": []any{
 					map[string]any{"type": "integer", "minimum": 1},
 					map[string]any{"type": "string", "minLength": 1},
@@ -1143,11 +1143,7 @@ func listParamsSchema[P any]() map[string]any {
 func templateVersionListParamsSchema() map[string]any {
 	schema := listParamsSchema[fibe.ListParams]()
 	props := schema["properties"].(map[string]any)
-	props["template_id_or_name"] = map[string]any{
-		"type":        "string",
-		"description": "Import template ID or name whose versions should be listed.",
-		"minLength":   1,
-	}
+	props["template_id_or_name"] = namedIdentifierSchema("template_id_or_name", "Import template ID or name whose versions should be listed.")
 	schema["required"] = []string{"template_id_or_name"}
 	return schema
 }

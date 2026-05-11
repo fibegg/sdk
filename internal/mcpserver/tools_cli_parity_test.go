@@ -163,7 +163,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_feedbacks_list",
-			mcpArgs: map[string]any{"agent_id": 999999999},
+			mcpArgs: map[string]any{},
 			cliArgs: []string{"feedbacks", "list", "999999999", "--output", "json"},
 		},
 		{
@@ -188,7 +188,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_local_playgrounds_info",
-			mcpArgs: map[string]any{"view": "details", "playground": "nonexistent_dir_for_test"},
+			mcpArgs: map[string]any{"view": "details", "id_or_name": "nonexistent_dir_for_test"},
 			cliArgs: []string{"local", "playgrounds", "info", "--view", "details", "--playground", "nonexistent_dir_for_test", "--output", "json"},
 		},
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -17,20 +16,28 @@ func (s *Server) registerFeedbackMutationTools() {
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			agentIDStr := os.Getenv("FIBE_AGENT_ID")
-			agentID, err := strconv.ParseInt(agentIDStr, 10, 64)
-			if err != nil || agentID <= 0 {
-				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing or invalid")
+			agentIdentifier := os.Getenv("FIBE_AGENT_ID")
+			if agentIdentifier == "" {
+				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing")
 			}
 			var p fibe.FeedbackListParams
-			if err := bindArgs(args, &p); err != nil {
+			backendArgs := map[string]any{}
+			for k, v := range args {
+				if k != "playground_id_or_name" {
+					backendArgs[k] = v
+				}
+			}
+			if playgroundIdentifier := argString(args, "playground_id_or_name"); playgroundIdentifier != "" {
+				backendArgs["playground_id"] = playgroundIdentifier
+			}
+			if err := bindArgs(backendArgs, &p); err != nil {
 				return nil, err
 			}
-			return c.Feedbacks.List(ctx, agentID, &p)
+			return c.Feedbacks.ListByAgentIdentifier(ctx, agentIdentifier, &p)
 		},
 	}, mcp.NewTool("fibe_feedbacks_list",
 		mcp.WithDescription("[MODE:OVERSEER] List all feedback entries associated with an agent."),
-		mcp.WithInputSchema[fibe.FeedbackListParams](),
+		withRawInputSchema(feedbackListSchema()),
 	))
 
 	s.addTool(&toolImpl{
@@ -39,19 +46,36 @@ func (s *Server) registerFeedbackMutationTools() {
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			agentIDStr := os.Getenv("FIBE_AGENT_ID")
-			agentID, err := strconv.ParseInt(agentIDStr, 10, 64)
-			if err != nil || agentID <= 0 {
-				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing or invalid")
+			agentIdentifier := os.Getenv("FIBE_AGENT_ID")
+			if agentIdentifier == "" {
+				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing")
 			}
 			id, ok := argInt64(args, "feedback_id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'feedback_id' not set")
 			}
-			return c.Feedbacks.Get(ctx, agentID, id)
+			return c.Feedbacks.GetByAgentIdentifier(ctx, agentIdentifier, id)
 		},
 	}, mcp.NewTool("fibe_feedbacks_get",
 		mcp.WithDescription("[MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters."),
 		mcp.WithNumber("feedback_id", mcp.Required(), mcp.Description(idDescription("feedback_id"))),
 	))
+}
+
+func feedbackListSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"properties": map[string]any{
+			"query":                 map[string]any{"type": "string", "description": "Search across comment, selected_text, and context."},
+			"source_type":           map[string]any{"type": "string", "description": "Filter by feedback source type."},
+			"source_id":             map[string]any{"type": "string", "description": "Filter by source identifier."},
+			"playground_id_or_name": identifierInputProperty("Optional playground ID or slug-safe name filter."),
+			"created_after":         map[string]any{"type": "string", "description": "Filter to feedback created at or after this timestamp."},
+			"created_before":        map[string]any{"type": "string", "description": "Filter to feedback created at or before this timestamp."},
+			"sort":                  map[string]any{"type": "string", "description": "Sort order, for example created_at_desc."},
+			"page":                  map[string]any{"type": "integer", "minimum": 1},
+			"per_page":              map[string]any{"type": "integer", "minimum": 1},
+		},
+	}
 }

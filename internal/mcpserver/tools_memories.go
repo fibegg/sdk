@@ -52,10 +52,13 @@ Use after fibe_local_conversations_get. Pass conversation_id plus memory content
 
 func memoryPayloadFromArgs(args map[string]any) map[string]any {
 	memory := map[string]any{}
-	for _, key := range []string{"content", "agent_id", "tags", "confidence", "memory_key", "metadata", "groundings"} {
+	for _, key := range []string{"content", "tags", "confidence", "memory_key", "metadata", "groundings"} {
 		if value, ok := args[key]; ok {
 			memory[key] = value
 		}
+	}
+	if value, ok := args["agent_id_or_name"]; ok {
+		memory["agent_id"] = value
 	}
 	return memory
 }

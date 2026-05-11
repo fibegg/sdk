@@ -64,7 +64,7 @@ func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildTransformParams: %v", err)
 	}
-	if params.PlaygroundID != 7 || params.PlaygroundIdentifier != "7" {
+	if params.PlaygroundID != 0 || params.PlaygroundIdentifier != "7" {
 		t.Fatalf("unexpected playground identifiers: %#v", params)
 	}
 	if params.TemplateVersionID != 22 {

@@ -9,7 +9,7 @@ import (
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee", "agent", "template", "artefact":
+	case "playground", "trick", "playspec", "prop", "marquee", "agent", "template", "artefact", "artefact_attachment", "template_source":
 		return true
 	default:
 		return false

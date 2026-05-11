@@ -21,7 +21,7 @@ func greenfieldCmd() *cobra.Command {
 		name                   string
 		gitProvider            string
 		private                bool
-		templateID             int64
+		templateID             string
 		templateVersionID      int64
 		templateIDTypoTempalte int64
 		templateIDTypoTemlate  int64
@@ -43,7 +43,7 @@ The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
 
 Examples:
-  fibe greenfield --name my-app --template-id 347
+  fibe greenfield --name my-app --template-id "Rails 8 Starter Kit"
   fibe greenfield --name my-app --template-version-id 912
   fibe greenfield --name my-app --service-subdomain app=my-app --service-subdomain admin=my-app-admin
   fibe greenfield --name my-app -f my-template.yml
@@ -65,13 +65,12 @@ Examples:
 			if cmd.Flags().Changed("private") {
 				params.Private = &private
 			}
-			selectedTemplateID, templateIDChanged := selectedGreenfieldTemplateID(cmd, templateID, templateIDTypoTempalte, templateIDTypoTemlate)
-			if templateIDChanged && selectedTemplateID > 0 {
-				id := selectedTemplateID
-				params.TemplateID = &id
+			selectedTemplateIdentifier, templateIDChanged := selectedGreenfieldTemplateIdentifier(cmd, templateID, templateIDTypoTempalte, templateIDTypoTemlate)
+			if templateIDChanged && selectedTemplateIdentifier != "" {
+				params.TemplateIdentifier = selectedTemplateIdentifier
 			}
 			if cmd.Flags().Changed("template-version-id") && templateVersionID > 0 {
-				if params.TemplateID != nil || params.Version != "" {
+				if params.TemplateIdentifier != "" || params.Version != "" {
 					return fmt.Errorf("--template-version-id cannot be combined with --template-id or --version")
 				}
 				id := templateVersionID
@@ -81,7 +80,7 @@ Examples:
 				if params.TemplateVersionID != nil {
 					return fmt.Errorf("--version cannot be combined with --template-version-id")
 				}
-				if params.TemplateID == nil {
+				if params.TemplateIdentifier == "" {
 					return fmt.Errorf("--version requires --template-id")
 				}
 				params.Version = version
@@ -152,7 +151,7 @@ Examples:
 	cmd.Flags().StringVar(&name, "name", "", "Repository/app name (required, must be unique)")
 	cmd.Flags().StringVar(&gitProvider, "git-provider", "gitea", "Destination git provider: gitea or github (optional, default: gitea)")
 	cmd.Flags().BoolVar(&private, "private", false, "Create destination repository as private")
-	cmd.Flags().Int64Var(&templateID, "template-id", 0, "Template to use (optional, default: base template)")
+	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID or name to use (optional, default: base template)")
 	cmd.Flags().Int64Var(&templateVersionID, "template-version-id", 0, "Exact template version ID to use (optional)")
 	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)")
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
@@ -196,16 +195,22 @@ func normalizeTemplateBodyValue(value string) string {
 	return strings.ReplaceAll(value, `\n`, "\n")
 }
 
-func selectedGreenfieldTemplateID(cmd *cobra.Command, templateID, tempalteID, temlateID int64) (int64, bool) {
+func selectedGreenfieldTemplateIdentifier(cmd *cobra.Command, templateID string, tempalteID, temlateID int64) (string, bool) {
 	switch {
 	case cmd.Flags().Changed("template-id"):
-		return templateID, true
+		return strings.TrimSpace(templateID), true
 	case cmd.Flags().Changed("tempalte-id"):
-		return tempalteID, true
+		if tempalteID > 0 {
+			return strconv.FormatInt(tempalteID, 10), true
+		}
+		return "", true
 	case cmd.Flags().Changed("temlate-id"):
-		return temlateID, true
+		if temlateID > 0 {
+			return strconv.FormatInt(temlateID, 10), true
+		}
+		return "", true
 	default:
-		return 0, false
+		return "", false
 	}
 }
 

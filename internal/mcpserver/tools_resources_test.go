@@ -36,7 +36,7 @@ func TestResourceListDispatchesToResourceService(t *testing.T) {
 	}
 }
 
-func TestResourceGetDispatchesWithAlias(t *testing.T) {
+func TestResourceGetDispatchesWithIDOrName(t *testing.T) {
 	apiKey, domain := requireRealServer(t)
 
 	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})
@@ -60,8 +60,8 @@ func TestResourceGetDispatchesWithAlias(t *testing.T) {
 	agentID := int(m.ID)
 
 	getRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
-		"resource": "agents",
-		"id":       agentID,
+		"resource":   "agents",
+		"id_or_name": agentID,
 	})
 	if err != nil {
 		t.Fatalf("get dispatch: %v", err)
@@ -73,7 +73,7 @@ func TestResourceGetDispatchesWithAlias(t *testing.T) {
 
 	getByNameRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 		"resource":   "agents",
-		"identifier": agentName,
+		"id_or_name": agentName,
 	})
 	if err != nil {
 		t.Fatalf("get by name dispatch: %v", err)
@@ -84,7 +84,7 @@ func TestResourceGetDispatchesWithAlias(t *testing.T) {
 	}
 }
 
-func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
+func TestResourceDeleteDispatchesWithIDOrName(t *testing.T) {
 	apiKey, domain := requireRealServer(t)
 
 	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
@@ -106,7 +106,7 @@ func TestResourceDeleteDispatchesWithAlias(t *testing.T) {
 	}
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", map[string]any{
 		"resource":   "agents",
-		"identifier": agentName,
+		"id_or_name": agentName,
 	}); err != nil {
 		t.Fatalf("dispatch: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestResourceGetDispatchesArtefactAndAttachment(t *testing.T) {
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_artefact_upload", map[string]any{
-		"name":           "report.txt",
+		"name":           fmt.Sprintf("%s-report.txt", agentName),
 		"content_base64": "aGVsbG8=",
 	}); err != nil {
 		t.Fatalf("dispatch fibe_artefact_upload: %v", err)

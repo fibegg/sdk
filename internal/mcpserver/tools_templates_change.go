@@ -14,7 +14,6 @@ import (
 
 type templateChangeArgs struct {
 	TargetType              string                    `json:"target_type"`
-	TargetID                int64                     `json:"target_id"`
 	TargetIdentifier        string                    `json:"target_id_or_name"`
 	Mode                    string                    `json:"mode"`
 	ChangeType              string                    `json:"change_type"`
@@ -108,9 +107,6 @@ func runTemplateChange(ctx context.Context, c *fibe.Client, in *templateChangeAr
 func normalizeTemplateChangeArgs(in *templateChangeArgs) error {
 	if in.TargetType == "" {
 		return fmt.Errorf("required field 'target_type' not set")
-	}
-	if strings.TrimSpace(in.TargetIdentifier) == "" && in.TargetID > 0 {
-		in.TargetIdentifier = fmt.Sprintf("%d", in.TargetID)
 	}
 	in.TargetIdentifier = strings.TrimSpace(in.TargetIdentifier)
 	if in.TargetIdentifier == "" {

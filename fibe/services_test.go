@@ -103,6 +103,40 @@ func TestPlaygrounds_Get(t *testing.T) {
 	}
 }
 
+func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/playgrounds/next/status" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		json.NewEncoder(w).Encode(PlaygroundStatus{ID: 129, Status: "running"})
+	})
+
+	status, err := c.Playgrounds.StatusByIdentifier(context.Background(), "next")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.ID != 129 || status.Status != "running" {
+		t.Fatalf("unexpected status: %#v", status)
+	}
+}
+
+func TestTricks_GetByIdentifierUsesName(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/playgrounds/nightly-build" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		json.NewEncoder(w).Encode(Playground{ID: 77, Name: "nightly-build", Status: "completed"})
+	})
+
+	trick, err := c.Tricks.GetByIdentifier(context.Background(), "nightly-build")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if trick.ID != 77 || trick.Name != "nightly-build" {
+		t.Fatalf("unexpected trick: %#v", trick)
+	}
+}
+
 func TestPlaygrounds_Create(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -1170,6 +1204,28 @@ func TestSecrets_GetReveal(t *testing.T) {
 	}
 }
 
+func TestSecrets_GetByIdentifierUsesKey(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/secrets/DB_URL" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		if r.URL.Query().Get("reveal") != "true" {
+			t.Errorf("expected reveal=true, got %q", r.URL.Query().Get("reveal"))
+		}
+		id := int64(42)
+		value := "secret"
+		json.NewEncoder(w).Encode(Secret{ID: &id, Key: "DB_URL", Value: &value})
+	})
+
+	secret, err := c.Secrets.GetByIdentifier(context.Background(), "DB_URL", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if secret.Key != "DB_URL" || secret.Value == nil || *secret.Value != "secret" {
+		t.Fatalf("unexpected secret: %#v", secret)
+	}
+}
+
 func TestJobEnv_GetReveal(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/job_env/7" {
@@ -1223,6 +1279,30 @@ func TestImportTemplates_SetSourceCIFields(t *testing.T) {
 	}
 }
 
+func TestImportTemplates_SetSourceByIdentifierUsesName(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" || r.URL.EscapedPath() != "/api/import_templates/starter/source" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		var body map[string]map[string]any
+		json.NewDecoder(r.Body).Decode(&body)
+		source := body["source"]
+		if source["source_prop_id"] != "api-prop" {
+			t.Errorf("expected source_prop_id=api-prop, got %#v", source["source_prop_id"])
+		}
+		id := int64(11)
+		json.NewEncoder(w).Encode(ImportTemplate{ID: &id, Name: "starter"})
+	})
+
+	_, err := c.ImportTemplates.SetSourceByIdentifier(context.Background(), "starter", &ImportTemplateSourceParams{
+		SourcePropIdentifier: "api-prop",
+		SourcePath:           "fibe-ci.yml",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestImportTemplates_SearchWithParamsRegex(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/api/import_templates/search" {
@@ -1246,6 +1326,23 @@ func TestImportTemplates_SearchWithParamsRegex(t *testing.T) {
 	}
 	if len(result.Data) != 1 || result.Data[0].Name != "app-starter" {
 		t.Fatalf("unexpected result: %#v", result)
+	}
+}
+
+func TestArtefacts_GetByAgentAndArtefactIdentifierUsesNames(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.EscapedPath() != "/api/agents/builder/artefacts/report" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
+		}
+		json.NewEncoder(w).Encode(Artefact{ID: 5, Name: "report"})
+	})
+
+	artefact, err := c.Artefacts.GetByAgentAndArtefactIdentifier(context.Background(), "builder", "report")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if artefact.ID != 5 || artefact.Name != "report" {
+		t.Fatalf("unexpected artefact: %#v", artefact)
 	}
 }
 

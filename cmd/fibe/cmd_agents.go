@@ -572,18 +572,13 @@ func parseAgentCreateMountFlags(fileSpecs, artefactSpecs []string) ([]fibe.Agent
 		}
 		identifier := strings.TrimSpace(source)
 		if identifier == "" {
-			return nil, fmt.Errorf("--mount-artefact source must be a positive artefact ID or name")
+			return nil, fmt.Errorf("--mount-artefact source must be an artefact ID or name")
 		}
-		mount := fibe.AgentMountSpec{
-			SourceType: "artefact",
-			MountPath:  target,
-		}
-		if id, err := strconv.ParseInt(identifier, 10, 64); err == nil && id > 0 {
-			mount.ArtefactID = &id
-		} else {
-			mount.ArtefactIdentifier = identifier
-		}
-		mounts = append(mounts, mount)
+		mounts = append(mounts, fibe.AgentMountSpec{
+			SourceType:         "artefact",
+			ArtefactIdentifier: identifier,
+			MountPath:          target,
+		})
 	}
 	return mounts, nil
 }

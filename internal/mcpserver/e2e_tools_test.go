@@ -125,38 +125,39 @@ func TestE2EMCPTools(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")
 
+		artefactName := agentName + "-artefact.txt"
 		res, err := srv.dispatcher.dispatch(ctx, "fibe_artefact_upload", map[string]any{
-			"name":           "e2e-artefact.txt",
+			"name":           artefactName,
 			"content_base64": "ZTJlLWFydGVmYWN0LWNvbnRlbnQ=", // base64 of "e2e-artefact-content"
 			"description":    "test description",
 		})
 		if err != nil {
 			t.Fatalf("fibe_artefact_upload failed: %v", err)
 		}
-		
+
 		resMap, ok := res.(*fibe.Artefact)
 		if !ok {
 			t.Fatalf("expected *fibe.Artefact, got %T", res)
 		}
-		
+
 		if resMap.ID <= 0 {
 			t.Fatalf("expected valid artefact ID in response, got <= 0")
 		}
-		
+
 		// Wait and fetch artefact
 		artefactID := resMap.ID
 		art, err := client.Artefacts.Get(ctx, ag.ID, artefactID)
 		if err != nil {
 			t.Fatalf("failed to fetch artefact: %v", err)
 		}
-		if art.Name != "e2e-artefact.txt" {
-			t.Errorf("expected artefact name 'e2e-artefact.txt', got %v", art.Name)
+		if art.Name != artefactName {
+			t.Errorf("expected artefact name %q, got %v", artefactName, art.Name)
 		}
 		if art.Description != nil && *art.Description != "test description" {
 			t.Errorf("expected description 'test description', got %v", *art.Description)
 		}
 	})
-	
+
 	// 4. Test fibe_mutter
 	t.Run("fibe_mutter", func(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
@@ -169,12 +170,12 @@ func TestE2EMCPTools(t *testing.T) {
 		if err != nil {
 			t.Fatalf("fibe_mutter failed: %v", err)
 		}
-		
+
 		resMap, ok := res.(*fibe.Mutter)
 		if !ok {
 			t.Fatalf("expected *fibe.Mutter, got %T", res)
 		}
-		
+
 		if resMap.ID == nil || *resMap.ID <= 0 {
 			t.Fatalf("expected valid mutter ID in response, got nil or <= 0")
 		}

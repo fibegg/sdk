@@ -10,13 +10,21 @@ import (
 func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
 	setupAuthTest(t)
 
-	var gotPath string
+	paths := []string{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.EscapedPath()
-		if r.Method != http.MethodGet || gotPath != "/api/playgrounds/next/status" {
-			t.Fatalf("unexpected request %s %s", r.Method, gotPath)
+		path := r.URL.EscapedPath()
+		paths = append(paths, path)
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected request %s %s", r.Method, path)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "status": "running"})
+		switch path {
+		case "/api/playgrounds/next/status":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "status": "running"})
+		case "/api/playgrounds/next":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "name": "next", "status": "running"})
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, path)
+		}
 	}))
 	defer srv.Close()
 
@@ -28,8 +36,8 @@ func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if gotPath != "/api/playgrounds/next/status" {
-		t.Fatalf("path=%q", gotPath)
+	if len(paths) != 2 || paths[0] != "/api/playgrounds/next/status" || paths[1] != "/api/playgrounds/next" {
+		t.Fatalf("paths=%#v", paths)
 	}
 }
 

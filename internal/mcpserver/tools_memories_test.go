@@ -37,10 +37,13 @@ func TestMemoryToolSchemas(t *testing.T) {
 	if !ok {
 		t.Fatalf("memorize schema properties missing: %#v", schema)
 	}
-	for _, want := range []string{"conversation_id", "content", "tags", "confidence", "groundings", "only"} {
+	for _, want := range []string{"conversation_id", "content", "agent_id_or_name", "tags", "confidence", "groundings", "only"} {
 		if _, ok := props[want]; !ok {
 			t.Fatalf("memorize schema property %q missing: %#v", want, props)
 		}
+	}
+	if _, ok := props["agent_id"]; ok {
+		t.Fatalf("memorize schema should expose agent_id_or_name, not agent_id: %#v", props)
 	}
 	if _, ok := props["conversation"]; ok {
 		t.Fatalf("memorize schema should not expose conversation object: %#v", props)
@@ -52,6 +55,17 @@ func TestMemoryToolSchemas(t *testing.T) {
 	}
 	if _, ok := props["output_path"]; ok {
 		t.Fatalf("memorize schema should not expose output_path: %#v", props)
+	}
+}
+
+func TestMemoryPayloadMapsAgentIdentifier(t *testing.T) {
+	memory := memoryPayloadFromArgs(map[string]any{
+		"content":          "one",
+		"agent_id_or_name": "builder",
+	})
+
+	if got := memory["agent_id"]; got != "builder" {
+		t.Fatalf("agent_id = %#v", got)
 	}
 }
 
