@@ -106,7 +106,7 @@ FILTERS:
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Dynamically invoke any registered Fibe tool by name that is not advertised or hidden or not listed by ToolSearch. Use fibe_tools_catalog to list all hidden tools", tier: tierMeta,
+		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")
