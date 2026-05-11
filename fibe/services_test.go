@@ -367,6 +367,52 @@ func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 	}
 }
 
+func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" || r.URL.Path != "/api/marquees/1" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		enabled := true
+		source := "provided"
+		json.NewEncoder(w).Encode(Marquee{ID: 1, Name: "Elastic", HttpsEnabled: &enabled, TlsCertificateSource: &source})
+	})
+
+	enabled := true
+	source := "provided"
+	cert := "-----BEGIN CERTIFICATE-----\ncert\n-----END CERTIFICATE-----"
+	key := "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----"
+	result, err := c.Marquees.Update(context.Background(), 1, &MarqueeUpdateParams{
+		HttpsEnabled:         &enabled,
+		TlsCertificateSource: &source,
+		TlsCertificatePEM:    &cert,
+		TlsPrivateKeyPEM:     &key,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	marquee := body["marquee"].(map[string]any)
+	if marquee["https_enabled"] != true {
+		t.Fatalf("https_enabled = %#v, want true", marquee["https_enabled"])
+	}
+	if marquee["tls_certificate_source"] != "provided" {
+		t.Fatalf("tls_certificate_source = %#v", marquee["tls_certificate_source"])
+	}
+	if marquee["tls_certificate_pem"] != cert {
+		t.Fatalf("tls_certificate_pem was not serialized")
+	}
+	if marquee["tls_private_key_pem"] != key {
+		t.Fatalf("tls_private_key_pem was not serialized")
+	}
+	if result.TlsCertificateSource == nil || *result.TlsCertificateSource != "provided" {
+		t.Fatalf("unexpected TLS source in response: %#v", result.TlsCertificateSource)
+	}
+}
+
 func TestMarquees_GenerateSSHKeyPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,

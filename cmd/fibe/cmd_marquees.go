@@ -135,8 +135,9 @@ func mqGetCmd() *cobra.Command {
 }
 
 func mqCreateCmd() *cobra.Command {
-	var name, host, user, sshKey, status, dnsProvider string
+	var name, host, user, sshKey, status, dnsProvider, tlsCertificateSource, tlsCertificatePEM, tlsPrivateKeyPEM string
 	var port int
+	var httpsEnabled bool
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new marquee",
 		Long: "Create a new marquee (compute server) for hosting playgrounds.\n\nHARDWARE CONSTRAINTS:\n  - Marquees represent raw remote Docker hosts via SSH.\n  - Ensure Docker daemon is accessible and SSH Auth is configured securely.\n  - Playgrounds bind strictly to one Marquee.\n\nREQUIRED FLAGS:\n  --name       Marquee name\n  --host       SSH hostname or IP\n  --port       SSH port\n  --user       SSH username\n  --ssh-key    SSH private key content\n\nOPTIONAL FLAGS:\n  --status       Initial status\n  --dns-provider DNS provider name\n\nEXAMPLES:\n  fibe marquees create --name prod --host 10.0.1.5 --port 22 --user deploy --ssh-key \"$(cat ~/.ssh/id_rsa)\"" + generateSchemaDoc(&fibe.MarqueeCreateParams{}),
@@ -163,6 +164,18 @@ func mqCreateCmd() *cobra.Command {
 			}
 			if cmd.Flags().Changed("status") {
 				params.Status = &status
+			}
+			if cmd.Flags().Changed("https-enabled") {
+				params.HttpsEnabled = &httpsEnabled
+			}
+			if cmd.Flags().Changed("tls-certificate-source") {
+				params.TlsCertificateSource = &tlsCertificateSource
+			}
+			if cmd.Flags().Changed("tls-certificate-pem") {
+				params.TlsCertificatePEM = &tlsCertificatePEM
+			}
+			if cmd.Flags().Changed("tls-private-key-pem") {
+				params.TlsPrivateKeyPEM = &tlsPrivateKeyPEM
 			}
 			if cmd.Flags().Changed("dns-provider") {
 				params.DnsProvider = &dnsProvider
@@ -199,12 +212,17 @@ func mqCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&user, "user", "", "SSH user (required)")
 	cmd.Flags().StringVar(&sshKey, "ssh-key", "", "SSH private key (required)")
 	cmd.Flags().StringVar(&status, "status", "", "Initial status")
+	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable Traefik HTTPS routing")
+	cmd.Flags().StringVar(&tlsCertificateSource, "tls-certificate-source", "", "TLS certificate source: automatic or provided")
+	cmd.Flags().StringVar(&tlsCertificatePEM, "tls-certificate-pem", "", "Provided TLS certificate PEM")
+	cmd.Flags().StringVar(&tlsPrivateKeyPEM, "tls-private-key-pem", "", "Provided TLS private key PEM")
 	cmd.Flags().StringVar(&dnsProvider, "dns-provider", "", "DNS provider name")
 	return cmd
 }
 
 func mqUpdateCmd() *cobra.Command {
-	var name, status, dnsProvider string
+	var name, status, dnsProvider, tlsCertificateSource, tlsCertificatePEM, tlsPrivateKeyPEM string
+	var httpsEnabled bool
 	cmd := &cobra.Command{
 		Use: "update <id-or-name>", Short: "Update marquee settings", Args: cobra.ExactArgs(1),
 		Long: "Update a marquee's configuration parameters." + generateSchemaDoc(&fibe.MarqueeUpdateParams{}),
@@ -219,6 +237,18 @@ func mqUpdateCmd() *cobra.Command {
 			}
 			if cmd.Flags().Changed("status") {
 				params.Status = &status
+			}
+			if cmd.Flags().Changed("https-enabled") {
+				params.HttpsEnabled = &httpsEnabled
+			}
+			if cmd.Flags().Changed("tls-certificate-source") {
+				params.TlsCertificateSource = &tlsCertificateSource
+			}
+			if cmd.Flags().Changed("tls-certificate-pem") {
+				params.TlsCertificatePEM = &tlsCertificatePEM
+			}
+			if cmd.Flags().Changed("tls-private-key-pem") {
+				params.TlsPrivateKeyPEM = &tlsPrivateKeyPEM
 			}
 			if cmd.Flags().Changed("dns-provider") {
 				params.DnsProvider = &dnsProvider
@@ -237,6 +267,10 @@ func mqUpdateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "New name")
 	cmd.Flags().StringVar(&status, "status", "", "New status")
+	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable Traefik HTTPS routing")
+	cmd.Flags().StringVar(&tlsCertificateSource, "tls-certificate-source", "", "TLS certificate source: automatic or provided")
+	cmd.Flags().StringVar(&tlsCertificatePEM, "tls-certificate-pem", "", "Provided TLS certificate PEM")
+	cmd.Flags().StringVar(&tlsPrivateKeyPEM, "tls-private-key-pem", "", "Provided TLS private key PEM")
 	cmd.Flags().StringVar(&dnsProvider, "dns-provider", "", "DNS provider name")
 	return cmd
 }

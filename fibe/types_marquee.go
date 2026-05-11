@@ -13,6 +13,8 @@ type Marquee struct {
 	User                 string    `json:"user"`
 	Status               string    `json:"status"`
 	DomainsInput         *string   `json:"domains_input"`
+	HttpsEnabled         *bool     `json:"https_enabled,omitempty"`
+	TlsCertificateSource *string   `json:"tls_certificate_source,omitempty"`
 	AcmeEmail            *string   `json:"acme_email"`
 	DockerhubAuthEnabled *bool     `json:"dockerhub_auth_enabled"`
 	BuildPlatform        *string   `json:"build_platform"`
@@ -28,6 +30,10 @@ type MarqueeCreateParams struct {
 	User                 string            `json:"user"`
 	SSHPrivateKey        string            `json:"ssh_private_key"`
 	DomainsInput         *string           `json:"domains_input,omitempty"`
+	HttpsEnabled         *bool             `json:"https_enabled,omitempty"`
+	TlsCertificateSource *string           `json:"tls_certificate_source,omitempty"`
+	TlsCertificatePEM    *string           `json:"tls_certificate_pem,omitempty"`
+	TlsPrivateKeyPEM     *string           `json:"tls_private_key_pem,omitempty"`
 	AcmeEmail            *string           `json:"acme_email,omitempty"`
 	DockerhubAuthEnabled *bool             `json:"dockerhub_auth_enabled,omitempty"`
 	DockerhubUsername    *string           `json:"dockerhub_username,omitempty"`
@@ -55,6 +61,9 @@ func (p *MarqueeCreateParams) Validate() error {
 			v.errors = append(v.errors, ValidationError{Field: "dockerhub_token", Message: "required when dockerhub_auth_enabled is true"})
 		}
 	}
+	if p.TlsCertificateSource != nil && *p.TlsCertificateSource != "automatic" && *p.TlsCertificateSource != "provided" {
+		v.errors = append(v.errors, ValidationError{Field: "tls_certificate_source", Message: "must be automatic or provided"})
+	}
 	return v.err()
 }
 
@@ -65,6 +74,10 @@ type MarqueeUpdateParams struct {
 	User                 *string           `json:"user,omitempty"`
 	SSHPrivateKey        *string           `json:"ssh_private_key,omitempty"`
 	DomainsInput         *string           `json:"domains_input,omitempty"`
+	HttpsEnabled         *bool             `json:"https_enabled,omitempty"`
+	TlsCertificateSource *string           `json:"tls_certificate_source,omitempty"`
+	TlsCertificatePEM    *string           `json:"tls_certificate_pem,omitempty"`
+	TlsPrivateKeyPEM     *string           `json:"tls_private_key_pem,omitempty"`
 	AcmeEmail            *string           `json:"acme_email,omitempty"`
 	DockerhubAuthEnabled *bool             `json:"dockerhub_auth_enabled,omitempty"`
 	DockerhubUsername    *string           `json:"dockerhub_username,omitempty"`
