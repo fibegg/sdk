@@ -240,7 +240,7 @@ selected profile with /api/me before keeping the new session client.`),
 
 	// ---------- local playground helpers ----------
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierLocal,
+		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))

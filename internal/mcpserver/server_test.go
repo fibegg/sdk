@@ -565,6 +565,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		"fibe_playgrounds_debug",
 		"fibe_playgrounds_logs",
 		"fibe_playgrounds_wait",
+		"fibe_local_playgrounds_info",
 		"fibe_local_playgrounds_link",
 	} {
 		if !advertised[name] {
