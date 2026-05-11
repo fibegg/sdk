@@ -122,7 +122,7 @@ func TestResourceListDispatchesNewConsolidatedResources(t *testing.T) {
 
 	cases := []map[string]any{
 		{"resource": "artefact", "params": map[string]any{"q": "report"}},
-		{"resource": "template_version", "params": map[string]any{"template_id": 4}},
+		{"resource": "template_version", "params": map[string]any{"template_id_or_name": 4}},
 		{"resource": "webhook_delivery", "params": map[string]any{"webhook_id": 9}},
 	}
 	for _, args := range cases {
@@ -169,7 +169,7 @@ func TestResourceGetDispatchesArtefactAndAttachment(t *testing.T) {
 	artefactsRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
 		"resource": "artefacts",
 		"params": map[string]any{
-			"agent_id": fmt.Sprintf("%d", agentID),
+			"agent_id_or_name": fmt.Sprintf("%d", agentID),
 		},
 	})
 	if err != nil {
@@ -182,14 +182,14 @@ func TestResourceGetDispatchesArtefactAndAttachment(t *testing.T) {
 	artefactID := int(artefactsData[0].ID)
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
-		"resource": "artefact",
-		"id":       artefactID,
+		"resource":   "artefact",
+		"id_or_name": artefactID,
 	}); err != nil {
 		t.Fatalf("artefact dispatch: %v", err)
 	}
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
-		"resource": "artefact_attachment",
-		"id":       artefactID,
+		"resource":   "artefact_attachment",
+		"id_or_name": artefactID,
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "404") {
@@ -215,7 +215,7 @@ func TestResourceDeleteDispatchesTemplateVersionAndSource(t *testing.T) {
 	}
 	for _, args := range []map[string]any{
 		{"resource": "template_version", "id": 6},
-		{"resource": "template_source", "id": 4},
+		{"resource": "template_source", "id_or_name": 4},
 	} {
 		_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", args)
 		if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
@@ -233,9 +233,9 @@ func TestPlaygroundActionDispatchesToActionEndpoint(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_action", map[string]any{
-		"playground_id": 7,
-		"action_type":   "hard_restart",
-		"force":         true,
+		"id_or_name":  7,
+		"action_type": "hard_restart",
+		"force":       true,
 	})
 	if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
 		t.Fatalf("dispatch error: %v", err)
@@ -439,7 +439,7 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("fibe_schema agent update: %v", err)
 	}
 	updateProps := updateSchema.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"agent_id", "name", "model_options", "prompt", "system_prompt_mode", "main_md", "main_md_mode", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
+	for _, want := range []string{"id_or_name", "name", "model_options", "prompt", "system_prompt_mode", "main_md", "main_md_mode", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
 		if _, ok := updateProps[want]; !ok {
 			t.Fatalf("expected %s in agent.update schema, got %#v", want, updateProps)
 		}
@@ -467,8 +467,8 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("fibe_schema playground action: %v", err)
 	}
 	actionProps := actionSchema.(map[string]any)["properties"].(map[string]any)
-	if _, ok := actionProps["playground_id"]; !ok {
-		t.Fatalf("expected playground_id in playground.action schema, got %#v", actionProps)
+	if _, ok := actionProps["id_or_name"]; !ok {
+		t.Fatalf("expected id_or_name in playground.action schema, got %#v", actionProps)
 	}
 	actionEnum, ok := actionProps["action_type"].(map[string]any)["enum"].([]string)
 	if !ok || !containsString(actionEnum, "retry_compose") || !containsString(actionEnum, "enable_maintenance") || !containsString(actionEnum, "disable_maintenance") {

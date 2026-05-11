@@ -24,6 +24,7 @@ type PlaygroundTransformParams struct {
 	Mode                  string               `json:"mode,omitempty"` // "preview" | "apply" (default)
 	TemplateBody          string               `json:"template_body,omitempty"`
 	TemplateID            int64                `json:"template_id,omitempty"`
+	TemplateIdentifier    string               `json:"template_identifier,omitempty"`
 	TemplateVersionID     int64                `json:"template_version_id,omitempty"`
 	TemplateName          string               `json:"template_name,omitempty"`
 	Variables             map[string]any       `json:"variables,omitempty"`
@@ -71,7 +72,7 @@ func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParam
 		playgroundIdentifier = int64Identifier(params.PlaygroundID)
 	}
 	if playgroundIdentifier == "" {
-		return nil, fmt.Errorf("playground_id (or playground_identifier) is required")
+		return nil, fmt.Errorf("id_or_name is required")
 	}
 
 	pg, err := c.Playgrounds.GetByIdentifier(ctx, playgroundIdentifier)
@@ -196,8 +197,9 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 
 	case body != "":
 		templateID := params.TemplateID
+		templateIdentifier := params.TemplateIdentifier
 		var tmpl *ImportTemplate
-		if templateID <= 0 {
+		if templateID <= 0 && templateIdentifier == "" {
 			name := params.TemplateName
 			if name == "" {
 				name = fmt.Sprintf("playground-%d-transform-%d", pg.ID, time.Now().UnixNano())
@@ -217,8 +219,8 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 				return templateID, *created.LatestVersionID, tmpl, nil, nil
 			}
 		}
-		if templateID <= 0 {
-			return 0, 0, tmpl, nil, fmt.Errorf("could not resolve template_id after creation")
+		if templateID <= 0 && templateIdentifier == "" {
+			return 0, 0, tmpl, nil, fmt.Errorf("could not resolve template_id_or_name after creation")
 		}
 
 		changelog := params.Changelog
@@ -226,7 +228,10 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 		if changelog != "" {
 			changelogPtr = &changelog
 		}
-		version, err := c.ImportTemplates.CreateVersion(ctx, templateID, &ImportTemplateVersionCreateParams{
+		if templateIdentifier == "" {
+			templateIdentifier = int64Identifier(templateID)
+		}
+		version, err := c.ImportTemplates.CreateVersionByIdentifier(ctx, templateIdentifier, &ImportTemplateVersionCreateParams{
 			TemplateBody: body,
 			Changelog:    changelogPtr,
 		})
@@ -239,7 +244,7 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 		return templateID, *version.ID, tmpl, version, nil
 
 	case params.TemplateID > 0:
-		tmpl, err := c.ImportTemplates.Get(ctx, params.TemplateID)
+		tmpl, err := c.ImportTemplates.GetByIdentifier(ctx, int64Identifier(params.TemplateID))
 		if err != nil {
 			return params.TemplateID, 0, nil, nil, fmt.Errorf("could not load template: %w", err)
 		}
@@ -248,8 +253,22 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 		}
 		return params.TemplateID, *tmpl.LatestVersionID, tmpl, nil, nil
 
+	case params.TemplateIdentifier != "":
+		tmpl, err := c.ImportTemplates.GetByIdentifier(ctx, params.TemplateIdentifier)
+		if err != nil {
+			return 0, 0, nil, nil, fmt.Errorf("could not load template: %w", err)
+		}
+		if tmpl == nil || tmpl.LatestVersionID == nil {
+			return 0, 0, tmpl, nil, fmt.Errorf("template %s has no published versions", params.TemplateIdentifier)
+		}
+		templateID := int64(0)
+		if tmpl.ID != nil {
+			templateID = *tmpl.ID
+		}
+		return templateID, *tmpl.LatestVersionID, tmpl, nil, nil
+
 	default:
-		return 0, 0, nil, nil, fmt.Errorf("must provide template_version_id, template_id, or template_body")
+		return 0, 0, nil, nil, fmt.Errorf("must provide template_version_id, template_id_or_name, or template_body")
 	}
 }
 

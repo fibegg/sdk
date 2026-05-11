@@ -80,12 +80,12 @@ services:
 
 	// 2. Test fibe_templates_change (patch preview)
 	previewRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":     "playspec",
-		"target_id":       playspecID,
-		"mode":            "preview",
-		"change_type":     "patch",
-		"base_version_id": baseVersionID,
-		"patches":         []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2", "create_missing": true}},
+		"target_type":       "playspec",
+		"target_id_or_name": playspecID,
+		"mode":              "preview",
+		"change_type":       "patch",
+		"base_version_id":   baseVersionID,
+		"patches":           []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2", "create_missing": true}},
 	})
 	if err != nil {
 		t.Fatalf("fibe_templates_change patch preview failed: %v", err)
@@ -97,13 +97,13 @@ services:
 
 	// 3. Test fibe_templates_change (patch apply with auto_switch)
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":      "playspec",
-		"target_id":        playspecID,
-		"mode":             "apply",
-		"change_type":      "patch",
-		"base_version_id":  baseVersionID,
-		"patches":          []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2", "create_missing": true}},
-		"confirm_warnings": true,
+		"target_type":       "playspec",
+		"target_id_or_name": playspecID,
+		"mode":              "apply",
+		"change_type":       "patch",
+		"base_version_id":   baseVersionID,
+		"patches":           []any{map[string]any{"path": "services.web.image", "op": "set", "value": "nginx:2", "create_missing": true}},
+		"confirm_warnings":  true,
 	})
 	if err != nil {
 		t.Fatalf("fibe_templates_change patch apply failed: %v", err)
@@ -114,8 +114,8 @@ services:
 		"resource":  "template_version",
 		"operation": "create",
 		"payload": map[string]any{
-			"template_id":   templateID,
-			"template_body": "services: {}\n",
+			"template_id_or_name": templateID,
+			"template_body":       "services: {}\n",
 		},
 	})
 	if err != nil {
@@ -133,8 +133,8 @@ services:
 		"resource":  "template_version",
 		"operation": "create",
 		"payload": map[string]any{
-			"template_id":        templateID,
-			"template_body_path": "template.yml",
+			"template_id_or_name": templateID,
+			"template_body_path":  "template.yml",
 		},
 	})
 	if err == nil {
@@ -146,8 +146,8 @@ services:
 		"resource":  "template_version",
 		"operation": "create",
 		"payload": map[string]any{
-			"template_id":        templateID,
-			"template_body_path": path,
+			"template_id_or_name": templateID,
+			"template_body_path":  path,
 		},
 	})
 	if err != nil {
@@ -156,20 +156,20 @@ services:
 
 	// 6. Test launch with explicit template ID
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_launch", map[string]any{
-		"template_id": templateID,
+		"template_id_or_name": templateID,
 	})
 	if err != nil {
 		t.Fatalf("fibe_templates_launch failed: %v", err)
 	}
 
 	// 7. Test debug tool
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_debug", map[string]any{"playground_id": playgroundID})
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_debug", map[string]any{"id_or_name": playgroundID})
 	if err != nil {
 		t.Fatalf("fibe_playgrounds_debug failed: %v", err)
 	}
 
 	// 8. Test wait tool
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"playground_id": playgroundID, "status": "running", "timeout": "10s"})
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_wait", map[string]any{"id_or_name": playgroundID, "status": "running", "timeout": "10s"})
 	if err != nil {
 		if strings.Contains(err.Error(), "terminal state: error") || strings.Contains(err.Error(), "context deadline exceeded") || strings.Contains(err.Error(), "timeout after") {
 			t.Skipf("infrastructure failure or timeout during wait, skipping remainder of E2E: %v", err)
@@ -186,7 +186,7 @@ func TestTemplatesChangeApplyRequiresConfirm(t *testing.T) {
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
-		"target_id":                  1,
+		"target_id_or_name":          1,
 		"mode":                       "apply",
 		"change_type":                "switch_existing",
 		"target_template_version_id": 2,
@@ -204,7 +204,7 @@ func TestTemplatesChangePreviewDoesNotRequireConfirm(t *testing.T) {
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
-		"target_id":                  1,
+		"target_id_or_name":          1,
 		"mode":                       "preview",
 		"change_type":                "switch_existing",
 		"target_template_version_id": 2,
@@ -225,7 +225,7 @@ func TestTemplatesChangeApplyAcceptsConfirm(t *testing.T) {
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
 		"target_type":                "playspec",
-		"target_id":                  1,
+		"target_id_or_name":          1,
 		"mode":                       "apply",
 		"change_type":                "switch_existing",
 		"target_template_version_id": 2,

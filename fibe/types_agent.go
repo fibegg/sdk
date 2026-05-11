@@ -174,15 +174,32 @@ func (p AgentUpdateParams) MarshalJSON() ([]byte, error) {
 }
 
 type AgentMountSpec struct {
-	SourceType     string   `json:"source_type,omitempty"`
-	Filename       string   `json:"filename,omitempty"`
-	ContentBase64  string   `json:"content_base64,omitempty"`
-	ContentPath    string   `json:"content_path,omitempty"`
-	ContentType    string   `json:"content_type,omitempty"`
-	ArtefactID     *int64   `json:"artefact_id,omitempty"`
-	MountPath      string   `json:"mount_path,omitempty"`
-	TargetServices []string `json:"target_services,omitempty"`
-	ReadOnly       *bool    `json:"readonly,omitempty"`
+	SourceType         string   `json:"source_type,omitempty"`
+	Filename           string   `json:"filename,omitempty"`
+	ContentBase64      string   `json:"content_base64,omitempty"`
+	ContentPath        string   `json:"content_path,omitempty"`
+	ContentType        string   `json:"content_type,omitempty"`
+	ArtefactID         *int64   `json:"artefact_id,omitempty"`
+	ArtefactIdentifier string   `json:"-"`
+	MountPath          string   `json:"mount_path,omitempty"`
+	TargetServices     []string `json:"target_services,omitempty"`
+	ReadOnly           *bool    `json:"readonly,omitempty"`
+}
+
+func (p AgentMountSpec) MarshalJSON() ([]byte, error) {
+	type alias AgentMountSpec
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.ArtefactIdentifier != "" {
+		body["artefact_id"] = p.ArtefactIdentifier
+	}
+	return json.Marshal(body)
 }
 
 type AgentChatParams struct {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -20,10 +19,10 @@ Values are encrypted at rest and only revealed with an explicit --reveal flag.
 
 SUBCOMMANDS:
   list              List all secrets (keys only)
-  get <id>          Show secret metadata; pass --reveal for plaintext value
+  get <id-or-key>   Show secret metadata; pass --reveal for plaintext value
   create            Create a new secret
-  update <id>       Update secret value
-  delete <id>       Delete a secret`,
+  update <id-or-key> Update secret value
+  delete <id-or-key> Delete a secret`,
 	}
 	cmd.AddCommand(secListCmd(), secGetCmd(), secCreateCmd(), secUpdateCmd(), secDeleteCmd())
 	return cmd
@@ -109,12 +108,11 @@ EXAMPLES:
 func secGetCmd() *cobra.Command {
 	var reveal bool
 	cmd := &cobra.Command{
-		Use: "get <id>", Short: "Show secret metadata", Args: cobra.ExactArgs(1),
-		Long: "Retrieve a secret. Values are omitted unless --reveal is set.\n\nWARNING: --reveal shows the value in plaintext.\n\nEXAMPLES:\n  fibe secrets get 10\n  fibe secrets get 10 --reveal",
+		Use: "get <id-or-key>", Short: "Show secret metadata", Args: cobra.ExactArgs(1),
+		Long: "Retrieve a secret. Values are omitted unless --reveal is set.\n\nWARNING: --reveal shows the value in plaintext.\n\nEXAMPLES:\n  fibe secrets get DATABASE_URL\n  fibe secrets get DATABASE_URL --reveal",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			s, err := c.Secrets.Get(ctx(), id, reveal)
+			s, err := c.Secrets.GetByIdentifier(ctx(), args[0], reveal)
 			if err != nil {
 				return err
 			}
@@ -182,10 +180,9 @@ func secCreateCmd() *cobra.Command {
 func secUpdateCmd() *cobra.Command {
 	var value, desc string
 	cmd := &cobra.Command{
-		Use: "update <id>", Short: "Update a secret", Args: cobra.ExactArgs(1),
+		Use: "update <id-or-key>", Short: "Update a secret", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.SecretUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -196,7 +193,7 @@ func secUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("description") {
 				params.Description = &desc
 			}
-			s, err := c.Secrets.Update(ctx(), id, params)
+			s, err := c.Secrets.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -215,14 +212,14 @@ func secUpdateCmd() *cobra.Command {
 
 func secDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "delete <id>", Short: "Delete a secret", Args: cobra.ExactArgs(1),
+		Use: "delete <id-or-key>", Short: "Delete a secret", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.Secrets.Delete(ctx(), id); err != nil {
+			identifier := args[0]
+			if err := c.Secrets.DeleteByIdentifier(ctx(), identifier); err != nil {
 				return err
 			}
-			fmt.Printf("Secret %d deleted\n", id)
+			fmt.Printf("Secret %s deleted\n", identifier)
 			return nil
 		},
 	}

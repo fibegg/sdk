@@ -14,7 +14,7 @@ import (
 // ---------- Fix 1: empty updates rejected locally ----------
 
 // TestEmptyUpdateRejected reproduces the server-side empty-update rejection
-// the user hit on playground.update. With only "playground_id" in the payload, the
+// the user hit on playground.update. With only "id_or_name" in the payload, the
 // outbound body would be {"playground": {}} which the server treats as blank and
 // rejects. We now short-circuit with a clear message before the HTTP round-trip.
 func TestEmptyUpdateRejected(t *testing.T) {
@@ -23,12 +23,12 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Only playground_id -> no updatable fields.
+	// Only id_or_name -> no updatable fields.
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 		"resource":  "playground",
 		"operation": "update",
 		"payload": map[string]any{
-			"playground_id": 42,
+			"id_or_name": 42,
 		},
 	})
 	if err == nil {
@@ -38,15 +38,15 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Errorf("expected 'at least one field' message, got: %v", err)
 	}
 
-	// playground_id + a real field -> passes the guard (and will then fail client-side
+	// id_or_name + a real field -> passes the guard (and will then fail client-side
 	// on transport because we have no real server, which is fine for this
 	// test — we only care that the guard didn't block it).
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 		"resource":  "playground",
 		"operation": "update",
 		"payload": map[string]any{
-			"playground_id": 42,
-			"name":          "renamed",
+			"id_or_name": 42,
+			"name":       "renamed",
 		},
 	})
 	if err != nil && strings.Contains(err.Error(), "at least one field") {
@@ -58,9 +58,9 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		"resource":  "playground",
 		"operation": "update",
 		"payload": map[string]any{
-			"playground_id": 42,
-			"name":          "",
-			"playspec_id":   nil,
+			"id_or_name":          42,
+			"name":                "",
+			"playspec_id_or_name": nil,
 		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "at least one field") {

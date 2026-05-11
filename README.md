@@ -75,8 +75,8 @@ fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
 # Watch agent resource events through AnyCable
 fibe agents watch --max-events 5 --duration 1m
 
-# Block until playground starts running
-fibe wait playground 42 --status running --timeout 5m
+# Block until a playground starts running by name or ID
+fibe wait playground next --status running --timeout 5m
 ```
 
 ## Output Formatting

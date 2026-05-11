@@ -20,8 +20,12 @@ func (s *ArtefactService) ListAll(ctx context.Context, params *ArtefactListParam
 }
 
 func (s *ArtefactService) GetByID(ctx context.Context, id int64) (*Artefact, error) {
+	return s.GetByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *ArtefactService) GetByIdentifier(ctx context.Context, identifier string) (*Artefact, error) {
 	var result Artefact
-	err := s.client.do(ctx, http.MethodGet, fmt.Sprintf("/api/artefacts/%d", id), nil, &result)
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/artefacts", identifier), nil, &result)
 	return &result, err
 }
 
@@ -38,12 +42,16 @@ func (s *ArtefactService) ListByAgentIdentifier(ctx context.Context, agentIdenti
 }
 
 func (s *ArtefactService) Get(ctx context.Context, agentID, id int64) (*Artefact, error) {
-	return s.GetByAgentIdentifier(ctx, int64Identifier(agentID), id)
+	return s.GetByAgentAndArtefactIdentifier(ctx, int64Identifier(agentID), int64Identifier(id))
 }
 
 func (s *ArtefactService) GetByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64) (*Artefact, error) {
+	return s.GetByAgentAndArtefactIdentifier(ctx, agentIdentifier, int64Identifier(id))
+}
+
+func (s *ArtefactService) GetByAgentAndArtefactIdentifier(ctx context.Context, agentIdentifier string, artefactIdentifier string) (*Artefact, error) {
 	var result Artefact
-	path := fmt.Sprintf("%s/artefacts/%d", identifierPath("/api/agents", agentIdentifier), id)
+	path := identifierPath(identifierPath("/api/agents", agentIdentifier)+"/artefacts", artefactIdentifier)
 	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
 	return &result, err
 }
@@ -74,14 +82,22 @@ func (s *ArtefactService) CreateOwned(ctx context.Context, params *ArtefactCreat
 }
 
 func (s *ArtefactService) UpdateByID(ctx context.Context, id int64, params *ArtefactUpdateParams) (*Artefact, error) {
+	return s.UpdateByIdentifier(ctx, int64Identifier(id), params)
+}
+
+func (s *ArtefactService) UpdateByIdentifier(ctx context.Context, identifier string, params *ArtefactUpdateParams) (*Artefact, error) {
 	var result Artefact
-	err := s.client.do(ctx, http.MethodPatch, fmt.Sprintf("/api/artefacts/%d", id), params, &result)
+	err := s.client.do(ctx, http.MethodPatch, identifierPath("/api/artefacts", identifier), params, &result)
 	return &result, err
 }
 
 func (s *ArtefactService) UpdateByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64, params *ArtefactUpdateParams) (*Artefact, error) {
+	return s.UpdateByAgentAndArtefactIdentifier(ctx, agentIdentifier, int64Identifier(id), params)
+}
+
+func (s *ArtefactService) UpdateByAgentAndArtefactIdentifier(ctx context.Context, agentIdentifier string, artefactIdentifier string, params *ArtefactUpdateParams) (*Artefact, error) {
 	var result Artefact
-	path := fmt.Sprintf("%s/artefacts/%d", identifierPath("/api/agents", agentIdentifier), id)
+	path := identifierPath(identifierPath("/api/agents", agentIdentifier)+"/artefacts", artefactIdentifier)
 	err := s.client.do(ctx, http.MethodPatch, path, params, &result)
 	return &result, err
 }
@@ -121,15 +137,23 @@ func artefactCreateFields(params *ArtefactCreateParams) map[string]string {
 }
 
 func (s *ArtefactService) Download(ctx context.Context, agentID, id int64) (io.ReadCloser, string, string, error) {
-	return s.DownloadByAgentIdentifier(ctx, int64Identifier(agentID), id)
+	return s.DownloadByAgentAndArtefactIdentifier(ctx, int64Identifier(agentID), int64Identifier(id))
 }
 
 func (s *ArtefactService) DownloadByAgentIdentifier(ctx context.Context, agentIdentifier string, id int64) (io.ReadCloser, string, string, error) {
-	path := fmt.Sprintf("%s/artefacts/%d/download", identifierPath("/api/agents", agentIdentifier), id)
+	return s.DownloadByAgentAndArtefactIdentifier(ctx, agentIdentifier, int64Identifier(id))
+}
+
+func (s *ArtefactService) DownloadByAgentAndArtefactIdentifier(ctx context.Context, agentIdentifier string, artefactIdentifier string) (io.ReadCloser, string, string, error) {
+	path := identifierPath(identifierPath("/api/agents", agentIdentifier)+"/artefacts", artefactIdentifier) + "/download"
 	return s.client.doDownload(ctx, path)
 }
 
 func (s *ArtefactService) DownloadByID(ctx context.Context, id int64) (io.ReadCloser, string, string, error) {
-	path := fmt.Sprintf("/api/artefacts/%d/download", id)
+	return s.DownloadByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *ArtefactService) DownloadByIdentifier(ctx context.Context, identifier string) (io.ReadCloser, string, string, error) {
+	path := identifierPath("/api/artefacts", identifier) + "/download"
 	return s.client.doDownload(ctx, path)
 }

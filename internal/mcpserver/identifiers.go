@@ -9,11 +9,15 @@ import (
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee", "agent":
+	case "playground", "trick", "playspec", "prop", "marquee", "agent", "template", "artefact":
 		return true
 	default:
 		return false
 	}
+}
+
+func keyedResource(resource string) bool {
+	return resource == "secret"
 }
 
 func identifierInputProperty(description string) map[string]any {
@@ -106,9 +110,6 @@ func stringIdentifierValue(value any) (string, bool) {
 	}
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return "", false
-	}
-	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		return "", false
 	}
 	return s, true

@@ -83,7 +83,7 @@ func TestAgentSendMessageToolUploadsAttachmentsAndPassesConversationControls(t *
 	}
 
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_send_message", map[string]any{
-		"agent_id":             "test-agent",
+		"id_or_name":           "test-agent",
 		"text":                 "hello",
 		"conversation_id":      "thread-1",
 		"busy_policy":          "queue",
@@ -202,7 +202,7 @@ func TestAgentAttachmentResourceMutateAndGet(t *testing.T) {
 		"resource":  "agent",
 		"operation": "upload_attachment",
 		"payload": map[string]any{
-			"agent_id":        "test-agent",
+			"id_or_name":      "test-agent",
 			"content_base64":  "aGVsbG8=",
 			"filename":        "hello.txt",
 			"conversation_id": "thread-1",
@@ -216,10 +216,10 @@ func TestAgentAttachmentResourceMutateAndGet(t *testing.T) {
 	}
 
 	download, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
-		"resource":        "agent_attachment",
-		"agent_id":        "test-agent",
-		"filename":        "runtime-hello.txt",
-		"conversation_id": "thread-1",
+		"resource":         "agent_attachment",
+		"agent_id_or_name": "test-agent",
+		"filename":         "runtime-hello.txt",
+		"conversation_id":  "thread-1",
 	})
 	if err != nil {
 		t.Fatalf("download dispatch: %v", err)
@@ -343,26 +343,26 @@ func TestAgentConversationToolsDispatchScopedRequests(t *testing.T) {
 	}
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_create_conversation", map[string]any{
-		"agent_id":        "test-agent",
+		"id_or_name":      "test-agent",
 		"conversation_id": "thread-1",
 		"title":           "Project One",
 	}); err != nil {
 		t.Fatalf("create dispatch: %v", err)
 	}
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_live_state", map[string]any{
-		"agent_id":        "test-agent",
+		"id_or_name":      "test-agent",
 		"conversation_id": "thread-1",
 	}); err != nil {
 		t.Fatalf("live dispatch: %v", err)
 	}
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_interrupt", map[string]any{
-		"agent_id":        "test-agent",
+		"id_or_name":      "test-agent",
 		"conversation_id": "thread-1",
 	}); err != nil {
 		t.Fatalf("interrupt dispatch: %v", err)
 	}
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_delete_conversation", map[string]any{
-		"agent_id":        "test-agent",
+		"id_or_name":      "test-agent",
 		"conversation_id": "thread-1",
 		"confirm":         true,
 	}); err != nil {

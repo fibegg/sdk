@@ -104,8 +104,8 @@ func TestAgentsSendMessageRequiresCanonicalTextField(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_send_message", map[string]any{
-		"agent_id": 42,
-		"message":  "hello",
+		"id_or_name": 42,
+		"message":    "hello",
 	})
 	if err == nil || !strings.Contains(err.Error(), "'text' not set") {
 		t.Fatalf("expected canonical text field error, got %v", err)
@@ -121,7 +121,7 @@ func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
 	if !ok {
 		t.Fatalf("schema properties missing: %#v", srv.toolSchemas["fibe_agents_send_message"])
 	}
-	for _, want := range []string{"agent_id", "text", "conversation_id", "busy_policy", "images", "attachment_paths", "attachment_filenames"} {
+	for _, want := range []string{"id_or_name", "text", "conversation_id", "busy_policy", "images", "attachment_paths", "attachment_filenames"} {
 		if _, ok := props[want]; !ok {
 			t.Fatalf("schema property %q missing: %#v", want, props)
 		}

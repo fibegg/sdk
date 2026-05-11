@@ -38,8 +38,8 @@ func TestMutterToolCreatesAgentMutter(t *testing.T) {
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutter", map[string]any{
-		"type":          "proof",
-		"body":          "Verified rollout completed.",
+		"type": "proof",
+		"body": "Verified rollout completed.",
 	}); err != nil {
 		t.Fatalf("fibe_mutter dispatch: %v", err)
 	}
@@ -55,8 +55,8 @@ func TestMutterToolValidatesBeforeAPI(t *testing.T) {
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutter", map[string]any{
-		"type":     "proof",
-		"body":     "bad id",
+		"type": "proof",
+		"body": "bad id",
 	})
 	if err == nil || !strings.Contains(err.Error(), "missing or invalid") {
 		t.Fatalf("expected missing or invalid environment variable error, got %v", err)
@@ -65,9 +65,9 @@ func TestMutterToolValidatesBeforeAPI(t *testing.T) {
 	os.Setenv("FIBE_AGENT_ID", "7")
 
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_mutter", map[string]any{
-		"type":     "proof",
-		"body":     "extra",
-		"extra":    true,
+		"type":  "proof",
+		"body":  "extra",
+		"extra": true,
 	})
 	if err == nil || !strings.Contains(err.Error(), "unsupported field") {
 		t.Fatalf("expected local unsupported field error, got %v", err)
@@ -82,25 +82,25 @@ func TestMuttersGetSchemaRequiresAgentID(t *testing.T) {
 
 	schema := srv.toolSchemas["fibe_mutters_get"]
 	props := schema["properties"].(map[string]any)
-	if _, ok := props["agent_id"]; !ok {
-		t.Fatalf("fibe_mutters_get schema missing agent_id: %#v", schema)
+	if _, ok := props["id_or_name"]; !ok {
+		t.Fatalf("fibe_mutters_get schema missing id_or_name: %#v", schema)
 	}
 	for _, bad := range []string{"PlaygroundID", "Query", "PerPage"} {
 		if _, ok := props[bad]; ok {
 			t.Fatalf("fibe_mutters_get schema should use snake_case, found %q in %#v", bad, schema)
 		}
 	}
-	if playground, ok := props["playground_id"].(map[string]any); !ok {
-		t.Fatalf("fibe_mutters_get playground_id should be integer with minimum: %#v", props["playground_id"])
-	} else if minimum, ok := numericMinimum(playground["minimum"]); !ok || minimum < 1 {
-		t.Fatalf("fibe_mutters_get playground_id should have minimum >= 1: %#v", playground)
+	if playground, ok := props["playground_id_or_name"].(map[string]any); !ok {
+		t.Fatalf("fibe_mutters_get playground_id_or_name should be identifier schema: %#v", props["playground_id_or_name"])
+	} else if _, ok := playground["oneOf"]; !ok {
+		t.Fatalf("fibe_mutters_get playground_id_or_name should accept ID or name: %#v", playground)
 	}
 	required, _ := schema["required"].([]any)
-	if !containsAnyString(required, "agent_id") {
-		t.Fatalf("fibe_mutters_get schema should require agent_id: %#v", schema)
+	if !containsAnyString(required, "id_or_name") {
+		t.Fatalf("fibe_mutters_get schema should require id_or_name: %#v", schema)
 	}
 	if len(required) != 1 {
-		t.Fatalf("fibe_mutters_get should only require agent_id: %#v", schema)
+		t.Fatalf("fibe_mutters_get should only require id_or_name: %#v", schema)
 	}
 }
 
@@ -138,10 +138,10 @@ func TestMuttersGetUsesAgentIDAndFilters(t *testing.T) {
 	}
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_mutters_get", map[string]any{
-		"agent_id":      agentID,
-		"query":         "deploy",
-		"page":          1,
-		"per_page":      10,
+		"id_or_name": agentID,
+		"query":      "deploy",
+		"page":       1,
+		"per_page":   10,
 	}); err != nil {
 		t.Fatalf("fibe_mutters_get dispatch: %v", err)
 	}

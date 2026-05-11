@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fibegg/sdk/fibe"
@@ -14,6 +15,7 @@ import (
 type templateChangeArgs struct {
 	TargetType              string                    `json:"target_type"`
 	TargetID                int64                     `json:"target_id"`
+	TargetIdentifier        string                    `json:"target_id_or_name"`
 	Mode                    string                    `json:"mode"`
 	ChangeType              string                    `json:"change_type"`
 	BaseVersionID           int64                     `json:"base_version_id,omitempty"`
@@ -107,8 +109,12 @@ func normalizeTemplateChangeArgs(in *templateChangeArgs) error {
 	if in.TargetType == "" {
 		return fmt.Errorf("required field 'target_type' not set")
 	}
-	if in.TargetID <= 0 {
-		return fmt.Errorf("required field 'target_id' must be greater than zero")
+	if strings.TrimSpace(in.TargetIdentifier) == "" && in.TargetID > 0 {
+		in.TargetIdentifier = fmt.Sprintf("%d", in.TargetID)
+	}
+	in.TargetIdentifier = strings.TrimSpace(in.TargetIdentifier)
+	if in.TargetIdentifier == "" {
+		return fmt.Errorf("required field 'target_id_or_name' not set")
 	}
 	if in.Mode == "" {
 		return fmt.Errorf("required field 'mode' not set")
@@ -138,22 +144,25 @@ func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templa
 	target := &templateChangeTarget{baseVersion: in.BaseVersionID}
 	switch in.TargetType {
 	case "template":
-		target.templateID = in.TargetID
-		tpl, err := c.ImportTemplates.Get(ctx, in.TargetID)
+		tpl, err := c.ImportTemplates.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
+		if tpl.ID == nil || *tpl.ID <= 0 {
+			return nil, fmt.Errorf("template %s has no id", in.TargetIdentifier)
+		}
+		target.templateID = *tpl.ID
 		if target.baseVersion == 0 && tpl.LatestVersionID != nil {
 			target.baseVersion = *tpl.LatestVersionID
 		}
 	case "playspec":
-		ps, err := c.Playspecs.Get(ctx, in.TargetID)
+		ps, err := c.Playspecs.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
 		fillTemplateChangeTargetFromPlayspec(target, ps)
-	case "playground", "trick":
-		pg, err := c.Playgrounds.Get(ctx, in.TargetID)
+	case "playground":
+		pg, err := c.Playgrounds.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +170,7 @@ func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templa
 		target.marqueeID = pg.MarqueeID
 		target.jobMode = pg.JobMode
 		if pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
-			return nil, fmt.Errorf("%s %d has no playspec_id", in.TargetType, in.TargetID)
+			return nil, fmt.Errorf("%s %s has no playspec_id", in.TargetType, in.TargetIdentifier)
 		}
 		ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
 		if err != nil {
@@ -169,7 +178,24 @@ func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templa
 		}
 		fillTemplateChangeTargetFromPlayspec(target, ps)
 		target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
-		if in.TargetType == "trick" && !target.jobMode {
+	case "trick":
+		pg, err := c.Tricks.GetByIdentifier(ctx, in.TargetIdentifier)
+		if err != nil {
+			return nil, err
+		}
+		target.playgroundID = &pg.ID
+		target.marqueeID = pg.MarqueeID
+		target.jobMode = pg.JobMode
+		if pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
+			return nil, fmt.Errorf("%s %s has no playspec_id", in.TargetType, in.TargetIdentifier)
+		}
+		ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
+		if err != nil {
+			return nil, err
+		}
+		fillTemplateChangeTargetFromPlayspec(target, ps)
+		target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
+		if !target.jobMode {
 			return nil, fmt.Errorf("target_type trick requires a job-mode playground or playspec")
 		}
 	default:

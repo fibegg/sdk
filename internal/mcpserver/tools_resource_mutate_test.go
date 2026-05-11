@@ -39,8 +39,8 @@ func TestResourceMutateDispatchesCreateAndUpdate(t *testing.T) {
 		"resource":  "agent",
 		"operation": "update",
 		"payload": map[string]any{
-			"agent_id": int(idFloat),
-			"name":     name + "-renamed",
+			"id_or_name": int(idFloat),
+			"name":       name + "-renamed",
 		},
 	}); err != nil {
 		t.Fatalf("update dispatch: %v", err)
@@ -110,8 +110,8 @@ func TestResourceMutatePlaygroundActionRequiresConfirm(t *testing.T) {
 		"resource":  "playground",
 		"operation": "action",
 		"payload": map[string]any{
-			"playground_id": 42,
-			"action_type":   "retry_compose",
+			"id_or_name":  42,
+			"action_type": "retry_compose",
 		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "confirm:true") {
@@ -147,9 +147,9 @@ func TestResourceMutateDispatchesPlaygroundActionWithConfirm(t *testing.T) {
 		"operation": "action",
 		"confirm":   true,
 		"payload": map[string]any{
-			"playground_id": 42,
-			"action_type":   "retry_compose",
-			"force":         true,
+			"id_or_name":  42,
+			"action_type": "retry_compose",
+			"force":       true,
 		},
 	})
 	if err != nil {
@@ -181,7 +181,7 @@ func TestResourceMutateDispatchesAgentRestartChat(t *testing.T) {
 		"resource":  "agent",
 		"operation": "restart_chat",
 		"payload": map[string]any{
-			"agent_id": "my-agent",
+			"id_or_name": "my-agent",
 		},
 	})
 	if err != nil {
@@ -205,20 +205,20 @@ func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 		operation string
 		payload   map[string]any
 	}{
-		{resource: "agent", operation: "restart_chat", payload: map[string]any{"agent_id": 3}},
+		{resource: "agent", operation: "restart_chat", payload: map[string]any{"id_or_name": 3}},
 		{resource: "marquee", operation: "autoconnect_token", payload: map[string]any{"ssl_mode": "http"}},
-		{resource: "marquee", operation: "generate_ssh_key", payload: map[string]any{"marquee_id": 3}},
-		{resource: "marquee", operation: "test_connection", payload: map[string]any{"marquee_id": 3}},
+		{resource: "marquee", operation: "generate_ssh_key", payload: map[string]any{"id_or_name": 3}},
+		{resource: "marquee", operation: "test_connection", payload: map[string]any{"id_or_name": 3}},
 		{resource: "prop", operation: "attach", payload: map[string]any{"repo_full_name": "octocat/Hello-World"}},
 		{resource: "prop", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/octocat/Hello-World", "name": "mirror"}},
-		{resource: "prop", operation: "sync", payload: map[string]any{"prop_id": 3}},
-		{resource: "template", operation: "fork", payload: map[string]any{"template_id": 4}},
-		{resource: "template", operation: "source_refresh", payload: map[string]any{"template_id": 4}},
-		{resource: "template", operation: "source_set", payload: map[string]any{"template_id": 4, "source_prop_id": 3, "source_path": "template.yml", "ci_marquee_id": 3}},
-		{resource: "template", operation: "upgrade_playspecs", payload: map[string]any{"template_id": 4, "version_id": 5}},
-		{resource: "template_version", operation: "toggle_public", payload: map[string]any{"template_id": 4, "version_id": 5}},
-		{resource: "trick", operation: "trigger", payload: map[string]any{"playspec_id": 7, "marquee_id": 3, "name": "trick"}},
-		{resource: "trick", operation: "rerun", payload: map[string]any{"trick_id": 8}},
+		{resource: "prop", operation: "sync", payload: map[string]any{"id_or_name": 3}},
+		{resource: "template", operation: "fork", payload: map[string]any{"id_or_name": 4}},
+		{resource: "template", operation: "source_refresh", payload: map[string]any{"id_or_name": 4}},
+		{resource: "template", operation: "source_set", payload: map[string]any{"template_id_or_name": 4, "source_prop_id_or_name": 3, "source_path": "template.yml", "ci_marquee_id_or_name": 3}},
+		{resource: "template", operation: "upgrade_playspecs", payload: map[string]any{"template_id_or_name": 4, "version_id": 5}},
+		{resource: "template_version", operation: "toggle_public", payload: map[string]any{"template_id_or_name": 4, "version_id": 5}},
+		{resource: "trick", operation: "trigger", payload: map[string]any{"playspec_id_or_name": 7, "marquee_id_or_name": 3, "name": "trick"}},
+		{resource: "trick", operation: "rerun", payload: map[string]any{"id_or_name": 8}},
 		{resource: "webhook", operation: "test", payload: map[string]any{"webhook_id": 9}},
 	}
 
@@ -249,10 +249,10 @@ func TestResourceMutateScopedActionValidationBeforeAPI(t *testing.T) {
 		payload   map[string]any
 		want      string
 	}{
-		{name: "bad id", resource: "template", operation: "source_refresh", payload: map[string]any{"template_id": 0}, want: "greater than or equal to 1"},
+		{name: "bad id", resource: "template", operation: "source_refresh", payload: map[string]any{"id_or_name": 0}, want: "greater than or equal to 1"},
 		{name: "unknown field", resource: "prop", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/o/r", "extra": true}, want: "unsupported field"},
 		{name: "old prop alias rejected", resource: "prop", operation: "attach", payload: map[string]any{"repository_url": "https://github.com/o/r"}, want: "repo_full_name is required"},
-		{name: "old template id alias rejected", resource: "template", operation: "source_set", payload: map[string]any{"id": 1, "source_prop_id": 2, "source_path": "template.yml"}, want: "template_id is required"},
+		{name: "old template id alias rejected", resource: "template", operation: "source_set", payload: map[string]any{"id": 1, "source_prop_id": 2, "source_path": "template.yml"}, want: "template_id_or_name is required"},
 		{name: "unsupported pair", resource: "webhook", operation: "source_set", payload: map[string]any{"webhook_id": 1}, want: "does not support operation"},
 		{name: "dedicated mutter tool", resource: "mutter", operation: "create", payload: map[string]any{"type": "proof", "body": "done"}, want: "does not support mutation operations"},
 	} {

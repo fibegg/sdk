@@ -148,7 +148,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_resource_list",
-			mcpArgs: map[string]any{"resource": "template_version", "params": map[string]any{"template_id": float64(999999)}},
+			mcpArgs: map[string]any{"resource": "template_version", "params": map[string]any{"template_id_or_name": float64(999999)}},
 			cliArgs: []string{"templates", "versions", "list", "999999", "--output", "json"},
 		},
 		{
@@ -173,17 +173,17 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_mutters_get",
-			mcpArgs: map[string]any{"agent_id": 999999999},
+			mcpArgs: map[string]any{"id_or_name": 999999999},
 			cliArgs: []string{"mutters", "get", "999999999", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_playgrounds_logs",
-			mcpArgs: map[string]any{"playground_id": 999999999, "service": "web"},
+			mcpArgs: map[string]any{"id_or_name": 999999999, "service": "web"},
 			cliArgs: []string{"playgrounds", "logs", "999999999", "--service", "web", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_playgrounds_debug",
-			mcpArgs: map[string]any{"playground_id": 999999999},
+			mcpArgs: map[string]any{"id_or_name": 999999999},
 			cliArgs: []string{"playgrounds", "debug", "999999999", "--output", "json"},
 		},
 		{

@@ -51,7 +51,7 @@ func (s *Server) registerPlaygroundTransformTool(name string) {
 }
 
 func buildTransformParams(args map[string]any, mode string) (*fibe.PlaygroundTransformParams, error) {
-	identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+	identifier, err := requiredIdentifier(args, "id_or_name", "")
 	if err != nil {
 		return nil, err
 	}
@@ -73,18 +73,18 @@ func buildTransformParams(args map[string]any, mode string) (*fibe.PlaygroundTra
 		body = read
 	}
 
-	templateID, _ := argInt64(args, "template_id")
-	if body == "" && templateID == 0 && versionID == 0 {
-		return nil, fmt.Errorf("must provide template_body, template_body_path, template_id, or template_version_id")
+	templateIdentifier, _ := argIdentifier(args, "template_id_or_name", "")
+	templateID, _ := argInt64(args, "template_id_or_name")
+	if body == "" && templateIdentifier == "" && versionID == 0 {
+		return nil, fmt.Errorf("must provide template_body, template_body_path, template_id_or_name, or template_version_id")
 	}
 
-	playgroundID, _ := argInt64(args, "playground_id")
 	params := &fibe.PlaygroundTransformParams{
-		PlaygroundID:          playgroundID,
 		PlaygroundIdentifier:  identifier,
 		Mode:                  mode,
 		TemplateBody:          body,
 		TemplateID:            templateID,
+		TemplateIdentifier:    templateIdentifier,
 		TemplateVersionID:     versionID,
 		TemplateName:          argString(args, "template_name"),
 		Variables:             argMap(args, "variables"),

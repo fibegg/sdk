@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -23,10 +22,10 @@ ARTEFACT CONSTRAINTS:
 
 SUBCOMMANDS:
   list <agent-id-or-name>          List artefacts
-  get <agent-id-or-name> <id>      Show artefact details
+  get <agent-id-or-name> <id-or-name> Show artefact details
   create <agent-id-or-name>        Upload an artefact
-  update <id>                      Update artefact metadata or player-owned body
-  download <agent-id-or-name> <id> Download artefact file content`,
+  update <id-or-name>              Update artefact metadata or player-owned body
+  download <agent-id-or-name> <id-or-name> Download artefact file content`,
 	}
 	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artUpdateCmd(), artDownloadCmd())
 	return cmd
@@ -42,8 +41,8 @@ When omitted, lists all artefacts accessible by the current player.
 FILTERS:
   -q, --query           Search across name, description (substring match)
   --name                Filter by name (substring match)
-  --agent-id            Filter by agent ID (when listing all)
-  --playground-id       Filter by playground ID
+  --agent-id            Filter by agent ID or name (when listing all)
+  --playground-id       Filter by playground ID or name
   --content-type        Filter by content type
 
 DATE RANGE:
@@ -60,7 +59,7 @@ EXAMPLES:
   fibe artefacts list
   fibe artefacts list my-agent
   fibe artefacts list -q "report" --sort name_asc
-  fibe artefacts list --agent-id 5 --content-type application/pdf -o json`,
+  fibe artefacts list --agent-id builder --content-type application/pdf -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ArtefactListParams{}
@@ -113,8 +112,8 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name, description")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().StringVar(&agentIDFlag, "agent-id", "", "Filter by agent ID (when listing all)")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID")
+	cmd.Flags().StringVar(&agentIDFlag, "agent-id", "", "Filter by agent ID or name (when listing all)")
+	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID or name")
 	cmd.Flags().StringVar(&contentType, "content-type", "", "Filter by content type")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
@@ -124,11 +123,10 @@ EXAMPLES:
 
 func artGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "get <agent-id-or-name> <id>", Short: "Show artefact details", Args: cobra.ExactArgs(2),
+		Use: "get <agent-id-or-name> <id-or-name>", Short: "Show artefact details", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[1], 10, 64)
-			art, err := c.Artefacts.GetByAgentIdentifier(ctx(), args[0], id)
+			art, err := c.Artefacts.GetByAgentAndArtefactIdentifier(ctx(), args[0], args[1])
 			if err != nil {
 				return err
 			}
@@ -213,10 +211,9 @@ func artUpdateCmd() *cobra.Command {
 	var name, desc, body string
 	var skill, skillEnabled, plainText bool
 	cmd := &cobra.Command{
-		Use: "update <id>", Short: "Update artefact metadata or body", Args: cobra.ExactArgs(1),
+		Use: "update <id-or-name>", Short: "Update artefact metadata or body", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ArtefactUpdateParams{}
 			if cmd.Flags().Changed("name") {
 				params.Name = &name
@@ -236,7 +233,7 @@ func artUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("skill-enabled") {
 				params.SkillEnabled = &skillEnabled
 			}
-			art, err := c.Artefacts.UpdateByID(ctx(), id, params)
+			art, err := c.Artefacts.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -256,7 +253,7 @@ func artUpdateCmd() *cobra.Command {
 func artDownloadCmd() *cobra.Command {
 	var to string
 	cmd := &cobra.Command{
-		Use:   "download <agent-id-or-name> <id>",
+		Use:   "download <agent-id-or-name> <id-or-name>",
 		Short: "Download an artefact's file content",
 		Long: `Download the binary content of an artefact.
 
@@ -264,16 +261,15 @@ REQUIRED FLAGS:
   --to    Output file path (use - for stdout)
 
 EXAMPLES:
-  fibe artefacts download my-agent 100 --to ./report.pdf
-  fibe artefacts download my-agent 100 --to - > report.pdf`,
+  fibe artefacts download my-agent report --to ./report.pdf
+  fibe artefacts download my-agent report --to - > report.pdf`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[1], 10, 64)
 			if to == "" {
 				return fmt.Errorf("required field 'to' not set")
 			}
-			body, filename, contentType, err := c.Artefacts.DownloadByAgentIdentifier(ctx(), args[0], id)
+			body, filename, contentType, err := c.Artefacts.DownloadByAgentAndArtefactIdentifier(ctx(), args[0], args[1])
 			if err != nil {
 				return err
 			}

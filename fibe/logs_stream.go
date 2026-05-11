@@ -39,6 +39,10 @@ type LogsStreamOptions struct {
 // endpoint this function will be swapped to consume it without callers
 // needing to change.
 func (s *PlaygroundService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
+	return s.LogsStreamByIdentifier(ctx, int64Identifier(id), service, opts)
+}
+
+func (s *PlaygroundService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
 	if opts == nil {
 		opts = &LogsStreamOptions{}
 	}
@@ -59,7 +63,7 @@ func (s *PlaygroundService) LogsStream(ctx context.Context, id int64, service st
 
 		for {
 			tail := opts.Tail
-			logs, err := s.Logs(ctx, id, service, &tail)
+			logs, err := s.LogsByIdentifier(ctx, identifier, service, &tail)
 			if err != nil {
 				return
 			}
@@ -110,5 +114,9 @@ func (s *PlaygroundService) LogsStream(ctx context.Context, id int64, service st
 // LogsStream is the equivalent method on TrickService. Tricks share the
 // playground log endpoint so the implementation delegates to PlaygroundService.
 func (s *TrickService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
-	return s.client.Playgrounds.LogsStream(ctx, id, service, opts)
+	return s.LogsStreamByIdentifier(ctx, int64Identifier(id), service, opts)
+}
+
+func (s *TrickService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
+	return s.client.Playgrounds.LogsStreamByIdentifier(ctx, identifier, service, opts)
 }

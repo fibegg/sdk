@@ -62,15 +62,16 @@ func (s *Server) registerArtefactActionTools() {
 				payloadReader = bytes.NewReader(content)
 			}
 
+			backendArgs := resourceMutationBackendPayload("artefact", "create", args)
 			var p fibe.ArtefactCreateParams
-			if err := bindArgs(args, &p); err != nil {
+			if err := bindIdentifierArgs(backendArgs, &p, "playground_id"); err != nil {
 				return nil, err
 			}
 			if body != "" {
 				p.Body = body
 			}
 
-			if agentIdentifier := argString(args, "agent_id"); agentIdentifier != "" {
+			if agentIdentifier := argString(args, "agent_id_or_name"); agentIdentifier != "" {
 				return c.Artefacts.CreateByAgentIdentifier(ctx, agentIdentifier, &p, payloadReader, filename)
 			}
 			if envAgentID := os.Getenv("FIBE_AGENT_ID"); envAgentID != "" {
@@ -83,7 +84,8 @@ func (s *Server) registerArtefactActionTools() {
 	}, mcp.NewTool("fibe_artefact_upload",
 		mcp.WithDescription("[MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly"),
 		mcp.WithString("name", mcp.Required(), mcp.Description("Artefact display name (alias: 'title'). Also used as filename fallback.")),
-		mcp.WithString("agent_id", mcp.Description("Optional agent id or name; defaults to FIBE_AGENT_ID when available, otherwise creates a player-owned artefact")),
+		mcp.WithString("agent_id_or_name", mcp.Description("Optional agent id or name; defaults to FIBE_AGENT_ID when available, otherwise creates a player-owned artefact")),
+		mcp.WithString("playground_id_or_name", mcp.Description("Optional playground ID or name to associate with the artefact")),
 		mcp.WithString("filename", mcp.Description("Target filename — defaults to 'name' when omitted")),
 		mcp.WithString("description", mcp.Description("Optional human-readable description")),
 		mcp.WithString("content_base64", mcp.Description("Base64-encoded file content (alias: 'content')")),

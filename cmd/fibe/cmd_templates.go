@@ -24,23 +24,23 @@ can have multiple versions.
 
 SUBCOMMANDS:
   list                                       List all templates
-  get <id>                                   Show template with versions
+  get <id-or-name>                           Show template with versions
   create                                     Create a new template
-  update <id>                                Update template metadata
-  delete <id>                                Delete a template
+  update <id-or-name>                        Update template metadata
+  delete <id-or-name>                        Delete a template
   search                                     Search templates
-  versions <id>                              List template versions (alias of "versions list <id>")
-  versions list <id>                         List template versions
-  versions create <id>                       Create a new version
-  versions destroy <id> <ver-id>             Delete a version
-  versions toggle-public <id> <ver-id>       Toggle version public visibility
-  source set <id>                            Track a Prop file as template source
-  source refresh <id>                        Refresh tracked source now
-  source clear <id>                          Clear tracked source
-  upgrade-playspecs <id>                     Upgrade linked job Playspecs to a version
-  fork <id>                                  Fork a template into your account
-  upload-image <id>                          Upload a cover image
-  launch <id>                                Launch a playground from template`,
+  versions <id-or-name>                      List template versions
+  versions list <id-or-name>                 List template versions
+  versions create <id-or-name>               Create a new version
+  versions destroy <id-or-name> <ver-id>     Delete a version
+  versions toggle-public <id-or-name> <ver-id> Toggle version public visibility
+  source set <id-or-name>                    Track a Prop file as template source
+  source refresh <id-or-name>                Refresh tracked source now
+  source clear <id-or-name>                  Clear tracked source
+  upgrade-playspecs <id-or-name>             Upgrade linked job Playspecs to a version
+  fork <id-or-name>                          Fork a template into your account
+  upload-image <id-or-name>                  Upload a cover image
+  launch <id-or-name>                        Launch a playground from template`,
 	}
 	cmd.AddCommand(
 		tplListCmd(), tplGetCmd(), tplCreateCmd(), tplUpdateCmd(), tplDeleteCmd(),
@@ -136,11 +136,10 @@ EXAMPLES:
 
 func tplGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "get <id>", Short: "Show template details", Args: cobra.ExactArgs(1),
+		Use: "get <id-or-name>", Short: "Show template details", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			tpl, err := c.ImportTemplates.Get(ctx(), id)
+			tpl, err := c.ImportTemplates.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -204,10 +203,10 @@ func tplCreateCmd() *cobra.Command {
 func tplUpdateCmd() *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
-		Use: "update <id>", Short: "Update template metadata", Args: cobra.ExactArgs(1),
+		Use: "update <id-or-name>", Short: "Update template metadata", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			identifier := args[0]
 			params := &fibe.ImportTemplateUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -215,7 +214,7 @@ func tplUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("name") {
 				params.Name = &name
 			}
-			tpl, err := c.ImportTemplates.Update(ctx(), id, params)
+			tpl, err := c.ImportTemplates.UpdateByIdentifier(ctx(), identifier, params)
 			if err != nil {
 				return err
 			}
@@ -223,7 +222,7 @@ func tplUpdateCmd() *cobra.Command {
 				outputJSON(tpl)
 				return nil
 			}
-			fmt.Printf("Updated template %d\n", id)
+			fmt.Printf("Updated template %s\n", identifier)
 			return nil
 		},
 	}
@@ -233,14 +232,14 @@ func tplUpdateCmd() *cobra.Command {
 
 func tplDeleteCmd() *cobra.Command {
 	return &cobra.Command{
-		Use: "delete <id>", Short: "Delete a template", Args: cobra.ExactArgs(1),
+		Use: "delete <id-or-name>", Short: "Delete a template", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			if err := c.ImportTemplates.Delete(ctx(), id); err != nil {
+			identifier := args[0]
+			if err := c.ImportTemplates.DeleteByIdentifier(ctx(), identifier); err != nil {
 				return err
 			}
-			fmt.Printf("Template %d deleted\n", id)
+			fmt.Printf("Template %s deleted\n", identifier)
 			return nil
 		},
 	}
@@ -281,36 +280,32 @@ EXAMPLES:
 
 func tplVersionsCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "versions [list|create|destroy|toggle-public] <id> ...",
+		Use:   "versions [list|create|destroy|toggle-public] <id-or-name> ...",
 		Short: "Manage template versions (list, create, destroy, toggle-public)",
 		Long: `Manage versions of an import template.
 
-Without a subcommand, lists versions for the given template ID
-(equivalent to "versions list <id>") for backward compatibility.
+Without a subcommand, lists versions for the given template ID or name
+(equivalent to "versions list <id-or-name>") for backward compatibility.
 
 SUBCOMMANDS:
-  list <id>                          List versions of a template
-  create <id>                        Create a new version (--body required)
-  destroy <id> <ver-id>              Delete a version
-  toggle-public <id> <ver-id>        Flip a version's public visibility
+  list <id-or-name>                  List versions of a template
+  create <id-or-name>                Create a new version (--body required)
+  destroy <id-or-name> <ver-id>      Delete a version
+  toggle-public <id-or-name> <ver-id> Flip a version's public visibility
 
 EXAMPLES:
-  fibe templates versions 5
-  fibe templates versions list 5
-  fibe templates versions create 5 --body @template.yaml --public
-  fibe templates versions destroy 5 12
-  fibe templates versions toggle-public 5 12`,
+  fibe templates versions rails-starter
+  fibe templates versions list rails-starter
+  fibe templates versions create rails-starter --body @template.yaml --public
+  fibe templates versions destroy rails-starter 12
+  fibe templates versions toggle-public rails-starter 12`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return cmd.Help()
 			}
 			c := newClient()
-			id, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid template id %q: %w", args[0], err)
-			}
-			versions, err := c.ImportTemplates.ListVersions(ctx(), id, nil)
+			versions, err := c.ImportTemplates.ListVersionsByIdentifier(ctx(), args[0], nil)
 			if err != nil {
 				return err
 			}
@@ -329,13 +324,12 @@ EXAMPLES:
 
 func tplVersionsListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "list <template-id>",
+		Use:   "list <template-id-or-name>",
 		Short: "List template versions",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			versions, err := c.ImportTemplates.ListVersions(ctx(), id, nil)
+			versions, err := c.ImportTemplates.ListVersionsByIdentifier(ctx(), args[0], nil)
 			if err != nil {
 				return err
 			}
@@ -350,7 +344,7 @@ func tplVersionsCreateCmd() *cobra.Command {
 	var changelog string
 	var public bool
 	cmd := &cobra.Command{
-		Use:   "create <template-id>",
+		Use:   "create <template-id-or-name>",
 		Short: "Create a new version for an import template",
 		Long: `Create a new version of an existing template.
 
@@ -361,12 +355,11 @@ OPTIONAL FLAGS:
   --public  Mark version as publicly visible (default: false)
 
 EXAMPLES:
-  fibe templates versions create 5 --body @template.yaml
-  fibe templates versions create 5 --body @template.yaml --public`,
+  fibe templates versions create rails-starter --body @template.yaml
+  fibe templates versions create rails-starter --body @template.yaml --public`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ImportTemplateVersionCreateParams{
 				TemplateBody: resolveStringValue(body),
 			}
@@ -379,7 +372,7 @@ EXAMPLES:
 			if params.TemplateBody == "" {
 				return fmt.Errorf("required field 'body' not set")
 			}
-			version, err := c.ImportTemplates.CreateVersion(ctx(), id, params)
+			version, err := c.ImportTemplates.CreateVersionByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -404,11 +397,11 @@ func tplSourceSetCmd() *cobra.Command {
 	var path, ref string
 	var autoRefresh, autoUpgrade, ciEnabled bool
 	cmd := &cobra.Command{
-		Use:   "set <template-id>",
+		Use:   "set <template-id-or-name>",
 		Short: "Track a YAML file from a Prop",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
+			templateIdentifier := args[0]
 			if propID == "" {
 				return fmt.Errorf("required field 'prop-id' not set")
 			}
@@ -434,7 +427,7 @@ func tplSourceSetCmd() *cobra.Command {
 			} else if cmd.Flags().Changed("marquee-id") {
 				params.CIMarqueeIdentifier = marqueeID
 			}
-			result, err := newClient().ImportTemplates.SetSource(ctx(), templateID, params)
+			result, err := newClient().ImportTemplates.SetSourceByIdentifier(ctx(), templateIdentifier, params)
 			if err != nil {
 				return err
 			}
@@ -456,12 +449,11 @@ func tplSourceSetCmd() *cobra.Command {
 
 func tplSourceRefreshCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "refresh <template-id>",
+		Use:   "refresh <template-id-or-name>",
 		Short: "Refresh tracked template source now",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := newClient().ImportTemplates.RefreshSource(ctx(), templateID)
+			result, err := newClient().ImportTemplates.RefreshSourceByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -473,12 +465,11 @@ func tplSourceRefreshCmd() *cobra.Command {
 
 func tplSourceClearCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "clear <template-id>",
+		Use:   "clear <template-id-or-name>",
 		Short: "Clear tracked template source",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
-			result, err := newClient().ImportTemplates.ClearSource(ctx(), templateID)
+			result, err := newClient().ImportTemplates.ClearSourceByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -491,15 +482,14 @@ func tplSourceClearCmd() *cobra.Command {
 func tplUpgradePlayspecsCmd() *cobra.Command {
 	var versionID int64
 	cmd := &cobra.Command{
-		Use:   "upgrade-playspecs <template-id>",
+		Use:   "upgrade-playspecs <template-id-or-name>",
 		Short: "Upgrade linked job Playspecs to a template version",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
 			if versionID <= 0 {
 				return fmt.Errorf("required field 'target-version-id' not set")
 			}
-			result, err := newClient().ImportTemplates.UpgradeLinkedPlayspecs(ctx(), templateID, versionID)
+			result, err := newClient().ImportTemplates.UpgradeLinkedPlayspecsByIdentifier(ctx(), args[0], versionID)
 			if err != nil {
 				return err
 			}
@@ -513,23 +503,22 @@ func tplUpgradePlayspecsCmd() *cobra.Command {
 
 func tplVersionsDestroyCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "destroy <template-id> <version-id>",
+		Use:   "destroy <template-id-or-name> <version-id>",
 		Short: "Delete a template version",
 		Long: `Delete a specific version of a template.
 
 If this is the last version, the template itself will also be deleted.
 
 EXAMPLES:
-  fibe templates versions destroy 5 12`,
+  fibe templates versions destroy rails-starter 12`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
 			versionID, _ := strconv.ParseInt(args[1], 10, 64)
 			if err := c.ImportTemplateVersions.Delete(ctx(), versionID); err != nil {
 				return err
 			}
-			fmt.Printf("Version %d deleted from template %d\n", versionID, templateID)
+			fmt.Printf("Version %d deleted from template %s\n", versionID, args[0])
 			return nil
 		},
 	}
@@ -537,18 +526,17 @@ EXAMPLES:
 
 func tplVersionsTogglePublicCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "toggle-public <template-id> <version-id>",
+		Use:   "toggle-public <template-id-or-name> <version-id>",
 		Short: "Toggle a version's public visibility",
 		Long: `Toggle a template version between public and private.
 
 EXAMPLES:
-  fibe templates versions toggle-public 5 12`,
+  fibe templates versions toggle-public rails-starter 12`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			templateID, _ := strconv.ParseInt(args[0], 10, 64)
 			versionID, _ := strconv.ParseInt(args[1], 10, 64)
-			version, err := c.ImportTemplates.TogglePublic(ctx(), templateID, versionID)
+			version, err := c.ImportTemplates.TogglePublicByIdentifier(ctx(), args[0], versionID)
 			if err != nil {
 				return err
 			}
@@ -563,11 +551,10 @@ func tplLaunchCmd() *cobra.Command {
 	var name string
 	var version int64
 	cmd := &cobra.Command{
-		Use: "launch <id>", Short: "Launch a playground from template", Args: cobra.ExactArgs(1),
-		Long: "Create a new playground using this template.\n\nREQUIRED FLAGS:\n  --marquee-id   Target marquee for the new playground\n\nOPTIONAL FLAGS:\n  --name         Override generated playground name\n  --version      Launch a specific template version\n\nEXAMPLES:\n  fibe templates launch 8 --marquee-id 12\n  fibe templates launch 8 --marquee-id 12 --name my-playground --version 3",
+		Use: "launch <id-or-name>", Short: "Launch a playground from template", Args: cobra.ExactArgs(1),
+		Long: "Create a new playground using this template.\n\nREQUIRED FLAGS:\n  --marquee-id   Target marquee for the new playground\n\nOPTIONAL FLAGS:\n  --name         Override generated playground name\n  --version      Launch a specific template version\n\nEXAMPLES:\n  fibe templates launch rails-starter --marquee-id next\n  fibe templates launch rails-starter --marquee-id next --name my-playground --version 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			params := &fibe.ImportTemplateLaunchParams{MarqueeIdentifier: marqueeID}
 			if name != "" {
 				params.Name = name
@@ -575,7 +562,7 @@ func tplLaunchCmd() *cobra.Command {
 			if version > 0 {
 				params.Version = &version
 			}
-			result, err := c.ImportTemplates.LaunchWithParams(ctx(), id, params)
+			result, err := c.ImportTemplates.LaunchWithParamsByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -592,7 +579,7 @@ func tplLaunchCmd() *cobra.Command {
 
 func tplCreateVersionCmd() *cobra.Command {
 	cmd := tplVersionsCreateCmd()
-	cmd.Use = "create-version <template-id>"
+	cmd.Use = "create-version <template-id-or-name>"
 	cmd.Short = "Create a new version (alias of \"versions create\")"
 	cmd.Hidden = true
 	return cmd
@@ -600,7 +587,7 @@ func tplCreateVersionCmd() *cobra.Command {
 
 func tplDestroyVersionCmd() *cobra.Command {
 	cmd := tplVersionsDestroyCmd()
-	cmd.Use = "destroy-version <template-id> <version-id>"
+	cmd.Use = "destroy-version <template-id-or-name> <version-id>"
 	cmd.Short = "Delete a template version (alias of \"versions destroy\")"
 	cmd.Hidden = true
 	return cmd
@@ -608,7 +595,7 @@ func tplDestroyVersionCmd() *cobra.Command {
 
 func tplTogglePublicCmd() *cobra.Command {
 	cmd := tplVersionsTogglePublicCmd()
-	cmd.Use = "toggle-public <template-id> <version-id>"
+	cmd.Use = "toggle-public <template-id-or-name> <version-id>"
 	cmd.Short = "Toggle a version's public visibility (alias of \"versions toggle-public\")"
 	cmd.Hidden = true
 	return cmd
@@ -616,7 +603,7 @@ func tplTogglePublicCmd() *cobra.Command {
 
 func tplForkCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "fork <id>",
+		Use:   "fork <id-or-name>",
 		Short: "Fork a template into your account",
 		Long: `Create a personal copy (fork) of an existing template.
 
@@ -624,12 +611,11 @@ The forked template is owned by you and can be edited independently
 of the original.
 
 EXAMPLES:
-  fibe templates fork 5`,
+  fibe templates fork rails-starter`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
-			tpl, err := c.ImportTemplates.Fork(ctx(), id)
+			tpl, err := c.ImportTemplates.ForkByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -642,7 +628,7 @@ EXAMPLES:
 func tplUploadImageCmd() *cobra.Command {
 	var file string
 	cmd := &cobra.Command{
-		Use:   "upload-image <id>",
+		Use:   "upload-image <id-or-name>",
 		Short: "Upload a cover image for a template",
 		Long: `Upload a cover image for an import template.
 
@@ -653,11 +639,10 @@ REQUIRED FLAGS:
   --file    Path to image file (PNG, JPEG, GIF, etc.)
 
 EXAMPLES:
-  fibe templates upload-image 5 --file logo.png`,
+  fibe templates upload-image rails-starter --file logo.png`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
 			if file == "" {
 				return fmt.Errorf("required field 'file' not set")
 			}
@@ -671,7 +656,7 @@ EXAMPLES:
 				ImageData:   base64.StdEncoding.EncodeToString(data),
 				ContentType: contentType,
 			}
-			tpl, err := c.ImportTemplates.UploadImage(ctx(), id, params)
+			tpl, err := c.ImportTemplates.UploadImageByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}

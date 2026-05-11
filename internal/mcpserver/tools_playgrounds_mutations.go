@@ -13,7 +13,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.", tier: tierBrownfield,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -30,8 +30,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 		},
 	}, mcp.NewTool("fibe_playgrounds_action",
 		mcp.WithDescription("[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance."),
-		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
-		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
+		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("action_type", mcp.Required(), mcp.Description("Lifecycle action to perform.")),
 		mcp.WithBoolean("force", mcp.Description("Bypass normal state guards when the server permits forced execution.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
@@ -41,7 +40,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 			name: name, description: desc, tier: tierBrownfield,
 			annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 			handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-				identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+				identifier, err := requiredIdentifier(args, "id_or_name", "")
 				if err != nil {
 					return nil, err
 				}
@@ -66,8 +65,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 			},
 		}, mcp.NewTool(name,
 			mcp.WithDescription(desc+" Defaults to mode=summary and refresh=true for agent diagnostics."),
-			mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
-			mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
+			mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 			mcp.WithString("mode", mcp.Description("summary (default) or full")),
 			mcp.WithBoolean("refresh", mcp.Description("Refresh Docker state before reading diagnostics (default: true)")),
 			mcp.WithString("service", mcp.Description("Optional Compose service name to focus diagnostics on.")),

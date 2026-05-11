@@ -43,9 +43,9 @@ func TestGreenfieldArgsAcceptTemplateIDAndVersion(t *testing.T) {
 	t.Setenv("FIBE_MARQUEE_ID", "88")
 
 	params, _, err := greenfieldArgs(map[string]any{
-		"name":        "todo",
-		"template_id": float64(347),
-		"version":     "v1",
+		"name":                "todo",
+		"template_id_or_name": float64(347),
+		"version":             "v1",
 	})
 	if err != nil {
 		t.Fatalf("greenfieldArgs: %v", err)
@@ -113,9 +113,9 @@ func TestGreenfieldArgsRejectTemplateBodyWithTemplateID(t *testing.T) {
 	t.Setenv("FIBE_MARQUEE_ID", "88")
 
 	_, _, err := greenfieldArgs(map[string]any{
-		"name":          "todo",
-		"template_id":   float64(347),
-		"template_body": "services: {}\n",
+		"name":                "todo",
+		"template_id_or_name": float64(347),
+		"template_body":       "services: {}\n",
 	})
 	if err == nil || !strings.Contains(err.Error(), "template_body cannot be combined") {
 		t.Fatalf("expected template_body conflict error, got %v", err)
@@ -127,7 +127,7 @@ func TestGreenfieldArgsRejectTemplateVersionIDWithTemplateID(t *testing.T) {
 
 	_, _, err := greenfieldArgs(map[string]any{
 		"name":                "todo",
-		"template_id":         float64(347),
+		"template_id_or_name": float64(347),
 		"template_version_id": float64(912),
 	})
 	if err == nil || !strings.Contains(err.Error(), "template_version_id cannot be combined") {

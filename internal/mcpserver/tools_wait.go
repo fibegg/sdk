@@ -23,8 +23,7 @@ func (s *Server) registerWaitTool() {
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
 		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)"),
-		mcp.WithNumber("playground_id", mcp.Description("Playground numeric ID")),
-		mcp.WithString("playground_identifier", mcp.Description("Playground numeric ID or slug-safe name")),
+		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target playground status, for example running, stopped, or has_changes.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
 		mcp.WithString("interval", mcp.Description("Polling interval as Go duration string (default: 3s)")),
@@ -36,7 +35,7 @@ func (s *Server) registerWaitTool() {
 // notifications/progress on every tick so hosts see status transitions
 // without the agent having to loop.
 func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-	identifier, err := requiredIdentifier(args, "playground_id", "playground_identifier")
+	identifier, err := requiredIdentifier(args, "id_or_name", "")
 	if err != nil {
 		return nil, err
 	}

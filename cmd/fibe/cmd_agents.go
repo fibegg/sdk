@@ -199,7 +199,7 @@ func agGetCmd() *cobra.Command {
 		Long: `Get detailed information about a specific agent.
 
 EXAMPLES:
-  fibe agents get 5
+  fibe agents get builder
   fibe ag get my-agent --output json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -278,7 +278,7 @@ OPTIONAL FLAGS:
   --playground-crumbs-id
                   Playground ID or name for public timeline crumbs
   --mount-file     Local file mount as ./path:%{agent_data}/target.ext (repeatable)
-  --mount-artefact Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)
+  --mount-artefact Artefact snapshot mount as docs-bundle:%{workspace}/docs/file.md (repeatable)
 
 EXAMPLES:
   fibe agents create --name my-agent --provider claude-code
@@ -400,7 +400,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&providerArgs, "provider-args", "", "Provider CLI flags, for example \"--bare --max-tokens 4096\"")
 	cmd.Flags().StringArrayVar(&skillToggleFlags, "skill-toggle", nil, "Skill toggle as filename=true|false (repeatable)")
 	cmd.Flags().StringArrayVar(&mountFiles, "mount-file", nil, "Local file mount as ./path:%{agent_data}/target.ext (repeatable)")
-	cmd.Flags().StringArrayVar(&mountArtefacts, "mount-artefact", nil, "Artefact snapshot mount as 123:%{workspace}/docs/file.md (repeatable)")
+	cmd.Flags().StringArrayVar(&mountArtefacts, "mount-artefact", nil, "Artefact snapshot mount as id-or-name:%{workspace}/docs/file.md (repeatable)")
 	return cmd
 }
 
@@ -436,7 +436,7 @@ OPTIONAL FLAGS:
   --build-in-public-playground-id Playground ID or name for public builds
 
 EXAMPLES:
-  fibe agents update 5 --name new-name
+  fibe agents update builder --name new-name
   fibe ag update my-agent --sync=false --memory-limit 1024` + generateSchemaDoc(&fibe.AgentUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -570,15 +570,20 @@ func parseAgentCreateMountFlags(fileSpecs, artefactSpecs []string) ([]fibe.Agent
 		if err != nil {
 			return nil, err
 		}
-		id, err := strconv.ParseInt(source, 10, 64)
-		if err != nil || id <= 0 {
-			return nil, fmt.Errorf("--mount-artefact source must be a positive artefact id: %s", source)
+		identifier := strings.TrimSpace(source)
+		if identifier == "" {
+			return nil, fmt.Errorf("--mount-artefact source must be a positive artefact ID or name")
 		}
-		mounts = append(mounts, fibe.AgentMountSpec{
+		mount := fibe.AgentMountSpec{
 			SourceType: "artefact",
-			ArtefactID: &id,
 			MountPath:  target,
-		})
+		}
+		if id, err := strconv.ParseInt(identifier, 10, 64); err == nil && id > 0 {
+			mount.ArtefactID = &id
+		} else {
+			mount.ArtefactIdentifier = identifier
+		}
+		mounts = append(mounts, mount)
 	}
 	return mounts, nil
 }
@@ -651,7 +656,7 @@ REQUIRED FLAGS:
   --marquee-id   Target Marquee ID or name
 
 EXAMPLES:
-  fibe agents start-chat 5 --marquee-id 2
+  fibe agents start-chat builder --marquee-id next
   fibe ag start-chat my-agent --marquee-id my-marquee`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -678,7 +683,7 @@ func agRuntimeStatusCmd() *cobra.Command {
 query its authenticated/processing/queue state.
 
 EXAMPLES:
-  fibe agents runtime-status 5
+  fibe agents runtime-status builder
   fibe ag runtime-status my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -779,7 +784,7 @@ OPTIONAL FLAGS:
   --conversation-id   Specific runtime conversation/thread ID
 
 EXAMPLES:
-  fibe agents live-state 5 --conversation-id conv-123
+  fibe agents live-state builder --conversation-id conv-123
   fibe ag live-state my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -809,7 +814,7 @@ OPTIONAL FLAGS:
   --title             Human-readable title
 
 EXAMPLES:
-  fibe agents create-conversation 5 --conversation-id conv-123 --title "Landing page"`,
+  fibe agents create-conversation builder --conversation-id conv-123 --title "Landing page"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.TrimSpace(conversationID) == "" {
@@ -842,7 +847,7 @@ REQUIRED FLAGS:
   --conversation-id   Runtime conversation/thread ID
 
 EXAMPLES:
-  fibe agents delete-conversation 5 --conversation-id conv-123`,
+  fibe agents delete-conversation builder --conversation-id conv-123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.TrimSpace(conversationID) == "" {
@@ -874,7 +879,7 @@ OPTIONAL FLAGS:
   --conversation-id   Specific runtime conversation/thread ID
 
 EXAMPLES:
-  fibe agents interrupt 5 --conversation-id conv-123
+  fibe agents interrupt builder --conversation-id conv-123
   fibe ag interrupt my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -900,7 +905,7 @@ This preserves chat volumes and queues the normal start/deploy path, so the
 runtime pulls the current configured image before coming back up.
 
 EXAMPLES:
-  fibe agents restart-chat 5
+  fibe agents restart-chat builder
   fibe ag restart-chat my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -927,7 +932,7 @@ func agPurgeChatCmd() *cobra.Command {
 WARNING: This removes runtime volumes for the agent chat.
 
 EXAMPLES:
-  fibe agents purge-chat 5
+  fibe agents purge-chat builder
   fibe ag purge-chat my-agent -o json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -974,7 +979,7 @@ OPTIONAL FLAGS:
   --attachment-filename   Already-uploaded runtime filename to include. Repeatable
 
 EXAMPLES:
-  fibe agents send-message 5 --text "Fix the failing tests"
+  fibe agents send-message builder --text "Fix the failing tests"
   fibe ag send-message my-agent --text "Deploy to staging"
   fibe ag send-message my-agent --conversation-id conv-123 --text "Use this log" --attach ./log.txt
   echo '{"text": "Debug the build output"}' | fibe agents send-message my-agent -f -
@@ -1150,7 +1155,7 @@ OPTIONAL FLAGS:
   --token   Direct access token
 
 EXAMPLES:
-  fibe agents authenticate 5 --token ghp_xxxx
+  fibe agents authenticate builder --token ghp_xxxx
   fibe ag authenticate my-agent --code abc123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

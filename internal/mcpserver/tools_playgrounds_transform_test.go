@@ -13,7 +13,7 @@ func TestPlaygroundsTransformApplyRequiresConfirm(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
-		"playground_id":       1,
+		"id_or_name":          1,
 		"template_version_id": 2,
 	})
 	if err == nil || !strings.Contains(err.Error(), "confirm:true") {
@@ -28,7 +28,7 @@ func TestPlaygroundsTransformPreviewDoesNotRequireConfirm(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
-		"playground_id":       1,
+		"id_or_name":          1,
 		"template_version_id": 2,
 		"mode":                "preview",
 	})
@@ -47,8 +47,8 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
-		"playground_id": 1,
-		"confirm":       true,
+		"id_or_name": 1,
+		"confirm":    true,
 	})
 	if err == nil {
 		t.Fatal("expected validation error when no template target provided")
@@ -57,7 +57,7 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 
 func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 	params, err := buildTransformParams(map[string]any{
-		"playground_id":        7,
+		"id_or_name":           7,
 		"template_version_id":  22,
 		"reuse_existing_props": true,
 	}, "apply")

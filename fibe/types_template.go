@@ -297,9 +297,10 @@ type ImportTemplateListParams struct {
 }
 
 type ImportTemplateSearchParams struct {
-	Query      string
-	TemplateID *int64
-	Regex      bool
+	Query              string
+	TemplateID         *int64
+	TemplateIdentifier string
+	Regex              bool
 }
 
 type TemplateCategory struct {

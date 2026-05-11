@@ -35,10 +35,10 @@ func (s *Server) registerGreenfieldTools() {
 
 			if waitTimeout > 0 {
 				waitArgs := map[string]any{
-					"playground_id": result.Playground.ID,
-					"status":        "running",
-					"timeout":       waitTimeout.String(),
-					"interval":      "3s",
+					"id_or_name": result.Playground.ID,
+					"status":     "running",
+					"timeout":    waitTimeout.String(),
+					"interval":   "3s",
 				}
 				if _, err := s.runWait(ctx, c, waitArgs); err != nil {
 					return nil, err
@@ -62,14 +62,14 @@ func (s *Server) registerGreenfieldTools() {
 	}, mcp.NewTool("fibe_greenfield_create",
 		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link."),
 		mcp.WithString("name", mcp.Required(), mcp.Description("Repository/app name; must be unique.")),
-		mcp.WithNumber("template_id", mcp.Description("Template ID to use. Optional; defaults to the base template.")),
-		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id or version.")),
-		mcp.WithString("version", mcp.Description("Template version tag or number for template_id, e.g. v1. Optional; defaults to latest available version.")),
-		mcp.WithString("template_body", mcp.Description("Template YAML body to use directly. Optional; cannot be combined with template_id, template_version_id, or version.")),
-		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Optional; cannot be combined with template_body, template_id, template_version_id, or version.")),
+		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name to use. Optional; defaults to the base template.")),
+		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id_or_name or version.")),
+		mcp.WithString("version", mcp.Description("Template version tag or number for template_id_or_name, e.g. v1. Optional; defaults to latest available version.")),
+		mcp.WithString("template_body", mcp.Description("Template YAML body to use directly. Optional; cannot be combined with template_id_or_name, template_version_id, or version.")),
+		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Optional; cannot be combined with template_body, template_id_or_name, template_version_id, or version.")),
 		mcp.WithString("git_provider", mcp.Description("Destination git provider: gitea or github. Optional; default: gitea.")),
 		mcp.WithBoolean("private", mcp.Description("Create destination repository as private. Optional; Fibe defaults Gitea greenfield repos to private.")),
-		mcp.WithNumber("marquee_id", mcp.Description("Target marquee ID. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID.")),
+		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID.")),
 		mcp.WithObject("variables", mcp.Description("Template variables map, e.g. {\"app_name\":\"Tower\"}. Optional.")),
 		mcp.WithObject("service_subdomains", mcp.Description("Exposed service subdomain overrides, e.g. {\"app\":\"my-app\",\"admin\":\"my-app-admin\"}. Optional.")),
 		mcp.WithString("wait_timeout", mcp.Description("Max wait duration, e.g. 10m. Optional; default: 10m.")),
@@ -96,30 +96,35 @@ func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Dur
 	}
 
 	var templateID *int64
-	if id, ok := argInt64(args, "template_id"); ok && id > 0 {
+	templateIdentifier := argString(args, "template_id_or_name")
+	if id, ok := argInt64(args, "template_id_or_name"); ok && id > 0 {
 		templateID = &id
+		if templateIdentifier == "" {
+			templateIdentifier = strconv.FormatInt(id, 10)
+		}
 	}
 	var templateVersionID *int64
 	if id, ok := argInt64(args, "template_version_id"); ok && id > 0 {
 		templateVersionID = &id
 	}
 	version := argString(args, "version")
-	if version != "" && templateID == nil {
-		return nil, 0, fmt.Errorf("version requires template_id")
+	if version != "" && templateID == nil && templateIdentifier == "" {
+		return nil, 0, fmt.Errorf("version requires template_id_or_name")
 	}
-	if templateVersionID != nil && (templateID != nil || version != "") {
-		return nil, 0, fmt.Errorf("template_version_id cannot be combined with template_id or version")
+	if templateVersionID != nil && (templateID != nil || templateIdentifier != "" || version != "") {
+		return nil, 0, fmt.Errorf("template_version_id cannot be combined with template_id_or_name or version")
 	}
 	templateBody, err := readInlineOrPathTextArgOptional(args, "template_body", "template_body_path")
 	if err != nil {
 		return nil, 0, err
 	}
-	if templateBody != "" && (templateID != nil || templateVersionID != nil || version != "") {
-		return nil, 0, fmt.Errorf("template_body cannot be combined with template_id, template_version_id, or version")
+	if templateBody != "" && (templateID != nil || templateIdentifier != "" || templateVersionID != nil || version != "") {
+		return nil, 0, fmt.Errorf("template_body cannot be combined with template_id_or_name, template_version_id, or version")
 	}
 
-	marqueeID, ok := argInt64(args, "marquee_id")
-	if !ok || marqueeID <= 0 {
+	marqueeIdentifier := argString(args, "marquee_id_or_name")
+	marqueeID, ok := argInt64(args, "marquee_id_or_name")
+	if (!ok || marqueeID <= 0) && marqueeIdentifier == "" {
 		envID, err := parseMarqueeIDEnv()
 		if err != nil {
 			return nil, 0, err
@@ -130,16 +135,18 @@ func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Dur
 	timeout := parseDuration(argString(args, "wait_timeout"), 10*time.Minute)
 
 	params := &fibe.GreenfieldCreateParams{
-		Name:              name,
-		TemplateID:        templateID,
-		TemplateVersionID: templateVersionID,
-		Version:           version,
-		TemplateBody:      templateBody,
-		GitProvider:       gitProvider,
-		Private:           private,
-		MarqueeID:         &marqueeID,
-		Variables:         greenfieldVariables(args["variables"]),
-		ServiceSubdomains: greenfieldStringMap(args["service_subdomains"]),
+		Name:               name,
+		TemplateID:         templateID,
+		TemplateIdentifier: templateIdentifier,
+		TemplateVersionID:  templateVersionID,
+		Version:            version,
+		TemplateBody:       templateBody,
+		GitProvider:        gitProvider,
+		Private:            private,
+		MarqueeID:          &marqueeID,
+		MarqueeIdentifier:  marqueeIdentifier,
+		Variables:          greenfieldVariables(args["variables"]),
+		ServiceSubdomains:  greenfieldStringMap(args["service_subdomains"]),
 	}
 	return params, timeout, nil
 }

@@ -17,7 +17,7 @@ func waitCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "wait <resource> <id>",
+		Use:   "wait <resource> <id-or-name>",
 		Short: "Wait for a resource to reach a target status",
 		Long: `Poll a resource until it reaches the desired status.
 
@@ -27,13 +27,13 @@ polling to the CLI with built-in timeout and interval.
 Supported resources: playground, trick
 
 Examples:
-  fibe wait playground 42 --status running
-  fibe wait trick 42 --status completed
+  fibe wait playground next --status running
+  fibe wait trick nightly-build --status completed
   fibe wait playground 42 --status running --timeout 5m --interval 5s`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := strings.ToLower(args[0])
-			id := parseID(args[1])
+			identifier := args[1]
 
 			c := newClient()
 			deadline := time.After(timeout)
@@ -41,7 +41,7 @@ Examples:
 			switch resource {
 			case "playground", "pg":
 				for {
-					status, err := c.Playgrounds.Status(ctx(), id)
+					status, err := c.Playgrounds.StatusByIdentifier(ctx(), identifier)
 					if err != nil {
 						return err
 					}
@@ -51,7 +51,7 @@ Examples:
 					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
 
 					if current == targetStatus {
-						pg, err := c.Playgrounds.Get(ctx(), id)
+						pg, err := c.Playgrounds.GetByIdentifier(ctx(), identifier)
 						if err != nil {
 							return err
 						}
@@ -72,7 +72,7 @@ Examples:
 				}
 			case "trick", "tr":
 				for {
-					pg, err := c.Playgrounds.Get(ctx(), id)
+					pg, err := c.Tricks.GetByIdentifier(ctx(), identifier)
 					if err != nil {
 						return err
 					}
@@ -111,10 +111,4 @@ Examples:
 	cmd.Flags().DurationVar(&interval, "interval", 3*time.Second, "Polling interval")
 
 	return cmd
-}
-
-func parseID(s string) int64 {
-	var id int64
-	fmt.Sscanf(s, "%d", &id)
-	return id
 }

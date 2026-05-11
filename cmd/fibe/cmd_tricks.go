@@ -205,9 +205,9 @@ OPTIONAL FLAGS:
   --name          Custom trick name (auto-generated if omitted)
 
 EXAMPLES:
-  fibe tricks trigger --playspec-id 12
-  fibe tr trigger --playspec-id 12 --marquee-id 3
-  fibe tr trigger --playspec-id 12 --name "my-ci-run"`,
+  fibe tricks trigger --playspec-id nightly-build
+  fibe tr trigger --playspec-id nightly-build --marquee-id next
+  fibe tr trigger --playspec-id nightly-build --name "my-ci-run"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TrickTriggerParams{

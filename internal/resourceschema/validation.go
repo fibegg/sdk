@@ -74,11 +74,11 @@ func validatePlaygroundTransformPayloadCombination(resource, operation string, p
 	path := resource + "." + operation + ".payload"
 	hasBody := hasNonEmptyPayloadField(payload, "template_body")
 	hasBodyPath := hasNonEmptyPayloadField(payload, "template_body_path")
-	hasTemplateID := hasPositiveNumericPayloadField(payload, "template_id")
+	hasTemplateID := hasNonEmptyPayloadField(payload, "template_id_or_name")
 	hasTemplateVersionID := hasPositiveNumericPayloadField(payload, "template_version_id")
 
 	if !hasBody && !hasBodyPath && !hasTemplateID && !hasTemplateVersionID {
-		return fmt.Errorf("%s must include template_body, template_body_path, template_id, or template_version_id", path)
+		return fmt.Errorf("%s must include template_body, template_body_path, template_id_or_name, or template_version_id", path)
 	}
 	if hasBody && hasBodyPath {
 		return fmt.Errorf("%s cannot include both template_body and template_body_path", path)

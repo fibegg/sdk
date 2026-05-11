@@ -17,7 +17,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent runtime chat.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +51,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent runtime chat on the current Marquee.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -70,7 +70,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent runtime reachability, authentication, queue, and processing state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -85,7 +85,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_live_state", description: "[MODE:OVERSEER] Check conversation-scoped agent runtime stream state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -100,7 +100,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_messages", description: "[MODE:OVERSEER] Read agent messages, optionally scoped to a conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +115,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_activity", description: "[MODE:OVERSEER] Read agent activity, optionally scoped to a conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_create_conversation", description: "[MODE:SIDEEFFECTS] Create or upsert an agent conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -148,7 +148,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_delete_conversation", description: "[MODE:SIDEEFFECTS] Delete an agent conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{Destructive: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -166,7 +166,7 @@ func (s *Server) registerAgentActionTools() {
 		name: "fibe_agents_interrupt", description: "[MODE:SIDEEFFECTS] Interrupt a running agent turn.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
@@ -210,9 +210,9 @@ func agentIdentifierOnlyInputSchema(description string) map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"agent_id"},
+		"required":             []string{"id_or_name"},
 		"properties": map[string]any{
-			"agent_id": identifierInputProperty(description),
+			"id_or_name": identifierInputProperty(description),
 		},
 	}
 }
@@ -225,7 +225,7 @@ func agentConversationInputSchema(description string, requireConversation bool) 
 		"description": "Specific runtime conversation/thread ID.",
 	}
 	if requireConversation {
-		schema["required"] = []string{"agent_id", "conversation_id"}
+		schema["required"] = []string{"id_or_name", "conversation_id"}
 	}
 	return schema
 }
@@ -271,7 +271,7 @@ func agentSendMessageInputSchema() map[string]any {
 		"items":       map[string]any{"type": "string"},
 		"description": "Runtime attachment filenames returned by a previous upload. Optional.",
 	}
-	schema["required"] = []string{"agent_id", "text"}
+	schema["required"] = []string{"id_or_name", "text"}
 	return schema
 }
 

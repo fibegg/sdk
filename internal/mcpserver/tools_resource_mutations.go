@@ -81,6 +81,7 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 }
 
 func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, operation string, payload map[string]any) (any, error) {
+	payload = resourceMutationBackendPayload(resource, operation, payload)
 	switch resource + "." + operation {
 	case "agent.create":
 		var p fibe.AgentCreateParams
@@ -260,12 +261,15 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Secrets.Create(ctx, &p)
 	case "secret.update":
-		id, _ := argInt64(payload, "secret_id")
+		identifier, err := requiredIdentifier(payload, "secret_id", "")
+		if err != nil {
+			return nil, err
+		}
 		var p fibe.SecretUpdateParams
 		if err := bindArgs(payload, &p); err != nil {
 			return nil, err
 		}
-		return c.Secrets.Update(ctx, id, &p)
+		return c.Secrets.UpdateByIdentifier(ctx, identifier, &p)
 	case "template.create":
 		var p fibe.ImportTemplateCreateParams
 		if err := bindArgs(payload, &p); err != nil {
@@ -281,28 +285,43 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return runTemplateChange(ctx, c, &in)
 	case "template.fork":
-		id, _ := argInt64(payload, "template_id")
-		return c.ImportTemplates.Fork(ctx, id)
+		identifier, err := requiredIdentifier(payload, "template_id", "")
+		if err != nil {
+			return nil, err
+		}
+		return c.ImportTemplates.ForkByIdentifier(ctx, identifier)
 	case "template.source_refresh":
-		id, _ := argInt64(payload, "template_id")
-		return c.ImportTemplates.RefreshSource(ctx, id)
+		identifier, err := requiredIdentifier(payload, "template_id", "")
+		if err != nil {
+			return nil, err
+		}
+		return c.ImportTemplates.RefreshSourceByIdentifier(ctx, identifier)
 	case "template.source_set":
-		id, _ := argInt64(payload, "template_id")
+		identifier, err := requiredIdentifier(payload, "template_id", "")
+		if err != nil {
+			return nil, err
+		}
 		var p fibe.ImportTemplateSourceParams
 		if err := bindIdentifierArgs(payload, &p, "source_prop_id", "ci_marquee_id", "marquee_id"); err != nil {
 			return nil, err
 		}
-		return c.ImportTemplates.SetSource(ctx, id, &p)
+		return c.ImportTemplates.SetSourceByIdentifier(ctx, identifier, &p)
 	case "template.upgrade_playspecs":
-		templateID, _ := argInt64(payload, "template_id")
+		identifier, err := requiredIdentifier(payload, "template_id", "")
+		if err != nil {
+			return nil, err
+		}
 		versionID, _ := argInt64(payload, "version_id")
-		return c.ImportTemplates.UpgradeLinkedPlayspecs(ctx, templateID, versionID)
+		return c.ImportTemplates.UpgradeLinkedPlayspecsByIdentifier(ctx, identifier, versionID)
 	case "template_version.create":
 		return mutateTemplateVersionCreate(ctx, c, payload)
 	case "template_version.toggle_public":
-		templateID, _ := argInt64(payload, "template_id")
+		identifier, err := requiredIdentifier(payload, "template_id", "")
+		if err != nil {
+			return nil, err
+		}
 		versionID, _ := argInt64(payload, "version_id")
-		return c.ImportTemplates.TogglePublic(ctx, templateID, versionID)
+		return c.ImportTemplates.TogglePublicByIdentifier(ctx, identifier, versionID)
 	case "trick.trigger":
 		var p fibe.TrickTriggerParams
 		if err := bindIdentifierArgs(payload, &p, "playspec_id", "marquee_id"); err != nil {
@@ -352,8 +371,60 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 	}
 }
 
+func resourceMutationBackendPayload(resource, operation string, payload map[string]any) map[string]any {
+	out := make(map[string]any, len(payload)+8)
+	for key, value := range payload {
+		out[key] = value
+	}
+	copyField := func(from, to string) {
+		if value, ok := out[from]; ok {
+			out[to] = value
+		}
+	}
+	for from, to := range map[string]string{
+		"agent_id_or_name":                      "agent_id",
+		"build_in_public_playground_id_or_name": "build_in_public_playground_id",
+		"ci_marquee_id_or_name":                 "ci_marquee_id",
+		"marquee_id_or_name":                    "marquee_id",
+		"playground_id_or_name":                 "playground_id",
+		"playspec_id_or_name":                   "playspec_id",
+		"prop_id_or_name":                       "prop_id",
+		"source_prop_id_or_name":                "source_prop_id",
+		"target_playground_id_or_name":          "target_playground_id",
+		"target_playspec_id_or_name":            "target_playspec_id",
+		"template_id_or_name":                   "template_id",
+	} {
+		copyField(from, to)
+	}
+	if resource == "secret" {
+		copyField("id_or_key", "secret_id")
+	}
+	if _, ok := out["id_or_name"]; ok {
+		switch resource {
+		case "agent":
+			copyField("id_or_name", "agent_id")
+		case "marquee":
+			copyField("id_or_name", "marquee_id")
+		case "playground":
+			copyField("id_or_name", "playground_id")
+		case "playspec":
+			copyField("id_or_name", "playspec_id")
+		case "prop":
+			copyField("id_or_name", "prop_id")
+		case "template":
+			copyField("id_or_name", "template_id")
+		case "trick":
+			copyField("id_or_name", "trick_id")
+		}
+	}
+	return out
+}
+
 func mutateTemplateUpdate(ctx context.Context, c *fibe.Client, payload map[string]any) (any, error) {
-	id, _ := argInt64(payload, "template_id")
+	identifier, err := requiredIdentifier(payload, "template_id", "")
+	if err != nil {
+		return nil, err
+	}
 	var updateParams fibe.ImportTemplateUpdateParams
 	if err := bindArgs(payload, &updateParams); err != nil {
 		return nil, err
@@ -361,7 +432,7 @@ func mutateTemplateUpdate(ctx context.Context, c *fibe.Client, payload map[strin
 
 	var result *fibe.ImportTemplate
 	if updateParams.Name != nil || updateParams.Description != nil || updateParams.CategoryID != nil {
-		res, err := c.ImportTemplates.Update(ctx, id, &updateParams)
+		res, err := c.ImportTemplates.UpdateByIdentifier(ctx, identifier, &updateParams)
 		if err != nil {
 			return nil, err
 		}
@@ -385,7 +456,7 @@ func mutateTemplateUpdate(ctx context.Context, c *fibe.Client, payload map[strin
 			if imageParams.Filename == "" {
 				imageParams.Filename = "cover.png"
 			}
-			res, err := c.ImportTemplates.UploadImage(ctx, id, &imageParams)
+			res, err := c.ImportTemplates.UploadImageByIdentifier(ctx, identifier, &imageParams)
 			if err != nil {
 				return nil, err
 			}
@@ -399,7 +470,10 @@ func mutateTemplateUpdate(ctx context.Context, c *fibe.Client, payload map[strin
 }
 
 func mutateTemplateVersionCreate(ctx context.Context, c *fibe.Client, payload map[string]any) (any, error) {
-	id, _ := argInt64(payload, "template_id")
+	identifier, err := requiredIdentifier(payload, "template_id", "")
+	if err != nil {
+		return nil, err
+	}
 	if argString(payload, "template_body") != "" && argString(payload, "template_body_path") != "" {
 		return nil, fmt.Errorf("pass only one of template_body or template_body_path")
 	}
@@ -418,7 +492,7 @@ func mutateTemplateVersionCreate(ctx context.Context, c *fibe.Client, payload ma
 	if p.ResponseMode == "" {
 		p.ResponseMode = "summary"
 	}
-	return c.ImportTemplates.CreateVersion(ctx, id, &p)
+	return c.ImportTemplates.CreateVersionByIdentifier(ctx, identifier, &p)
 }
 
 func bindPlayspecUpdateArgs(payload map[string]any, params *fibe.PlayspecUpdateParams) error {
@@ -443,6 +517,10 @@ func bindPlayspecUpdateArgs(payload map[string]any, params *fibe.PlayspecUpdateP
 			copied := make(map[string]any, len(serviceMap))
 			for key, value := range serviceMap {
 				copied[key] = value
+			}
+			if value, ok := copied["prop_id_or_name"]; ok {
+				copied["prop_id"] = value
+				delete(copied, "prop_id_or_name")
 			}
 			if identifier, ok := stringIdentifierValue(copied["prop_id"]); ok {
 				identifiers = append(identifiers, serviceIdentifier{index: i, identifier: identifier})

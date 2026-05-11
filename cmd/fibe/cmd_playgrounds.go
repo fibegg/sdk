@@ -243,8 +243,8 @@ OPTIONAL FLAGS:
   --marquee-id    ID or name of the target marquee (server)
 
 EXAMPLES:
-  fibe playgrounds create --name my-app --playspec-id 5
-  fibe pg create --name staging --playspec-id 5 --marquee-id 3
+  fibe playgrounds create --name my-app --playspec-id starter
+  fibe pg create --name staging --playspec-id starter --marquee-id next
   echo '{"name": "test", "playspec_id": 5}' | fibe pg create
   fibe pg create -f payload.json` + generateSchemaDoc(&fibe.PlaygroundCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {

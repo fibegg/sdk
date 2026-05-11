@@ -236,9 +236,9 @@ var pipelineDSLSchema = map[string]any{
 		map[string]any{
 			"description": "Create, wait, fetch logs — one round-trip.",
 			"steps": []map[string]any{
-				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id": 5}}},
-				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"playground_id": "$.pg.id", "status": "running"}},
-				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"playground_id": "$.pg.id", "service": "web", "tail": 100}},
+				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id_or_name": "starter"}}},
+				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"id_or_name": "$.pg.id", "status": "running"}},
+				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"id_or_name": "$.pg.id", "service": "web", "tail": 100}},
 			},
 			"return": "$.logs.lines",
 		},

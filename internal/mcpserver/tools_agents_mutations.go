@@ -14,7 +14,7 @@ func (s *Server) registerAgentMutationTools() {
 		tier:        tierOverseer,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			identifier, err := requiredIdentifier(args, "agent_id", "")
+			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}

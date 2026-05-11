@@ -27,20 +27,21 @@ func (s *Server) registerMutterActionTools() {
 				return nil, fmt.Errorf("FIBE_AGENT_ID environment variable is missing or invalid")
 			}
 
-			// Inject ambient agent_id into payload before schema validation
+			// Inject ambient agent identifier into payload before schema validation.
 			if args == nil {
 				args = make(map[string]any)
 			}
-			args["agent_id"] = agentID
+			args["agent_id_or_name"] = agentIDStr
 
 			if _, _, err := resourceschema.ValidatePayload("mutter", "create", args); err != nil {
 				return nil, err
 			}
+			backendArgs := resourceMutationBackendPayload("mutter", "create", args)
 			var p fibe.MutterItemParams
-			if err := bindArgs(args, &p); err != nil {
+			if err := bindIdentifierArgs(backendArgs, &p, "playground_id"); err != nil {
 				return nil, err
 			}
-			return c.Mutters.CreateItem(ctx, agentID, &p)
+			return c.Mutters.CreateItemByAgentIdentifier(ctx, agentIDStr, &p)
 		},
 	}, mcp.NewTool("fibe_mutter",
 		mcp.WithDescription(`Create one short mutter for an agent.
@@ -51,22 +52,25 @@ Use this as the dedicated agent progress channel described in public/prompts/mai
 
 	s.addTool(&toolImpl{
 		name:        "fibe_mutters_get",
-		description: "[MODE:OVERSEER] Retrieve an agent's mutter stream by agent_id, with optional query/status/severity/playground filters.",
+		description: "[MODE:OVERSEER] Retrieve an agent's mutter stream by id_or_name, with optional query/status/severity/playground filters.",
 		tier:        tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			agentIdentifier, err := requiredIdentifier(args, "agent_id", "")
+			agentIdentifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
 			var p fibe.MutterListParams
 			_ = bindArgs(args, &p)
+			if playgroundIdentifier := argString(args, "playground_id_or_name"); playgroundIdentifier != "" {
+				p.PlaygroundID = playgroundIdentifier
+			}
 			return c.Mutters.GetByAgentIdentifier(ctx, agentIdentifier, &p)
 		},
 	}, mcp.NewTool("fibe_mutters_get",
 		mcp.WithDescription(`Retrieve an agent's mutter stream.
 
-Pass agent_id for the agent whose mutters you want to inspect. Optional filters narrow the stream: playground_id, query, status, severity, page, and per_page. This is a transcript-style read, not a get-by-mutter-id call.`),
+Pass id_or_name for the agent whose mutters you want to inspect. Optional filters narrow the stream: playground_id_or_name, query, status, severity, page, and per_page. This is a transcript-style read, not a get-by-mutter-id call.`),
 		withRawInputSchema(mutterGetInputSchema()),
 	))
 }
@@ -75,19 +79,21 @@ func mutterGetInputSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"agent_id"},
+		"required":             []string{"id_or_name"},
 		"properties": map[string]any{
-			"agent_id": map[string]any{
+			"id_or_name": map[string]any{
 				"oneOf": []any{
 					map[string]any{"type": "integer", "minimum": 1},
 					map[string]any{"type": "string", "minLength": 1},
 				},
 				"description": "Agent ID or name whose mutter stream should be retrieved.",
 			},
-			"playground_id": map[string]any{
-				"type":        "integer",
-				"description": "Optional playground ID used to filter the mutter stream.",
-				"minimum":     1,
+			"playground_id_or_name": map[string]any{
+				"oneOf": []any{
+					map[string]any{"type": "integer", "minimum": 1},
+					map[string]any{"type": "string", "minLength": 1},
+				},
+				"description": "Optional playground ID or slug-safe name used to filter the mutter stream.",
 			},
 			"query": map[string]any{
 				"type":        "string",
@@ -127,22 +133,22 @@ func cloneSchemaAndRemoveAgentID(schema any) map[string]any {
 		out[k] = v
 	}
 
-	// Copy properties and remove agent_id
+	// Copy properties and remove agent identifier
 	if props, ok := out["properties"].(map[string]any); ok {
 		newProps := make(map[string]any, len(props))
 		for k, v := range props {
-			if k != "agent_id" {
+			if k != "agent_id" && k != "agent_id_or_name" {
 				newProps[k] = v
 			}
 		}
 		out["properties"] = newProps
 	}
 
-	// Remove agent_id from required list
+	// Remove agent identifier from required list
 	if reqs, ok := out["required"].([]string); ok {
 		newReqs := make([]string, 0, len(reqs))
 		for _, r := range reqs {
-			if r != "agent_id" {
+			if r != "agent_id" && r != "agent_id_or_name" {
 				newReqs = append(newReqs, r)
 			}
 		}

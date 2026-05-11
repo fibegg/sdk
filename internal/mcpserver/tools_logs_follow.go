@@ -28,7 +28,7 @@ func (s *Server) registerLogsFollowTool() {
 		mcp.WithDescription(`Stream playground service logs. Each new log line becomes an MCP progress notification. Returns when duration elapses or max_lines is reached.
 
 Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear.`),
-		mcp.WithNumber("playground_id", mcp.Required(), mcp.Description("Playground ID")),
+		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("service", mcp.Required(), mcp.Description("Compose service name, for example web or worker.")),
 		mcp.WithNumber("tail", mcp.Description("Initial lines from history (default: 50)")),
 		mcp.WithString("duration", mcp.Description("Max follow duration (Go duration, default: 30s)")),
@@ -38,9 +38,9 @@ Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you n
 }
 
 func (s *Server) runLogsFollow(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-	id, ok := argInt64(args, "playground_id")
-	if !ok {
-		return nil, fmt.Errorf("required field 'playground_id' not set")
+	identifier, err := requiredIdentifier(args, "id_or_name", "")
+	if err != nil {
+		return nil, err
 	}
 	service := argString(args, "service")
 	if service == "" {
@@ -64,7 +64,7 @@ func (s *Server) runLogsFollow(ctx context.Context, c *fibe.Client, args map[str
 		MaxLines: maxLines,
 	}
 
-	ch := c.Playgrounds.LogsStream(streamCtx, id, service, opts)
+	ch := c.Playgrounds.LogsStreamByIdentifier(streamCtx, identifier, service, opts)
 
 	progressToken := progressTokenFromCtx(ctx)
 	var collected []map[string]string
@@ -78,9 +78,9 @@ func (s *Server) runLogsFollow(ctx context.Context, c *fibe.Client, args map[str
 	}
 
 	return map[string]any{
-		"playground_id": id,
-		"service":       service,
-		"lines":         collected,
-		"count":         len(collected),
+		"id_or_name": identifier,
+		"service":    service,
+		"lines":      collected,
+		"count":      len(collected),
 	}, nil
 }
