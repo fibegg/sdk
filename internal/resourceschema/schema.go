@@ -1109,21 +1109,20 @@ func resourceIDSchema(resource, tool string) map[string]any {
 			"minimum":     1,
 		},
 	}
+	var anyOf []any
 	if namedResource(resource) {
-		required = []string{"resource", "id_or_name"}
-		delete(properties, "id")
-		properties["id_or_name"] = map[string]any{
-			"type":        "string",
-			"minLength":   1,
-			"description": "Numeric ID or resource name.",
+		required = []string{"resource"}
+		properties["id_or_name"] = namedIdentifierSchema("id_or_name", "Numeric ID or resource name.")
+		anyOf = []any{
+			map[string]any{"required": []string{"id"}},
+			map[string]any{"required": []string{"id_or_name"}},
 		}
 	} else if resource == "secret" {
-		required = []string{"resource", "id_or_key"}
-		delete(properties, "id")
-		properties["id_or_key"] = map[string]any{
-			"type":        "string",
-			"minLength":   1,
-			"description": "Numeric ID or secret key.",
+		required = []string{"resource"}
+		properties["id_or_key"] = namedIdentifierSchema("id_or_key", "Numeric ID or secret key.")
+		anyOf = []any{
+			map[string]any{"required": []string{"id"}},
+			map[string]any{"required": []string{"id_or_key"}},
 		}
 	}
 	schema := map[string]any{
@@ -1131,6 +1130,9 @@ func resourceIDSchema(resource, tool string) map[string]any {
 		"additionalProperties": false,
 		"required":             required,
 		"properties":           properties,
+	}
+	if len(anyOf) > 0 {
+		schema["anyOf"] = anyOf
 	}
 	return schema
 }
