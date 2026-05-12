@@ -17,7 +17,8 @@ func runCLI(t *testing.T, args ...string) (string, error) {
 }
 
 func runCLIWithStdin(t *testing.T, stdin string, args ...string) (string, error) {
-	cmdArgs := append([]string{"run", "../cmd/fibe"}, args...)
+	fibeArgs := append(cliAuthArgs(t), args...)
+	cmdArgs := append([]string{"run", "../cmd/fibe"}, fibeArgs...)
 	cmd := exec.Command("go", cmdArgs...)
 	cmd.Env = append(os.Environ(), "FIBE_OUTPUT=json")
 	if stdin != "" {
@@ -134,7 +135,7 @@ func TestCLI_FromFile_STDIN(t *testing.T) {
 	if marqueeID > 0 {
 		params["marquee_id"] = marqueeID
 	}
-	
+
 	data, err := json.Marshal(params)
 	requireNoError(t, err, "marshal json")
 
@@ -148,7 +149,7 @@ func TestCLI_FromFile_STDIN(t *testing.T) {
 		}
 	}
 
-	// Wait, if it fails because named pipe isn't perfectly simulated, let's gracefully continue 
+	// Wait, if it fails because named pipe isn't perfectly simulated, let's gracefully continue
 	// 3. Test explicit '-' parsing
 	pgName2 := uniqueName("test-stdin-explicit")
 	params["name"] = pgName2
@@ -163,6 +164,6 @@ func TestCLI_FromFile_STDIN(t *testing.T) {
 	if pg2.Name != pgName2 {
 		t.Errorf("expected name %s, got %s", pgName2, pg2.Name)
 	}
-	
+
 	c.Playgrounds.Delete(ctx(), pg2.ID)
 }

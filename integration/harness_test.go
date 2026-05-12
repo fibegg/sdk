@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	admin     *fibe.Client
-	setupOnce sync.Once
-	setupErr  error
-	testCtx   = context.Background()
+	admin       *fibe.Client
+	setupOnce   sync.Once
+	setupErr    error
+	testCtx     = context.Background()
 	nameCounter atomic.Int64
 )
 
@@ -49,6 +49,19 @@ func adminClient(t *testing.T) *fibe.Client {
 		t.Skipf("skipping integration test: %v", setupErr)
 	}
 	return admin
+}
+
+func cliAuthArgs(t *testing.T) []string {
+	t.Helper()
+	key := os.Getenv("FIBE_API_KEY")
+	if key == "" {
+		t.Skip("FIBE_API_KEY is required for CLI integration tests")
+	}
+	domain := os.Getenv("FIBE_DOMAIN")
+	if domain == "" {
+		domain = "localhost:3000"
+	}
+	return []string{"--api-key", key, "--domain", domain}
 }
 
 func ctx() context.Context {

@@ -38,8 +38,9 @@ func initCLIBin(t *testing.T) {
 func runCompiledCLI(t *testing.T, args ...string) (string, error) {
 	initCLIBin(t)
 	// Force JSON output explicitly via flag to avoid any env var ignorance
-	args = append(args, "--output", "json")
-	cmd := exec.Command(cliBinPath, args...)
+	cmdArgs := append(cliAuthArgs(t), args...)
+	cmdArgs = append(cmdArgs, "--output", "json")
+	cmd := exec.Command(cliBinPath, cmdArgs...)
 	cmd.Env = append(os.Environ(), "FIBE_OUTPUT=json")
 	out, err := cmd.CombinedOutput()
 	return string(out), err
@@ -336,11 +337,12 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		out, err := runCompiledCLI(t, "agents", "create", "--name", agentName, "--provider", "gemini")
 		require.NoError(t, err)
 		agentID := parseResourceID(t, out)
+		t.Cleanup(func() { runCompiledCLI(t, "agents", "delete", strconv.FormatInt(agentID, 10)) })
 
 		tmpFile := filepath.Join(t.TempDir(), "test.txt")
 		os.WriteFile(tmpFile, []byte("hello world"), 0644)
 
-		out, err = runCompiledCLI(t, "artefacts", "create", strconv.FormatInt(agentID, 10), "--name", "test-artefact", "--file", tmpFile)
+		out, err = runCompiledCLI(t, "artefacts", "create", strconv.FormatInt(agentID, 10), "--name", uniqueName("test-artefact"), "--file", tmpFile)
 		require.NoError(t, err, "failed to create artefact: %s", out)
 		artID := parseResourceID(t, out)
 
@@ -412,6 +414,9 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		t.Parallel()
 		repoName := uniqueName("cli-e2e-gitea")
 		out, err := runCompiledCLI(t, "gitea-repos", "create", "--name", repoName, "--private")
+		if err != nil && strings.Contains(out, "GITEA_CONNECTION_REQUIRED") {
+			t.Skip("Gitea account is not connected for this integration environment")
+		}
 		require.NoError(t, err, "failed to create gitea repo: %s", out)
 	})
 

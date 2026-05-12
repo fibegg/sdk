@@ -549,18 +549,22 @@ func canonicalResourceArgs(args map[string]any, canonical string) map[string]any
 
 func resourceIdentifierArg(resource string, args map[string]any) (string, error) {
 	if namedResource(resource) {
-		identifier, err := requiredIdentifier(args, "id_or_name", "")
-		if err != nil {
-			return "", err
+		if identifier, ok := argIdentifier(args, "id_or_name", ""); ok {
+			return identifier, nil
 		}
-		return identifier, nil
+		if identifier, ok := argIdentifier(args, "id", ""); ok {
+			return identifier, nil
+		}
+		return "", fmt.Errorf("required field %q or %q not set", "id", "id_or_name")
 	}
 	if keyedResource(resource) {
-		identifier, err := requiredIdentifier(args, "id_or_key", "")
-		if err != nil {
-			return "", err
+		if identifier, ok := argIdentifier(args, "id_or_key", ""); ok {
+			return identifier, nil
 		}
-		return identifier, nil
+		if identifier, ok := argIdentifier(args, "id", ""); ok {
+			return identifier, nil
+		}
+		return "", fmt.Errorf("required field %q or %q not set", "id", "id_or_key")
 	}
 	id, err := requiredPositiveID(args, "id")
 	if err != nil {

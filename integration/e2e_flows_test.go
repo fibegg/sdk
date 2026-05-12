@@ -95,9 +95,9 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 
 	// Upload 3 artefacts with different content
 	artefactContents := map[string]string{
-		"report.txt":  "this is a text report with utf-8 content: 😀",
-		"data.csv":    "id,value\n1,alpha\n2,beta\n3,gamma\n",
-		"config.json": `{"key":"value","num":42}`,
+		uniqueName("report") + ".txt":  "this is a text report with utf-8 content: 😀",
+		uniqueName("data") + ".csv":    "id,value\n1,alpha\n2,beta\n3,gamma\n",
+		uniqueName("config") + ".json": `{"key":"value","num":42}`,
 	}
 	for name, content := range artefactContents {
 		art, err := c.Artefacts.Create(ctx(), ag.ID, &fibe.ArtefactCreateParams{

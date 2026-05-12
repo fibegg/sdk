@@ -19,18 +19,20 @@ func TestArtefacts_FilteringAndSorting(t *testing.T) {
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
 
+	reportName := uniqueName("test-report") + ".txt"
+	analysisName := uniqueName("analysis-data") + ".csv"
 	fileContent := strings.NewReader("test content for artefact")
 	_, err = c.Artefacts.Create(ctx(), agent.ID, &fibe.ArtefactCreateParams{
-		Name: "test-report.txt",
-	}, fileContent, "test-report.txt")
+		Name: reportName,
+	}, fileContent, reportName)
 	if err != nil {
 		t.Skipf("artefact upload not available: %v", err)
 	}
 
 	fileContent2 := strings.NewReader("second artefact content")
 	_, err = c.Artefacts.Create(ctx(), agent.ID, &fibe.ArtefactCreateParams{
-		Name: "analysis-data.csv",
-	}, fileContent2, "analysis-data.csv")
+		Name: analysisName,
+	}, fileContent2, analysisName)
 	if err != nil {
 		t.Logf("second artefact creation failed: %v", err)
 	}
@@ -54,13 +56,13 @@ func TestArtefacts_FilteringAndSorting(t *testing.T) {
 	t.Run("filter by name", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Artefacts.List(ctx(), agent.ID, &fibe.ArtefactListParams{
-			Name: "test-report.txt",
+			Name: reportName,
 		})
 		requireNoError(t, err)
 
 		for _, a := range result.Data {
-			if a.Name != "test-report.txt" {
-				t.Errorf("expected name 'test-report.txt', got %q", a.Name)
+			if a.Name != reportName {
+				t.Errorf("expected name %q, got %q", reportName, a.Name)
 			}
 		}
 	})
@@ -146,26 +148,18 @@ func TestArtefacts_Download(t *testing.T) {
 	t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
 
 	uploadContent := "download test content"
+	downloadName := uniqueName("downloadable") + ".txt"
 	fileContent := strings.NewReader(uploadContent)
-	_, err = c.Artefacts.Create(ctx(), agent.ID, &fibe.ArtefactCreateParams{
-		Name: "downloadable.txt",
-	}, fileContent, "downloadable.txt")
+	artefact, err := c.Artefacts.Create(ctx(), agent.ID, &fibe.ArtefactCreateParams{
+		Name: downloadName,
+	}, fileContent, downloadName)
 	if err != nil {
 		t.Skipf("artefact upload not available: %v", err)
 	}
 
-	list, err := c.Artefacts.List(ctx(), agent.ID, nil)
-	requireNoError(t, err)
-
-	if len(list.Data) == 0 {
-		t.Skip("no artefacts to download")
-	}
-
-	artefactID := list.Data[0].ID
-
 	t.Run("download returns content", func(t *testing.T) {
 		t.Parallel()
-		body, filename, _, err := c.Artefacts.Download(ctx(), agent.ID, artefactID)
+		body, filename, _, err := c.Artefacts.Download(ctx(), agent.ID, artefact.ID)
 		if err != nil {
 			t.Skipf("artefact download not available (may still be processing): %v", err)
 		}

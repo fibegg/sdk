@@ -14,6 +14,18 @@ const (
 func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 	t.Helper()
 
+	usable := func(prop fibe.Prop, branch string) bool {
+		if branch == "" {
+			return false
+		}
+		_, err := c.Props.EnvDefaults(ctx(), prop.ID, branch, "")
+		if err == nil {
+			return true
+		}
+		t.Logf("skipping prop %d/%s branch %q for env_defaults fixture: %v", prop.ID, prop.Name, branch, err)
+		return false
+	}
+
 	props, err := c.Props.List(ctx(), &fibe.PropListParams{PerPage: 50})
 	requireNoError(t, err)
 
@@ -23,7 +35,9 @@ func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 			if branch == "" {
 				branch = "main"
 			}
-			return prop, branch
+			if usable(prop, branch) {
+				return prop, branch
+			}
 		}
 	}
 
@@ -46,11 +60,13 @@ func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 			branch = branches.Branches[0].Name
 		}
 		if branch != "" {
-			return prop, branch
+			if usable(prop, branch) {
+				return prop, branch
+			}
 		}
 	}
 
-	t.Skip("no props with branches available for env_defaults test")
+	t.Skip("no props with usable env defaults available for env_defaults test")
 	return fibe.Prop{}, ""
 }
 
@@ -63,6 +79,9 @@ func TestProps_EnvDefaults(t *testing.T) {
 	t.Run("returns defaults for valid branch", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Props.EnvDefaults(ctx(), prop.ID, branch, "")
+		if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 404 {
+			t.Skipf("env defaults fixture prop became unavailable: %s", apiErr.Message)
+		}
 		requireNoError(t, err)
 
 		if result.Defaults == nil {

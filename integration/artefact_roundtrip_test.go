@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -18,9 +19,10 @@ func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
 	content := "regression-check-" + uniqueName("")
+	filename := uniqueName("regression") + ".txt"
 	art, err := c.Artefacts.Create(ctx(), ag.ID, &fibe.ArtefactCreateParams{
-		Name: "regression.txt",
-	}, strings.NewReader(content), "regression.txt")
+		Name: filename,
+	}, strings.NewReader(content), filename)
 	requireNoError(t, err)
 	if art == nil {
 		t.Fatal("Artefact.Create returned nil struct — REGRESSION (see fix in svc_artefacts.go)")
@@ -58,9 +60,10 @@ func TestArtefact_ContentRoundtrip(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			actualFile := uniqueName(strings.TrimSuffix(tc.file, filepath.Ext(tc.file))) + filepath.Ext(tc.file)
 			art, err := c.Artefacts.Create(ctx(), ag.ID, &fibe.ArtefactCreateParams{
-				Name: tc.file,
-			}, bytes.NewReader(tc.content), tc.file)
+				Name: actualFile,
+			}, bytes.NewReader(tc.content), actualFile)
 			if err != nil {
 				if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode >= 400 && apiErr.StatusCode < 500 {
 					t.Skipf("upload rejected (%d %s): %s", apiErr.StatusCode, apiErr.Code, apiErr.Message)

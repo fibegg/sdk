@@ -161,6 +161,7 @@ func TestResourceGetDispatchesArtefactAndAttachment(t *testing.T) {
 
 	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_artefact_upload", map[string]any{
 		"name":           fmt.Sprintf("%s-report.txt", agentName),
+		"filename":       "report.txt",
 		"content_base64": "aGVsbG8=",
 	}); err != nil {
 		t.Fatalf("dispatch fibe_artefact_upload: %v", err)

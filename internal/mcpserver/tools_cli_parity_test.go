@@ -15,6 +15,11 @@ import (
 // requireRealServer returns the active test credentials.
 // Assuming requireRealServer is defined in another test file in this package (e.g. tools_templates_change_test.go)
 
+func cliArgsWithAuth(apiKey, domain string, args ...string) []string {
+	out := []string{"--api-key", apiKey, "--domain", domain}
+	return append(out, args...)
+}
+
 func TestCLIParity_ListTools(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -36,7 +41,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 	}
 
 	// 2. Setup internal server for MCP calls
-	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
+	srv := New(Config{APIKey: apiKey, Domain: domain, AuthSource: "--api-key flag", DomainSource: "--domain flag", ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
@@ -219,7 +224,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 			}
 
 			// 2. Invoke real CLI via exec
-			cmd := exec.Command(bin, tc.cliArgs...)
+			cmd := exec.Command(bin, cliArgsWithAuth(apiKey, domain, tc.cliArgs...)...)
 			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain)
 			cliOut, cliErr := cmd.Output()
 			if cliErr != nil {
@@ -399,9 +404,9 @@ func TestCLIParity_GetTools(t *testing.T) {
 				} else {
 					agentIDStr = "1"
 				}
-				cmd = exec.Command(bin, cliResName, "get", agentIDStr, idStr, "--output", "json")
+				cmd = exec.Command(bin, cliArgsWithAuth(apiKey, domain, cliResName, "get", agentIDStr, idStr, "--output", "json")...)
 			} else {
-				cmd = exec.Command(bin, cliResName, "get", idStr, "--output", "json")
+				cmd = exec.Command(bin, cliArgsWithAuth(apiKey, domain, cliResName, "get", idStr, "--output", "json")...)
 			}
 			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain)
 			cliOut, err := cmd.Output()
@@ -464,9 +469,9 @@ func TestCLIParity_GetTools(t *testing.T) {
 			// 2. Invoke CLI
 			var cmd *exec.Cmd
 			if cliResName == "artefacts" {
-				cmd = exec.Command(bin, cliResName, "get", fmt.Sprintf("%d", invalidID), fmt.Sprintf("%d", invalidID), "--output", "json", "--explain-errors")
+				cmd = exec.Command(bin, cliArgsWithAuth(apiKey, domain, cliResName, "get", fmt.Sprintf("%d", invalidID), fmt.Sprintf("%d", invalidID), "--output", "json", "--explain-errors")...)
 			} else {
-				cmd = exec.Command(bin, cliResName, "get", fmt.Sprintf("%d", invalidID), "--output", "json", "--explain-errors")
+				cmd = exec.Command(bin, cliArgsWithAuth(apiKey, domain, cliResName, "get", fmt.Sprintf("%d", invalidID), "--output", "json", "--explain-errors")...)
 			}
 			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain)
 			cliOut, err := cmd.Output()
