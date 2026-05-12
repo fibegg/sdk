@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -604,9 +605,65 @@ EXAMPLES:
 				return nil
 			}
 			fmt.Printf("Playground %d: %s (maintenance: %s)\n", status.ID, status.Status, fmtMaintenance(status.MaintenanceEnabled))
+			if reason := strings.TrimSpace(statusReasonText(status)); reason != "" {
+				fmt.Printf("Reason: %s\n", reason)
+			}
+			for _, build := range status.BuildStatuses {
+				fmt.Printf("Commit %s: %s\n", build.ServiceName, fmtPlaygroundBuildStatus(build))
+			}
 			return nil
 		},
 	}
+}
+
+func statusReasonText(status *fibe.PlaygroundStatus) string {
+	if status == nil {
+		return ""
+	}
+	if len(status.StateReasons) > 0 {
+		return strings.Join(status.StateReasons, "; ")
+	}
+	if status.StateReason != nil {
+		return *status.StateReason
+	}
+	return ""
+}
+
+func fmtPlaygroundBuildStatus(build fibe.PlaygroundBuildStatus) string {
+	parts := []string{}
+	if build.Branch != "" {
+		parts = append(parts, build.Branch)
+	}
+	if build.Active != nil {
+		parts = append(parts, fmt.Sprintf("active %s@%s", build.Active.Status, displayBuildSHA(build.Active)))
+	}
+	if build.Running != nil {
+		parts = append(parts, fmt.Sprintf("running %s@%s", build.Running.Status, displayBuildSHA(build.Running)))
+	}
+	if build.Latest != nil && !sameBuildSnapshot(build.Latest, build.Active) && !sameBuildSnapshot(build.Latest, build.Running) {
+		parts = append(parts, fmt.Sprintf("latest %s@%s", build.Latest.Status, displayBuildSHA(build.Latest)))
+	}
+	if len(parts) == 0 {
+		return "no build record"
+	}
+	return strings.Join(parts, " | ")
+}
+
+func sameBuildSnapshot(a, b *fibe.PlaygroundBuildRecordSnapshot) bool {
+	return a != nil && b != nil && a.ID == b.ID
+}
+
+func displayBuildSHA(build *fibe.PlaygroundBuildRecordSnapshot) string {
+	if build == nil {
+		return ""
+	}
+	if build.ShortCommitSHA != "" {
+		return build.ShortCommitSHA
+	}
+	if len(build.CommitSHA) > 7 {
+		return build.CommitSHA[:7]
+	}
+	return build.CommitSHA
 }
 
 func pgComposeCmd() *cobra.Command {

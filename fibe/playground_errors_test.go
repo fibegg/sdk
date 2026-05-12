@@ -9,12 +9,19 @@ import (
 func TestPlaygroundTerminalErrorPreservesStatusDetails(t *testing.T) {
 	message := "compose failed"
 	step := "compose_up"
+	stateReason := "Build warning for web: build failed"
 	err := NewPlaygroundTerminalStateError(&PlaygroundStatus{
 		Status:             "error",
+		StateReason:        &stateReason,
+		StateReasons:       []string{stateReason},
 		ErrorMessage:       &message,
 		ErrorStep:          &step,
 		FailureDiagnostics: map[string]any{"failed_service": "web"},
 		ErrorDetails:       map[string]any{"compose_failure": map[string]any{"category": "service_exit"}},
+		BuildStatuses: []PlaygroundBuildStatus{{
+			ServiceName: "web",
+			Latest:     &PlaygroundBuildRecordSnapshot{Status: "failed", CommitSHA: "abcdef1234567890", ShortCommitSHA: "abcdef1"},
+		}},
 	})
 
 	var terminalErr *PlaygroundTerminalError
@@ -24,11 +31,14 @@ func TestPlaygroundTerminalErrorPreservesStatusDetails(t *testing.T) {
 	if !strings.Contains(err.Error(), "error_step: compose_up") {
 		t.Fatalf("error=%q", err.Error())
 	}
+	if !strings.Contains(err.Error(), "state_reason: Build warning") || !strings.Contains(err.Error(), "build_statuses") {
+		t.Fatalf("error missing state context: %q", err.Error())
+	}
 	details := terminalErr.Details()
 	if details["status"] != "error" || details["error_message"] != message || details["error_step"] != step {
 		t.Fatalf("details=%#v", details)
 	}
-	if details["failure_diagnostics"] == nil || details["error_details"] == nil {
+	if details["failure_diagnostics"] == nil || details["error_details"] == nil || details["state_reasons"] == nil || details["build_statuses"] == nil {
 		t.Fatalf("details missing diagnostics: %#v", details)
 	}
 }

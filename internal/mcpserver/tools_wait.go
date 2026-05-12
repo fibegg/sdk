@@ -16,13 +16,13 @@ import (
 // hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)", tier: tierBrownfield,
+		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state, streaming state reasons and build commits.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args)
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
-		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout)"),
+		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state, streaming state reasons and build commits."),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target playground status, for example running, stopped, or has_changes.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
@@ -80,7 +80,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 		}
 
 		if progressToken != nil {
-			s.sendProgress(ctx, progressToken, float64(tick), fmt.Sprintf("status: %s", status))
+			s.sendProgress(ctx, progressToken, float64(tick), playgroundWaitProgressMessage(pg))
 		}
 
 		if status == target {
@@ -98,6 +98,48 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 		case <-time.After(interval):
 		}
 	}
+}
+
+func playgroundWaitProgressMessage(pg *fibe.PlaygroundStatus) string {
+	if pg == nil {
+		return "status: unknown"
+	}
+	parts := []string{fmt.Sprintf("status: %s", pg.Status)}
+	if len(pg.StateReasons) > 0 {
+		parts = append(parts, "reason: "+strings.Join(pg.StateReasons, "; "))
+	} else if pg.StateReason != nil && strings.TrimSpace(*pg.StateReason) != "" {
+		parts = append(parts, "reason: "+strings.TrimSpace(*pg.StateReason))
+	}
+	builds := activeBuildProgressParts(pg.BuildStatuses)
+	if len(builds) > 0 {
+		parts = append(parts, "commits: "+strings.Join(builds, ", "))
+	}
+	return strings.Join(parts, " | ")
+}
+
+func activeBuildProgressParts(statuses []fibe.PlaygroundBuildStatus) []string {
+	parts := make([]string, 0, len(statuses))
+	for _, status := range statuses {
+		build := status.Active
+		if build == nil {
+			build = status.Running
+		}
+		if build == nil {
+			build = status.Latest
+		}
+		if build == nil {
+			continue
+		}
+		sha := build.ShortCommitSHA
+		if sha == "" {
+			sha = build.CommitSHA
+			if len(sha) > 7 {
+				sha = sha[:7]
+			}
+		}
+		parts = append(parts, fmt.Sprintf("%s %s@%s", status.ServiceName, build.Status, sha))
+	}
+	return parts
 }
 
 // sendProgress emits a notifications/progress message tagged with the

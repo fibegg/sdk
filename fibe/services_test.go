@@ -108,7 +108,23 @@ func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
 		if r.Method != "GET" || r.URL.EscapedPath() != "/api/playgrounds/next/status" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
 		}
-		json.NewEncoder(w).Encode(PlaygroundStatus{ID: 129, Status: "running"})
+		json.NewEncoder(w).Encode(map[string]any{
+			"id":            129,
+			"status":        "running",
+			"state_reasons": []string{"Playguard repair: remote build script missing"},
+			"build_statuses": []map[string]any{
+				{
+					"service_name": "web",
+					"branch":       "main",
+					"latest": map[string]any{
+						"id":               7,
+						"status":           "building",
+						"commit_sha":       "abcdef1234567890",
+						"short_commit_sha": "abcdef1",
+					},
+				},
+			},
+		})
 	})
 
 	status, err := c.Playgrounds.StatusByIdentifier(context.Background(), "next")
@@ -117,6 +133,12 @@ func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
 	}
 	if status.ID != 129 || status.Status != "running" {
 		t.Fatalf("unexpected status: %#v", status)
+	}
+	if len(status.StateReasons) != 1 || status.StateReasons[0] == "" {
+		t.Fatalf("missing state reasons: %#v", status)
+	}
+	if len(status.BuildStatuses) != 1 || status.BuildStatuses[0].Latest == nil || status.BuildStatuses[0].Latest.CommitSHA != "abcdef1234567890" {
+		t.Fatalf("missing build status: %#v", status.BuildStatuses)
 	}
 }
 

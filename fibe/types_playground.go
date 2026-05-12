@@ -12,6 +12,8 @@ type Playground struct {
 	Status             string         `json:"status"`
 	MaintenanceEnabled bool           `json:"maintenance_enabled"`
 	JobMode            bool           `json:"job_mode"`
+	StateReason        *string        `json:"state_reason,omitempty"`
+	StateReasons       []string       `json:"state_reasons,omitempty"`
 	PlayspecID         *int64         `json:"playspec_id"`
 	PlayspecName       *string        `json:"playspec_name"`
 	MarqueeID          *int64         `json:"marquee_id,omitempty"`
@@ -20,23 +22,49 @@ type Playground struct {
 	CreatedAt          time.Time      `json:"created_at"`
 
 	// Detail fields (only present on Get, not List)
-	ComposeProject       *string                 `json:"compose_project,omitempty"`
-	InternalPassword     *string                 `json:"internal_password,omitempty"`
-	EnvOverrides         map[string]string       `json:"env_overrides,omitempty"`
-	LastAppliedAt        *time.Time              `json:"last_applied_at,omitempty"`
-	ErrorMessage         *string                 `json:"error_message,omitempty"`
-	NeedsRecreation      *bool                   `json:"needs_recreation,omitempty"`
-	TimeRemaining        *float64                `json:"time_remaining,omitempty"`
-	ExpirationPercentage *float64                `json:"expiration_percentage,omitempty"`
-	BuildWarnings        []string                `json:"build_warnings,omitempty"`
-	Services             []PlaygroundServiceInfo `json:"services,omitempty"`
-	JobResult            *JobResult              `json:"job_result,omitempty"`
+	ComposeProject           *string                 `json:"compose_project,omitempty"`
+	InternalPassword         *string                 `json:"internal_password,omitempty"`
+	EnvOverrides             map[string]string       `json:"env_overrides,omitempty"`
+	LastAppliedAt            *time.Time              `json:"last_applied_at,omitempty"`
+	ErrorMessage             *string                 `json:"error_message,omitempty"`
+	PlayguardRepairReason    *string                 `json:"playguard_repair_reason,omitempty"`
+	PlayguardRepairLockUntil *time.Time              `json:"playguard_repair_lock_until,omitempty"`
+	NeedsRecreation          *bool                   `json:"needs_recreation,omitempty"`
+	TimeRemaining            *float64                `json:"time_remaining,omitempty"`
+	ExpirationPercentage     *float64                `json:"expiration_percentage,omitempty"`
+	BuildWarnings            []string                `json:"build_warnings,omitempty"`
+	BuildStatuses            []PlaygroundBuildStatus `json:"build_statuses,omitempty"`
+	Services                 []PlaygroundServiceInfo `json:"services,omitempty"`
+	JobResult                *JobResult              `json:"job_result,omitempty"`
 }
 
 type PlaygroundServiceInfo struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
 	Image  string `json:"image,omitempty"`
+}
+
+type PlaygroundBuildStatus struct {
+	ServiceName string                         `json:"service_name"`
+	PropID      int64                          `json:"prop_id,omitempty"`
+	PropName    string                         `json:"prop_name,omitempty"`
+	Branch      string                         `json:"branch,omitempty"`
+	Running     *PlaygroundBuildRecordSnapshot `json:"running,omitempty"`
+	Latest      *PlaygroundBuildRecordSnapshot `json:"latest,omitempty"`
+	Active      *PlaygroundBuildRecordSnapshot `json:"active,omitempty"`
+}
+
+type PlaygroundBuildRecordSnapshot struct {
+	ID             int64      `json:"id"`
+	ServiceName    string     `json:"service_name,omitempty"`
+	Status         string     `json:"status"`
+	CommitSHA      string     `json:"commit_sha"`
+	ShortCommitSHA string     `json:"short_commit_sha,omitempty"`
+	ImageRef       string     `json:"image_ref,omitempty"`
+	ErrorMessage   string     `json:"error_message,omitempty"`
+	StartedAt      *time.Time `json:"started_at,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
 }
 
 type JobResult struct {
@@ -174,19 +202,25 @@ func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
 }
 
 type PlaygroundStatus struct {
-	ID                 int64          `json:"id"`
-	Status             string         `json:"status"`
-	MaintenanceEnabled bool           `json:"maintenance_enabled"`
-	CreationStep       *string        `json:"creation_step,omitempty"`
-	CreationStepLabel  *string        `json:"creation_step_label,omitempty"`
-	ErrorMessage       *string        `json:"error_message,omitempty"`
-	ErrorStep          *string        `json:"error_step,omitempty"`
-	ErrorStepLabel     *string        `json:"error_step_label,omitempty"`
-	ErrorDetails       map[string]any `json:"error_details,omitempty"`
-	FailureDiagnostics map[string]any `json:"failure_diagnostics,omitempty"`
-	NeedsRecreation    *bool          `json:"needs_recreation,omitempty"`
-	Services           []any          `json:"services,omitempty"`
-	JobResult          *JobResult     `json:"job_result,omitempty"`
+	ID                       int64                   `json:"id"`
+	Status                   string                  `json:"status"`
+	MaintenanceEnabled       bool                    `json:"maintenance_enabled"`
+	JobMode                  bool                    `json:"job_mode,omitempty"`
+	StateReason              *string                 `json:"state_reason,omitempty"`
+	StateReasons             []string                `json:"state_reasons,omitempty"`
+	CreationStep             *string                 `json:"creation_step,omitempty"`
+	CreationStepLabel        *string                 `json:"creation_step_label,omitempty"`
+	ErrorMessage             *string                 `json:"error_message,omitempty"`
+	ErrorStep                *string                 `json:"error_step,omitempty"`
+	ErrorStepLabel           *string                 `json:"error_step_label,omitempty"`
+	ErrorDetails             map[string]any          `json:"error_details,omitempty"`
+	FailureDiagnostics       map[string]any          `json:"failure_diagnostics,omitempty"`
+	PlayguardRepairReason    *string                 `json:"playguard_repair_reason,omitempty"`
+	PlayguardRepairLockUntil *time.Time              `json:"playguard_repair_lock_until,omitempty"`
+	NeedsRecreation          *bool                   `json:"needs_recreation,omitempty"`
+	BuildStatuses            []PlaygroundBuildStatus `json:"build_statuses,omitempty"`
+	Services                 []any                   `json:"services,omitempty"`
+	JobResult                *JobResult              `json:"job_result,omitempty"`
 }
 
 const (
