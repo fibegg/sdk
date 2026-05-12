@@ -79,3 +79,31 @@ func TestPlaygroundMaintenanceEnableCommandMapsActionBody(t *testing.T) {
 		t.Fatalf("body action_type = %#v, want enable_maintenance", body["action_type"])
 	}
 }
+
+func TestPlaygroundMaintenanceDisableCommandMapsActionBody(t *testing.T) {
+	setupAuthTest(t)
+
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/action" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": 42, "status": "stopped", "maintenance_enabled": false})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	cmd := playgroundsCmd()
+	cmd.SetArgs([]string{"maintenance", "disable", "demo"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if body["action_type"] != "disable_maintenance" {
+		t.Fatalf("body action_type = %#v, want disable_maintenance", body["action_type"])
+	}
+}
