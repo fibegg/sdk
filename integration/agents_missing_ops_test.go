@@ -128,11 +128,9 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 		t.Logf("agent chat direct health probe did not become ready at %s; continuing with API retries: %v", *chat.ChatURL, err)
 	}
 
-	bootstrapParams := &fibe.AgentChatParams{Text: "bootstrap readiness probe"}
-	err = chatEventuallyAccepted(c, ag.ID, bootstrapParams, agentChatProbeAttempts, agentChatProbeDelay, agentChatProbeTimeout)
-	if err != nil {
-		t.Skipf("agent chat did not become ready at %s: %v (skipping test due to local environment constraints)", *chat.ChatURL, err)
-	}
+	waitForAgentRuntimeStatus(t, c, ag.ID, agentRuntimeReadyTimeout, agentChatHealthProbeDelay, "agent chat runtime to become running and idle", func(status *fibe.AgentRuntimeStatus) bool {
+		return status.Status == "running" && status.RuntimeReachable && status.Authenticated && !status.IsProcessing && status.QueueCount == 0
+	})
 
 	return ag
 }
