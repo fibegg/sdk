@@ -759,6 +759,83 @@ func TestAgents_Chat(t *testing.T) {
 	}
 }
 
+func TestAgents_PokesByIdentifier(t *testing.T) {
+	step := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != http.MethodGet || r.URL.EscapedPath() != "/api/agents/test%20agent/pokes" {
+				t.Fatalf("unexpected list request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			if got := r.URL.Query().Get("per_page"); got != "10" {
+				t.Fatalf("per_page = %q", got)
+			}
+			_ = json.NewEncoder(w).Encode(listEnv([]AgentPoke{{ID: 11, AgentID: 5, Schedule: "*/5 * * * *", Prompt: "keep going", Enabled: true}}))
+		case 2:
+			if r.Method != http.MethodPost || r.URL.EscapedPath() != "/api/agents/test%20agent/pokes" {
+				t.Fatalf("unexpected create request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			var body map[string]map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create: %v", err)
+			}
+			poke := body["agent_poke"]
+			if poke["schedule"] != "*/5 * * * *" || poke["prompt"] != "keep going" || poke["conversation_id"] != "thread-1" {
+				t.Fatalf("unexpected create body: %#v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(AgentPoke{ID: 12, Schedule: "*/5 * * * *", Prompt: "keep going", Enabled: true})
+		case 3:
+			if r.Method != http.MethodPatch || r.URL.EscapedPath() != "/api/agents/test%20agent/pokes/12" {
+				t.Fatalf("unexpected update request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			var body map[string]map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode update: %v", err)
+			}
+			if body["agent_poke"]["conversation_id"] != "" {
+				t.Fatalf("expected clear conversation body, got %#v", body)
+			}
+			_ = json.NewEncoder(w).Encode(AgentPoke{ID: 12, Schedule: "*/5 * * * *", Prompt: "keep going", Enabled: false})
+		case 4:
+			if r.Method != http.MethodGet || r.URL.EscapedPath() != "/api/agents/test%20agent/pokes/12" {
+				t.Fatalf("unexpected get request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			_ = json.NewEncoder(w).Encode(AgentPoke{ID: 12, Schedule: "*/5 * * * *", Prompt: "keep going", Enabled: false})
+		case 5:
+			if r.Method != http.MethodDelete || r.URL.EscapedPath() != "/api/agents/test%20agent/pokes/12" {
+				t.Fatalf("unexpected delete request %s %s", r.Method, r.URL.EscapedPath())
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+	})
+
+	list, err := c.Agents.ListPokesByIdentifier(context.Background(), "test agent", &AgentPokeListParams{PerPage: 10})
+	if err != nil || len(list.Data) != 1 || list.Data[0].ID != 11 {
+		t.Fatalf("unexpected list result %#v err=%v", list, err)
+	}
+	created, err := c.Agents.CreatePokeByIdentifier(context.Background(), "test agent", &AgentPokeCreateParams{Schedule: "*/5 * * * *", Prompt: "keep going", ConversationID: "thread-1"})
+	if err != nil || created.ID != 12 {
+		t.Fatalf("unexpected create result %#v err=%v", created, err)
+	}
+	disabled := false
+	clear := ""
+	updated, err := c.Agents.UpdatePokeByIdentifier(context.Background(), "test agent", 12, &AgentPokeUpdateParams{ConversationID: &clear, Enabled: &disabled})
+	if err != nil || updated.Enabled {
+		t.Fatalf("unexpected update result %#v err=%v", updated, err)
+	}
+	got, err := c.Agents.GetPokeByIdentifier(context.Background(), "test agent", 12)
+	if err != nil || got.ID != 12 {
+		t.Fatalf("unexpected get result %#v err=%v", got, err)
+	}
+	if err := c.Agents.DeletePokeByIdentifier(context.Background(), "test agent", 12); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+}
+
 func TestAgents_Upload(t *testing.T) {
 	tmp, err := os.CreateTemp(t.TempDir(), "attachment-*.webp")
 	if err != nil {

@@ -148,6 +148,69 @@ func TestResourceListAgentsPassesIncludeRuntimeStatus(t *testing.T) {
 	}
 }
 
+func TestAgentPokeGenericResourceToolsDispatchNestedRoutes(t *testing.T) {
+	step := 0
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != http.MethodGet || r.URL.Path != "/api/agents/builder/pokes" {
+				t.Fatalf("unexpected list request %s %s", r.Method, r.URL.Path)
+			}
+			if got := r.URL.Query().Get("per_page"); got != "10" {
+				t.Fatalf("per_page = %q", got)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{{"id": 7, "schedule": "*/5 * * * *", "prompt": "keep going", "enabled": true}},
+				"meta": map[string]any{"page": 1, "per_page": 10, "total": 1},
+			})
+		case 2:
+			if r.Method != http.MethodGet || r.URL.Path != "/api/agents/builder/pokes/7" {
+				t.Fatalf("unexpected get request %s %s", r.Method, r.URL.Path)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 7, "schedule": "*/5 * * * *", "prompt": "keep going", "enabled": true})
+		case 3:
+			if r.Method != http.MethodDelete || r.URL.Path != "/api/agents/builder/pokes/7" {
+				t.Fatalf("unexpected delete request %s %s", r.Method, r.URL.Path)
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "full", Yolo: true})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
+		"resource": "agent_pokes",
+		"params":   map[string]any{"agent_id_or_name": "builder", "per_page": 10},
+	}); err != nil {
+		t.Fatalf("list dispatch: %v", err)
+	}
+	if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
+		"resource":         "pokes",
+		"agent_id_or_name": "builder",
+		"id":               7,
+	}); err != nil {
+		t.Fatalf("get dispatch: %v", err)
+	}
+	deleted, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", map[string]any{
+		"resource":         "agent_poke",
+		"agent_id_or_name": "builder",
+		"id":               7,
+	})
+	if err != nil {
+		t.Fatalf("delete dispatch: %v", err)
+	}
+	if deleted.(map[string]any)["deleted"] != true {
+		t.Fatalf("unexpected delete result: %#v", deleted)
+	}
+}
+
 func TestAgentAttachmentResourceMutateAndGet(t *testing.T) {
 	step := 0
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

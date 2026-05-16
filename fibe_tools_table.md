@@ -32,8 +32,8 @@
 | `fibe_playgrounds_transform` | [MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. |
 | `fibe_playgrounds_wait` | [MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout) |
 | `fibe_repo_status_check` | [MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs. |
-| `fibe_resource_delete` | [MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID. |
-| `fibe_resource_get` | [MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment or agent_attachment to download attached runtime file content. |
+| `fibe_resource_delete` | [MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, name, or key where supported. |
+| `fibe_resource_get` | [MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Use artefact_attachment or agent_attachment to download attached runtime file content. |
 | `fibe_resource_list` | [MODE:DIALOG] List a supported flat Fibe resource. Use fibe_schema with resource=list to discover resource names, aliases, and list params. |
 | `fibe_resource_mutate` | [MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. |
 | `fibe_resource_watch` | [MODE:DIALOG] Watch supported Fibe resource events through AnyCable. |

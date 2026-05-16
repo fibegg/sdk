@@ -13,10 +13,11 @@ import (
 )
 
 type flatResourceTool struct {
-	list        func(context.Context, *fibe.Client, map[string]any) (any, error)
-	get         func(context.Context, *fibe.Client, string) (any, error)
-	getWithArgs func(context.Context, *fibe.Client, map[string]any) (any, error)
-	delete      func(context.Context, *fibe.Client, string) error
+	list           func(context.Context, *fibe.Client, map[string]any) (any, error)
+	get            func(context.Context, *fibe.Client, string) (any, error)
+	getWithArgs    func(context.Context, *fibe.Client, map[string]any) (any, error)
+	delete         func(context.Context, *fibe.Client, string) error
+	deleteWithArgs func(context.Context, *fibe.Client, map[string]any) error
 }
 
 func (s *Server) registerResourceTools() {
@@ -122,16 +123,22 @@ func (s *Server) registerResourceTools() {
 			if err != nil {
 				return nil, err
 			}
-			identifier, err := resourceIdentifierArg(name, args)
-			if err != nil {
-				return nil, err
-			}
 			validationArgs := canonicalResourceArgs(args, name)
 			delete(validationArgs, "confirm")
 			if _, _, err := resourceschema.ValidatePayload(name, "delete", validationArgs); err != nil {
 				return nil, err
 			}
-			if err := rt.delete(ctx, c, identifier); err != nil {
+			if rt.deleteWithArgs != nil {
+				if err := rt.deleteWithArgs(ctx, c, args); err != nil {
+					return nil, err
+				}
+				return deletedResourceResultFromArgs(name, args), nil
+			}
+			identifier, err := resourceIdentifierArg(name, args)
+			if err != nil {
+				return nil, err
+			}
+			if rt.delete(ctx, c, identifier); err != nil {
 				return nil, err
 			}
 			return deletedResourceResult(name, identifier), nil
@@ -142,6 +149,7 @@ func (s *Server) registerResourceTools() {
 		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
 		mcp.WithString("id_or_name", mcp.Description("Numeric ID or name for named resources.")),
 		mcp.WithString("id_or_key", mcp.Description("Numeric ID or key for secrets.")),
+		mcp.WithString("agent_id_or_name", mcp.Description("Agent ID or name for resource-specific deletes such as agent_poke.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 }
@@ -213,6 +221,41 @@ func flatResourceTools() map[string]flatResourceTool {
 					"size":             len(data),
 					"conversation_id":  argString(args, "conversation_id"),
 				}, nil
+			},
+		},
+		"agent_poke": {
+			list: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+				agentID, err := requiredIdentifier(args, "agent_id_or_name", "")
+				if err != nil {
+					return nil, err
+				}
+				var p fibe.AgentPokeListParams
+				if err := bindArgs(args, &p); err != nil {
+					return nil, err
+				}
+				return c.Agents.ListPokesByIdentifier(ctx, agentID, &p)
+			},
+			getWithArgs: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+				agentID, err := requiredIdentifier(args, "agent_id_or_name", "")
+				if err != nil {
+					return nil, err
+				}
+				pokeID, err := requiredPositiveID(args, "id")
+				if err != nil {
+					return nil, err
+				}
+				return c.Agents.GetPokeByIdentifier(ctx, agentID, pokeID)
+			},
+			deleteWithArgs: func(ctx context.Context, c *fibe.Client, args map[string]any) error {
+				agentID, err := requiredIdentifier(args, "agent_id_or_name", "")
+				if err != nil {
+					return err
+				}
+				pokeID, err := requiredPositiveID(args, "id")
+				if err != nil {
+					return err
+				}
+				return c.Agents.DeletePokeByIdentifier(ctx, agentID, pokeID)
 			},
 		},
 		"artefact": {
@@ -517,7 +560,7 @@ func resolveFlatResource(resources map[string]flatResourceTool, args map[string]
 			return "", flatResourceTool{}, fmt.Errorf("resource %q does not support get", name)
 		}
 	case "delete":
-		if rt.delete == nil {
+		if rt.delete == nil && rt.deleteWithArgs == nil {
 			return "", flatResourceTool{}, fmt.Errorf("resource %q does not support delete", name)
 		}
 	default:
@@ -577,6 +620,19 @@ func deletedResourceResult(resource, identifier string) map[string]any {
 	out := map[string]any{"resource": resource, "identifier": identifier, "deleted": true}
 	if id, err := parsePositiveIdentifierID(identifier, "id"); err == nil {
 		out["id"] = id
+	}
+	return out
+}
+
+func deletedResourceResultFromArgs(resource string, args map[string]any) map[string]any {
+	out := map[string]any{"resource": resource, "deleted": true}
+	if id, ok := argInt64(args, "id"); ok {
+		out["id"] = id
+	}
+	if agentID := argString(args, "agent_id_or_name"); agentID != "" {
+		out["agent_id_or_name"] = agentID
+	} else if agentID, ok := argInt64(args, "agent_id_or_name"); ok {
+		out["agent_id_or_name"] = fmt.Sprintf("%d", agentID)
 	}
 	return out
 }

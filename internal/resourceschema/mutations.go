@@ -15,6 +15,8 @@ var mutationCaseKeys = []struct {
 	resource  string
 	operation string
 }{
+	{resource: "agent_poke", operation: "create"},
+	{resource: "agent_poke", operation: "update"},
 	{resource: "agent", operation: "create"},
 	{resource: "agent", operation: "update"},
 	{resource: "agent", operation: "restart_chat"},

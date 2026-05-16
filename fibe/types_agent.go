@@ -243,6 +243,55 @@ type AgentRuntimeStatus struct {
 	QueueCount       int     `json:"queue_count"`
 }
 
+type AgentPoke struct {
+	ID                int64      `json:"id"`
+	AgentID           int64      `json:"agent_id"`
+	PlayerID          int64      `json:"player_id"`
+	Schedule          string     `json:"schedule"`
+	Prompt            string     `json:"prompt"`
+	ConversationID    *string    `json:"conversation_id,omitempty"`
+	ConversationTitle *string    `json:"conversation_title,omitempty"`
+	Enabled           bool       `json:"enabled"`
+	NextRunAt         *time.Time `json:"next_run_at,omitempty"`
+	LastRunAt         *time.Time `json:"last_run_at,omitempty"`
+	LastStatus        *string    `json:"last_status,omitempty"`
+	LastError         *string    `json:"last_error,omitempty"`
+	SentCount         int64      `json:"sent_count"`
+	CreatedAt         *time.Time `json:"created_at,omitempty"`
+	UpdatedAt         *time.Time `json:"updated_at,omitempty"`
+}
+
+type AgentPokeListParams struct {
+	Page    int `url:"page,omitempty"`
+	PerPage int `url:"per_page,omitempty"`
+}
+
+type AgentPokeCreateParams struct {
+	Schedule       string `json:"schedule"`
+	Prompt         string `json:"prompt"`
+	ConversationID string `json:"conversation_id,omitempty"`
+	Enabled        *bool  `json:"enabled,omitempty"`
+}
+
+func (p *AgentPokeCreateParams) Validate() error {
+	v := &validator{}
+	if p == nil {
+		v.required("schedule", "")
+		v.required("prompt", "")
+		return v.err()
+	}
+	v.required("schedule", p.Schedule)
+	v.required("prompt", p.Prompt)
+	return v.err()
+}
+
+type AgentPokeUpdateParams struct {
+	Schedule       *string `json:"schedule,omitempty"`
+	Prompt         *string `json:"prompt,omitempty"`
+	ConversationID *string `json:"conversation_id,omitempty"`
+	Enabled        *bool   `json:"enabled,omitempty"`
+}
+
 type AgentConversationParams struct {
 	ConversationID string `json:"conversation_id,omitempty" url:"conversation_id,omitempty"`
 	Title          string `json:"title,omitempty" url:"title,omitempty"`

@@ -32,6 +32,7 @@ var flatResources = []resourceDef{
 	{name: "trick", aliases: []string{"tricks"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
 	{name: "agent", aliases: []string{"agents"}, operations: []string{"list", "get", "delete", "watch"}, listSchema: listParamsSchema[fibe.AgentListParams](), get: true, delete: true},
 	{name: "agent_attachment", aliases: []string{"agent_attachments", "agent_upload", "agent_uploads"}, operations: []string{"get"}, get: true},
+	{name: "agent_poke", aliases: []string{"agent_pokes", "pokes"}, operations: []string{"list", "get", "delete"}, listSchema: agentPokeListParamsSchema(), get: true, delete: true},
 	{name: "artefact", aliases: []string{"artefacts"}, operations: []string{"list", "get"}, listSchema: artefactListParamsSchema(), get: true},
 	{name: "artefact_attachment", aliases: []string{"artefact_attachments"}, operations: []string{"get"}, get: true},
 	{name: "playspec", aliases: []string{"playspecs"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlayspecListParams](), get: true, delete: true},
@@ -349,6 +350,8 @@ func buildRegistry() map[string]map[string]any {
 	out["agent"]["restart_chat"] = resourceActionIDSchema("id_or_name", "Agent ID or name whose active chat runtime should be restarted.")
 	out["agent"]["upload_attachment"] = agentUploadAttachmentSchema()
 	out["agent"]["watch"] = resourceWatchSchema("agent")
+	out["agent_poke"]["create"] = agentPokeCreateSchema()
+	out["agent_poke"]["update"] = agentPokeUpdateSchema()
 	out["artefact"]["create"] = artefactCreateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
 	out["playspec"]["create"] = paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml")
@@ -400,6 +403,8 @@ func buildRegistry() map[string]map[string]any {
 	}
 	overrideResourceIDDescription(out, "artefact_attachment", "get", "Artefact ID whose single file attachment should be downloaded.")
 	out["agent_attachment"]["get"] = agentAttachmentGetSchema()
+	out["agent_poke"]["get"] = agentPokeIDSchema("fibe_resource_get")
+	out["agent_poke"]["delete"] = agentPokeIDSchema("fibe_resource_delete")
 	overrideResourceIDDescription(out, "template_source", "delete", "Template ID whose tracked source configuration should be cleared.")
 	overrideResourceIDDescription(out, "template_version", "delete", "Template version ID to delete.")
 	return out
@@ -524,6 +529,58 @@ func agentAttachmentGetSchema() map[string]any {
 			"agent_id_or_name": namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the runtime attachment."),
 			"filename":         map[string]any{"type": "string", "description": "Runtime attachment filename returned by upload or stored in message history."},
 			"conversation_id":  map[string]any{"type": "string", "description": "Specific runtime conversation/thread ID. Optional."},
+		},
+	}
+}
+
+func agentPokeListParamsSchema() map[string]any {
+	schema := listParamsSchema[fibe.AgentPokeListParams]()
+	props := schema["properties"].(map[string]any)
+	props["agent_id_or_name"] = namedIdentifierSchema("agent_id_or_name", "Agent ID or name whose pokes should be listed.")
+	schema["required"] = []string{"agent_id_or_name"}
+	return schema
+}
+
+func agentPokeIDSchema(tool string) map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"resource", "agent_id_or_name", "id"},
+		"properties": map[string]any{
+			"resource":         map[string]any{"type": "string", "enum": []string{"agent_poke"}, "description": "Canonical resource name for " + tool + "."},
+			"agent_id_or_name": namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the poke."),
+			"id":               map[string]any{"type": "integer", "description": "Agent poke ID.", "minimum": 1},
+		},
+	}
+}
+
+func agentPokeCreateSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"agent_id_or_name", "schedule", "prompt"},
+		"properties": map[string]any{
+			"agent_id_or_name": namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the poke."),
+			"schedule":         map[string]any{"type": "string", "description": "Cron-like Fugit schedule. Minimum interval is 5 minutes."},
+			"prompt":           map[string]any{"type": "string", "description": "Prompt to queue for the agent."},
+			"conversation_id":  map[string]any{"type": "string", "description": "Optional target conversation ID. Blank or omitted means default conversation."},
+			"enabled":          map[string]any{"type": "boolean", "description": "Whether the poke is active. Defaults to true."},
+		},
+	}
+}
+
+func agentPokeUpdateSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"agent_id_or_name", "poke_id"},
+		"properties": map[string]any{
+			"agent_id_or_name": namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the poke."),
+			"poke_id":          map[string]any{"type": "integer", "minimum": 1, "description": "Agent poke ID."},
+			"schedule":         map[string]any{"type": "string", "description": "Cron-like Fugit schedule. Minimum interval is 5 minutes."},
+			"prompt":           map[string]any{"type": "string", "description": "Prompt to queue for the agent."},
+			"conversation_id":  map[string]any{"type": "string", "description": "Optional target conversation ID. Use an empty string to clear it."},
+			"enabled":          map[string]any{"type": "boolean", "description": "Whether the poke is active."},
 		},
 	}
 }

@@ -83,6 +83,30 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, operation string, payload map[string]any) (any, error) {
 	payload = resourceMutationBackendPayload(resource, operation, payload)
 	switch resource + "." + operation {
+	case "agent_poke.create":
+		identifier, err := requiredIdentifier(payload, "agent_id", "")
+		if err != nil {
+			return nil, err
+		}
+		var p fibe.AgentPokeCreateParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.Agents.CreatePokeByIdentifier(ctx, identifier, &p)
+	case "agent_poke.update":
+		identifier, err := requiredIdentifier(payload, "agent_id", "")
+		if err != nil {
+			return nil, err
+		}
+		pokeID, err := requiredPositiveID(payload, "poke_id")
+		if err != nil {
+			return nil, err
+		}
+		var p fibe.AgentPokeUpdateParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.Agents.UpdatePokeByIdentifier(ctx, identifier, pokeID, &p)
 	case "agent.create":
 		var p fibe.AgentCreateParams
 		if err := bindIdentifierArgs(payload, &p, "build_in_public_playground_id"); err != nil {

@@ -47,6 +47,7 @@ SUBCOMMANDS:
   add-mounted-file <id-or-name> Attach a mounted file or Artefact snapshot
   update-mounted-file <id-or-name> Update mounted file metadata
   remove-mounted-file <id-or-name> Remove a mounted file
+  pokes                 Manage scheduled agent pokes
   messages <id-or-name> Get agent messages
   set-messages <id-or-name> Replace agent messages content
   activity <id-or-name> Get agent activity
@@ -78,6 +79,7 @@ SUBCOMMANDS:
 		agAddMountedFileCmd(),
 		agUpdateMountedFileCmd(),
 		agRemoveMountedFileCmd(),
+		agPokesCmd(),
 		agMessagesCmd(),
 		agSetMessagesCmd(),
 		agActivityCmd(),

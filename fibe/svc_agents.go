@@ -200,6 +200,61 @@ func (s *AgentService) RuntimeStatusByIdentifier(ctx context.Context, identifier
 	return &result, err
 }
 
+func (s *AgentService) ListPokes(ctx context.Context, agentID int64, params *AgentPokeListParams) (*ListResult[AgentPoke], error) {
+	return s.ListPokesByIdentifier(ctx, int64Identifier(agentID), params)
+}
+
+func (s *AgentService) ListPokesByIdentifier(ctx context.Context, identifier string, params *AgentPokeListParams) (*ListResult[AgentPoke], error) {
+	path := identifierPath("/api/agents", identifier) + "/pokes" + buildQuery(params)
+	return doList[AgentPoke](s.client, ctx, path)
+}
+
+func (s *AgentService) GetPoke(ctx context.Context, agentID int64, pokeID int64) (*AgentPoke, error) {
+	return s.GetPokeByIdentifier(ctx, int64Identifier(agentID), pokeID)
+}
+
+func (s *AgentService) GetPokeByIdentifier(ctx context.Context, identifier string, pokeID int64) (*AgentPoke, error) {
+	var result AgentPoke
+	path := fmt.Sprintf("%s/pokes/%d", identifierPath("/api/agents", identifier), pokeID)
+	err := s.client.do(ctx, http.MethodGet, path, nil, &result)
+	return &result, err
+}
+
+func (s *AgentService) CreatePoke(ctx context.Context, agentID int64, params *AgentPokeCreateParams) (*AgentPoke, error) {
+	return s.CreatePokeByIdentifier(ctx, int64Identifier(agentID), params)
+}
+
+func (s *AgentService) CreatePokeByIdentifier(ctx context.Context, identifier string, params *AgentPokeCreateParams) (*AgentPoke, error) {
+	if err := validateParams(params); err != nil {
+		return nil, err
+	}
+	var result AgentPoke
+	body := map[string]any{"agent_poke": params}
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/pokes", body, &result)
+	return &result, err
+}
+
+func (s *AgentService) UpdatePoke(ctx context.Context, agentID int64, pokeID int64, params *AgentPokeUpdateParams) (*AgentPoke, error) {
+	return s.UpdatePokeByIdentifier(ctx, int64Identifier(agentID), pokeID, params)
+}
+
+func (s *AgentService) UpdatePokeByIdentifier(ctx context.Context, identifier string, pokeID int64, params *AgentPokeUpdateParams) (*AgentPoke, error) {
+	var result AgentPoke
+	body := map[string]any{"agent_poke": params}
+	path := fmt.Sprintf("%s/pokes/%d", identifierPath("/api/agents", identifier), pokeID)
+	err := s.client.do(ctx, http.MethodPatch, path, body, &result)
+	return &result, err
+}
+
+func (s *AgentService) DeletePoke(ctx context.Context, agentID int64, pokeID int64) error {
+	return s.DeletePokeByIdentifier(ctx, int64Identifier(agentID), pokeID)
+}
+
+func (s *AgentService) DeletePokeByIdentifier(ctx context.Context, identifier string, pokeID int64) error {
+	path := fmt.Sprintf("%s/pokes/%d", identifierPath("/api/agents", identifier), pokeID)
+	return s.client.do(ctx, http.MethodDelete, path, nil, nil)
+}
+
 func (s *AgentService) CreateConversationByIdentifier(ctx context.Context, identifier string, params *AgentConversationParams) (map[string]any, error) {
 	if params == nil || params.ConversationID == "" {
 		return nil, fmt.Errorf("conversation_id is required")

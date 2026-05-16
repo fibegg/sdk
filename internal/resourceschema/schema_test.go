@@ -265,6 +265,7 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 
 	catalog := Catalog()
 	foundAgent := false
+	foundAgentPoke := false
 	foundTemplateVersion := false
 	for _, entry := range catalog {
 		if entry.Name == "playground" && !containsSelector(entry.Operations, "action") {
@@ -280,6 +281,16 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 				t.Fatalf("agent catalog operations missing expected operations: %#v", entry.Operations)
 			}
 		}
+		if entry.Name == "agent_poke" {
+			foundAgentPoke = true
+			if !containsSelector(entry.Operations, "create") ||
+				!containsSelector(entry.Operations, "update") ||
+				!containsSelector(entry.Operations, "list") ||
+				!containsSelector(entry.Operations, "get") ||
+				!containsSelector(entry.Operations, "delete") {
+				t.Fatalf("agent_poke catalog operations missing expected operations: %#v", entry.Operations)
+			}
+		}
 		if entry.Name == "template_version" {
 			foundTemplateVersion = true
 			if !containsSelector(entry.Operations, "create") || !containsSelector(entry.Operations, "list") || !containsSelector(entry.Operations, "delete") {
@@ -289,6 +300,9 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	}
 	if !foundAgent {
 		t.Fatal("agent missing from catalog")
+	}
+	if !foundAgentPoke {
+		t.Fatal("agent_poke missing from catalog")
 	}
 	if !foundTemplateVersion {
 		t.Fatal("template_version missing from catalog")
@@ -303,6 +317,8 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 	}{
 		{resource: "agent", operation: "restart_chat", fields: []string{"id_or_name"}},
 		{resource: "agent", operation: "upload_attachment", fields: []string{"id_or_name", "content_path", "content_base64", "filename", "conversation_id"}},
+		{resource: "agent_poke", operation: "create", fields: []string{"agent_id_or_name", "schedule", "prompt", "conversation_id", "enabled"}},
+		{resource: "agent_poke", operation: "update", fields: []string{"agent_id_or_name", "poke_id", "schedule", "prompt", "conversation_id", "enabled"}},
 		{resource: "marquee", operation: "autoconnect_token", fields: []string{"email", "domain", "ip", "ssl_mode", "dns_provider", "dns_credentials"}},
 		{resource: "marquee", operation: "generate_ssh_key", fields: []string{"id_or_name"}},
 		{resource: "marquee", operation: "test_connection", fields: []string{"id_or_name"}},
@@ -354,6 +370,12 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 	}
 	if _, _, err := ValidatePayload("agent_attachment", "get", map[string]any{"resource": "agent_attachment", "agent_id_or_name": "builder", "filename": "hello.txt"}); err != nil {
 		t.Fatalf("agent_attachment.get should validate: %v", err)
+	}
+	if _, _, err := ValidatePayload("agent_poke", "list", map[string]any{"resource": "agent_poke", "params": map[string]any{"agent_id_or_name": "builder"}}); err != nil {
+		t.Fatalf("agent_poke.list should validate: %v", err)
+	}
+	if _, _, err := ValidatePayload("agent_poke", "get", map[string]any{"resource": "agent_poke", "agent_id_or_name": "builder", "id": 1}); err != nil {
+		t.Fatalf("agent_poke.get should validate: %v", err)
 	}
 }
 
@@ -420,6 +442,8 @@ func TestNamedResourceMutationSchemasDoNotExposeLegacyTargetAliases(t *testing.T
 		{resource: "agent", operation: "update"},
 		{resource: "agent", operation: "restart_chat"},
 		{resource: "agent", operation: "upload_attachment"},
+		{resource: "agent_poke", operation: "create"},
+		{resource: "agent_poke", operation: "update"},
 		{resource: "artefact", operation: "create"},
 		{resource: "mutter", operation: "create"},
 		{resource: "playground", operation: "create"},

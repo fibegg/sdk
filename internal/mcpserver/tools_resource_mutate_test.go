@@ -193,6 +193,81 @@ func TestResourceMutateDispatchesAgentRestartChat(t *testing.T) {
 	}
 }
 
+func TestResourceMutateDispatchesAgentPokeCreateAndUpdate(t *testing.T) {
+	step := 0
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if r.Method != http.MethodPost || r.URL.Path != "/api/agents/builder/pokes" {
+				t.Fatalf("unexpected create request %s %s", r.Method, r.URL.Path)
+			}
+			var body map[string]map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create: %v", err)
+			}
+			if body["agent_poke"]["schedule"] != "*/5 * * * *" || body["agent_poke"]["prompt"] != "keep going" {
+				t.Fatalf("unexpected create body: %#v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 7, "schedule": "*/5 * * * *", "prompt": "keep going", "enabled": true})
+		case 2:
+			if r.Method != http.MethodPatch || r.URL.Path != "/api/agents/builder/pokes/7" {
+				t.Fatalf("unexpected update request %s %s", r.Method, r.URL.Path)
+			}
+			var body map[string]map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode update: %v", err)
+			}
+			if body["agent_poke"]["enabled"] != false || body["agent_poke"]["conversation_id"] != "" {
+				t.Fatalf("unexpected update body: %#v", body)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 7, "schedule": "*/5 * * * *", "prompt": "keep going", "enabled": false})
+		default:
+			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
+		}
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	created, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "pokes",
+		"operation": "create",
+		"payload": map[string]any{
+			"agent_id_or_name": "builder",
+			"schedule":         "*/5 * * * *",
+			"prompt":           "keep going",
+		},
+	})
+	if err != nil {
+		t.Fatalf("create dispatch: %v", err)
+	}
+	if created.(*fibe.AgentPoke).ID != 7 {
+		t.Fatalf("unexpected create result: %#v", created)
+	}
+
+	updated, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "agent_poke",
+		"operation": "update",
+		"payload": map[string]any{
+			"agent_id_or_name": "builder",
+			"poke_id":          7,
+			"enabled":          false,
+			"conversation_id":  "",
+		},
+	})
+	if err != nil {
+		t.Fatalf("update dispatch: %v", err)
+	}
+	if updated.(*fibe.AgentPoke).Enabled {
+		t.Fatalf("expected disabled update result: %#v", updated)
+	}
+}
+
 func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 	apiKey, domain := requireRealServer(t)
 	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core"})

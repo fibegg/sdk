@@ -186,13 +186,13 @@ Total Tools: 41
 **Tier:** base | **Destructive:** True | **Idempotent:** True
 
 ### Description
-[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID.
+[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, name, or key where supported.
 
 ## `fibe_resource_get`
 **Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-[MODE:DIALOG] Get a supported Fibe resource by ID. Use artefact_attachment or agent_attachment to download attached runtime file content.
+[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Use artefact_attachment or agent_attachment to download attached runtime file content.
 
 ## `fibe_resource_list`
 **Tier:** base | **Destructive:** False | **Idempotent:** True | **Read-only:** True

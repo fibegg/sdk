@@ -390,6 +390,7 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	}
 	var foundPlayground bool
 	var foundAgent bool
+	var foundAgentPoke bool
 	for _, entry := range resources {
 		if entry.Name == "playground" {
 			foundPlayground = true
@@ -406,12 +407,25 @@ func TestResourceSchemaCatalog(t *testing.T) {
 				t.Fatalf("agent catalog should include expected operations: %#v", entry)
 			}
 		}
+		if entry.Name == "agent_poke" {
+			foundAgentPoke = true
+			if !containsString(entry.Aliases, "pokes") ||
+				!containsString(entry.Operations, "list") ||
+				!containsString(entry.Operations, "create") ||
+				!containsString(entry.Operations, "update") ||
+				!containsString(entry.Operations, "delete") {
+				t.Fatalf("agent_poke catalog should include expected operations: %#v", entry)
+			}
+		}
 	}
 	if !foundPlayground {
 		t.Fatal("playground missing from resource catalog")
 	}
 	if !foundAgent {
 		t.Fatal("agent missing from resource catalog")
+	}
+	if !foundAgentPoke {
+		t.Fatal("agent_poke missing from resource catalog")
 	}
 
 	schema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -430,6 +444,19 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	paramProps := params["properties"].(map[string]any)
 	if _, ok := paramProps["per_page"]; !ok {
 		t.Fatalf("expected per_page in params schema, got %#v", paramProps)
+	}
+
+	pokeListSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
+		"resource":  "pokes",
+		"operation": "list",
+	})
+	if err != nil {
+		t.Fatalf("fibe_schema pokes list: %v", err)
+	}
+	pokeParams := pokeListSchema.(map[string]any)["properties"].(map[string]any)["params"].(map[string]any)
+	pokeParamProps := pokeParams["properties"].(map[string]any)
+	if _, ok := pokeParamProps["agent_id_or_name"]; !ok {
+		t.Fatalf("expected agent_id_or_name in agent_poke list params, got %#v", pokeParamProps)
 	}
 
 	updateSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
