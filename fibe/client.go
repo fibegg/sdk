@@ -215,7 +215,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 		resp, err := c.doOnce(ctx, method, path, body)
 		if err != nil {
 			lastErr = err
-			if attempt < c.retry.maxRetries {
+			if c.retry.shouldRetryError(attempt, err) {
 				delay := c.retry.delay(attempt, 0)
 				timer := time.NewTimer(delay)
 				select {

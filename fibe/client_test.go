@@ -198,6 +198,38 @@ func TestClient_Retry(t *testing.T) {
 	}
 }
 
+func TestClient_NoRetryOnRequestTimeout(t *testing.T) {
+	attempts := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		time.Sleep(75 * time.Millisecond)
+		w.WriteHeader(200)
+		json.NewEncoder(w).Encode(listEnv([]Playground{}))
+	}))
+	defer srv.Close()
+
+	c := NewClient(
+		WithAPIKey("test"),
+		WithBaseURL(srv.URL),
+		WithTimeout(10*time.Millisecond),
+		WithMaxRetries(3),
+		WithRetryDelay(time.Millisecond, time.Millisecond),
+	)
+
+	startedAt := time.Now()
+	_, err := c.Playgrounds.List(context.Background(), nil)
+	elapsed := time.Since(startedAt)
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if attempts != 1 {
+		t.Errorf("expected 1 attempt after request timeout, got %d", attempts)
+	}
+	if elapsed > 100*time.Millisecond {
+		t.Errorf("expected timeout without retry delay, got elapsed=%v", elapsed)
+	}
+}
+
 func TestClient_NoRetryOn4xx(t *testing.T) {
 	attempts := 0
 	c, _ := testServerWithRetry(t, func(w http.ResponseWriter, r *http.Request) {

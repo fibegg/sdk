@@ -1,8 +1,11 @@
 package fibe
 
 import (
+	"context"
+	"errors"
 	"math"
 	"math/rand/v2"
+	"net"
 	"time"
 )
 
@@ -22,6 +25,22 @@ func (p *retryPolicy) shouldRetry(attempt int, statusCode int) bool {
 	default:
 		return false
 	}
+}
+
+func (p *retryPolicy) shouldRetryError(attempt int, err error) bool {
+	if attempt >= p.maxRetries || err == nil {
+		return false
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return false
+	}
+
+	return true
 }
 
 func (p *retryPolicy) delay(attempt int, retryAfter time.Duration) time.Duration {

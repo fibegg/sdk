@@ -1,9 +1,17 @@
 package fibe
 
 import (
+	"context"
+	"io"
 	"testing"
 	"time"
 )
+
+type timeoutTransportError struct{}
+
+func (timeoutTransportError) Error() string   { return "timeout" }
+func (timeoutTransportError) Timeout() bool   { return true }
+func (timeoutTransportError) Temporary() bool { return true }
 
 func TestRetryPolicy_ShouldRetry(t *testing.T) {
 	p := &retryPolicy{maxRetries: 3}
@@ -33,6 +41,34 @@ func TestRetryPolicy_ShouldRetry(t *testing.T) {
 			t.Errorf("shouldRetry(attempt=%d, status=%d) = %v, want %v",
 				tt.attempt, tt.statusCode, got, tt.want)
 		}
+	}
+}
+
+func TestRetryPolicy_ShouldRetryError(t *testing.T) {
+	p := &retryPolicy{maxRetries: 3}
+
+	tests := []struct {
+		name    string
+		attempt int
+		err     error
+		want    bool
+	}{
+		{"nil error", 0, nil, false},
+		{"max retries reached", 3, io.ErrUnexpectedEOF, false},
+		{"context canceled", 0, context.Canceled, false},
+		{"context deadline exceeded", 0, context.DeadlineExceeded, false},
+		{"transport timeout", 0, timeoutTransportError{}, false},
+		{"transient transport error", 0, io.ErrUnexpectedEOF, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := p.shouldRetryError(tt.attempt, tt.err)
+			if got != tt.want {
+				t.Errorf("shouldRetryError(attempt=%d, err=%v) = %v, want %v",
+					tt.attempt, tt.err, got, tt.want)
+			}
+		})
 	}
 }
 
