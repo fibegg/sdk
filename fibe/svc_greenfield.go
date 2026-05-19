@@ -16,6 +16,6 @@ func (s *GreenfieldService) Create(ctx context.Context, params *GreenfieldCreate
 		return nil, err
 	}
 	var result GreenfieldResult
-	err := s.client.doAsync(ctx, http.MethodPost, "/api/greenfield", "/api/greenfield/%s", params, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, "/api/greenfields", "/api/async_requests/%s", params, &result)
 	return &result, err
 }

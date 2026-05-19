@@ -246,7 +246,7 @@ func TestDoAsync_PassthroughFor200(t *testing.T) {
 
 	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
 	var result PlaygroundStatus
-	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/42/action", "/api/playgrounds/42/action/%s", nil, &result)
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/42/operations", "/api/async_requests/%s", nil, &result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -279,7 +279,7 @@ func TestDoAsync_202ThenPollSuccess(t *testing.T) {
 
 	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
 	var result PlaygroundStatus
-	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/99/action", "/api/playgrounds/99/action/%s", nil, &result)
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/99/operations", "/api/async_requests/%s", nil, &result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestDoAsync_UsesStatusURLWhenPresent(t *testing.T) {
 
 	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
 	var result PlaygroundStatus
-	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/101/action", "/wrong/%s", nil, &result)
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/101/operations", "/wrong/%s", nil, &result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestDoAsync_EmptyRequestIDWithoutStatusURL(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
-	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/1/action", "/status/%s", nil, nil)
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/1/operations", "/status/%s", nil, nil)
 	if err == nil {
 		t.Fatal("expected missing request_id error")
 	}

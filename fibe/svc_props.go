@@ -17,7 +17,20 @@ func (s *PropService) List(ctx context.Context, params *PropListParams) (*ListRe
 }
 
 func (s *PropService) WithDockerCompose(ctx context.Context, params *PropListParams) (*ListResult[Prop], error) {
-	path := "/api/props/with_docker_compose" + buildQuery(params)
+	values := url.Values{}
+	values.Set("with_docker_compose", "true")
+	if params != nil {
+		query := buildQuery(params)
+		if query != "" {
+			extra, _ := url.ParseQuery(query[1:])
+			for key, vals := range extra {
+				for _, val := range vals {
+					values.Add(key, val)
+				}
+			}
+		}
+	}
+	path := "/api/props?" + values.Encode()
 	return doList[Prop](s.client, ctx, path)
 }
 
@@ -44,7 +57,7 @@ func (s *PropService) Create(ctx context.Context, params *PropCreateParams) (*Pr
 func (s *PropService) Attach(ctx context.Context, repoFullName string) (*Prop, error) {
 	var result Prop
 	body := map[string]any{"repo_full_name": repoFullName}
-	err := s.client.do(ctx, http.MethodPost, "/api/props/attach", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/props/attachments", body, &result)
 	return &result, err
 }
 
@@ -54,7 +67,7 @@ func (s *PropService) Mirror(ctx context.Context, sourceURL string, name string)
 	if name != "" {
 		body["name"] = name
 	}
-	err := s.client.do(ctx, http.MethodPost, "/api/props/mirror", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/props/mirrors", body, &result)
 	return &result, err
 }
 
@@ -83,7 +96,7 @@ func (s *PropService) Sync(ctx context.Context, id int64) error {
 
 func (s *PropService) SyncByIdentifier(ctx context.Context, identifier string) error {
 	var result map[string]any
-	return s.client.do(ctx, http.MethodPost, identifierPath("/api/props", identifier)+"/sync", nil, &result)
+	return s.client.do(ctx, http.MethodPost, identifierPath("/api/props", identifier)+"/syncs", nil, &result)
 }
 
 func (s *PropService) Branches(ctx context.Context, id int64, query string, limit int) (*PropBranches, error) {

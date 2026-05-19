@@ -19,7 +19,7 @@ type MonitorService struct {
 
 // List returns a single page of monitor events ordered newest first.
 func (s *MonitorService) List(ctx context.Context, params *MonitorListParams) (*MonitorListResult, error) {
-	path := "/api/monitor" + buildQuery(params)
+	path := "/api/events" + buildQuery(params)
 	var env monitorListEnvelope
 	if err := s.client.do(ctx, http.MethodGet, path, nil, &env); err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (s *MonitorService) List(ctx context.Context, params *MonitorListParams) (*
 	return &MonitorListResult{Data: env.Data, Meta: env.Meta}, nil
 }
 
-// Follow polls GET /api/monitor with a rolling "since" watermark.
+// Follow polls GET /api/events with a rolling "since" watermark.
 //
 // The returned error channel is used for unrecoverable failures such as
 // follow-window overflow (more matching events than one poll can safely hold).

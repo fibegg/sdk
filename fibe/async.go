@@ -48,7 +48,7 @@ var defaultPollOpts = AsyncPollOptions{
 }
 
 // PollAsync polls a status URL until the async operation completes or times out.
-// The statusPath must be an absolute API path like "/api/playgrounds/123/action/uuid".
+// The statusPath must be an absolute API path like "/api/async_requests/uuid".
 func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPollOptions) (*AsyncResult, error) {
 	if strings.TrimSpace(statusPath) == "" {
 		return nil, fmt.Errorf("fibe: async status path is empty")

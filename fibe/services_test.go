@@ -189,7 +189,7 @@ func TestPlaygrounds_Create(t *testing.T) {
 func TestGreenfield_Create(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/greenfield" {
+		if r.Method != "POST" || r.URL.Path != "/api/greenfields" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -276,7 +276,7 @@ func TestGreenfield_CreateRejectsTemplateBodyWithTemplateID(t *testing.T) {
 func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/greenfield" {
+		if r.Method != "POST" || r.URL.Path != "/api/greenfields" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -306,7 +306,7 @@ func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/gitea_repos" {
+		if r.Method != "POST" || r.URL.Path != "/api/gitea_repositories" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -360,7 +360,7 @@ func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
 func TestPlaygrounds_Action(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/action" {
+		if r.Method != "POST" || r.URL.Path != "/api/playgrounds/42/operations" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -472,8 +472,8 @@ func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 func TestMarquees_GenerateSSHKeyPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/marquees/5/generate_ssh_key",
-		"/api/marquees/5/generate_ssh_key/req-async",
+		"/api/marquees/5/ssh_keys",
+		"/api/async_requests/req-async",
 		map[string]any{"public_key": "ssh-ed25519 AAAA test"},
 	)
 
@@ -492,8 +492,8 @@ func TestMarquees_GenerateSSHKeyPollsAccepted(t *testing.T) {
 func TestImportTemplates_RefreshSourcePollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/import_templates/12/source/refresh",
-		"/api/import_templates/12/source/refresh/req-async",
+		"/api/import_templates/12/source",
+		"/api/async_requests/req-async",
 		map[string]any{"success": true, "version_created": true},
 	)
 
@@ -512,8 +512,8 @@ func TestImportTemplates_RefreshSourcePollsAccepted(t *testing.T) {
 func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/import_templates/12/versions/34/upgrade_linked_playspecs",
-		"/api/import_templates/12/versions/34/upgrade_linked_playspecs/req-async",
+		"/api/import_templates/12/versions/34/upgrades",
+		"/api/async_requests/req-async",
 		map[string]any{"success": true, "upgraded_count": 2, "failed_count": 0},
 	)
 
@@ -532,8 +532,8 @@ func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
 func TestPlayspecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/playspecs/9/template_version_switch",
-		"/api/playspecs/9/template_version_switch/req-async",
+		"/api/playspecs/9/template_switches",
+		"/api/async_requests/req-async",
 		map[string]any{"no_op": true, "suggested_upgrade": true},
 	)
 
@@ -574,8 +574,8 @@ func TestVerifyTemplateVersionSwitchResult(t *testing.T) {
 func TestMemories_MemorizePollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/memories/memorize",
-		"/api/memories/memorize/req-async",
+		"/api/memories",
+		"/api/async_requests/req-async",
 		map[string]any{"counts": map[string]any{"created": 1}},
 	)
 
@@ -620,11 +620,15 @@ func TestPlaygrounds_DebugWithParams(t *testing.T) {
 
 func TestPlaygrounds_Logs(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/playgrounds/42/logs/web" {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/42/logs" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
-		if r.URL.Query().Get("tail") != "100" {
-			t.Errorf("expected tail=100, got %q", r.URL.Query().Get("tail"))
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode logs body: %v", err)
+		}
+		if body["service"] != "web" || body["tail"] != float64(100) {
+			t.Errorf("unexpected logs body: %#v", body)
 		}
 		json.NewEncoder(w).Encode(PlaygroundLogs{
 			Service: "web",
@@ -737,7 +741,7 @@ func TestAgents_GetByIdentifierEscapesSpaces(t *testing.T) {
 
 func TestAgents_Chat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/agents/5/chat" {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/messages" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		var body map[string]any
@@ -969,7 +973,7 @@ func TestAgents_UploadReaderAndDownloadAttachment(t *testing.T) {
 
 func TestAgents_StartChat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/agents/5/start_chat" {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/chats" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		var body map[string]any
@@ -991,7 +995,7 @@ func TestAgents_StartChat(t *testing.T) {
 
 func TestAgents_RestartChat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/agents/5/restart_chat" {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/restarts" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "pending"})
@@ -1069,7 +1073,7 @@ func TestAgents_ConversationLifecycleByIdentifier(t *testing.T) {
 				},
 			})
 		case 3:
-			if r.Method != "POST" || r.URL.EscapedPath() != "/api/agents/test%20agent/interrupt" {
+			if r.Method != "POST" || r.URL.EscapedPath() != "/api/agents/test%20agent/interrupts" {
 				t.Fatalf("unexpected interrupt request %s %s", r.Method, r.URL.EscapedPath())
 			}
 			var body map[string]any
@@ -1176,7 +1180,7 @@ func TestAgents_DataReadsPassConversationID(t *testing.T) {
 
 func TestAgents_PurgeChat(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/agents/5/purge_chat" {
+		if r.Method != "POST" || r.URL.Path != "/api/agents/5/purges" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		w.WriteHeader(http.StatusAccepted)
@@ -1404,7 +1408,7 @@ func TestImportTemplates_SetSourceByIdentifierUsesName(t *testing.T) {
 
 func TestImportTemplates_SearchWithParamsRegex(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" || r.URL.Path != "/api/import_templates/search" {
+		if r.Method != "GET" || r.URL.Path != "/api/import_templates" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if r.URL.Query().Get("q") != "starter-.*" {
@@ -1464,7 +1468,7 @@ func TestAPIKeys_Me(t *testing.T) {
 
 func TestWebhookEndpoints_EventTypes(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/webhook_endpoints/event_types" {
+		if r.URL.Path != "/api/webhook_event_types" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		json.NewEncoder(w).Encode(map[string]any{
@@ -1483,7 +1487,7 @@ func TestWebhookEndpoints_EventTypes(t *testing.T) {
 
 func TestProps_Sync(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/props/7/sync" {
+		if r.Method != "POST" || r.URL.Path != "/api/props/7/syncs" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		json.NewEncoder(w).Encode(map[string]any{"message": "Sync scheduled"})

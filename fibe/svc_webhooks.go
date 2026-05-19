@@ -44,7 +44,7 @@ func (s *WebhookEndpointService) Delete(ctx context.Context, id int64) error {
 
 func (s *WebhookEndpointService) Test(ctx context.Context, id int64) error {
 	var result map[string]any
-	return s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/webhook_endpoints/%d/test", id), nil, &result)
+	return s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/webhook_endpoints/%d/test_deliveries", id), nil, &result)
 }
 
 func (s *WebhookEndpointService) ListDeliveries(ctx context.Context, id int64, params *ListParams) (*ListResult[WebhookDelivery], error) {
@@ -56,6 +56,6 @@ func (s *WebhookEndpointService) EventTypes(ctx context.Context) ([]string, erro
 	var result struct {
 		EventTypes []string `json:"event_types"`
 	}
-	err := s.client.do(ctx, http.MethodGet, "/api/webhook_endpoints/event_types", nil, &result)
+	err := s.client.do(ctx, http.MethodGet, "/api/webhook_event_types", nil, &result)
 	return result.EventTypes, err
 }

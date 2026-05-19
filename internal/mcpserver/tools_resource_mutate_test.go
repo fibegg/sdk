@@ -122,7 +122,7 @@ func TestResourceMutatePlaygroundActionRequiresConfirm(t *testing.T) {
 func TestResourceMutateDispatchesPlaygroundActionWithConfirm(t *testing.T) {
 	var hit bool
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/42/action" {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/42/operations" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		hit = true
@@ -164,7 +164,7 @@ func TestResourceMutateDispatchesPlaygroundActionWithConfirm(t *testing.T) {
 func TestResourceMutateDispatchesAgentRestartChat(t *testing.T) {
 	var hit bool
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/agents/my-agent/restart_chat" {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/agents/my-agent/restarts" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		hit = true

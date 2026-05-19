@@ -11,7 +11,7 @@ import (
 
 func TestMonitor_List(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/api/monitor" {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/events" {
 			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		query := r.URL.Query()
@@ -67,7 +67,7 @@ func TestMonitor_FollowStartsFromNowDedupesAndOrdersChronologically(t *testing.T
 	firstSince := ""
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if r.URL.Path != "/api/monitor" {
+		if r.URL.Path != "/api/events" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 

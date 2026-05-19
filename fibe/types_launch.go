@@ -2,7 +2,7 @@ package fibe
 
 import "encoding/json"
 
-// LaunchResult captures the outcome of the POST /api/launch endpoint
+// LaunchResult captures the outcome of the POST /api/launches endpoint
 // (exposed as the fibe launch CLI command). The Fibe API returns
 // the freshly-created playspec ID, playground ID, and any props that were
 // implicitly registered as part of the compose import.

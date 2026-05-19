@@ -67,7 +67,7 @@ func (s *MarqueeService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyR
 func (s *MarqueeService) GenerateSSHKeyByIdentifier(ctx context.Context, identifier string) (*SSHKeyResult, error) {
 	var result SSHKeyResult
 	path := identifierPath("/api/marquees", identifier)
-	err := s.client.doAsync(ctx, http.MethodPost, path+"/generate_ssh_key", path+"/generate_ssh_key/%s", nil, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/ssh_keys", "/api/async_requests/%s", nil, &result)
 	return &result, err
 }
 
@@ -80,13 +80,13 @@ func (s *MarqueeService) TestConnection(ctx context.Context, id int64) (*Connect
 func (s *MarqueeService) TestConnectionByIdentifier(ctx context.Context, identifier string) (*ConnectionTestResult, error) {
 	var result ConnectionTestResult
 	path := identifierPath("/api/marquees", identifier)
-	err := s.client.doAsync(ctx, http.MethodPost, path+"/test_connection", path+"/test_connection/%s", nil, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/connection_tests", "/api/async_requests/%s", nil, &result)
 	return &result, err
 }
 
 func (s *MarqueeService) AutoconnectToken(ctx context.Context, params *AutoconnectTokenParams) (*AutoconnectTokenResult, error) {
 	var result AutoconnectTokenResult
-	err := s.client.do(ctx, http.MethodPost, "/api/marquees/autoconnect_token", params, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/autoconnect_tokens", params, &result)
 	return &result, err
 }
 

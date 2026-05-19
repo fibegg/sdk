@@ -57,7 +57,7 @@ func TestPlaygroundMaintenanceEnableCommandMapsActionBody(t *testing.T) {
 
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/action" {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/operations" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -85,7 +85,7 @@ func TestPlaygroundMaintenanceDisableCommandMapsActionBody(t *testing.T) {
 
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/action" {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/operations" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

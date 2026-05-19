@@ -515,7 +515,7 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			versionID, _ := strconv.ParseInt(args[1], 10, 64)
-			if err := c.ImportTemplateVersions.Delete(ctx(), versionID); err != nil {
+			if err := c.ImportTemplates.DestroyVersionByIdentifier(ctx(), args[0], versionID); err != nil {
 				return err
 			}
 			fmt.Printf("Version %d deleted from template %s\n", versionID, args[0])

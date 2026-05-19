@@ -55,7 +55,7 @@ func TestAgentSendMessageToolUploadsAttachmentsAndPassesConversationControls(t *
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]any{"filename": "uploaded.txt"})
 		case 2:
-			if r.Method != http.MethodPost || r.URL.Path != "/api/agents/test-agent/chat" {
+			if r.Method != http.MethodPost || r.URL.Path != "/api/agents/test-agent/messages" {
 				t.Fatalf("unexpected chat request %s %s", r.Method, r.URL.Path)
 			}
 			var body map[string]any
@@ -375,7 +375,7 @@ func TestAgentConversationToolsDispatchScopedRequests(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"content": map[string]any{"conversationId": "thread-1", "isProcessing": true}})
 		case 3:
-			if r.Method != http.MethodPost || r.URL.Path != "/api/agents/test-agent/interrupt" {
+			if r.Method != http.MethodPost || r.URL.Path != "/api/agents/test-agent/interrupts" {
 				t.Fatalf("unexpected interrupt request %s %s", r.Method, r.URL.Path)
 			}
 			var body map[string]any

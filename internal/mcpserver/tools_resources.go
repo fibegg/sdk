@@ -150,6 +150,7 @@ func (s *Server) registerResourceTools() {
 		mcp.WithString("id_or_name", mcp.Description("Numeric ID or name for named resources.")),
 		mcp.WithString("id_or_key", mcp.Description("Numeric ID or key for secrets.")),
 		mcp.WithString("agent_id_or_name", mcp.Description("Agent ID or name for resource-specific deletes such as agent_poke.")),
+		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name for resource-specific deletes such as template_version.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 }
@@ -406,12 +407,20 @@ func flatResourceTools() map[string]flatResourceTool {
 				}
 				return c.ImportTemplates.ListVersionsByIdentifier(ctx, identifier, &p)
 			},
-			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+			deleteWithArgs: func(ctx context.Context, c *fibe.Client, args map[string]any) error {
+				templateIdentifier, err := requiredIdentifier(args, "template_id_or_name", "")
+				if err != nil {
+					return err
+				}
+				identifier, err := resourceIdentifierArg("template_version", args)
+				if err != nil {
+					return err
+				}
 				id, err := parsePositiveIdentifierID(identifier, "id")
 				if err != nil {
 					return err
 				}
-				return c.ImportTemplateVersions.Delete(ctx, id)
+				return c.ImportTemplateVersions.DeleteByTemplateIdentifier(ctx, templateIdentifier, id)
 			},
 		},
 		"template_source": {

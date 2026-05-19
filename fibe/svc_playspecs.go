@@ -80,7 +80,7 @@ func (s *PlayspecService) ValidateComposeWithParams(ctx context.Context, params 
 	}
 
 	var result ComposeValidation
-	err := s.client.do(ctx, http.MethodPost, "/api/playspecs/validate_compose", params, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/compose_validations", params, &result)
 	return &result, err
 }
 
@@ -90,7 +90,7 @@ func (s *PlayspecService) PreviewTemplateVersionSwitch(ctx context.Context, id i
 
 func (s *PlayspecService) PreviewTemplateVersionSwitchByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error) {
 	var result PlayspecTemplateVersionSwitchPreview
-	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch/preview"
+	path := identifierPath("/api/playspecs", identifier) + "/template_switch_previews"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
@@ -101,8 +101,8 @@ func (s *PlayspecService) SwitchTemplateVersion(ctx context.Context, id int64, p
 
 func (s *PlayspecService) SwitchTemplateVersionByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error) {
 	var result PlayspecTemplateVersionSwitchResult
-	path := identifierPath("/api/playspecs", identifier) + "/template_version_switch"
-	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", params, &result)
+	path := identifierPath("/api/playspecs", identifier) + "/template_switches"
+	err := s.client.doAsync(ctx, http.MethodPost, path, "/api/async_requests/%s", params, &result)
 	return &result, err
 }
 
@@ -146,7 +146,7 @@ func (s *PlayspecService) AddMountedFileByIdentifier(ctx context.Context, identi
 			fields["readonly"] = "false"
 		}
 	}
-	path := identifierPath("/api/playspecs", identifier) + "/add_mounted_file"
+	path := identifierPath("/api/playspecs", identifier) + "/mounts"
 	return s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, nil)
 }
 
@@ -155,7 +155,7 @@ func (s *PlayspecService) UpdateMountedFile(ctx context.Context, id int64, param
 }
 
 func (s *PlayspecService) UpdateMountedFileByIdentifier(ctx context.Context, identifier string, params *MountedFileUpdateParams) error {
-	path := identifierPath("/api/playspecs", identifier) + "/update_mounted_file"
+	path := identifierPath("/api/playspecs", identifier) + "/mounts"
 	return s.client.do(ctx, http.MethodPatch, path, params, nil)
 }
 
@@ -164,7 +164,7 @@ func (s *PlayspecService) RemoveMountedFile(ctx context.Context, id int64, filen
 }
 
 func (s *PlayspecService) RemoveMountedFileByIdentifier(ctx context.Context, identifier string, filename string) error {
-	path := identifierPath("/api/playspecs", identifier) + "/remove_mounted_file"
+	path := identifierPath("/api/playspecs", identifier) + "/mounts"
 	body := map[string]any{"filename": filename}
 	return s.client.do(ctx, http.MethodDelete, path, body, nil)
 }
@@ -174,7 +174,7 @@ func (s *PlayspecService) AddRegistryCredential(ctx context.Context, id int64, p
 }
 
 func (s *PlayspecService) AddRegistryCredentialByIdentifier(ctx context.Context, identifier string, params *RegistryCredentialParams) (*RegistryCredentialResult, error) {
-	path := identifierPath("/api/playspecs", identifier) + "/add_registry_credential"
+	path := identifierPath("/api/playspecs", identifier) + "/registry_credentials"
 	var result RegistryCredentialResult
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	if err != nil {
@@ -188,7 +188,7 @@ func (s *PlayspecService) RemoveRegistryCredential(ctx context.Context, id int64
 }
 
 func (s *PlayspecService) RemoveRegistryCredentialByIdentifier(ctx context.Context, identifier string, credentialID string) error {
-	path := identifierPath("/api/playspecs", identifier) + "/remove_registry_credential"
+	path := identifierPath("/api/playspecs", identifier) + "/registry_credentials"
 	body := map[string]any{"credential_id": credentialID}
 	return s.client.do(ctx, http.MethodDelete, path, body, nil)
 }

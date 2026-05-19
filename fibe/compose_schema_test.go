@@ -71,7 +71,7 @@ func TestValidateComposeWithParamsHonorsFIBESchemaURL(t *testing.T) {
 	var apiRequests atomic.Int64
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		apiRequests.Add(1)
-		if r.URL.Path != "/api/playspecs/validate_compose" {
+		if r.URL.Path != "/api/compose_validations" {
 			t.Fatalf("unexpected API path %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")

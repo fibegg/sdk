@@ -254,7 +254,7 @@ type PlayspecTemplateVersionSwitchResult struct {
 
 // PropResolutionPreview classifies each repo URL the target template version
 // references against the player's existing Props. Populated only on preview
-// (mode != apply) responses from /api/playspecs/:id/template_version_switch.
+// (mode != apply) responses from /api/playspecs/:id/template_switches.
 type PropResolutionPreview struct {
 	Existing          []PropResolutionEntry `json:"existing,omitempty"`
 	ExistingForks     []PropResolutionEntry `json:"existing_forks,omitempty"`

@@ -2,9 +2,7 @@ package fibe
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"net/url"
 )
 
 type PlaygroundService struct {
@@ -70,7 +68,7 @@ func (s *PlaygroundService) ActionByIdentifier(ctx context.Context, identifier s
 	}
 	var result PlaygroundStatus
 	path := identifierPath("/api/playgrounds", identifier)
-	err := s.client.doAsync(ctx, http.MethodPost, path+"/action", path+"/action/%s", params, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/operations", "/api/async_requests/%s", params, &result)
 	return &result, err
 }
 
@@ -84,7 +82,7 @@ func (s *PlaygroundService) ExtendExpirationByIdentifier(ctx context.Context, id
 	if durationHours != nil {
 		body = map[string]any{"duration_hours": *durationHours}
 	}
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/playgrounds", identifier)+"/extend_expiration", body, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/playgrounds", identifier)+"/expiration", body, &result)
 	return &result, err
 }
 
@@ -107,7 +105,7 @@ func (s *PlaygroundService) StatusRefresh(ctx context.Context, id int64) (*Playg
 func (s *PlaygroundService) StatusRefreshByIdentifier(ctx context.Context, identifier string) (*PlaygroundStatus, error) {
 	var result PlaygroundStatus
 	path := identifierPath("/api/playgrounds", identifier)
-	err := s.client.doAsync(ctx, http.MethodPost, path+"/status_refresh", path+"/status_refresh/%s", nil, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, path+"/status", "/api/async_requests/%s", nil, &result)
 	return &result, err
 }
 
@@ -128,12 +126,12 @@ func (s *PlaygroundService) Logs(ctx context.Context, id int64, service string, 
 
 func (s *PlaygroundService) LogsByIdentifier(ctx context.Context, identifier string, service string, tail *int) (*PlaygroundLogs, error) {
 	base := identifierPath("/api/playgrounds", identifier)
-	path := base + "/logs/" + url.PathEscape(service)
+	body := map[string]any{"service": service}
 	if tail != nil {
-		path += fmt.Sprintf("?tail=%d", *tail)
+		body["tail"] = *tail
 	}
 	var result PlaygroundLogs
-	err := s.client.doAsync(ctx, http.MethodGet, path, base+"/logs_status/%s", nil, &result)
+	err := s.client.doAsync(ctx, http.MethodPost, base+"/logs", "/api/async_requests/%s", body, &result)
 	return &result, err
 }
 
@@ -161,6 +159,6 @@ func (s *PlaygroundService) DebugWithParamsByIdentifier(ctx context.Context, ide
 	var result map[string]any
 	base := identifierPath("/api/playgrounds", identifier)
 	path := base + "/debug" + buildQuery(params)
-	err := s.client.doAsync(ctx, http.MethodGet, path, base+"/debug/%s", nil, &result)
+	err := s.client.doAsync(ctx, http.MethodGet, path, "/api/async_requests/%s", nil, &result)
 	return result, err
 }

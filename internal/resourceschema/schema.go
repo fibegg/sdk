@@ -406,7 +406,7 @@ func buildRegistry() map[string]map[string]any {
 	out["agent_poke"]["get"] = agentPokeIDSchema("fibe_resource_get")
 	out["agent_poke"]["delete"] = agentPokeIDSchema("fibe_resource_delete")
 	overrideResourceIDDescription(out, "template_source", "delete", "Template ID whose tracked source configuration should be cleared.")
-	overrideResourceIDDescription(out, "template_version", "delete", "Template version ID to delete.")
+	out["template_version"]["delete"] = templateVersionDeleteSchema()
 	return out
 }
 
@@ -1205,6 +1205,18 @@ func templateVersionListParamsSchema() map[string]any {
 	props["template_id_or_name"] = namedIdentifierSchema("template_id_or_name", "Import template ID or name whose versions should be listed.")
 	schema["required"] = []string{"template_id_or_name"}
 	return schema
+}
+
+func templateVersionDeleteSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"template_id_or_name", "id"},
+		"properties": map[string]any{
+			"template_id_or_name": namedIdentifierSchema("template_id_or_name", "Import template ID or name whose version should be deleted."),
+			"id":                  map[string]any{"type": "integer", "description": "Template version ID to delete.", "minimum": 1},
+		},
+	}
 }
 
 func webhookDeliveryListParamsSchema() map[string]any {

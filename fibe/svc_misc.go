@@ -52,7 +52,7 @@ type GitHubRepoService struct {
 
 func (s *GitHubRepoService) Create(ctx context.Context, params *GitHubRepoCreateParams) (*GitHubRepo, error) {
 	var result GitHubRepo
-	err := s.client.do(ctx, http.MethodPost, "/api/github_repos", params, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/github_repositories", params, &result)
 	return &result, err
 }
 
@@ -62,7 +62,7 @@ type GiteaRepoService struct {
 
 func (s *GiteaRepoService) Create(ctx context.Context, params *GiteaRepoCreateParams) (*GiteaRepo, error) {
 	var result GiteaRepo
-	err := s.client.do(ctx, http.MethodPost, "/api/gitea_repos", params, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/gitea_repositories", params, &result)
 	return &result, err
 }
 
@@ -75,7 +75,7 @@ func (s *LaunchService) Create(ctx context.Context, params *LaunchParams) (*Laun
 		return nil, err
 	}
 	var result LaunchResult
-	err := s.client.do(ctx, http.MethodPost, "/api/launch", params, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/launches", params, &result)
 	return &result, err
 }
 
@@ -86,7 +86,7 @@ type RepoStatusService struct {
 func (s *RepoStatusService) Check(ctx context.Context, githubURLs []string) (*RepoStatus, error) {
 	var result RepoStatus
 	body := map[string]any{"github_urls": githubURLs}
-	err := s.client.do(ctx, http.MethodPost, "/api/repo_status", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/repo_status_checks", body, &result)
 	return &result, err
 }
 

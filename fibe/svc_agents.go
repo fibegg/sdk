@@ -72,7 +72,7 @@ func (s *AgentService) Chat(ctx context.Context, id int64, params *AgentChatPara
 
 func (s *AgentService) ChatByIdentifier(ctx context.Context, identifier string, params *AgentChatParams) (map[string]any, error) {
 	var result map[string]any
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/chat", normalizeAgentChatParams(params), &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/messages", normalizeAgentChatParams(params), &result)
 	return result, err
 }
 
@@ -158,14 +158,14 @@ func (s *AgentService) AuthenticateByIdentifier(ctx context.Context, identifier 
 		body["token"] = *token
 	}
 	var result Agent
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/authenticate", body, &result)
+	err := s.client.do(ctx, http.MethodPut, identifierPath("/api/agents", identifier)+"/auth", body, &result)
 	return &result, err
 }
 
 func (s *AgentService) StartChat(ctx context.Context, id, marqueeID int64) (*AgentChatSession, error) {
 	var result AgentChatSession
 	body := map[string]any{"marquee_id": marqueeID}
-	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/start_chat", id), body, &result)
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/chats", id), body, &result)
 	return &result, err
 }
 
@@ -176,7 +176,7 @@ func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, marq
 func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIdentifier string, marqueeIdentifier string) (*AgentChatSession, error) {
 	var result AgentChatSession
 	body := map[string]any{"marquee_id": marqueeIdentifier}
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", agentIdentifier)+"/start_chat", body, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", agentIdentifier)+"/chats", body, &result)
 	return &result, err
 }
 
@@ -186,7 +186,7 @@ func (s *AgentService) RestartChat(ctx context.Context, id int64) (*AgentChatSes
 
 func (s *AgentService) RestartChatByIdentifier(ctx context.Context, identifier string) (*AgentChatSession, error) {
 	var result AgentChatSession
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/restart_chat", nil, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/restarts", nil, &result)
 	return &result, err
 }
 
@@ -290,7 +290,7 @@ func (s *AgentService) InterruptByIdentifier(ctx context.Context, identifier str
 		body["conversation_id"] = params.ConversationID
 	}
 	var result map[string]any
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/interrupt", body, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/interrupts", body, &result)
 	return result, err
 }
 
@@ -300,7 +300,7 @@ func (s *AgentService) PurgeChat(ctx context.Context, id int64) (*AgentChatSessi
 
 func (s *AgentService) PurgeChatByIdentifier(ctx context.Context, identifier string) (*AgentChatSession, error) {
 	var result AgentChatSession
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/purge_chat", nil, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/purges", nil, &result)
 	return &result, err
 }
 
@@ -310,7 +310,7 @@ func (s *AgentService) Duplicate(ctx context.Context, id int64) (*Agent, error) 
 
 func (s *AgentService) DuplicateByIdentifier(ctx context.Context, identifier string) (*Agent, error) {
 	var result Agent
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/duplicate", nil, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", identifier)+"/copies", nil, &result)
 	return &result, err
 }
 
@@ -332,7 +332,7 @@ func (s *AgentService) AddMountedFileByIdentifier(ctx context.Context, identifie
 	for _, svc := range params.TargetServices {
 		fields["target_services[]"] = svc
 	}
-	path := identifierPath("/api/agents", identifier) + "/add_mounted_file"
+	path := identifierPath("/api/agents", identifier) + "/mounts"
 	var result Agent
 	err := s.client.doMultipart(ctx, http.MethodPost, path, fields, "file", fileName, file, &result)
 	if err != nil {
@@ -359,7 +359,7 @@ func (s *AgentService) AddMountedFileFromArtefactByIdentifier(ctx context.Contex
 	if len(params.TargetServices) > 0 {
 		body["target_services"] = params.TargetServices
 	}
-	path := identifierPath("/api/agents", identifier) + "/add_mounted_file"
+	path := identifierPath("/api/agents", identifier) + "/mounts"
 	var result Agent
 	err := s.client.do(ctx, http.MethodPost, path, body, &result)
 	return &result, err
@@ -371,7 +371,7 @@ func (s *AgentService) UpdateMountedFile(ctx context.Context, id int64, params *
 
 func (s *AgentService) UpdateMountedFileByIdentifier(ctx context.Context, identifier string, params *MountedFileUpdateParams) (*Agent, error) {
 	var result Agent
-	path := identifierPath("/api/agents", identifier) + "/update_mounted_file"
+	path := identifierPath("/api/agents", identifier) + "/mounts"
 	err := s.client.do(ctx, http.MethodPatch, path, params, &result)
 	return &result, err
 }
@@ -382,7 +382,7 @@ func (s *AgentService) RemoveMountedFile(ctx context.Context, id int64, filename
 
 func (s *AgentService) RemoveMountedFileByIdentifier(ctx context.Context, identifier string, filename string) (*Agent, error) {
 	var result Agent
-	path := identifierPath("/api/agents", identifier) + "/remove_mounted_file"
+	path := identifierPath("/api/agents", identifier) + "/mounts"
 	body := map[string]any{"filename": filename}
 	err := s.client.do(ctx, http.MethodDelete, path, body, &result)
 	return &result, err

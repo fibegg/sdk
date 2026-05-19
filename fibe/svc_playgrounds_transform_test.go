@@ -61,13 +61,13 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 				t.Fatalf("decode template create body: %v", err)
 			}
 			json.NewEncoder(w).Encode(ImportTemplate{ID: &templateID, Name: "pg-transform", LatestVersionID: &templateVersionID})
-		case r.Method == http.MethodPost && r.URL.Path == "/api/playspecs/9/template_version_switch":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/playspecs/9/template_switches":
 			if err := json.NewDecoder(r.Body).Decode(&switchBody); err != nil {
 				t.Fatalf("decode switch body: %v", err)
 			}
 			w.WriteHeader(http.StatusAccepted)
 			json.NewEncoder(w).Encode(map[string]any{"request_id": "req-switch", "status": "queued"})
-		case r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/9/template_version_switch/req-switch":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/async_requests/req-switch":
 			json.NewEncoder(w).Encode(map[string]any{
 				"request_id": "req-switch",
 				"status":     "success",

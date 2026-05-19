@@ -43,7 +43,7 @@ type monitorListEnvelope struct {
 	Meta MonitorMeta    `json:"meta"`
 }
 
-// MonitorListParams are the filters accepted by GET /api/monitor.
+// MonitorListParams are the filters accepted by GET /api/events.
 //
 // CSV fields are serialized as comma-separated values because the Fibe API
 // accepts both array-form and comma lists.

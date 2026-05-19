@@ -33,7 +33,7 @@ func (s *ImportTemplateService) SearchWithParams(ctx context.Context, params *Im
 			values.Set("regex", "true")
 		}
 	}
-	path := "/api/import_templates/search?" + values.Encode()
+	path := "/api/import_templates?" + values.Encode()
 	return doList[ImportTemplate](s.client, ctx, path)
 }
 
@@ -81,7 +81,11 @@ func (s *ImportTemplateService) DeleteByIdentifier(ctx context.Context, identifi
 }
 
 func (s *ImportTemplateService) DestroyVersion(ctx context.Context, templateID, versionID int64) error {
-	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/import_template_versions/%d", versionID), nil, nil)
+	return s.DestroyVersionByIdentifier(ctx, int64Identifier(templateID), versionID)
+}
+
+func (s *ImportTemplateService) DestroyVersionByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) error {
+	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("%s/versions/%d", identifierPath("/api/import_templates", templateIdentifier), versionID), nil, nil)
 }
 
 func (s *ImportTemplateService) ListVersions(ctx context.Context, id int64, params *ListParams) (*ListResult[ImportTemplateVersion], error) {
@@ -110,7 +114,7 @@ func (s *ImportTemplateService) PatchPreview(ctx context.Context, id int64, para
 
 func (s *ImportTemplateService) PatchPreviewByIdentifier(ctx context.Context, identifier string, params *TemplateVersionPatchParams) (*TemplateVersionPatchResult, error) {
 	var result TemplateVersionPatchResult
-	path := identifierPath("/api/import_templates", identifier) + "/versions/patch_preview"
+	path := identifierPath("/api/import_templates", identifier) + "/patch_previews"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
@@ -121,7 +125,7 @@ func (s *ImportTemplateService) PatchCreate(ctx context.Context, id int64, param
 
 func (s *ImportTemplateService) PatchCreateByIdentifier(ctx context.Context, identifier string, params *TemplateVersionPatchParams) (*TemplateVersionPatchResult, error) {
 	var result TemplateVersionPatchResult
-	path := identifierPath("/api/import_templates", identifier) + "/versions/patch_create"
+	path := identifierPath("/api/import_templates", identifier) + "/patches"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
@@ -156,8 +160,8 @@ func (s *ImportTemplateService) RefreshSource(ctx context.Context, id int64) (*I
 
 func (s *ImportTemplateService) RefreshSourceByIdentifier(ctx context.Context, identifier string) (*ImportTemplateSourceRefreshResult, error) {
 	var result ImportTemplateSourceRefreshResult
-	path := identifierPath("/api/import_templates", identifier) + "/source/refresh"
-	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", nil, &result)
+	path := identifierPath("/api/import_templates", identifier) + "/source"
+	err := s.client.doAsync(ctx, http.MethodPost, path, "/api/async_requests/%s", nil, &result)
 	return &result, err
 }
 
@@ -167,8 +171,8 @@ func (s *ImportTemplateService) UpgradeLinkedPlayspecs(ctx context.Context, temp
 
 func (s *ImportTemplateService) UpgradeLinkedPlayspecsByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
 	var result ImportTemplateUpgradeLinkedResult
-	path := fmt.Sprintf("%s/versions/%d/upgrade_linked_playspecs", identifierPath("/api/import_templates", templateIdentifier), versionID)
-	err := s.client.doAsync(ctx, http.MethodPost, path, path+"/%s", nil, &result)
+	path := fmt.Sprintf("%s/versions/%d/upgrades", identifierPath("/api/import_templates", templateIdentifier), versionID)
+	err := s.client.doAsync(ctx, http.MethodPost, path, "/api/async_requests/%s", nil, &result)
 	return &result, err
 }
 
@@ -178,9 +182,8 @@ func (s *ImportTemplateService) TogglePublic(ctx context.Context, templateID, ve
 
 func (s *ImportTemplateService) TogglePublicByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateVersion, error) {
 	var result ImportTemplateVersion
-	path := identifierPath("/api/import_templates", templateIdentifier) + "/toggle_public"
-	body := map[string]any{"version_id": versionID}
-	err := s.client.do(ctx, http.MethodPatch, path, body, &result)
+	path := fmt.Sprintf("%s/versions/%d/publication", identifierPath("/api/import_templates", templateIdentifier), versionID)
+	err := s.client.do(ctx, http.MethodPatch, path, nil, &result)
 	return &result, err
 }
 
@@ -199,7 +202,7 @@ func (s *ImportTemplateService) LaunchWithParamsByIdentifier(ctx context.Context
 		}
 	}
 	var result LaunchResult
-	path := identifierPath("/api/import_templates", identifier) + "/launch"
+	path := identifierPath("/api/import_templates", identifier) + "/launches"
 	err := s.client.do(ctx, http.MethodPost, path, params, &result)
 	return &result, err
 }
@@ -210,7 +213,7 @@ func (s *ImportTemplateService) Fork(ctx context.Context, id int64) (*ImportTemp
 
 func (s *ImportTemplateService) ForkByIdentifier(ctx context.Context, identifier string) (*ImportTemplate, error) {
 	var result ImportTemplate
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/import_templates", identifier)+"/fork", nil, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/import_templates", identifier)+"/forks", nil, &result)
 	return &result, err
 }
 
@@ -220,6 +223,6 @@ func (s *ImportTemplateService) UploadImage(ctx context.Context, id int64, param
 
 func (s *ImportTemplateService) UploadImageByIdentifier(ctx context.Context, identifier string, params *UploadImageParams) (*ImportTemplate, error) {
 	var result ImportTemplate
-	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/import_templates", identifier)+"/image", params, &result)
+	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/import_templates", identifier)+"/images", params, &result)
 	return &result, err
 }
