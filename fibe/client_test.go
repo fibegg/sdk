@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -199,9 +200,9 @@ func TestClient_Retry(t *testing.T) {
 }
 
 func TestClient_NoRetryOnRequestTimeout(t *testing.T) {
-	attempts := 0
+	var attempts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		attempts++
+		attempts.Add(1)
 		time.Sleep(75 * time.Millisecond)
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(listEnv([]Playground{}))
@@ -222,8 +223,8 @@ func TestClient_NoRetryOnRequestTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
-	if attempts != 1 {
-		t.Errorf("expected 1 attempt after request timeout, got %d", attempts)
+	if got := attempts.Load(); got != 1 {
+		t.Errorf("expected 1 attempt after request timeout, got %d", got)
 	}
 	if elapsed > 100*time.Millisecond {
 		t.Errorf("expected timeout without retry delay, got elapsed=%v", elapsed)
