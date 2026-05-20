@@ -214,6 +214,20 @@ func TestLaunchParams_Validate(t *testing.T) {
 		}
 	})
 
+	t.Run("valid github repository", func(t *testing.T) {
+		p := &LaunchParams{RepositoryURL: "https://github.com/owner/repo"}
+		if err := p.Validate(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("compose conflicts with github repository", func(t *testing.T) {
+		p := &LaunchParams{ComposeYAML: "yaml", Name: "test", RepositoryURL: "https://github.com/owner/repo"}
+		if err := p.Validate(); err == nil {
+			t.Fatal("expected conflict error")
+		}
+	})
+
 	t.Run("missing both", func(t *testing.T) {
 		p := &LaunchParams{}
 		err := p.Validate()

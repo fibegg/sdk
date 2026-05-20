@@ -24,6 +24,11 @@ type LaunchResult struct {
 type LaunchParams struct {
 	ComposeYAML            string            `json:"compose_yaml"`
 	Name                   string            `json:"name"`
+	RepositoryURL          string            `json:"repository_url,omitempty"`
+	ConfigPath             string            `json:"config_path,omitempty"`
+	GitHubRef              string            `json:"github_ref,omitempty"`
+	GitHubInstallationID   *int64            `json:"github_installation_id,omitempty"`
+	GitHubAccount          string            `json:"github_account,omitempty"`
 	JobMode                *bool             `json:"job_mode,omitempty"`
 	MarqueeID              *int64            `json:"marquee_id,omitempty"`
 	MarqueeIdentifier      string            `json:"-"`
@@ -35,8 +40,15 @@ type LaunchParams struct {
 
 func (p *LaunchParams) Validate() error {
 	v := &validator{}
-	v.required("compose_yaml", p.ComposeYAML)
-	v.required("name", p.Name)
+	if p.ComposeYAML == "" && p.RepositoryURL == "" {
+		v.required("compose_yaml", p.ComposeYAML)
+	}
+	if p.Name == "" && p.RepositoryURL == "" {
+		v.required("name", p.Name)
+	}
+	if p.ComposeYAML != "" && p.RepositoryURL != "" {
+		v.errors = append(v.errors, ValidationError{Field: "repository_url", Message: "cannot be combined with compose_yaml"})
+	}
 	return v.err()
 }
 

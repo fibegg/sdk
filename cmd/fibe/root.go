@@ -135,6 +135,7 @@ DOCUMENTATION:
 		artefactsCmd(),
 		muttersCmd(),
 		giteaReposCmd(),
+		githubCmd(),
 		githubReposCmd(),
 		installationsCmd(),
 		repoStatusCmd(),

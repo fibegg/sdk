@@ -3,23 +3,30 @@ package fibe
 import "encoding/json"
 
 type GreenfieldCreateParams struct {
-	Name               string            `json:"name"`
-	TemplateID         *int64            `json:"template_id,omitempty"`
-	TemplateIdentifier string            `json:"-"`
-	TemplateVersionID  *int64            `json:"template_version_id,omitempty"`
-	Version            string            `json:"version,omitempty"`
-	TemplateBody       string            `json:"template_body,omitempty"`
-	GitProvider        string            `json:"git_provider,omitempty"`
-	Private            *bool             `json:"private,omitempty"`
-	MarqueeID          *int64            `json:"marquee_id,omitempty"`
-	MarqueeIdentifier  string            `json:"-"`
-	Variables          map[string]any    `json:"variables,omitempty"`
-	ServiceSubdomains  map[string]string `json:"service_subdomains,omitempty"`
+	Name                 string            `json:"name"`
+	TemplateID           *int64            `json:"template_id,omitempty"`
+	TemplateIdentifier   string            `json:"-"`
+	TemplateVersionID    *int64            `json:"template_version_id,omitempty"`
+	Version              string            `json:"version,omitempty"`
+	TemplateBody         string            `json:"template_body,omitempty"`
+	RepositoryURL        string            `json:"repository_url,omitempty"`
+	ConfigPath           string            `json:"config_path,omitempty"`
+	GitHubRef            string            `json:"github_ref,omitempty"`
+	GitHubInstallationID *int64            `json:"github_installation_id,omitempty"`
+	GitHubAccount        string            `json:"github_account,omitempty"`
+	GitProvider          string            `json:"git_provider,omitempty"`
+	Private              *bool             `json:"private,omitempty"`
+	MarqueeID            *int64            `json:"marquee_id,omitempty"`
+	MarqueeIdentifier    string            `json:"-"`
+	Variables            map[string]any    `json:"variables,omitempty"`
+	ServiceSubdomains    map[string]string `json:"service_subdomains,omitempty"`
 }
 
 func (p *GreenfieldCreateParams) Validate() error {
 	v := &validator{}
-	v.required("name", p.Name)
+	if p.Name == "" && p.RepositoryURL == "" {
+		v.required("name", p.Name)
+	}
 	if p.Version != "" && p.TemplateID == nil && p.TemplateIdentifier == "" {
 		v.errors = append(v.errors, ValidationError{Field: "version", Message: "requires template_id_or_name"})
 	}
@@ -28,6 +35,9 @@ func (p *GreenfieldCreateParams) Validate() error {
 	}
 	if p.TemplateBody != "" && (p.TemplateID != nil || p.TemplateIdentifier != "" || p.TemplateVersionID != nil || p.Version != "") {
 		v.errors = append(v.errors, ValidationError{Field: "template_body", Message: "cannot be combined with template_id_or_name, template_version_id, or version"})
+	}
+	if p.RepositoryURL != "" && (p.TemplateBody != "" || p.TemplateID != nil || p.TemplateIdentifier != "" || p.TemplateVersionID != nil || p.Version != "") {
+		v.errors = append(v.errors, ValidationError{Field: "repository_url", Message: "cannot be combined with template_body, template_id_or_name, template_version_id, or version"})
 	}
 	return v.err()
 }

@@ -273,6 +273,39 @@ func TestGreenfield_CreateRejectsTemplateBodyWithTemplateID(t *testing.T) {
 	}
 }
 
+func TestGreenfield_CreateWithRepositoryURL(t *testing.T) {
+	var body map[string]any
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || r.URL.Path != "/api/greenfields" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		w.WriteHeader(201)
+		json.NewEncoder(w).Encode(GreenfieldResult{Name: "repo", Playground: &Playground{ID: 77}})
+	})
+
+	marqueeID := int64(12)
+	installationID := int64(123)
+	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+		RepositoryURL:        "https://github.com/owner/repo",
+		ConfigPath:           "deploy/fibe.yml",
+		GitHubRef:            "main",
+		GitHubInstallationID: &installationID,
+		MarqueeID:            &marqueeID,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if body["repository_url"] != "https://github.com/owner/repo" || body["config_path"] != "deploy/fibe.yml" || body["github_ref"] != "main" {
+		t.Fatalf("unexpected repository fields: %#v", body)
+	}
+	if body["github_installation_id"].(float64) != 123 {
+		t.Fatalf("unexpected github_installation_id: %#v", body)
+	}
+}
+
 func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -300,6 +333,23 @@ func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 	}
 	if body["template_id"].(float64) != 347 || body["version"] != "v1" {
 		t.Fatalf("unexpected template fields: %#v", body)
+	}
+}
+
+func TestGitHubApps_ConnectInfo(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/github_apps/connect" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(GitHubAppConnectInfo{AppSlug: "fibe", InstallURL: "https://github.com/apps/fibe/installations/new"})
+	})
+
+	info, err := c.GitHubApps.ConnectInfo(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if info.InstallURL == "" || info.AppSlug != "fibe" {
+		t.Fatalf("unexpected info: %#v", info)
 	}
 }
 

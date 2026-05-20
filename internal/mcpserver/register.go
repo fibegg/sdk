@@ -16,6 +16,7 @@ func (s *Server) registerTools() error {
 	s.registerResourceMutationTools()
 	s.registerResourceTools()
 	s.registerCustomTools()
+	s.registerLaunchTools()
 	s.registerGreenfieldTools()
 	s.registerLocalConversationTools()
 	s.registerMemoryTools()

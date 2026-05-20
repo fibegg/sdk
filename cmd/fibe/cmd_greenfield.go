@@ -27,6 +27,10 @@ func greenfieldCmd() *cobra.Command {
 		templateIDTypoTemlate  int64
 		version                string
 		templateBody           string
+		repoFile               string
+		repoRef                string
+		githubAccount          string
+		githubInstallationID   int64
 		marqueeID              string
 		marqueeIDTypoMarque    int64
 		vars                   []string
@@ -35,7 +39,7 @@ func greenfieldCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "greenfield",
+		Use:   "greenfield [github-repo]",
 		Short: "Create a new greenfield app from the platform template flow",
 		Long: `Create a new app from a template, including one or more destination repositories and Props, an app-owned template version, and a deployed playground.
 
@@ -43,11 +47,15 @@ The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
 
 Examples:
+  fibe greenfield owner/repo --marquee-id 12
+  fibe greenfield owner/repo@main --file fibe.yml --marquee-id 12
+  fibe greenfield https://github.com/owner/repo --ref main --marquee-id 12
   fibe greenfield --name my-app --template-id "Rails 8 Starter Kit"
   fibe greenfield --name my-app --template-version-id 912
   fibe greenfield --name my-app --service-subdomain app=my-app --service-subdomain admin=my-app-admin
   fibe greenfield --name my-app -f my-template.yml
   fibe greenfield --name my-app --template-body 'services:\n  web:\n    image: nginx'`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.GreenfieldCreateParams{}
@@ -88,6 +96,19 @@ Examples:
 			if cmd.Flags().Changed("template-body") {
 				params.TemplateBody = normalizeTemplateBodyValue(resolveStringValue(templateBody))
 			}
+			if cmd.Flags().Changed("file") {
+				params.ConfigPath = repoFile
+			}
+			if cmd.Flags().Changed("ref") {
+				params.GitHubRef = repoRef
+			}
+			if cmd.Flags().Changed("github-account") {
+				params.GitHubAccount = githubAccount
+			}
+			if cmd.Flags().Changed("github-installation-id") && githubInstallationID > 0 {
+				id := githubInstallationID
+				params.GitHubInstallationID = &id
+			}
 			if cmd.Flags().Changed("marquee-id") && marqueeID != "" {
 				params.MarqueeIdentifier = marqueeID
 			} else if cmd.Flags().Changed("marque-id") && marqueeIDTypoMarque > 0 {
@@ -113,6 +134,33 @@ Examples:
 					return err
 				}
 				params.ServiceSubdomains = parsed
+			}
+			if (len(args) > 0 || params.RepositoryURL != "") && (params.TemplateBody != "" || params.TemplateIdentifier != "" || params.TemplateID != nil || params.TemplateVersionID != nil || params.Version != "") {
+				return fmt.Errorf("GitHub repository argument cannot be combined with template body, template id, template version, or version")
+			}
+
+			repoRequest, err := resolveGitHubRepoRequest(cmd, c, args, githubRepoRequestOptions{
+				ExistingURL:            params.RepositoryURL,
+				ExistingName:           params.Name,
+				ExistingRef:            params.GitHubRef,
+				ExistingConfigPath:     params.ConfigPath,
+				ExistingAccount:        params.GitHubAccount,
+				ExistingInstallationID: params.GitHubInstallationID,
+				FlagRef:                repoRef,
+				FlagFile:               repoFile,
+				FlagAccount:            githubAccount,
+				FlagInstallationID:     githubInstallationID,
+			})
+			if err != nil {
+				return err
+			}
+			if repoRequest != nil {
+				params.RepositoryURL = repoRequest.URL
+				params.Name = repoRequest.Name
+				params.GitHubRef = repoRequest.Ref
+				params.ConfigPath = repoRequest.ConfigPath
+				params.GitHubAccount = repoRequest.Account
+				params.GitHubInstallationID = repoRequest.GitHubInstallationID
 			}
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
@@ -148,13 +196,17 @@ Examples:
 	}
 
 	cmd.Flags().SortFlags = false
-	cmd.Flags().StringVar(&name, "name", "", "Repository/app name (required, must be unique)")
+	cmd.Flags().StringVar(&name, "name", "", "Repository/app name (optional with github-repo; must be unique)")
 	cmd.Flags().StringVar(&gitProvider, "git-provider", "gitea", "Destination git provider: gitea or github (optional, default: gitea)")
 	cmd.Flags().BoolVar(&private, "private", false, "Create destination repository as private")
 	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID or name to use (optional, default: base template)")
 	cmd.Flags().Int64Var(&templateVersionID, "template-version-id", 0, "Exact template version ID to use (optional)")
 	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)")
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
+	cmd.Flags().StringVar(&repoFile, "file", "", "Config file path inside the GitHub repository (optional; defaults to fibe.yml, fibe.yaml, docker-compose.yml, docker-compose.yaml)")
+	cmd.Flags().StringVar(&repoRef, "ref", "", "Git branch, tag, or commit for the config file (optional)")
+	cmd.Flags().StringVar(&githubAccount, "github-account", "", "GitHub App installation account owner to use when multiple installations are connected")
+	cmd.Flags().Int64Var(&githubInstallationID, "github-installation-id", 0, "GitHub App installation ID to use when multiple installations are connected")
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional, default: current Marquee)")
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "Set template variables (e.g., --var app_name=Tower, optional)")
 	cmd.Flags().StringSliceVar(&serviceSubdomains, "service-subdomain", nil, "Set an exposed service subdomain override (repeatable, e.g., --service-subdomain app=my-app)")

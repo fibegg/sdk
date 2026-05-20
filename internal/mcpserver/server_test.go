@@ -556,6 +556,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		"fibe_resource_mutate",
 		"fibe_update_name",
 		"fibe_mutter",
+		"fibe_launch_create",
 		"fibe_greenfield_create",
 		"fibe_gitea_repos_create",
 		"fibe_github_repos_create",

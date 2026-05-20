@@ -11,12 +11,14 @@ import (
 
 func launchCmd() *cobra.Command {
 	var name, compose string
+	var repoFile, repoRef, githubAccount string
+	var githubInstallationID int64
 	var jobMode, createPlayground, noCreatePlayground bool
 	var marqueeID string
 	var launchVars []string
 	var launchProps []string
 	cmd := &cobra.Command{
-		Use:   "launch",
+		Use:   "launch [github-repo]",
 		Short: "One-shot: parse compose YAML -> create playspec -> (optionally) deploy playground",
 		Long: `One-shot: parse compose YAML -> create playspec -> (optionally) deploy playground on a marquee.
 Fastest path from raw Docker Compose YAML to a running environment.
@@ -28,9 +30,9 @@ PLAYGROUND CREATION RULES:
   - --job-mode (trick / CI-Job) REQUIRES --marquee-id; otherwise the trick has nowhere to run.
   - Pass --no-create-playground with a marquee id to skip playground creation explicitly.
 
-REQUIRED FLAGS:
-  --name      Playground/trick name
-  --compose   Docker-compose YAML content
+REQUIRED INPUT:
+  github-repo positional argument, or --compose Docker Compose/Fibe YAML content.
+  --name is optional with github-repo and inferred from the repository name.
 
 OPTIONAL FLAGS:
   --marquee-id            Target marquee for the playground/trick
@@ -38,9 +40,13 @@ OPTIONAL FLAGS:
   --no-create-playground  Create only the playspec; skip playground deployment even with --marquee-id
 
 EXAMPLES:
+  fibe launch owner/repo --marquee-id 12
+  fibe launch owner/repo@main --file fibe.yml --marquee-id 12
+  fibe launch https://github.com/owner/repo --ref main --marquee-id 12
   fibe launch --name my-app --compose @docker-compose.yml --marquee-id 12
   fibe launch --name ci-run --compose @docker-compose.yml --marquee-id 12 --job-mode
   fibe launch --name spec-only --compose @docker-compose.yml --no-create-playground` + generateSchemaDoc(&fibe.LaunchParams{}),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.LaunchParams{}
@@ -52,6 +58,19 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("compose") {
 				params.ComposeYAML = resolveStringValue(compose)
+			}
+			if cmd.Flags().Changed("file") {
+				params.ConfigPath = repoFile
+			}
+			if cmd.Flags().Changed("ref") {
+				params.GitHubRef = repoRef
+			}
+			if cmd.Flags().Changed("github-account") {
+				params.GitHubAccount = githubAccount
+			}
+			if cmd.Flags().Changed("github-installation-id") && githubInstallationID > 0 {
+				id := githubInstallationID
+				params.GitHubInstallationID = &id
 			}
 			if cmd.Flags().Changed("job-mode") && jobMode {
 				t := true
@@ -98,11 +117,38 @@ EXAMPLES:
 			if params.ComposeYAML == "" && len(rawPayload) > 0 {
 				params.ComposeYAML = string(rawPayload)
 			}
+			if (len(args) > 0 || params.RepositoryURL != "") && params.ComposeYAML != "" {
+				return fmt.Errorf("--compose cannot be combined with a GitHub repository argument")
+			}
+
+			repoRequest, err := resolveGitHubRepoRequest(cmd, c, args, githubRepoRequestOptions{
+				ExistingURL:            params.RepositoryURL,
+				ExistingName:           params.Name,
+				ExistingRef:            params.GitHubRef,
+				ExistingConfigPath:     params.ConfigPath,
+				ExistingAccount:        params.GitHubAccount,
+				ExistingInstallationID: params.GitHubInstallationID,
+				FlagRef:                repoRef,
+				FlagFile:               repoFile,
+				FlagAccount:            githubAccount,
+				FlagInstallationID:     githubInstallationID,
+			})
+			if err != nil {
+				return err
+			}
+			if repoRequest != nil {
+				params.RepositoryURL = repoRequest.URL
+				params.Name = repoRequest.Name
+				params.GitHubRef = repoRequest.Ref
+				params.ConfigPath = repoRequest.ConfigPath
+				params.GitHubAccount = repoRequest.Account
+				params.GitHubInstallationID = repoRequest.GitHubInstallationID
+			}
 
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
 			}
-			if params.ComposeYAML == "" {
+			if params.ComposeYAML == "" && params.RepositoryURL == "" {
 				return fmt.Errorf("required field 'compose' not set")
 			}
 			if params.JobMode != nil && *params.JobMode && params.MarqueeID == nil && params.MarqueeIdentifier == "" {
@@ -117,8 +163,12 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Name (required)")
-	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML (required)")
+	cmd.Flags().StringVar(&name, "name", "", "Name (optional with github-repo)")
+	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML (required unless github-repo is provided)")
+	cmd.Flags().StringVar(&repoFile, "file", "", "Config file path inside the GitHub repository (optional; defaults to fibe.yml, fibe.yaml, docker-compose.yml, docker-compose.yaml)")
+	cmd.Flags().StringVar(&repoRef, "ref", "", "Git branch, tag, or commit for the config file (optional)")
+	cmd.Flags().StringVar(&githubAccount, "github-account", "", "GitHub App installation account owner to use when multiple installations are connected")
+	cmd.Flags().Int64Var(&githubInstallationID, "github-installation-id", 0, "GitHub App installation ID to use when multiple installations are connected")
 	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Create as a trick (job-mode) instead of a playground (requires --marquee-id)")
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name. Required when --job-mode is set; without it only the playspec is created.")
 	cmd.Flags().BoolVar(&createPlayground, "create-playground", false, "Force playground creation. Defaults to true when --marquee-id is set, false otherwise.")

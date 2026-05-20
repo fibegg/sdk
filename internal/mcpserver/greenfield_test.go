@@ -1,6 +1,7 @@
 package mcpserver
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,6 +107,28 @@ func TestGreenfieldArgsAcceptTemplateBodyPath(t *testing.T) {
 	}
 	if params.TemplateBody != body {
 		t.Fatalf("template_body=%q want %q", params.TemplateBody, body)
+	}
+}
+
+func TestGreenfieldArgsAcceptGitHubRepository(t *testing.T) {
+	t.Setenv("FIBE_MARQUEE_ID", "88")
+
+	client := githubInstallationTestClient(t)
+	params, _, err := greenfieldArgsWithClient(context.Background(), client, map[string]any{
+		"repository_url": "owner/repo",
+		"github_ref":     "main",
+	})
+	if err != nil {
+		t.Fatalf("greenfieldArgsWithClient: %v", err)
+	}
+	if params.Name != "repo" || params.RepositoryURL != "https://github.com/owner/repo" {
+		t.Fatalf("unexpected repository params: %#v", params)
+	}
+	if params.GitHubRef != "main" {
+		t.Fatalf("github_ref=%q want main", params.GitHubRef)
+	}
+	if params.GitHubInstallationID == nil || *params.GitHubInstallationID != 123 {
+		t.Fatalf("unexpected github installation: %#v", params.GitHubInstallationID)
 	}
 }
 

@@ -65,7 +65,7 @@ func TestGreenfieldHelpShowsOnlyPublicUXFlags(t *testing.T) {
 	got := out.String()
 	for _, want := range []string{
 		"--name string",
-		"Repository/app name (required, must be unique)",
+		"Repository/app name (optional with github-repo; must be unique)",
 		"--git-provider string",
 		"Destination git provider: gitea or github (optional, default: gitea)",
 		"--template-id string",

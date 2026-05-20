@@ -20,7 +20,7 @@ func (s *Server) registerGreenfieldTools() {
 		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			params, waitTimeout, err := greenfieldArgs(args)
+			params, waitTimeout, err := greenfieldArgsWithClient(ctx, c, args)
 			if err != nil {
 				return nil, err
 			}
@@ -61,12 +61,17 @@ func (s *Server) registerGreenfieldTools() {
 		},
 	}, mcp.NewTool("fibe_greenfield_create",
 		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link."),
-		mcp.WithString("name", mcp.Required(), mcp.Description("Repository/app name; must be unique.")),
+		mcp.WithString("name", mcp.Description("Repository/app name; must be unique. Optional when repository_url is provided; inferred from repo name.")),
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name to use. Optional; defaults to the base template.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id_or_name or version.")),
 		mcp.WithString("version", mcp.Description("Template version tag or number for template_id_or_name, e.g. v1. Optional; defaults to latest available version.")),
 		mcp.WithString("template_body", mcp.Description("Template YAML body to use directly. Optional; cannot be combined with template_id_or_name, template_version_id, or version.")),
 		mcp.WithString("template_body_path", mcp.Description("Absolute local path to a template YAML file (local MCP only). Optional; cannot be combined with template_body, template_id_or_name, template_version_id, or version.")),
+		mcp.WithString("repository_url", mcp.Description("GitHub repository as owner/repo, owner/repo@ref, or https://github.com/owner/repo. Optional alternative to template inputs.")),
+		mcp.WithString("config_path", mcp.Description("Config file path inside the GitHub repository. Optional; defaults to fibe.yml, fibe.yaml, docker-compose.yml, docker-compose.yaml.")),
+		mcp.WithString("github_ref", mcp.Description("Git branch, tag, or commit for the config file. Optional.")),
+		mcp.WithString("github_account", mcp.Description("GitHub App installation account owner to use when multiple installations are connected.")),
+		mcp.WithNumber("github_installation_id", mcp.Description("GitHub App installation ID to use when multiple installations are connected.")),
 		mcp.WithString("git_provider", mcp.Description("Destination git provider: gitea or github. Optional; default: gitea.")),
 		mcp.WithBoolean("private", mcp.Description("Create destination repository as private. Optional; Fibe defaults Gitea greenfield repos to private.")),
 		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID.")),
@@ -77,10 +82,11 @@ func (s *Server) registerGreenfieldTools() {
 }
 
 func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Duration, error) {
+	return greenfieldArgsWithClient(context.Background(), nil, args)
+}
+
+func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[string]any) (*fibe.GreenfieldCreateParams, time.Duration, error) {
 	name := argString(args, "name")
-	if name == "" {
-		return nil, 0, fmt.Errorf("required field 'name' not set")
-	}
 	if argString(args, "template_body") != "" && argString(args, "template_body_path") != "" {
 		return nil, 0, fmt.Errorf("pass only one of template_body or template_body_path")
 	}
@@ -121,6 +127,19 @@ func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Dur
 	if templateBody != "" && (templateID != nil || templateIdentifier != "" || templateVersionID != nil || version != "") {
 		return nil, 0, fmt.Errorf("template_body cannot be combined with template_id_or_name, template_version_id, or version")
 	}
+	repoRequest, err := resolveMCPGitHubRepoRequest(ctx, c, args, name)
+	if err != nil {
+		return nil, 0, err
+	}
+	if repoRequest != nil {
+		if templateBody != "" || templateID != nil || templateIdentifier != "" || templateVersionID != nil || version != "" {
+			return nil, 0, fmt.Errorf("repository_url cannot be combined with template_body, template_id_or_name, template_version_id, or version")
+		}
+		name = repoRequest.Name
+	}
+	if name == "" {
+		return nil, 0, fmt.Errorf("required field 'name' not set")
+	}
 
 	marqueeIdentifier := argString(args, "marquee_id_or_name")
 	marqueeID, ok := argInt64(args, "marquee_id_or_name")
@@ -147,6 +166,13 @@ func greenfieldArgs(args map[string]any) (*fibe.GreenfieldCreateParams, time.Dur
 		MarqueeIdentifier:  marqueeIdentifier,
 		Variables:          greenfieldVariables(args["variables"]),
 		ServiceSubdomains:  greenfieldStringMap(args["service_subdomains"]),
+	}
+	if repoRequest != nil {
+		params.RepositoryURL = repoRequest.URL
+		params.ConfigPath = repoRequest.ConfigPath
+		params.GitHubRef = repoRequest.Ref
+		params.GitHubAccount = repoRequest.Account
+		params.GitHubInstallationID = repoRequest.GitHubInstallationID
 	}
 	return params, timeout, nil
 }
