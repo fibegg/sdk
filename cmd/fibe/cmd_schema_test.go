@@ -74,7 +74,7 @@ func TestSchemaResourceOperationFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("schema --resource agent --operation create: %v", err)
 	}
-	for _, want := range []string{`"agent.create"`, `"name"`, `"provider"`} {
+	for _, want := range []string{`"agent.create"`, `"name"`, `"provider"`, `"antigravity"`} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("expected %s in schema output, got:\n%s", want, out)
 		}

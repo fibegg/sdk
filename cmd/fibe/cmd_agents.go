@@ -26,7 +26,7 @@ Agents can be authenticated with GitHub, have mounted files, store messages
 and activity logs, create artefacts, and interact via chat.
 
 PROVIDERS:
-  gemini, claude-code, openai-codex, opencode, cursor
+  gemini, antigravity, claude-code, openai-codex, opencode, cursor
 
 SUBCOMMANDS:
   list                  List all agents
@@ -100,7 +100,7 @@ func agListCmd() *cobra.Command {
 
 FILTERS:
   -q, --query           Search across name, description (substring match)
-  --provider            Filter by provider. Values: gemini, claude-code, openai-codex, opencode, cursor
+  --provider            Filter by provider. Values: gemini, antigravity, claude-code, openai-codex, opencode, cursor
   --status              Filter by exact status. Values: pending, authenticated, error
   --name                Filter by name (substring match)
 
@@ -184,7 +184,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name, description")
-	cmd.Flags().StringVar(&provider, "provider", "", "Filter by provider (gemini, claude-code, openai-codex, opencode, cursor)")
+	cmd.Flags().StringVar(&provider, "provider", "", "Filter by provider (gemini, antigravity, claude-code, openai-codex, opencode, cursor)")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
@@ -254,7 +254,7 @@ func agCreateCmd() *cobra.Command {
 
 REQUIRED FLAGS:
   --name       Agent name
-  --provider   Provider type: gemini, claude-code, openai-codex, opencode, cursor
+  --provider   Provider type: gemini, antigravity, claude-code, openai-codex, opencode, cursor
 
 OPTIONAL FLAGS:
   --sync           Enable sync
@@ -382,7 +382,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Agent name (required)")
-	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, claude-code, openai-codex, opencode, cursor")
+	cmd.Flags().StringVar(&provider, "provider", "gemini", "Provider: gemini, antigravity, claude-code, openai-codex, opencode, cursor")
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
 	cmd.Flags().BoolVar(&buildInPublic, "build-in-public", false, "Show this agent on the public profile")

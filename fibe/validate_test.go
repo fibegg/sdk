@@ -60,6 +60,15 @@ func TestAgentCreateParams_Validate(t *testing.T) {
 		}
 	})
 
+	t.Run("all valid providers", func(t *testing.T) {
+		for _, provider := range ValidProviders {
+			p := &AgentCreateParams{Name: "test", Provider: provider}
+			if err := p.Validate(); err != nil {
+				t.Errorf("provider %q should be valid: %v", provider, err)
+			}
+		}
+	})
+
 	t.Run("invalid provider", func(t *testing.T) {
 		p := &AgentCreateParams{Name: "test", Provider: "invalid-provider"}
 		err := p.Validate()

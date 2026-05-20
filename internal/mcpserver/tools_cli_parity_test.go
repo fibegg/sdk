@@ -26,6 +26,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 	}
 
 	apiKey, domain := requireRealServer(t)
+	configHome := t.TempDir()
 
 	// Set FIBE_AGENT_ID for feedbacks and mutters tools
 	os.Setenv("FIBE_AGENT_ID", "999999999")
@@ -225,7 +226,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 
 			// 2. Invoke real CLI via exec
 			cmd := exec.Command(bin, cliArgsWithAuth(apiKey, domain, tc.cliArgs...)...)
-			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain)
+			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain, "XDG_CONFIG_HOME="+configHome)
 			cliOut, cliErr := cmd.Output()
 			if cliErr != nil {
 				if ee, ok := cliErr.(*exec.ExitError); ok {

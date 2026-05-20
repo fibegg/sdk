@@ -7,13 +7,14 @@ import (
 
 const (
 	ProviderGemini      = "gemini"
+	ProviderAntigravity = "antigravity"
 	ProviderClaudeCode  = "claude-code"
 	ProviderOpenAICodex = "openai-codex"
 	ProviderOpenCode    = "opencode"
 	ProviderCursor      = "cursor"
 )
 
-var ValidProviders = []string{ProviderGemini, ProviderClaudeCode, ProviderOpenAICodex, ProviderOpenCode, ProviderCursor}
+var ValidProviders = []string{ProviderGemini, ProviderAntigravity, ProviderClaudeCode, ProviderOpenAICodex, ProviderOpenCode, ProviderCursor}
 
 // Agent represents an AI agent configuration.
 type Agent struct {

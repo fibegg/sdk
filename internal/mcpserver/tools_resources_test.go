@@ -215,7 +215,7 @@ func TestResourceDeleteDispatchesTemplateVersionAndSource(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 	for _, args := range []map[string]any{
-		{"resource": "template_version", "id": 6},
+		{"resource": "template_version", "template_id_or_name": 4, "id": 6},
 		{"resource": "template_source", "id_or_name": 4},
 	} {
 		_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_delete", args)
@@ -485,6 +485,10 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		if _, ok := createProps[want]; !ok {
 			t.Fatalf("expected %s in agent.create schema, got %#v", want, createProps)
 		}
+	}
+	providerEnum, ok := createProps["provider"].(map[string]any)["enum"].([]string)
+	if !ok || !containsString(providerEnum, "antigravity") {
+		t.Fatalf("expected antigravity in agent.create provider enum, got %#v", createProps["provider"])
 	}
 
 	actionSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{

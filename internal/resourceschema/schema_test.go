@@ -1,6 +1,11 @@
 package resourceschema
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+
+	"github.com/fibegg/sdk/fibe"
+)
 
 func TestCanonicalResourceNormalizesAliases(t *testing.T) {
 	for _, tc := range []struct {
@@ -261,6 +266,13 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		if _, ok := createProps[want]; !ok {
 			t.Fatalf("agent.create missing property %q: %#v", want, createProps)
 		}
+	}
+	providerEnum, ok := createProps["provider"].(map[string]any)["enum"].([]string)
+	if !ok {
+		t.Fatalf("agent.create provider enum missing: %#v", createProps["provider"])
+	}
+	if !reflect.DeepEqual(providerEnum, fibe.ValidProviders) {
+		t.Fatalf("agent.create provider enum = %#v, want %#v", providerEnum, fibe.ValidProviders)
 	}
 
 	catalog := Catalog()

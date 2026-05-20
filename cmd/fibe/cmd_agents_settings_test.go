@@ -22,6 +22,7 @@ func TestAgentCreateHelpExposesRuntimeSettingsFlags(t *testing.T) {
 		"--cli-version",
 		"--provider-args",
 		"--skill-toggle",
+		"antigravity",
 	} {
 		if !strings.Contains(help, want) {
 			t.Fatalf("agents create help missing %s:\n%s", want, help)

@@ -245,7 +245,7 @@ func buildRegistry() map[string]map[string]any {
 				"required": []string{"name", "provider"},
 				"properties": map[string]any{
 					"name":        map[string]any{"type": "string", "maxLength": 255, "description": "Agent name"},
-					"provider":    map[string]any{"type": "string", "enum": []string{"gemini", "claude-code", "openai-codex", "opencode", "aider", "custom"}, "description": "LLM provider"},
+					"provider":    map[string]any{"type": "string", "enum": fibe.ValidProviders, "description": "LLM provider"},
 					"api_key_id":  map[string]any{"type": "integer", "description": "API key to associate"},
 					"description": map[string]any{"type": "string", "description": "Agent description"},
 				},
@@ -1211,8 +1211,9 @@ func templateVersionDeleteSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"template_id_or_name", "id"},
+		"required":             []string{"resource", "template_id_or_name", "id"},
 		"properties": map[string]any{
+			"resource":            map[string]any{"type": "string", "enum": []string{"template_version"}, "description": "Canonical resource name for delete."},
 			"template_id_or_name": namedIdentifierSchema("template_id_or_name", "Import template ID or name whose version should be deleted."),
 			"id":                  map[string]any{"type": "integer", "description": "Template version ID to delete.", "minimum": 1},
 		},
