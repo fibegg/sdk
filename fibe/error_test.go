@@ -80,6 +80,11 @@ func TestAPIError_Helpers(t *testing.T) {
 	if !validation.IsValidation() {
 		t.Error("expected IsValidation")
 	}
+
+	notFunded := &APIError{Code: ErrCodeMarqueeNotFunded}
+	if !notFunded.IsMarqueeNotFunded() {
+		t.Error("expected IsMarqueeNotFunded")
+	}
 }
 
 func TestAPIError_ErrorsAs(t *testing.T) {

@@ -98,6 +98,38 @@ func TestPollAsync_Error(t *testing.T) {
 	}
 }
 
+func TestPollAsync_ErrorPreservesStructuredFields(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]any{
+			"request_id":    "req-funded",
+			"status":        "error",
+			"error":         "This Marquee is not funded. Fund it to continue.",
+			"error_code":    ErrCodeMarqueeNotFunded,
+			"error_status":  http.StatusPaymentRequired,
+			"error_details": map[string]any{"marquee_id": float64(42), "operation": "playground_creation"},
+		})
+	}))
+	defer srv.Close()
+
+	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
+	result, err := c.PollAsync(context.Background(), "/status/req-funded", &AsyncPollOptions{
+		Interval: 50 * time.Millisecond,
+		Timeout:  1 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.ErrorCode != ErrCodeMarqueeNotFunded {
+		t.Fatalf("expected code %q, got %q", ErrCodeMarqueeNotFunded, result.ErrorCode)
+	}
+	if result.ErrorStatus != http.StatusPaymentRequired {
+		t.Fatalf("expected status 402, got %d", result.ErrorStatus)
+	}
+	if result.ErrorDetails["operation"] != "playground_creation" {
+		t.Fatalf("expected operation detail, got %#v", result.ErrorDetails)
+	}
+}
+
 func TestPollAsync_Legacy422AsyncErrorPayload(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -144,6 +176,9 @@ func TestPollAsync_Legacy422APIErrorPayload(t *testing.T) {
 	}
 	if result.Status != "error" || result.Error != "connection refused" {
 		t.Fatalf("expected API error converted to async error, got %#v", result)
+	}
+	if result.ErrorCode != "REMOTE_REQUEST_FAILED" {
+		t.Fatalf("expected converted error code, got %q", result.ErrorCode)
 	}
 }
 
@@ -285,6 +320,49 @@ func TestDoAsync_202ThenPollSuccess(t *testing.T) {
 	}
 	if result.ID != 99 {
 		t.Fatalf("expected ID=99, got %d", result.ID)
+	}
+}
+
+func TestDoAsync_202ThenPollStructuredError(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		if n == 1 {
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(map[string]any{
+				"request_id": "req-funded",
+				"status":     "queued",
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"request_id":    "req-funded",
+			"status":        "error",
+			"error":         "This Marquee is not funded. Fund it to continue.",
+			"error_code":    ErrCodeMarqueeNotFunded,
+			"error_status":  http.StatusPaymentRequired,
+			"error_details": map[string]any{"operation": "agent_chat_start"},
+		})
+	}))
+	defer srv.Close()
+
+	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/99/operations", "/api/async_requests/%s", nil, nil)
+	if err == nil {
+		t.Fatal("expected async API error")
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.Code != ErrCodeMarqueeNotFunded {
+		t.Fatalf("expected code %q, got %q", ErrCodeMarqueeNotFunded, apiErr.Code)
+	}
+	if apiErr.StatusCode != http.StatusPaymentRequired {
+		t.Fatalf("expected status 402, got %d", apiErr.StatusCode)
+	}
+	if apiErr.Details["operation"] != "agent_chat_start" {
+		t.Fatalf("expected operation detail, got %#v", apiErr.Details)
 	}
 }
 

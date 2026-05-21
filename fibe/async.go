@@ -21,7 +21,10 @@ type AsyncResult struct {
 	// Populated once the operation completes (status == "success"):
 	Payload map[string]any `json:"-"`
 	// Populated when the operation fails (status == "error"):
-	Error string `json:"error,omitempty"`
+	Error        string         `json:"error,omitempty"`
+	ErrorCode    string         `json:"error_code,omitempty"`
+	ErrorStatus  int            `json:"error_status,omitempty"`
+	ErrorDetails map[string]any `json:"error_details,omitempty"`
 }
 
 // IsComplete returns true when the async operation has a terminal status.
@@ -160,6 +163,9 @@ func asyncResultFromRaw(raw map[string]any) (*AsyncResult, bool) {
 		Status:    status,
 		StatusURL: stringFromMap(raw, "status_url"),
 	}
+	result.ErrorCode = stringFromMap(raw, "error_code")
+	result.ErrorStatus = intFromMap(raw, "error_status")
+	result.ErrorDetails = mapFromMap(raw, "error_details")
 
 	if status == "success" {
 		result.Payload = raw
@@ -179,6 +185,12 @@ func asyncResultFromRaw(raw map[string]any) (*AsyncResult, bool) {
 			result.Status = "error"
 		}
 		result.Error = stringFromMap(errObj, "message")
+		if result.ErrorCode == "" {
+			result.ErrorCode = stringFromMap(errObj, "code")
+		}
+		if result.ErrorDetails == nil {
+			result.ErrorDetails = mapFromMap(errObj, "details")
+		}
 		return result, true
 	}
 
@@ -196,9 +208,12 @@ func asyncResultFromRaw(raw map[string]any) (*AsyncResult, bool) {
 func asyncErrorResultFromAPIError(statusCode int, raw map[string]any, requestID string) *AsyncResult {
 	apiErr := apiErrorFromRaw(statusCode, raw, requestID)
 	return &AsyncResult{
-		Status:  "error",
-		Payload: raw,
-		Error:   apiErr.Message,
+		Status:       "error",
+		Payload:      raw,
+		Error:        apiErr.Message,
+		ErrorCode:    apiErr.Code,
+		ErrorStatus:  apiErr.StatusCode,
+		ErrorDetails: apiErr.Details,
 	}
 }
 
@@ -258,10 +273,19 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		}
 
 		if final.Status == "error" {
+			statusCode := final.ErrorStatus
+			if statusCode == 0 {
+				statusCode = http.StatusUnprocessableEntity
+			}
+			code := final.ErrorCode
+			if code == "" {
+				code = "REMOTE_REQUEST_FAILED"
+			}
 			return &APIError{
-				StatusCode: 422,
-				Code:       "REMOTE_REQUEST_FAILED",
+				StatusCode: statusCode,
+				Code:       code,
 				Message:    final.Error,
+				Details:    final.ErrorDetails,
 			}
 		}
 
@@ -304,6 +328,22 @@ func stringFromMap(m map[string]any, key string) string {
 func mapFromMap(m map[string]any, key string) map[string]any {
 	v, _ := m[key].(map[string]any)
 	return v
+}
+
+func intFromMap(m map[string]any, key string) int {
+	switch v := m[key].(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		i, _ := v.Int64()
+		return int(i)
+	default:
+		return 0
+	}
 }
 
 func asyncStatusPath(result AsyncResult, statusPathFmt string) (string, error) {

@@ -6,21 +6,25 @@ import (
 )
 
 type Marquee struct {
-	ID                   int64     `json:"id"`
-	Name                 string    `json:"name"`
-	Host                 string    `json:"host"`
-	Port                 int       `json:"port"`
-	User                 string    `json:"user"`
-	Status               string    `json:"status"`
-	DomainsInput         *string   `json:"domains_input"`
-	HttpsEnabled         *bool     `json:"https_enabled,omitempty"`
-	TlsCertificateSource *string   `json:"tls_certificate_source,omitempty"`
-	AcmeEmail            *string   `json:"acme_email"`
-	DockerhubAuthEnabled *bool     `json:"dockerhub_auth_enabled"`
-	BuildPlatform        *string   `json:"build_platform"`
-	PropID               *int64    `json:"prop_id"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ID                    int64      `json:"id"`
+	Name                  string     `json:"name"`
+	Host                  string     `json:"host"`
+	Port                  int        `json:"port"`
+	User                  string     `json:"user"`
+	Status                string     `json:"status"`
+	DomainsInput          *string    `json:"domains_input"`
+	HttpsEnabled          *bool      `json:"https_enabled,omitempty"`
+	TlsCertificateSource  *string    `json:"tls_certificate_source,omitempty"`
+	AcmeEmail             *string    `json:"acme_email"`
+	DockerhubAuthEnabled  *bool      `json:"dockerhub_auth_enabled"`
+	BuildPlatform         *string    `json:"build_platform"`
+	PropID                *int64     `json:"prop_id"`
+	PaidUntil             *time.Time `json:"paid_until,omitempty"`
+	BillingRequestedUntil *time.Time `json:"billing_requested_until,omitempty"`
+	BillingRuntimeActive  bool       `json:"billing_runtime_active"`
+	ChatLaunchable        bool       `json:"chat_launchable"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
 }
 
 type MarqueeCreateParams struct {

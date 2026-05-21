@@ -18,16 +18,17 @@ const (
 	ErrCodeInternalError    = "INTERNAL_ERROR"
 	ErrCodeFeatureDisabled  = "FEATURE_DISABLED"
 	ErrCodeRateLimited      = "RATE_LIMITED"
+	ErrCodeMarqueeNotFunded = "MARQUEE_NOT_FUNDED"
 )
 
 type APIError struct {
-	StatusCode         int                    `json:"-"`
-	Code               string                 `json:"code"`
-	Message            string                 `json:"message"`
-	Details            map[string]any         `json:"details,omitempty"`
-	RetryAfter         time.Duration          `json:"-"`
-	RequestID          string                 `json:"-"`
-	IdempotentReplayed bool                   `json:"-"`
+	StatusCode         int            `json:"-"`
+	Code               string         `json:"code"`
+	Message            string         `json:"message"`
+	Details            map[string]any `json:"details,omitempty"`
+	RetryAfter         time.Duration  `json:"-"`
+	RequestID          string         `json:"-"`
+	IdempotentReplayed bool           `json:"-"`
 }
 
 func (e *APIError) Error() string {
@@ -54,11 +55,12 @@ func (e *APIError) IsRetryable() bool {
 	}
 }
 
-func (e *APIError) IsNotFound() bool     { return e.Code == ErrCodeNotFound }
-func (e *APIError) IsForbidden() bool     { return e.Code == ErrCodeForbidden }
-func (e *APIError) IsUnauthorized() bool  { return e.Code == ErrCodeUnauthorized }
-func (e *APIError) IsRateLimited() bool   { return e.StatusCode == 429 }
-func (e *APIError) IsValidation() bool    { return e.Code == ErrCodeValidationFailed }
+func (e *APIError) IsNotFound() bool         { return e.Code == ErrCodeNotFound }
+func (e *APIError) IsForbidden() bool        { return e.Code == ErrCodeForbidden }
+func (e *APIError) IsUnauthorized() bool     { return e.Code == ErrCodeUnauthorized }
+func (e *APIError) IsRateLimited() bool      { return e.StatusCode == 429 }
+func (e *APIError) IsValidation() bool       { return e.Code == ErrCodeValidationFailed }
+func (e *APIError) IsMarqueeNotFunded() bool { return e.Code == ErrCodeMarqueeNotFunded }
 
 type CircuitOpenError struct {
 	Resource string

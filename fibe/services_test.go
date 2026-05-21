@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func listEnv[T any](items []T) listEnvelope[T] {
@@ -516,6 +517,30 @@ func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 	}
 	if result.TlsCertificateSource == nil || *result.TlsCertificateSource != "provided" {
 		t.Fatalf("unexpected TLS source in response: %#v", result.TlsCertificateSource)
+	}
+}
+
+func TestMarqueeDecodesBillingRuntimeFields(t *testing.T) {
+	raw := []byte(`{
+		"id": 42,
+		"name": "runtime",
+		"paid_until": "2026-05-22T23:59:59Z",
+		"billing_requested_until": "2026-05-25T23:59:59Z",
+		"billing_runtime_active": true,
+		"chat_launchable": true
+	}`)
+	var marquee Marquee
+	if err := json.Unmarshal(raw, &marquee); err != nil {
+		t.Fatalf("unmarshal marquee: %v", err)
+	}
+	if marquee.PaidUntil == nil || marquee.PaidUntil.UTC().Format(time.RFC3339) != "2026-05-22T23:59:59Z" {
+		t.Fatalf("unexpected paid_until: %#v", marquee.PaidUntil)
+	}
+	if marquee.BillingRequestedUntil == nil || marquee.BillingRequestedUntil.UTC().Format(time.RFC3339) != "2026-05-25T23:59:59Z" {
+		t.Fatalf("unexpected billing_requested_until: %#v", marquee.BillingRequestedUntil)
+	}
+	if !marquee.BillingRuntimeActive || !marquee.ChatLaunchable {
+		t.Fatalf("expected runtime booleans true, got billing_runtime_active=%v chat_launchable=%v", marquee.BillingRuntimeActive, marquee.ChatLaunchable)
 	}
 }
 
