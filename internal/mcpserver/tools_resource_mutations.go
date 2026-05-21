@@ -26,7 +26,7 @@ func (s *Server) registerResourceMutationTools() {
 func (s *Server) registerResourceMutateTool() {
 	s.addTool(&toolImpl{
 		name:        "fibe_resource_mutate",
-		description: "[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request.",
+		description: "[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. Actions that use a Marquee require it to be funded.",
 		tier:        tierBase,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -61,7 +61,7 @@ func (s *Server) registerResourceMutateTool() {
 			return dispatchResourceMutation(ctx, c, canonicalResource, canonicalOperation, payload)
 		},
 	}, mcp.NewTool("fibe_resource_mutate",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation. Call fibe_schema(resource:<name>, operation:<operation>) for the exact payload schema; this tool validates that payload locally before any API request. Pass dry_run=true to validate only."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation. Call fibe_schema(resource:<name>, operation:<operation>) for the exact payload schema; this tool validates that payload locally before any API request. Pass dry_run=true to validate only. Actions that use a Marquee require it to be funded and fail with MARQUEE_NOT_FUNDED when unpaid."),
 		withRawInputSchema(resourceschema.MutationToolInputSchema()),
 	))
 }

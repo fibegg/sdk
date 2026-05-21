@@ -17,7 +17,7 @@ const greenfieldDefaultLinkDir = "/app/playground"
 
 func (s *Server) registerGreenfieldTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
+		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Marquee.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			params, waitTimeout, err := greenfieldArgsWithClient(ctx, c, args)
@@ -60,7 +60,7 @@ func (s *Server) registerGreenfieldTools() {
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_greenfield_create",
-		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link."),
+		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED."),
 		mcp.WithString("name", mcp.Description("Repository/app name; must be unique. Optional when repository_url is provided; inferred from repo name.")),
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name to use. Optional; defaults to the base template.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id_or_name or version.")),
@@ -74,7 +74,7 @@ func (s *Server) registerGreenfieldTools() {
 		mcp.WithNumber("github_installation_id", mcp.Description("GitHub App installation ID to use when multiple installations are connected.")),
 		mcp.WithString("git_provider", mcp.Description("Destination git provider: gitea or github. Optional; default: gitea.")),
 		mcp.WithBoolean("private", mcp.Description("Create destination repository as private. Optional; Fibe defaults Gitea greenfield repos to private.")),
-		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID.")),
+		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID. Must be funded.")),
 		mcp.WithObject("variables", mcp.Description("Template variables map, e.g. {\"app_name\":\"Tower\"}. Optional.")),
 		mcp.WithObject("service_subdomains", mcp.Description("Exposed service subdomain overrides, e.g. {\"app\":\"my-app\",\"admin\":\"my-app-admin\"}. Optional.")),
 		mcp.WithString("wait_timeout", mcp.Description("Max wait duration, e.g. 10m. Optional; default: 10m.")),

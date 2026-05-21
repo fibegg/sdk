@@ -401,7 +401,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass eligible state protections when the server permits it")
 	return cmd
 }
 
@@ -432,7 +432,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass eligible state protections when the server permits it")
 	return cmd
 }
 
@@ -463,7 +463,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass eligible state protections when the server permits it")
 	return cmd
 }
 
@@ -494,7 +494,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "Bypass state protections when the server permits it")
+	cmd.Flags().BoolVar(&force, "force", false, "Bypass eligible state protections when the server permits it")
 	return cmd
 }
 

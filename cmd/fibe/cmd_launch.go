@@ -23,6 +23,9 @@ func launchCmd() *cobra.Command {
 		Long: `One-shot: parse compose YAML -> create playspec -> (optionally) deploy playground on a marquee.
 Fastest path from raw Docker Compose YAML to a running environment.
 
+Deploying a playground or trick requires a funded target Marquee. If billing is
+expired or missing, the server returns MARQUEE_NOT_FUNDED before deployment starts.
+
 PLAYGROUND CREATION RULES:
   - When --marquee-id is provided, a playground is created on that marquee by default.
   - When --marquee-id is omitted, only the playspec (and any props) are created;

@@ -552,7 +552,7 @@ func tplLaunchCmd() *cobra.Command {
 	var version int64
 	cmd := &cobra.Command{
 		Use: "launch <id-or-name>", Short: "Launch a playground from template", Args: cobra.ExactArgs(1),
-		Long: "Create a new playground using this template.\n\nREQUIRED FLAGS:\n  --marquee-id   Target marquee for the new playground\n\nOPTIONAL FLAGS:\n  --name         Override generated playground name\n  --version      Launch a specific template version\n\nEXAMPLES:\n  fibe templates launch rails-starter --marquee-id next\n  fibe templates launch rails-starter --marquee-id next --name my-playground --version 3",
+		Long: "Create a new playground using this template.\n\nThe target Marquee must be funded. The server returns MARQUEE_NOT_FUNDED when billing is expired or missing.\n\nREQUIRED FLAGS:\n  --marquee-id   Target marquee for the new playground\n\nOPTIONAL FLAGS:\n  --name         Override generated playground name\n  --version      Launch a specific template version\n\nEXAMPLES:\n  fibe templates launch rails-starter --marquee-id next\n  fibe templates launch rails-starter --marquee-id next --name my-playground --version 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ImportTemplateLaunchParams{MarqueeIdentifier: marqueeID}

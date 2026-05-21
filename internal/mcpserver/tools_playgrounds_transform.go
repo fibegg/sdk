@@ -20,7 +20,7 @@ func (s *Server) registerPlaygroundTransformTool(name string) {
 	schema, _, _, _ := resourceschema.SchemaFor("playground", "transform")
 	inputSchema, _ := schema.(map[string]any)
 
-	description := "[MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create."
+	description := "[MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Marquee and fails with MARQUEE_NOT_FUNDED when unpaid."
 
 	s.addTool(&toolImpl{
 		name:        name,

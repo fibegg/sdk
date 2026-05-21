@@ -196,6 +196,8 @@ func trTriggerCmd() *cobra.Command {
 
 A trick name is auto-generated as "{playspec-name}-{random}" unless
 you provide one explicitly with --name.
+The selected Marquee must be funded; unpaid Marquees fail
+with MARQUEE_NOT_FUNDED.
 
 REQUIRED FLAGS:
   --playspec-id   ID or name of the job-mode playspec

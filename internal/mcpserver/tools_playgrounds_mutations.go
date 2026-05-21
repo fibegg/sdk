@@ -10,7 +10,7 @@ import (
 
 func (s *Server) registerPlaygroundMutationTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.", tier: tierBrownfield,
+		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Marquee fail with MARQUEE_NOT_FUNDED when unpaid; stop cleanup remains allowed.", tier: tierBrownfield,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -29,10 +29,10 @@ func (s *Server) registerPlaygroundMutationTools() {
 			return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
 		},
 	}, mcp.NewTool("fibe_playgrounds_action",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Marquee fail with MARQUEE_NOT_FUNDED when unpaid; stop cleanup remains allowed."),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("action_type", mcp.Required(), mcp.Description("Lifecycle action to perform.")),
-		mcp.WithBoolean("force", mcp.Description("Bypass normal state guards when the server permits forced execution.")),
+		mcp.WithBoolean("force", mcp.Description("Bypass eligible state guards when the server permits forced execution.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
 	registerPlaygroundDebugTool := func(name, desc string) {

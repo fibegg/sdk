@@ -45,6 +45,8 @@ func greenfieldCmd() *cobra.Command {
 
 The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
+The target Marquee must be funded; unpaid Marquees fail with
+MARQUEE_NOT_FUNDED before deployment starts.
 
 Examples:
   fibe greenfield owner/repo --marquee-id 12

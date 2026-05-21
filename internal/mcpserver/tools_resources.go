@@ -53,7 +53,7 @@ func (s *Server) registerResourceTools() {
 
 	s.addTool(&toolImpl{
 		name:        "fibe_resource_watch",
-		description: "[MODE:DIALOG] Watch supported Fibe resource events through AnyCable.",
+		description: "[MODE:DIALOG] Watch supported Fibe resource events.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -71,7 +71,7 @@ func (s *Server) registerResourceTools() {
 			return s.runResourceWatch(ctx, c, canonical, args)
 		},
 	}, mcp.NewTool("fibe_resource_watch",
-		mcp.WithDescription("[MODE:DIALOG] Watch supported Fibe resource events through AnyCable. Currently supports agent resources."),
+		mcp.WithDescription("[MODE:DIALOG] Watch supported Fibe resource events. Currently supports agent resources."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(resourceschema.ResourceSelectorsForOperation("watch")...), mcp.Description("Canonical resource name or explicit alias.")),
 		mcp.WithNumber("max_events", mcp.Description("Stop after N events (default: 25).")),
 		mcp.WithString("duration", mcp.Description("Max watch duration as Go duration (default: 30s, max: 30m).")),

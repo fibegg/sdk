@@ -57,7 +57,7 @@ func (s *Server) registerTemplateChangeTools() {
 func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	schema, _, _, _ := resourceschema.SchemaFor("template", "change")
 	inputSchema, _ := schema.(map[string]any)
-	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run."
+	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run. Rollout/trigger actions require a funded Marquee and fail with MARQUEE_NOT_FUNDED when unpaid."
 	s.addTool(&toolImpl{
 		name:        name,
 		description: description,

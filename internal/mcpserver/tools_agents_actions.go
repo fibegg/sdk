@@ -14,7 +14,7 @@ import (
 func (s *Server) registerAgentActionTools() {
 	// chat
 	s.addTool(&toolImpl{
-		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent runtime chat.", tier: tierOverseer,
+		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -43,12 +43,12 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.ChatByIdentifier(ctx, identifier, &p)
 		},
 	}, mcp.NewTool("fibe_agents_send_message",
-		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent runtime chat, optionally uploading local attachments first."),
+		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent chat, optionally uploading local attachments first. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid."),
 		withRawInputSchema(agentSendMessageInputSchema()),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent runtime chat on the current Marquee.", tier: tierOverseer,
+		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -62,12 +62,12 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, strconv.FormatInt(marqueeID, 10))
 		},
 	}, mcp.NewTool("fibe_agents_start_chat",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent runtime chat on the current Marquee from FIBE_MARQUEE_ID."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee from FIBE_MARQUEE_ID. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED."),
 		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent runtime reachability, authentication, queue, and processing state.", tier: tierOverseer,
+		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with MARQUEE_NOT_FUNDED when unpaid.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -77,12 +77,12 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.RuntimeStatusByIdentifier(ctx, identifier)
 		},
 	}, mcp.NewTool("fibe_agents_runtime_status",
-		mcp.WithDescription("[MODE:OVERSEER] Check agent runtime reachability, authentication, queue, and processing state."),
+		mcp.WithDescription("[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with MARQUEE_NOT_FUNDED when unpaid."),
 		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_live_state", description: "[MODE:OVERSEER] Check conversation-scoped agent runtime stream state.", tier: tierOverseer,
+		name: "fibe_agents_live_state", description: "[MODE:OVERSEER] Check conversation-scoped agent live stream state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -92,7 +92,7 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.LiveStateByIdentifier(ctx, identifier, &fibe.AgentDataParams{ConversationID: argString(args, "conversation_id")})
 		},
 	}, mcp.NewTool("fibe_agents_live_state",
-		mcp.WithDescription("[MODE:OVERSEER] Check conversation-scoped agent runtime stream state."),
+		mcp.WithDescription("[MODE:OVERSEER] Check conversation-scoped agent live stream state."),
 		withRawInputSchema(agentConversationInputSchema("Agent ID or name.", false)),
 	))
 
@@ -222,7 +222,7 @@ func agentConversationInputSchema(description string, requireConversation bool) 
 	props := schema["properties"].(map[string]any)
 	props["conversation_id"] = map[string]any{
 		"type":        "string",
-		"description": "Specific runtime conversation/thread ID.",
+		"description": "Specific conversation/thread ID.",
 	}
 	if requireConversation {
 		schema["required"] = []string{"id_or_name", "conversation_id"}
@@ -250,7 +250,7 @@ func agentSendMessageInputSchema() map[string]any {
 	}
 	props["conversation_id"] = map[string]any{
 		"type":        "string",
-		"description": "Specific runtime conversation/thread ID. Optional.",
+		"description": "Specific conversation/thread ID. Optional.",
 	}
 	props["busy_policy"] = map[string]any{
 		"type":        "string",

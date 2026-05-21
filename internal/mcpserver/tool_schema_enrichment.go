@@ -278,7 +278,7 @@ var knownPropertyDescriptions = map[string]string{
 	"domains_input":          "Domain list or domain configuration input.",
 	"edits":                  "Patch edits to apply.",
 	"enabled":                "Whether the resource is enabled.",
-	"https_enabled":          "Enable Traefik HTTPS routing for the Marquee.",
+	"https_enabled":          "Enable HTTPS routing for the Marquee.",
 	"env_overrides":          "Environment variable overrides for a playground launch.",
 	"event_filters":          "Webhook event filter object.",
 	"events":                 "Webhook event names.",

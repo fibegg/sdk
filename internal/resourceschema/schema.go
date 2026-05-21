@@ -513,7 +513,7 @@ func agentUploadAttachmentSchema() map[string]any {
 			"filename":       map[string]any{"type": "string", "description": "Runtime filename. Defaults to basename(content_path) or attachment."},
 			"conversation_id": map[string]any{
 				"type":        "string",
-				"description": "Specific runtime conversation/thread ID. Optional.",
+				"description": "Specific conversation/thread ID. Optional.",
 			},
 		},
 	}
@@ -528,7 +528,7 @@ func agentAttachmentGetSchema() map[string]any {
 			"resource":         map[string]any{"type": "string", "description": "Use agent_attachment or one of its aliases."},
 			"agent_id_or_name": namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the runtime attachment."),
 			"filename":         map[string]any{"type": "string", "description": "Runtime attachment filename returned by upload or stored in message history."},
-			"conversation_id":  map[string]any{"type": "string", "description": "Specific runtime conversation/thread ID. Optional."},
+			"conversation_id":  map[string]any{"type": "string", "description": "Specific conversation/thread ID. Optional."},
 		},
 	}
 }
@@ -1482,7 +1482,7 @@ var schemaFieldDescriptions = map[string]string{
 	"dockerhub_username":     "Docker Hub username.",
 	"domains_input":          "Domain list or domain configuration input.",
 	"enabled":                "Whether the resource is enabled.",
-	"https_enabled":          "Enable Traefik HTTPS routing for the Marquee.",
+	"https_enabled":          "Enable HTTPS routing for the Marquee.",
 	"env_overrides":          "Environment variable overrides for a playground launch.",
 	"event_filters":          "Webhook event filter object.",
 	"events":                 "Webhook event names.",

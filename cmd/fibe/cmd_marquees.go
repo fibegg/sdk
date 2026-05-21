@@ -16,6 +16,8 @@ func marqueesCmd() *cobra.Command {
 
 A marquee is a server (VPS, bare metal, etc.) that hosts your playgrounds.
 Marquees are connected via SSH and managed by Fibe.
+Actions on unpaid Marquees fail with MARQUEE_NOT_FUNDED; billing/funding
+and cleanup remain allowed.
 
 SUBCOMMANDS:
   list                  List all marquees
@@ -212,7 +214,7 @@ func mqCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&user, "user", "", "SSH user (required)")
 	cmd.Flags().StringVar(&sshKey, "ssh-key", "", "SSH private key (required)")
 	cmd.Flags().StringVar(&status, "status", "", "Initial status")
-	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable Traefik HTTPS routing")
+	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable HTTPS routing")
 	cmd.Flags().StringVar(&tlsCertificateSource, "tls-certificate-source", "", "TLS certificate source: automatic or provided")
 	cmd.Flags().StringVar(&tlsCertificatePEM, "tls-certificate-pem", "", "Provided TLS certificate PEM")
 	cmd.Flags().StringVar(&tlsPrivateKeyPEM, "tls-private-key-pem", "", "Provided TLS private key PEM")
@@ -267,7 +269,7 @@ func mqUpdateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "New name")
 	cmd.Flags().StringVar(&status, "status", "", "New status")
-	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable Traefik HTTPS routing")
+	cmd.Flags().BoolVar(&httpsEnabled, "https-enabled", true, "Enable HTTPS routing")
 	cmd.Flags().StringVar(&tlsCertificateSource, "tls-certificate-source", "", "TLS certificate source: automatic or provided")
 	cmd.Flags().StringVar(&tlsCertificatePEM, "tls-certificate-pem", "", "Provided TLS certificate PEM")
 	cmd.Flags().StringVar(&tlsPrivateKeyPEM, "tls-private-key-pem", "", "Provided TLS private key PEM")

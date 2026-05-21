@@ -38,7 +38,7 @@ func (s *Server) registerImportTemplateActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_templates_launch", description: "[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template.", tier: tierGreenfield,
+		name: "fibe_templates_launch", description: "[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template. Target Marquee must be funded or the server returns MARQUEE_NOT_FUNDED.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "template_id_or_name", "")
@@ -62,7 +62,7 @@ func (s *Server) registerImportTemplateActionTools() {
 			return c.ImportTemplates.LaunchWithParamsByIdentifier(ctx, identifier, &p)
 		},
 	}, mcp.NewTool("fibe_templates_launch",
-		mcp.WithDescription("[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template."),
+		mcp.WithDescription("[MODE:GREENFIELD] Bootstrap and launch a new playground directly from an import template. Target Marquee must be funded or the server returns MARQUEE_NOT_FUNDED."),
 		mcp.WithString("template_id_or_name", mcp.Required(), mcp.Description("Template ID or name")),
 		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to FIBE_MARQUEE_ID.")),
 		mcp.WithString("name", mcp.Description("Optional playground name override")),

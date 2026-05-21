@@ -19,7 +19,7 @@ import (
 // "wait until I see 'listening on :8080' in the logs").
 func (s *Server) registerLogsFollowTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_logs_follow", description: "[MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications", tier: tierBrownfield,
+		name: "fibe_playgrounds_logs_follow", description: "[MODE:SIDEEFFECTS] Stream live service logs from a playground as progress notifications. Fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLogsFollow(ctx, c, args)
@@ -27,7 +27,7 @@ func (s *Server) registerLogsFollowTool() {
 	}, mcp.NewTool("fibe_playgrounds_logs_follow",
 		mcp.WithDescription(`Stream playground service logs. Each new log line becomes an MCP progress notification. Returns when duration elapses or max_lines is reached.
 
-Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear.`),
+Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear. Unpaid Marquees fail with MARQUEE_NOT_FUNDED.`),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("service", mcp.Required(), mcp.Description("Compose service name, for example web or worker.")),
 		mcp.WithNumber("tail", mcp.Description("Initial lines from history (default: 50)")),

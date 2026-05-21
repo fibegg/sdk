@@ -37,12 +37,12 @@ SUBCOMMANDS:
   duplicate <id-or-name> Clone an agent
   start-chat <id-or-name> Start an interactive chat session on a Marquee
   restart-chat <id-or-name> Restart the current chat container
-  runtime-status <id-or-name> Show agent chat runtime status
-  watch                 Watch agent resource events through AnyCable
+  runtime-status <id-or-name> Show agent chat live status
+  watch                 Watch agent resource events
   purge-chat <id-or-name> Tear down agent chat container and volumes
   chat <id-or-name>     Send a chat message
-  upload-attachment <id-or-name> Upload a runtime chat attachment
-  download-attachment <id-or-name> <filename> Download a runtime chat attachment
+  upload-attachment <id-or-name> Upload a chat attachment
+  download-attachment <id-or-name> <filename> Download a chat attachment
   authenticate <id-or-name> Authenticate agent with provider
   add-mounted-file <id-or-name> Attach a mounted file or Artefact snapshot
   update-mounted-file <id-or-name> Update mounted file metadata
@@ -649,6 +649,9 @@ func agStartChatCmd() *cobra.Command {
 		Short: "Start an interactive chat session for an agent",
 		Long: `Start the agent chat runtime on a target Marquee.
 
+The target Marquee must be funded. The server returns
+MARQUEE_NOT_FUNDED when billing is expired or missing.
+
 REQUIRED FLAGS:
   --marquee-id   Target Marquee ID or name
 
@@ -675,9 +678,8 @@ EXAMPLES:
 func agRuntimeStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "runtime-status <id-or-name>",
-		Short: "Show agent chat runtime status",
-		Long: `Show the latest chat status for an agent and, when the runtime is running,
-query its authenticated/processing/queue state.
+		Short: "Show agent chat live status",
+		Long: `Show the latest chat status for an agent and its authenticated/processing/queue state.
 
 EXAMPLES:
   fibe agents runtime-status builder
@@ -709,8 +711,8 @@ func agWatchCmd() *cobra.Command {
 	var duration time.Duration
 	cmd := &cobra.Command{
 		Use:   "watch",
-		Short: "Watch agent resource events through AnyCable",
-		Long: `Watch agent resource events through the Rails AnyCable endpoint.
+		Short: "Watch agent resource events",
+		Long: `Watch agent resource events through Fibe's live event stream.
 
 Events are emitted as NDJSON and include the raw resource event payload.
 
@@ -771,14 +773,13 @@ func agLiveStateCmd() *cobra.Command {
 	var conversationID string
 	cmd := &cobra.Command{
 		Use:   "live-state <id-or-name>",
-		Short: "Show agent runtime live state",
-		Long: `Show the current runtime live state for an agent conversation.
+		Short: "Show agent live state",
+		Long: `Show the current live state for an agent conversation.
 
-This includes transient processing state and streamed text when the runtime
-exposes it.
+This includes transient processing state and streamed text when available.
 
 OPTIONAL FLAGS:
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents live-state builder --conversation-id conv-123
@@ -793,7 +794,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 
@@ -802,10 +803,10 @@ func agCreateConversationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create-conversation <id-or-name>",
 		Short: "Create or upsert an agent conversation",
-		Long: `Create or upsert a deterministic runtime conversation for an agent.
+		Long: `Create or upsert a deterministic conversation for an agent.
 
 REQUIRED FLAGS:
-  --conversation-id   Runtime conversation/thread ID
+  --conversation-id   Conversation/thread ID
 
 OPTIONAL FLAGS:
   --title             Human-readable title
@@ -828,7 +829,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Runtime conversation/thread ID (required)")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Conversation/thread ID (required)")
 	cmd.Flags().StringVar(&title, "title", "", "Human-readable title")
 	return cmd
 }
@@ -838,10 +839,10 @@ func agDeleteConversationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete-conversation <id-or-name>",
 		Short: "Delete an agent conversation",
-		Long: `Delete a runtime conversation for an agent.
+		Long: `Delete a conversation for an agent.
 
 REQUIRED FLAGS:
-  --conversation-id   Runtime conversation/thread ID
+  --conversation-id   Conversation/thread ID
 
 EXAMPLES:
   fibe agents delete-conversation builder --conversation-id conv-123`,
@@ -861,7 +862,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Runtime conversation/thread ID (required)")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Conversation/thread ID (required)")
 	return cmd
 }
 
@@ -873,7 +874,7 @@ func agInterruptCmd() *cobra.Command {
 		Long: `Interrupt the current running turn for an agent.
 
 OPTIONAL FLAGS:
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents interrupt builder --conversation-id conv-123
@@ -888,18 +889,18 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 
 func agRestartChatCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart-chat <id-or-name>",
-		Short: "Restart an agent chat runtime",
-		Long: `Restart the current agent chat runtime in place.
+		Short: "Restart an agent chat",
+		Long: `Restart the current agent chat in place.
 
 This preserves chat volumes and queues the normal start/deploy path, so the
-runtime pulls the current configured image before coming back up.
+chat uses the current configured image before coming back up.
 
 EXAMPLES:
   fibe agents restart-chat builder
@@ -924,9 +925,9 @@ func agPurgeChatCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "purge-chat <id-or-name>",
 		Short: "Queue teardown of an agent chat container and volumes",
-		Long: `Queue teardown of the latest agent chat runtime container and persistent volumes.
+		Long: `Queue teardown of the latest agent chat environment and persistent volumes.
 
-WARNING: This removes runtime volumes for the agent chat.
+WARNING: This removes persistent volumes for the agent chat.
 
 EXAMPLES:
   fibe agents purge-chat builder
@@ -970,10 +971,10 @@ REQUIRED FLAGS:
   --text                  Message text to send
 
 OPTIONAL FLAGS:
-  --conversation-id       Specific runtime conversation/thread ID
-  --busy-policy           Runtime busy behavior, e.g. queue
+  --conversation-id       Specific conversation/thread ID
+  --busy-policy           Agent busy behavior, e.g. queue
   --attach                Local file path to upload before sending. Repeatable
-  --attachment-filename   Already-uploaded runtime filename to include. Repeatable
+  --attachment-filename   Already-uploaded filename to include. Repeatable
 
 EXAMPLES:
   fibe agents send-message builder --text "Fix the failing tests"
@@ -1025,10 +1026,10 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&text, "text", "", "Chat message text (required)")
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
-	cmd.Flags().StringVar(&busyPolicy, "busy-policy", "", "Runtime busy behavior, e.g. queue")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
+	cmd.Flags().StringVar(&busyPolicy, "busy-policy", "", "Agent busy behavior, e.g. queue")
 	cmd.Flags().StringArrayVar(&attachmentPaths, "attach", nil, "Local file path to upload before sending (repeatable)")
-	cmd.Flags().StringArrayVar(&attachmentFilenames, "attachment-filename", nil, "Already-uploaded runtime filename to include (repeatable)")
+	cmd.Flags().StringArrayVar(&attachmentFilenames, "attachment-filename", nil, "Already-uploaded filename to include (repeatable)")
 	return cmd
 }
 
@@ -1037,8 +1038,8 @@ func agUploadAttachmentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "upload-attachment <id-or-name>",
 		Aliases: []string{"upload"},
-		Short:   "Upload a runtime chat attachment",
-		Long: `Upload a file to an agent runtime through Rails.
+		Short:   "Upload a chat attachment",
+		Long: `Upload a file for an agent chat.
 
 The returned filename can be passed to send-message with --attachment-filename
 or later downloaded with download-attachment.
@@ -1048,7 +1049,7 @@ REQUIRED FLAGS:
 
 OPTIONAL FLAGS:
   --filename          Override uploaded filename
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents upload-attachment my-agent --file ./context.zip
@@ -1076,7 +1077,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&filePath, "file", "", "Local file path to upload (required)")
 	cmd.Flags().StringVar(&filename, "filename", "", "Override uploaded filename")
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 
@@ -1085,14 +1086,14 @@ func agDownloadAttachmentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "download-attachment <id-or-name> <filename>",
 		Aliases: []string{"download-upload"},
-		Short:   "Download a runtime chat attachment",
-		Long: `Download an agent runtime attachment through Rails.
+		Short:   "Download a chat attachment",
+		Long: `Download an agent chat attachment.
 
 REQUIRED FLAGS:
   --to                Output file path (use - for stdout)
 
 OPTIONAL FLAGS:
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents download-attachment my-agent runtime-file.zip --to ./runtime-file.zip
@@ -1133,7 +1134,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVar(&to, "to", "", "Output file path (required, use - for stdout)")
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 
@@ -1188,7 +1189,7 @@ func agMessagesCmd() *cobra.Command {
 Messages are agent conversation history stored as JSON.
 
 OPTIONAL FLAGS:
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents messages my-agent
@@ -1204,7 +1205,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 
@@ -1219,7 +1220,7 @@ Activity logs track what the agent has done, including actions taken
 and their outcomes.
 
 OPTIONAL FLAGS:
-  --conversation-id   Specific runtime conversation/thread ID
+  --conversation-id   Specific conversation/thread ID
 
 EXAMPLES:
   fibe agents activity my-agent
@@ -1235,7 +1236,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific runtime conversation/thread ID")
+	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	return cmd
 }
 

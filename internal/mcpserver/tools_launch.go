@@ -12,7 +12,7 @@ import (
 
 func (s *Server) registerLaunchTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_launch_create", description: "[MODE:GREENFIELD] Create a playspec and optionally deploy a playground from compose YAML or a GitHub repository config file.", tier: tierGreenfield,
+		name: "fibe_launch_create", description: "[MODE:GREENFIELD] Create a playspec and optionally deploy a playground from compose YAML or a GitHub repository config file. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			params, err := launchArgs(ctx, c, args)
@@ -22,7 +22,7 @@ func (s *Server) registerLaunchTools() {
 			return c.Launch.Create(ctx, params)
 		},
 	}, mcp.NewTool("fibe_launch_create",
-		mcp.WithDescription("Create a playspec and optionally deploy a playground from compose YAML or a GitHub repository config file."),
+		mcp.WithDescription("Create a playspec and optionally deploy a playground from compose YAML or a GitHub repository config file. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED."),
 		mcp.WithString("name", mcp.Description("Launch name. Optional when repository_url is provided; inferred from repo name.")),
 		mcp.WithString("compose_yaml", mcp.Description("Docker Compose or Fibe YAML content. Optional when repository_url is provided.")),
 		mcp.WithString("compose_yaml_path", mcp.Description("Absolute local path to Docker Compose or Fibe YAML (local MCP only). Optional when repository_url is provided.")),
