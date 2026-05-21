@@ -12,14 +12,7 @@ import (
 )
 
 func TestE2EMCPTools(t *testing.T) {
-	apiKey := os.Getenv("FIBE_API_KEY")
-	if apiKey == "" {
-		t.Skip("FIBE_API_KEY not set, skipping e2e tests")
-	}
-	domain := os.Getenv("FIBE_DOMAIN")
-	if domain == "" {
-		domain = "localhost:3000" // fallback
-	}
+	apiKey, domain := requireRealServer(t)
 
 	srv := New(Config{
 		APIKey:  apiKey,
