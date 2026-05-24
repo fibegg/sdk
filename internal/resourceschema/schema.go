@@ -354,8 +354,8 @@ func buildRegistry() map[string]map[string]any {
 	out["agent_poke"]["update"] = agentPokeUpdateSchema()
 	out["artefact"]["create"] = artefactCreateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
-	out["playspec"]["create"] = paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml")
-	out["playspec"]["update"] = renameSchemaField(updateParamsSchemaFor[fibe.PlayspecUpdateParams]("playspec_id"), "playspec_id", "id_or_name", "Playspec ID or slug-safe name.")
+	out["playspec"]["create"] = withPlayspecConfigSchemas(paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml"))
+	out["playspec"]["update"] = withPlayspecConfigSchemas(renameSchemaField(updateParamsSchemaFor[fibe.PlayspecUpdateParams]("playspec_id"), "playspec_id", "id_or_name", "Playspec ID or slug-safe name."))
 	out["prop"]["create"] = withPropertyEnum(paramsSchema[fibe.PropCreateParams]("repository_url"), "provider", []string{"github", "gitea"})
 	out["prop"]["update"] = withPropertyEnum(renameSchemaField(updateParamsSchemaFor[fibe.PropUpdateParams]("prop_id"), "prop_id", "id_or_name", "Prop ID or slug-safe name."), "provider", []string{"github", "gitea"})
 	out["marquee"]["create"] = marqueeCreateSchema()
@@ -432,6 +432,63 @@ func updateParamsSchemaFor[P any](idField string) map[string]any {
 	}
 	schema["required"] = []string{idField}
 	return schema
+}
+
+func withPlayspecConfigSchemas(schema map[string]any) map[string]any {
+	props, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema
+	}
+	props["schedule_config"] = playspecScheduleConfigSchema()
+	props["trigger_config"] = playspecTriggerConfigSchema()
+	props["muti_config"] = playspecMutiConfigSchema()
+	return schema
+}
+
+func playspecScheduleConfigSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"description":          "Scheduled job configuration for a job-mode Playspec.",
+		"properties": map[string]any{
+			"enabled":    map[string]any{"type": "boolean", "description": "Whether scheduled job runs are enabled."},
+			"cron":       map[string]any{"type": "string", "description": "Cron or Fugit schedule expression, for example every 5 minutes."},
+			"marquee_id": namedIdentifierSchema("marquee_id", "Target Marquee ID or name for scheduled job runs."),
+		},
+	}
+}
+
+func playspecTriggerConfigSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"description":          "Git event trigger configuration for a job-mode Playspec.",
+		"properties": map[string]any{
+			"enabled":         map[string]any{"type": "boolean", "description": "Whether CI trigger runs are enabled."},
+			"event_type":      map[string]any{"type": "string", "enum": []string{"push", "pull_request"}, "description": "Git event type that triggers the Playspec."},
+			"branch":          map[string]any{"type": "string", "description": "Branch filter for trigger events."},
+			"prop_id":         namedIdentifierSchema("prop_id", "Prop ID or name whose git events trigger the Playspec."),
+			"marquee_id":      namedIdentifierSchema("marquee_id", "Target Marquee ID or name for CI trigger runs."),
+			"agent_id":        namedIdentifierSchema("agent_id", "Agent ID or name to notify when a CI trigger job fails."),
+			"max_retries":     map[string]any{"type": "integer", "minimum": 0, "maximum": 10, "description": "Maximum reruns after CI trigger failure."},
+			"prompt_template": map[string]any{"type": "string", "description": "Prompt template sent to the selected Agent on CI failure. Supports {{logs}}."},
+		},
+	}
+}
+
+func playspecMutiConfigSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"description":          "Muti mutation-cure configuration.",
+		"properties": map[string]any{
+			"enabled":         map[string]any{"type": "boolean", "description": "Whether Muti mutation-cure jobs are enabled."},
+			"language":        map[string]any{"type": "string", "description": "Mutation language, for example ruby."},
+			"prop_id":         namedIdentifierSchema("prop_id", "Prop ID or name whose surviving mutations should be cured."),
+			"agent_id":        namedIdentifierSchema("agent_id", "Agent ID or name to notify for surviving mutations."),
+			"prompt_template": map[string]any{"type": "string", "description": "Prompt template sent to the selected Agent for surviving mutations. Supports {{diff}} and mutation metadata placeholders."},
+		},
+	}
 }
 
 func renameSchemaField(schema map[string]any, oldName, newName, description string) map[string]any {
@@ -1526,6 +1583,7 @@ var schemaFieldDescriptions = map[string]string{
 	"service_subdomains":     "Per-service subdomain overrides.",
 	"service":                "Compose service name.",
 	"services":               "Per-service configuration.",
+	"schedule_config":        "Scheduled job configuration object.",
 	"sort":                   "Sort expression.",
 	"source_type":            "Source object type.",
 	"ssh_private_key":        "SSH private key.",
@@ -1543,6 +1601,7 @@ var schemaFieldDescriptions = map[string]string{
 	"template_body":          "Import template YAML body.",
 	"tool_filters":           "Webhook tool filter object.",
 	"trigger_config":         "Trigger configuration object.",
+	"muti_config":            "Muti mutation-cure configuration object.",
 	"url":                    "HTTP URL.",
 	"user":                   "SSH username.",
 	"variables":              "Template variables used while rendering a template.",

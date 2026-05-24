@@ -175,6 +175,7 @@ EXAMPLES:
 func psCreateCmd() *cobra.Command {
 	var name, compose, description string
 	var persistVolumes, jobMode bool
+	var configFlags playspecConfigFlags
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -185,7 +186,8 @@ CORE CONCEPTS:
   - Default services are purely static abstractions of the compose YAML.
   - "Dynamic" services directly attach an external Source Code Repository (Prop_ID) to that service to hot-mount working trees.
   - Job Mode: Set job_mode=true to run playgrounds as headless tasks without long-running domains.
-  - Automated Jobs: Use trigger_config to bind this playspec to trigger autonomously on GitHub pushes.
+  - Automated Jobs: Use schedule and trigger flags to run job-mode Playspecs automatically.
+  - Agent Prompts: Use --trigger-agent-id/--trigger-prompt-template for CI failure messages, and --muti-* flags for mutation-cure jobs.
 
 ZERO-DOWNTIME & ROUTING CONSTRAINTS:
   - When zerodowntime=true, static compose array 'ports:' are strictly forbidden (it prevents rolling coexist conflicts). You must define 'services[X].exposure_port' instead.
@@ -201,12 +203,14 @@ OPTIONAL FLAGS:
   --persist-volumes   Persist Docker volumes across recreations
   --job-mode          Headless job-mode playspec (used by 'fibe tricks')
 
-For complex 'services', 'trigger_config', 'muti_config', use --from-file.
+For complex 'services', use --from-file. Schedule, trigger, and Muti configs also accept JSON/YAML through --from-file.
 
 EXAMPLES:
   fibe playspecs create --name my-spec --compose @docker-compose.yml
   fibe ps create --name api --compose @docker-compose.yml --description "API server"
   fibe ps create --name ci --compose @ci.yml --job-mode
+  fibe ps create --name ci --compose @ci.yml --job-mode --trigger-enabled --trigger-prop-id api --trigger-marquee-id ci-runner --trigger-agent-id fixer --trigger-prompt-template @ci-prompt.txt
+  fibe ps create --name muti --compose @muti.yml --job-mode --muti-enabled --muti-language ruby --muti-prop-id api --muti-agent-id fixer
   fibe playspecs create -f payload.json` + generateSchemaDoc(&fibe.PlayspecCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -230,6 +234,7 @@ EXAMPLES:
 			if cmd.Flags().Changed("job-mode") {
 				params.JobMode = &jobMode
 			}
+			applyPlayspecCreateConfigFlags(cmd, params, configFlags)
 
 			if params.BaseComposeYAML == "" && len(rawPayload) > 0 {
 				params.BaseComposeYAML = string(rawPayload)
@@ -260,12 +265,14 @@ EXAMPLES:
 	cmd.Flags().StringVar(&description, "description", "", "Playspec description")
 	cmd.Flags().BoolVar(&persistVolumes, "persist-volumes", false, "Persist Docker volumes across recreations")
 	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Headless job-mode playspec")
+	registerPlayspecConfigFlags(cmd, &configFlags)
 	return cmd
 }
 
 func psUpdateCmd() *cobra.Command {
 	var name, description, baseCompose string
 	var persistVolumes, jobMode bool
+	var configFlags playspecConfigFlags
 
 	cmd := &cobra.Command{
 		Use:   "update <id-or-name>",
@@ -279,12 +286,14 @@ OPTIONAL FLAGS:
   --persist-volumes   Update persist-volumes setting
   --job-mode          Update job-mode setting
 
-For complex 'services', 'trigger_config', 'muti_config', use --from-file.
+For complex 'services', use --from-file. Schedule, trigger, and Muti configs also accept JSON/YAML through --from-file.
 
 EXAMPLES:
   fibe playspecs update 42 --name new-name
   fibe ps update 42 --description "Updated description" --persist-volumes
   fibe ps update 42 --base-compose @updated-compose.yml
+  fibe ps update 42 --trigger-agent-id fixer --trigger-prompt-template @ci-prompt.txt
+  fibe ps update 42 --muti-enabled --muti-language ruby --muti-prop-id api --muti-agent-id fixer
   fibe ps update 42 -f updates.yml` + generateSchemaDoc(&fibe.PlayspecUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -309,6 +318,9 @@ EXAMPLES:
 			if cmd.Flags().Changed("job-mode") {
 				params.JobMode = &jobMode
 			}
+			if err := applyPlayspecUpdateConfigFlags(cmd, c, args[0], params, configFlags); err != nil {
+				return err
+			}
 			spec, err := c.Playspecs.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
@@ -327,6 +339,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&baseCompose, "base-compose", "", "New base compose YAML (use @file)")
 	cmd.Flags().BoolVar(&persistVolumes, "persist-volumes", false, "Update persist-volumes setting")
 	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Update job-mode setting")
+	registerPlayspecConfigFlags(cmd, &configFlags)
 	return cmd
 }
 

@@ -275,6 +275,71 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("agent.create provider enum = %#v, want %#v", providerEnum, fibe.ValidProviders)
 	}
 
+	playspecCreate, _, op, ok := SchemaFor("playspec", "create")
+	if !ok || op != "create" {
+		t.Fatalf("playspec.create schema missing")
+	}
+	playspecCreateProps := playspecCreate.(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"schedule_config", "trigger_config", "muti_config"} {
+		prop, ok := playspecCreateProps[field].(map[string]any)
+		if !ok {
+			t.Fatalf("playspec.create missing %q: %#v", field, playspecCreateProps)
+		}
+		if prop["type"] != "object" {
+			t.Fatalf("playspec.create %s type = %#v, want object", field, prop["type"])
+		}
+	}
+	triggerProps := playspecCreateProps["trigger_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "event_type", "branch", "prop_id", "marquee_id", "agent_id", "max_retries", "prompt_template"} {
+		if _, ok := triggerProps[field]; !ok {
+			t.Fatalf("playspec.trigger_config missing %q: %#v", field, triggerProps)
+		}
+	}
+	if _, ok := triggerProps["event_type"].(map[string]any)["enum"]; !ok {
+		t.Fatalf("playspec.trigger_config.event_type enum missing: %#v", triggerProps["event_type"])
+	}
+	mutiProps := playspecCreateProps["muti_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "language", "prop_id", "agent_id", "prompt_template"} {
+		if _, ok := mutiProps[field]; !ok {
+			t.Fatalf("playspec.muti_config missing %q: %#v", field, mutiProps)
+		}
+	}
+	scheduleProps := playspecCreateProps["schedule_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "cron", "marquee_id"} {
+		if _, ok := scheduleProps[field]; !ok {
+			t.Fatalf("playspec.schedule_config missing %q: %#v", field, scheduleProps)
+		}
+	}
+	if _, _, err := ValidateMutationPayload("playspec", "create", map[string]any{
+		"name":              "ci",
+		"base_compose_yaml": "services:\n  job:\n    image: alpine\n",
+		"job_mode":          true,
+		"schedule_config": map[string]any{
+			"enabled":    true,
+			"cron":       "every 5 minutes",
+			"marquee_id": "runner",
+		},
+		"trigger_config": map[string]any{
+			"enabled":         true,
+			"event_type":      "push",
+			"branch":          "main",
+			"prop_id":         "api",
+			"marquee_id":      "runner",
+			"agent_id":        "fixer",
+			"max_retries":     2,
+			"prompt_template": "Fix {{logs}}",
+		},
+		"muti_config": map[string]any{
+			"enabled":         true,
+			"language":        "ruby",
+			"prop_id":         "api",
+			"agent_id":        "fixer",
+			"prompt_template": "Fix {{diff}}",
+		},
+	}); err != nil {
+		t.Fatalf("playspec.create config payload should validate: %v", err)
+	}
+
 	catalog := Catalog()
 	foundAgent := false
 	foundAgentPoke := false

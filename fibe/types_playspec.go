@@ -65,6 +65,7 @@ type PlayspecCreateParams struct {
 	Services        []PlayspecServiceDef `json:"services,omitempty"`
 	TriggerConfig   map[string]any       `json:"trigger_config,omitempty"`
 	MutiConfig      map[string]any       `json:"muti_config,omitempty"`
+	ScheduleConfig  map[string]any       `json:"schedule_config,omitempty"`
 }
 
 func (p *PlayspecCreateParams) Validate() error {
@@ -134,6 +135,7 @@ type PlayspecUpdateParams struct {
 	Services        []PlayspecServiceDef `json:"services,omitempty"`
 	TriggerConfig   map[string]any       `json:"trigger_config,omitempty"`
 	MutiConfig      map[string]any       `json:"muti_config,omitempty"`
+	ScheduleConfig  map[string]any       `json:"schedule_config,omitempty"`
 }
 
 type ComposeValidation struct {
