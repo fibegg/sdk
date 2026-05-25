@@ -2,7 +2,9 @@ package fibe
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 )
 
 type PlaygroundService struct {
@@ -107,6 +109,42 @@ func (s *PlaygroundService) StatusRefreshByIdentifier(ctx context.Context, ident
 	path := identifierPath("/api/playgrounds", identifier)
 	err := s.client.doAsync(ctx, http.MethodPost, path+"/status", "/api/async_requests/%s", nil, &result)
 	return &result, err
+}
+
+func (s *PlaygroundService) WaitForStatus(ctx context.Context, id int64, target string, timeout time.Duration, interval time.Duration) (*Playground, error) {
+	return s.WaitForStatusByIdentifier(ctx, int64Identifier(id), target, timeout, interval)
+}
+
+func (s *PlaygroundService) WaitForStatusByIdentifier(ctx context.Context, identifier string, target string, timeout time.Duration, interval time.Duration) (*Playground, error) {
+	if target == "" {
+		target = "running"
+	}
+	if timeout <= 0 {
+		timeout = 10 * time.Minute
+	}
+	if interval <= 0 {
+		interval = 3 * time.Second
+	}
+	deadline := time.After(timeout)
+	for {
+		status, err := s.StatusByIdentifier(ctx, identifier)
+		if err != nil {
+			return nil, err
+		}
+		if status.Status == target {
+			return s.GetByIdentifier(ctx, identifier)
+		}
+		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
+			return nil, NewPlaygroundTerminalStateError(status)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-deadline:
+			return nil, fmt.Errorf("timeout after %s — last status: %s", timeout, status.Status)
+		case <-time.After(interval):
+		}
+	}
 }
 
 func (s *PlaygroundService) Compose(ctx context.Context, id int64) (*PlaygroundCompose, error) {

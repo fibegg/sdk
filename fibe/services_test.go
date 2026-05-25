@@ -143,6 +143,33 @@ func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
 	}
 }
 
+func TestPlaygrounds_WaitForStatusByIdentifier(t *testing.T) {
+	var calls atomic.Int32
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/playgrounds/next/status":
+			status := "starting"
+			if calls.Add(1) >= 2 {
+				status = "running"
+			}
+			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 42, Status: status})
+		case "/api/playgrounds/next":
+			json.NewEncoder(w).Encode(Playground{ID: 42, Name: "next", Status: "running"})
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	pg, err := c.Playgrounds.WaitForStatusByIdentifier(context.Background(), "next", "running", time.Second, time.Millisecond)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pg.ID != 42 || calls.Load() != 2 {
+		t.Fatalf("pg=%#v calls=%d, want id 42 after two status polls", pg, calls.Load())
+	}
+}
+
 func TestTricks_GetByIdentifierUsesName(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.EscapedPath() != "/api/playgrounds/nightly-build" {
