@@ -44,14 +44,15 @@ const testFibeComposeSchema = `{
       "type": "array",
       "items": {
         "anyOf": [
-          { "pattern": "^fibe\\.gg/expose(?:=.*)?$" },
+          { "pattern": "^fibe\\.gg/port(?:=.*)?$" },
+          { "pattern": "^fibe\\.gg/visibility(?:=.*)?$" },
           { "type": "string", "not": { "pattern": "^fibe\\.gg/" } }
         ]
       }
     },
     "labelName": {
       "anyOf": [
-        { "enum": ["fibe.gg/expose"] },
+        { "enum": ["fibe.gg/port", "fibe.gg/visibility"] },
         { "not": { "pattern": "^fibe\\.gg/" } }
       ]
     }

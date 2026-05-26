@@ -96,7 +96,8 @@ func TestScanViewsAndIDResolution(t *testing.T) {
       fibe.gg/playspec: mcp-test-dev
       fibe.gg/playground: mcp-test-dev--42
       fibe.gg/subdomain: api
-      fibe.gg/expose: public:3000
+      fibe.gg/port: 3000
+      fibe.gg/visibility: external
       fibe.gg/start_command: "bin/dev"
       traefik.enable: "true"
     volumes:

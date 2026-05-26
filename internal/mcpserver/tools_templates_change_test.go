@@ -63,7 +63,8 @@ services:
     labels:
       fibe.gg/repo_url: "https://github.com/fibegg/demo-backend"
       fibe.gg/source_mount: "/app"
-      fibe.gg/expose: "external:80"
+      fibe.gg/port: "80"
+      fibe.gg/visibility: "external"
       fibe.gg/subdomain: "$$var__app_name"
 `,
 		"variables": map[string]any{"app_name": repoName},

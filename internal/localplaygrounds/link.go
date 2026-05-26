@@ -401,7 +401,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 			Name:      svcName,
 			Image:     scalarString(svcMap["image"]),
 			Traefik:   truthy(labels["traefik.enable"]),
-			Expose:    labelExists(labels, "fibe.gg/expose"),
+			Expose:    labelExists(labels, "fibe.gg/port"),
 			Subdomain: labels["fibe.gg/subdomain"],
 			StartCmd:  trimCommand(labels["fibe.gg/start_command"]),
 		}
