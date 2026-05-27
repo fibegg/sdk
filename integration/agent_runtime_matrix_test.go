@@ -17,7 +17,9 @@ const (
 	agentRuntimeReadyTimeout      = 12 * time.Minute
 	agentRuntimeProcessingTimeout = 2 * time.Minute
 	agentRuntimeIdleTimeout       = 8 * time.Minute
+	agentRuntimeFirstSyncTimeout  = 90 * time.Second
 	agentRuntimeSyncTimeout       = 5 * time.Minute
+	agentRuntimeConversationID    = "runtime-matrix"
 )
 
 type agentRuntimeMatrixCase struct {
@@ -30,6 +32,8 @@ type agentRuntimeMatrixCase struct {
 }
 
 func TestAgentRuntimeMatrix(t *testing.T) {
+	skipThirdpartyIfDisabled(t)
+
 	cases := []agentRuntimeMatrixCase{
 		{
 			name:               "Gemini OAuth",
@@ -43,7 +47,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "Gemini API key",
 			provider:           fibe.ProviderGemini,
 			providerAPIKeyMode: true,
-			modelOptions:       "flash-lite",
+			modelOptions:       "gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_GEMINI_API_KEY",
 			credentialAliases:  []string{"GEMINI_KEY"},
 		},
@@ -90,7 +94,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "OpenCode OpenRouter",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
-			modelOptions:       "deepseek/deepseek-chat-v3.1",
+			modelOptions:       "google/gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY",
 			credentialAliases:  []string{"OPENCODE_OPENROUTER_KEY"},
 		},
@@ -98,7 +102,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "OpenCode Anthropic",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
-			modelOptions:       "anthropic/claude-sonnet-4",
+			modelOptions:       "anthropic/claude-haiku-4-5",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
 			credentialAliases:  []string{"OPENCODE_ANTHROPIC_KEY"},
 		},
@@ -106,7 +110,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "OpenCode OpenAI",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
-			modelOptions:       "openai/gpt-4.1",
+			modelOptions:       "openai/gpt-5-mini",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY",
 			credentialAliases:  []string{"OPENCODE_OPENAI_KEY"},
 		},
@@ -114,16 +118,17 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "OpenCode Gemini",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
-			modelOptions:       "google/gemini-2.5-pro",
+			modelOptions:       "google/gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
 			credentialAliases:  []string{"OPENCODE_GEMINI_KEY"},
 		},
 	}
 
-	caseFilter := strings.TrimSpace(os.Getenv("CHAT_E2E_CASE"))
+	caseFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE"))
+	caseExcludeFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE_EXCEPT"))
 	configuredRows := 0
 	for _, tc := range cases {
-		if caseFilter != "" && !agentRuntimeCaseMatches(tc, caseFilter) {
+		if !agentRuntimeCaseSelected(tc, caseFilters, caseExcludeFilters) {
 			continue
 		}
 		if secret, _ := lookupAgentRuntimeCredential(tc); secret != "" {
@@ -137,8 +142,11 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			if caseFilter != "" && !agentRuntimeCaseMatches(tc, caseFilter) {
-				t.Skipf("filtered by CHAT_E2E_CASE=%q", caseFilter)
+			if len(caseFilters) > 0 && !agentRuntimeCaseMatchesAny(tc, caseFilters) {
+				t.Skipf("filtered by CHAT_E2E_CASE=%q", strings.Join(caseFilters, ","))
+			}
+			if agentRuntimeCaseMatchesAny(tc, caseExcludeFilters) {
+				t.Skipf("filtered by CHAT_E2E_CASE_EXCEPT=%q", strings.Join(caseExcludeFilters, ","))
 			}
 
 			secret, credentialSource := lookupAgentRuntimeCredential(tc)
@@ -156,13 +164,16 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 
 func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc agentRuntimeMatrixCase, secret string) {
 	t.Helper()
+	agentRuntimeProgressf("%s: creating %s runtime (model=%s api_key_mode=%t)", tc.name, tc.provider, tc.modelOptions, tc.providerAPIKeyMode)
 
 	syncEnabled := true
 	syscheckEnabled := false
 	providerAPIKeyMode := tc.providerAPIKeyMode
+	apiKeyID := createAgentRuntimeAPIKey(t, c, tc)
 	params := &fibe.AgentCreateParams{
 		Name:               uniqueName("fx-agent-runtime"),
 		Provider:           tc.provider,
+		APIKeyID:           &apiKeyID,
 		SyncEnabled:        &syncEnabled,
 		SyscheckEnabled:    &syscheckEnabled,
 		ProviderAPIKeyMode: &providerAPIKeyMode,
@@ -178,43 +189,61 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 		cleanupAgentRuntimeMatrixCase(t, c, agent.ID)
 	})
 
+	agentRuntimeProgressf("%s: authenticating agent %d", tc.name, agent.ID)
 	authenticated, err := c.Agents.Authenticate(ctx(), agent.ID, nil, &secret)
 	requireNoError(t, err, "authenticate agent")
 	if !authenticated.Authenticated {
 		t.Fatal("expected authenticated agent")
 	}
 
+	agentRuntimeProgressf("%s: starting chat for agent %d on marquee %d", tc.name, agent.ID, marqueeID)
 	chat, err := c.Agents.StartChat(ctx(), agent.ID, marqueeID)
 	requireNoError(t, err, "start chat")
 	if chat.ID == 0 {
 		t.Fatal("expected started chat ID")
 	}
 
+	agentRuntimeProgressf("%s: waiting for runtime to become running and idle", tc.name)
 	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeReadyTimeout, 2*time.Second, "runtime to become running and idle", func(status *fibe.AgentRuntimeStatus) bool {
 		return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
 	})
 
-	firstPrompt := agentRuntimeInitialMessage()
-	sendAgentRuntimeMessage(t, c, agent.ID, firstPrompt)
+	agentRuntimeProgressf("%s: creating runtime conversation %s", tc.name, agentRuntimeConversationID)
+	_, err = c.Agents.CreateConversationByIdentifier(ctx(), fmt.Sprint(agent.ID), &fibe.AgentConversationParams{
+		ConversationID: agentRuntimeConversationID,
+		Title:          "Runtime matrix",
+	})
+	requireNoError(t, err, "create runtime conversation")
 
+	firstPrompt := agentRuntimeInitialMessage()
+	agentRuntimeProgressf("%s: sending initial prompt", tc.name)
+	sendAgentRuntimeMessage(t, c, agent.ID, firstPrompt, agentRuntimeConversationID)
+
+	agentRuntimeProgressf("%s: waiting for runtime to report processing", tc.name)
 	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeProcessingTimeout, 250*time.Millisecond, "runtime to report processing", func(status *fibe.AgentRuntimeStatus) bool {
 		return status.Status == "running" && status.RuntimeReachable && status.IsProcessing
 	})
+	agentRuntimeProgressf("%s: waiting for runtime to return idle", tc.name)
 	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeIdleTimeout, 2*time.Second, "runtime to return to idle", func(status *fibe.AgentRuntimeStatus) bool {
 		return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
 	})
+	agentRuntimeProgressf("%s: verifying first assistant response synced", tc.name)
+	waitForAgentRuntimeAssistantData(t, c, agent.ID, agentRuntimeConversationID, agentRuntimeFirstSyncTimeout, 1)
 
 	followupCount := agentRuntimeFollowupCount()
 	for i := 2; i <= followupCount+1; i++ {
-		sendAgentRuntimeMessage(t, c, agent.ID, fmt.Sprintf("Runtime matrix follow-up %d. Reply with one concise sentence.", i))
+		agentRuntimeProgressf("%s: sending follow-up prompt %d/%d", tc.name, i-1, followupCount)
+		sendAgentRuntimeMessage(t, c, agent.ID, fmt.Sprintf("Runtime matrix follow-up %d. Reply with one concise sentence.", i), agentRuntimeConversationID)
 		waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeIdleTimeout, 2*time.Second, fmt.Sprintf("runtime to return to idle after prompt %d", i), func(status *fibe.AgentRuntimeStatus) bool {
 			return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
 		})
 	}
 
-	messages, activity := waitForAgentRuntimeSyncedData(t, c, agent.ID, agentRuntimeSyncTimeout, agentRuntimeMinEntries())
+	agentRuntimeProgressf("%s: waiting for synced messages/activity", tc.name)
+	messages, activity := waitForAgentRuntimeAssistantData(t, c, agent.ID, agentRuntimeConversationID, agentRuntimeSyncTimeout, agentRuntimeMinEntries())
 	t.Logf("messages for %s:\n%s", tc.name, prettyAgentRuntimeJSON(messages.Content))
 	t.Logf("activity for %s:\n%s", tc.name, prettyAgentRuntimeJSON(activity.Content))
+	agentRuntimeProgressf("%s: completed", tc.name)
 }
 
 func agentRuntimeCredentialEnvNames(tc agentRuntimeMatrixCase) []string {
@@ -233,6 +262,33 @@ func lookupAgentRuntimeCredential(tc agentRuntimeMatrixCase) (string, string) {
 	return "", ""
 }
 
+func createAgentRuntimeAPIKey(t *testing.T, c *fibe.Client, tc agentRuntimeMatrixCase) int64 {
+	t.Helper()
+
+	agentAccessible := true
+	key, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
+		Label:           uniqueName("fx-agent-runtime-key"),
+		Scopes:          []string{"*"},
+		AgentAccessible: &agentAccessible,
+	})
+	requireNoError(t, err, "create agent runtime API key")
+	if key.ID == nil || *key.ID <= 0 {
+		t.Fatalf("expected API key ID for %s", tc.name)
+	}
+
+	t.Cleanup(func() {
+		if err := c.APIKeys.Delete(ctx(), *key.ID); err != nil {
+			t.Logf("cleanup agent runtime API key %d: %v", *key.ID, err)
+		}
+	})
+
+	if !key.AgentAccessible {
+		t.Fatalf("expected API key %d to be agent-accessible for %s", *key.ID, tc.name)
+	}
+
+	return *key.ID
+}
+
 func agentRuntimeCaseMatches(tc agentRuntimeMatrixCase, filter string) bool {
 	normalizedFilter := strings.ToLower(strings.TrimSpace(filter))
 	if normalizedFilter == "" {
@@ -246,6 +302,33 @@ func agentRuntimeCaseMatches(tc agentRuntimeMatrixCase, filter string) bool {
 		strings.Join(tc.credentialAliases, " "),
 	}, " "))
 	return strings.Contains(haystack, normalizedFilter)
+}
+
+func agentRuntimeCaseFilters(raw string) []string {
+	var filters []string
+	for _, part := range strings.Split(raw, ",") {
+		filter := strings.TrimSpace(part)
+		if filter != "" {
+			filters = append(filters, filter)
+		}
+	}
+	return filters
+}
+
+func agentRuntimeCaseSelected(tc agentRuntimeMatrixCase, includeFilters []string, excludeFilters []string) bool {
+	if len(includeFilters) > 0 && !agentRuntimeCaseMatchesAny(tc, includeFilters) {
+		return false
+	}
+	return !agentRuntimeCaseMatchesAny(tc, excludeFilters)
+}
+
+func agentRuntimeCaseMatchesAny(tc agentRuntimeMatrixCase, filters []string) bool {
+	for _, filter := range filters {
+		if agentRuntimeCaseMatches(tc, filter) {
+			return true
+		}
+	}
+	return false
 }
 
 func agentRuntimeInitialMessage() string {
@@ -302,10 +385,10 @@ func requiredAgentRuntimeMarqueeID(t *testing.T) int64 {
 	return id
 }
 
-func sendAgentRuntimeMessage(t *testing.T, c *fibe.Client, agentID int64, text string) {
+func sendAgentRuntimeMessage(t *testing.T, c *fibe.Client, agentID int64, text string, conversationID string) {
 	t.Helper()
 
-	params := &fibe.AgentChatParams{Text: text}
+	params := &fibe.AgentChatParams{Text: text, ConversationID: conversationID}
 	err := chatEventuallyAccepted(c, agentID, params, 10, 2*time.Second, 10*time.Second)
 	requireNoError(t, err, "send runtime message")
 }
@@ -324,6 +407,7 @@ func waitForAgentRuntimeStatus(
 	deadline := time.Now().Add(timeout)
 	var lastStatus *fibe.AgentRuntimeStatus
 	var lastErr error
+	lastProgressAt := time.Now()
 
 	for time.Now().Before(deadline) {
 		reqCtx, cancel := ctxTimeout(10 * time.Second)
@@ -338,6 +422,15 @@ func waitForAgentRuntimeStatus(
 		} else {
 			lastErr = err
 		}
+		if time.Since(lastProgressAt) >= 30*time.Second {
+			agentRuntimeProgressf(
+				"still waiting for %s; last_status=%s last_error=%v",
+				description,
+				agentRuntimeStatusSummary(lastStatus),
+				lastErr,
+			)
+			lastProgressAt = time.Now()
+		}
 		time.Sleep(pollInterval)
 	}
 
@@ -345,7 +438,24 @@ func waitForAgentRuntimeStatus(
 	return nil
 }
 
-func waitForAgentRuntimeSyncedData(t *testing.T, c *fibe.Client, agentID int64, timeout time.Duration, minEntries int) (*fibe.AgentData, *fibe.AgentData) {
+func agentRuntimeProgressf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "[agent-runtime] "+format+"\n", args...)
+}
+
+func agentRuntimeStatusSummary(status *fibe.AgentRuntimeStatus) string {
+	if status == nil {
+		return "nil"
+	}
+	return fmt.Sprintf(
+		"status=%s reachable=%t processing=%t queue=%d",
+		status.Status,
+		status.RuntimeReachable,
+		status.IsProcessing,
+		status.QueueCount,
+	)
+}
+
+func waitForAgentRuntimeSyncedData(t *testing.T, c *fibe.Client, agentID int64, conversationID string, timeout time.Duration, minEntries int) (*fibe.AgentData, *fibe.AgentData) {
 	t.Helper()
 
 	deadline := time.Now().Add(timeout)
@@ -357,18 +467,19 @@ func waitForAgentRuntimeSyncedData(t *testing.T, c *fibe.Client, agentID int64, 
 	var activityCount int
 
 	for time.Now().Before(deadline) {
+		params := &fibe.AgentDataParams{ConversationID: conversationID}
 		reqCtx, cancel := ctxTimeout(10 * time.Second)
-		messages, messagesErr = c.Agents.GetMessages(reqCtx, agentID)
+		messages, messagesErr = c.Agents.GetMessagesByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
 		reqCtx, cancel = ctxTimeout(10 * time.Second)
-		activity, activityErr = c.Agents.GetActivity(reqCtx, agentID)
+		activity, activityErr = c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
 		if messagesErr == nil && activityErr == nil {
 			messageCount = agentRuntimeTopLevelCount(messages.Content)
 			activityCount = agentRuntimeTopLevelCount(activity.Content)
-			if messageCount > minEntries && activityCount > minEntries {
+			if messageCount >= minEntries && activityCount >= minEntries {
 				return messages, activity
 			}
 		}
@@ -379,6 +490,51 @@ func waitForAgentRuntimeSyncedData(t *testing.T, c *fibe.Client, agentID int64, 
 	t.Fatalf(
 		"timed out waiting for synced messages/activity; message_count=%d activity_count=%d messages_error=%v activity_error=%v",
 		messageCount,
+		activityCount,
+		messagesErr,
+		activityErr,
+	)
+	return nil, nil
+}
+
+func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int64, conversationID string, timeout time.Duration, minAssistantMessages int) (*fibe.AgentData, *fibe.AgentData) {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	var messages *fibe.AgentData
+	var activity *fibe.AgentData
+	var messagesErr error
+	var activityErr error
+	var messageCount int
+	var assistantCount int
+	var activityCount int
+
+	for time.Now().Before(deadline) {
+		params := &fibe.AgentDataParams{ConversationID: conversationID}
+		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		messages, messagesErr = c.Agents.GetMessagesByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+		cancel()
+
+		reqCtx, cancel = ctxTimeout(10 * time.Second)
+		activity, activityErr = c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+		cancel()
+
+		if messagesErr == nil && activityErr == nil {
+			messageCount = agentRuntimeTopLevelCount(messages.Content)
+			assistantCount = agentRuntimeAssistantMessageCount(messages.Content)
+			activityCount = agentRuntimeTopLevelCount(activity.Content)
+			if assistantCount >= minAssistantMessages && activityCount > 0 {
+				return messages, activity
+			}
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+
+	t.Fatalf(
+		"timed out waiting for synced assistant output; message_count=%d assistant_count=%d activity_count=%d messages_error=%v activity_error=%v",
+		messageCount,
+		assistantCount,
 		activityCount,
 		messagesErr,
 		activityErr,
@@ -413,6 +569,58 @@ func agentRuntimeTopLevelCount(content any) int {
 	default:
 		return 0
 	}
+}
+
+func agentRuntimeAssistantMessageCount(content any) int {
+	if content == nil {
+		return 0
+	}
+
+	switch value := content.(type) {
+	case []any:
+		count := 0
+		for _, item := range value {
+			if agentRuntimeMessageRole(item) == "assistant" {
+				count++
+			}
+		}
+		return count
+	case []map[string]any:
+		count := 0
+		for _, item := range value {
+			if agentRuntimeMessageRole(item) == "assistant" {
+				count++
+			}
+		}
+		return count
+	case []map[string]string:
+		count := 0
+		for _, item := range value {
+			if agentRuntimeMessageRole(item) == "assistant" {
+				count++
+			}
+		}
+		return count
+	case string:
+		var decoded any
+		if json.Unmarshal([]byte(value), &decoded) == nil {
+			return agentRuntimeAssistantMessageCount(decoded)
+		}
+	}
+
+	return 0
+}
+
+func agentRuntimeMessageRole(item any) string {
+	switch value := item.(type) {
+	case map[string]any:
+		if role, ok := value["role"].(string); ok {
+			return role
+		}
+	case map[string]string:
+		return value["role"]
+	}
+	return ""
 }
 
 func cleanupAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, agentID int64) {

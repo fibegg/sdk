@@ -109,16 +109,16 @@ func gopath() string {
 func chatE2EHelpText() string {
 	rows := [][]string{
 		{"Gemini OAuth", "FIBE_TEST_AGENT_GEMINI_OAUTH_JSON", "GEMINI_OAUTH_JSON", "gemini", "pro"},
-		{"Gemini API key", "FIBE_TEST_AGENT_GEMINI_API_KEY", "GEMINI_KEY", "gemini", "flash-lite"},
+		{"Gemini API key", "FIBE_TEST_AGENT_GEMINI_API_KEY", "GEMINI_KEY", "gemini", "gemini-2.5-flash-lite"},
 		{"Claude manual", "FIBE_TEST_AGENT_CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "claude-code", "haiku"},
 		{"Claude API key", "FIBE_TEST_AGENT_ANTHROPIC_API_KEY", "ANTHROPIC_KEY", "claude-code", "haiku"},
 		{"Codex auth JSON", "FIBE_TEST_AGENT_CODEX_AUTH_JSON", "CODEX_AUTH_JSON", "openai-codex", "gpt-5.4-mini"},
 		{"Codex API key", "FIBE_TEST_AGENT_OPENAI_API_KEY", "OPENAI_KEY", "openai-codex", "gpt-5.4-mini"},
 		{"Cursor API key", "FIBE_TEST_AGENT_CURSOR_API_KEY", "CURSOR_KEY", "cursor", "default"},
-		{"OpenCode OpenRouter", "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY", "OPENCODE_OPENROUTER_KEY", "opencode", "deepseek/deepseek-chat-v3.1"},
-		{"OpenCode Anthropic", "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY", "OPENCODE_ANTHROPIC_KEY", "opencode", "anthropic/claude-sonnet-4"},
-		{"OpenCode OpenAI", "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", "OPENCODE_OPENAI_KEY", "opencode", "openai/gpt-4.1"},
-		{"OpenCode Gemini", "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY", "OPENCODE_GEMINI_KEY", "opencode", "google/gemini-2.5-pro"},
+		{"OpenCode OpenRouter", "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY", "OPENCODE_OPENROUTER_KEY", "opencode", "google/gemini-2.5-flash-lite"},
+		{"OpenCode Anthropic", "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY", "OPENCODE_ANTHROPIC_KEY", "opencode", "anthropic/claude-haiku-4-5"},
+		{"OpenCode OpenAI", "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", "OPENCODE_OPENAI_KEY", "opencode", "openai/gpt-5-mini"},
+		{"OpenCode Gemini", "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY", "OPENCODE_GEMINI_KEY", "opencode", "google/gemini-2.5-flash-lite"},
 	}
 
 	var b strings.Builder

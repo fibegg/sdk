@@ -33,9 +33,13 @@ func newWebhookCaptureServer(t *testing.T) (*httptest.Server, <-chan capturedWeb
 			http.Error(w, "read error", http.StatusInternalServerError)
 			return
 		}
-		requests <- capturedWebhookRequest{
+		request := capturedWebhookRequest{
 			Headers: r.Header.Clone(),
 			Body:    body,
+		}
+		select {
+		case requests <- request:
+		default:
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -137,7 +141,7 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 	spec := seedPlayspec(t, c)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://example.com/hook-" + uniqueName(""),
+		URL:    "https://sdk-webhook-filter.invalid/hook-" + uniqueName(""),
 		Secret: "test-secret-min-20-chars-" + uniqueName(""),
 		Events: []string{"playground.created", "playground.status.changed"},
 		EventFilters: map[string]any{
@@ -218,7 +222,7 @@ func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
 	c := adminClient(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://example.com/hook-upd-" + uniqueName(""),
+		URL:    "https://sdk-webhook-update.invalid/hook-" + uniqueName(""),
 		Secret: "secret-" + uniqueName(""),
 		Events: []string{"playground.created"},
 	})

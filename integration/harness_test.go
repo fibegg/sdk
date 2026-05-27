@@ -72,6 +72,13 @@ func ctxTimeout(d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(testCtx, d)
 }
 
+func skipThirdpartyIfDisabled(t *testing.T) {
+	t.Helper()
+	if os.Getenv("FIBE_SKIP_THIRDPARTY_TESTS") == "1" {
+		t.Skip("third-party integration disabled by FIBE_SKIP_THIRDPARTY_TESTS=1")
+	}
+}
+
 func requireNoError(t *testing.T, err error, msgAndArgs ...any) {
 	t.Helper()
 	if err != nil {

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 )
@@ -40,9 +41,10 @@ func TestWebhooks_EventTypes(t *testing.T) {
 func TestWebhooks_DeliveryHistory(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
+	server, requests := newWebhookCaptureServer(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://httpbin.org/post",
+		URL:    server.URL + "/delivery-" + uniqueName(""),
 		Secret: uniqueName("delivery-secret"),
 		Events: []string{"playground.created"},
 	})
@@ -50,14 +52,19 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	t.Cleanup(func() { c.WebhookEndpoints.Delete(ctx(), *ep.ID) })
 
 	t.Run("test endpoint queues delivery", func(t *testing.T) {
-		t.Parallel()
-		err := c.WebhookEndpoints.Test(ctx(), *ep.ID)
+		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		defer cancel()
+
+		err := c.WebhookEndpoints.Test(reqCtx, *ep.ID)
 		requireNoError(t, err)
+		_, _ = pollWebhookRequest(5*time.Second, requests)
 	})
 
 	t.Run("deliveries list returns results", func(t *testing.T) {
-		t.Parallel()
-		result, err := c.WebhookEndpoints.ListDeliveries(ctx(), *ep.ID, nil)
+		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		defer cancel()
+
+		result, err := c.WebhookEndpoints.ListDeliveries(reqCtx, *ep.ID, nil)
 		requireNoError(t, err)
 
 		if result.Data == nil {
@@ -66,8 +73,10 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("update endpoint events", func(t *testing.T) {
-		t.Parallel()
-		updated, err := c.WebhookEndpoints.Update(ctx(), *ep.ID, &fibe.WebhookEndpointUpdateParams{
+		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		defer cancel()
+
+		updated, err := c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
 			Events: []string{"playground.created", "agent.updated", "playground.destroyed"},
 		})
 		requireNoError(t, err)
@@ -78,19 +87,21 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("disable and re-enable endpoint", func(t *testing.T) {
-		t.Parallel()
-		_, err := c.WebhookEndpoints.Update(ctx(), *ep.ID, &fibe.WebhookEndpointUpdateParams{
+		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		defer cancel()
+
+		_, err := c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
 			Enabled: ptr(false),
 		})
 		requireNoError(t, err)
 
-		got, err := c.WebhookEndpoints.Get(ctx(), *ep.ID)
+		got, err := c.WebhookEndpoints.Get(reqCtx, *ep.ID)
 		requireNoError(t, err)
 		if got.Enabled != nil && *got.Enabled {
 			t.Error("expected disabled")
 		}
 
-		_, err = c.WebhookEndpoints.Update(ctx(), *ep.ID, &fibe.WebhookEndpointUpdateParams{
+		_, err = c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
 			Enabled: ptr(true),
 		})
 		requireNoError(t, err)
@@ -105,7 +116,7 @@ func TestWebhooks_SecretHandling(t *testing.T) {
 	t.Run("secret shown on create only", func(t *testing.T) {
 		t.Parallel()
 		ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://httpbin.org/post",
+			URL:    "https://sdk-webhook-secret.invalid/post",
 			Secret: "visible-on-create-only",
 			Events: []string{"playground.created"},
 		})

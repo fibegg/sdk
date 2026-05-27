@@ -91,6 +91,7 @@ func TestProps_CRUD(t *testing.T) {
 
 	t.Run("sync prop", func(t *testing.T) {
 		t.Parallel()
+		skipThirdpartyIfDisabled(t)
 		if propID == 0 {
 			t.Skip("no prop created")
 		}

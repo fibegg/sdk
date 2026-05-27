@@ -8,6 +8,7 @@ import (
 
 func TestGitHubRepos_CreateFailure(t *testing.T) {
 	t.Parallel()
+	skipThirdpartyIfDisabled(t)
 	c := adminClient(t)
 
 	repo, err := c.GitHubRepos.Create(ctx(), &fibe.GitHubRepoCreateParams{

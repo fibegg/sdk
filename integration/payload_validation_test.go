@@ -145,9 +145,10 @@ func TestPayload_APIKeyTokenExposure(t *testing.T) {
 func TestPayload_WebhookDelivery(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
+	server, _ := newWebhookCaptureServer(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://example.com/hook-" + uniqueName(""),
+		URL:    server.URL + "/payload-" + uniqueName(""),
 		Secret: "test-secret-1234567890",
 		Events: []string{"playground.created"},
 	})

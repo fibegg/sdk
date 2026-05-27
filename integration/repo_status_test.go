@@ -12,6 +12,7 @@ func TestRepoStatus_Check(t *testing.T) {
 
 	t.Run("check with valid github URLs", func(t *testing.T) {
 		t.Parallel()
+		skipThirdpartyIfDisabled(t)
 		result, err := c.RepoStatus.Check(ctx(), []string{
 			"https://github.com/nginx/nginx",
 		})

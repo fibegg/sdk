@@ -9,13 +9,15 @@ import (
 func TestWebhookEndpoints_CRUD(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
+	server, _ := newWebhookCaptureServer(t)
 
 	var endpointID int64
+	endpointURL := server.URL + "/crud-" + uniqueName("")
 
 	t.Run("create webhook endpoint", func(t *testing.T) {
 		// Parallel disabled: dependent sequence
 		ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:         "https://httpbin.org/post",
+			URL:         endpointURL,
 			Events:      []string{"playground.created", "playground.status.changed"},
 			Description: ptr("integration test webhook"),
 			ToolFilters: map[string][]string{"mcp.tool.executed": []string{"deploy", "status"}},
@@ -26,7 +28,7 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 			t.Fatal("expected endpoint ID")
 		}
 		endpointID = *ep.ID
-		if ep.URL != "https://httpbin.org/post" {
+		if ep.URL != endpointURL {
 			t.Errorf("expected URL, got %q", ep.URL)
 		}
 		if len(ep.Events) != 2 {
@@ -120,7 +122,7 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 	t.Run("delete webhook endpoint", func(t *testing.T) {
 		t.Parallel()
 		ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://httpbin.org/post",
+			URL:    server.URL + "/delete-" + uniqueName(""),
 			Events: []string{"playground.created"},
 		})
 		requireNoError(t, err)
@@ -138,7 +140,7 @@ func TestWebhookEndpoints_ScopeEnforcement(t *testing.T) {
 	c := adminClient(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://httpbin.org/post",
+		URL:    "https://sdk-webhook-scope.invalid/post",
 		Events: []string{"playground.created"},
 	})
 	requireNoError(t, err)
@@ -155,7 +157,7 @@ func TestWebhookEndpoints_ScopeEnforcement(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "wh-read2", []string{"webhooks:read"})
 		_, err := readOnly.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://nope.com",
+			URL:    "https://sdk-webhook-noscope.invalid/post",
 			Events: []string{"playground.created"},
 		})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)

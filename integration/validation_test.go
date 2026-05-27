@@ -272,7 +272,7 @@ func TestWebhookValidation(t *testing.T) {
 	t.Run("reject empty events", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://example.com/hook",
+			URL:    "https://sdk-webhook-validation.invalid/hook",
 			Secret: "secret",
 		})
 		if err == nil {
@@ -283,7 +283,7 @@ func TestWebhookValidation(t *testing.T) {
 	t.Run("allow missing secret and auto-generate one", func(t *testing.T) {
 		t.Parallel()
 		ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://example.com/hook-" + uniqueName(""),
+			URL:    "https://sdk-webhook-validation.invalid/hook-" + uniqueName(""),
 			Events: []string{"playground.created"},
 		})
 		requireNoError(t, err)
