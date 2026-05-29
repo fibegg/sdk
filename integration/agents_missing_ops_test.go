@@ -26,7 +26,8 @@ func isTransientAgentChatError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if err == context.DeadlineExceeded || strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
+	errText := err.Error()
+	if err == context.DeadlineExceeded || strings.Contains(errText, context.DeadlineExceeded.Error()) {
 		return true
 	}
 	apiErr, ok := err.(*fibe.APIError)
@@ -40,6 +41,7 @@ func isTransientAgentChatError(err error) bool {
 		return false
 	}
 	return strings.Contains(apiErr.Message, "AGENT_BUSY") ||
+		(strings.Contains(errText, "AGENT_COMMUNICATION_FAILED") && strings.Contains(errText, "HTTP 5")) ||
 		strings.Contains(apiErr.Message, "Agent unreachable") ||
 		strings.Contains(apiErr.Message, "No running AgentChat") ||
 		strings.Contains(apiErr.Message, "Agent is not currently running")

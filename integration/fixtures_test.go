@@ -35,13 +35,11 @@ func minimalComposeYAML() string {
 	return "services:\n  web:\n    image: nginx:alpine\n"
 }
 
-// uniqueHost returns a fake but unique IP address for marquee tests.
-// The backend enforces host uniqueness, and many tests run in parallel,
-// so we derive an address from the unique name counter.
+// uniqueHost returns a fake but unique hostname for marquee tests.
+// The backend enforces host uniqueness, and Docker E2E databases can retain
+// old rows between runs, so include the same nanosecond entropy as uniqueName.
 func uniqueHost() string {
-	n := nameCounter.Add(1)
-	ts := time.Now().UnixNano() & 0xFF
-	return fmt.Sprintf("10.%d.%d.%d", (n>>16)&0xFF, (n>>8)&0xFF, (n&0xFF)^ts)
+	return fmt.Sprintf("%s.test.local", uniqueName("host"))
 }
 
 // jobComposeYAML returns a compose suitable for job-mode playspecs (tricks).
