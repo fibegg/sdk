@@ -7,14 +7,14 @@ The official Go SDK and command-line interface for the Fibe platform.
 ### Homebrew
 
 ```bash
-brew install fibegg/sdk/fibe
+brew install --cask fibegg/sdk/fibe
 ```
 
 If you prefer the two-step flow:
 
 ```bash
 brew tap fibegg/sdk
-brew install fibe
+brew install --cask fibe
 ```
 
 The executable name is still `fibe`.

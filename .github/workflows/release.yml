@@ -95,7 +95,7 @@ jobs:
                     { type: "mrkdwn", text: ("*Version*\n`" + $tag + "`") },
                     { type: "mrkdwn", text: ("*Commit*\n<" + $commit_url + "|`" + $short_sha + "`>") },
                     { type: "mrkdwn", text: ("*Release*\n<" + $release_url + "|GitHub release>") },
-                    { type: "mrkdwn", text: "*Homebrew*\n`brew install fibegg/sdk/fibe`" }
+                    { type: "mrkdwn", text: "*Homebrew*\n`brew install --cask fibegg/sdk/fibe`" }
                   ]
                 },
                 {
