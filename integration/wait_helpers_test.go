@@ -45,8 +45,9 @@ func waitForPlaygroundStatus(t *testing.T, c *fibe.Client, id int64, targets []s
 }
 
 // CapWaitTimeout caps any wait to this value so a single test can't consume
-// the full suite timeout. Tests should be tolerant of async operations not completing.
+// the full suite timeout.
 const CapWaitTimeout = 20 * time.Second
+const playgroundActionRetryTimeout = 3 * time.Minute
 
 // waitForPlaygroundActive polls until status is 'running' or 'error', returns whether running.
 func waitForPlaygroundActive(t *testing.T, c *fibe.Client, id int64, timeout time.Duration) bool {
@@ -69,19 +70,48 @@ func webhookTimeout() time.Duration {
 func skipIfPlaygroundActionStateRejected(t *testing.T, err error, action string) bool {
 	t.Helper()
 
-	apiErr, ok := err.(*fibe.APIError)
-	if !ok {
+	if message, ok := playgroundActionStateRejected(err); ok {
+		t.Logf("%s rejected by current playground state: %s", action, message)
 		return false
 	}
+	return false
+}
+
+func playgroundActionEventuallyAccepted(t *testing.T, c *fibe.Client, id int64, actionType string, actionLabel string) *fibe.PlaygroundStatus {
+	t.Helper()
+
+	deadline := time.Now().Add(playgroundActionRetryTimeout)
+	var lastErr error
+	for attempt := 1; ; attempt++ {
+		accepted, err := c.Playgrounds.Action(ctx(), id, &fibe.PlaygroundActionParams{ActionType: actionType})
+		if err == nil {
+			return accepted
+		}
+		lastErr = err
+		message, rejected := playgroundActionStateRejected(err)
+		if !rejected {
+			requireNoError(t, err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%s was not accepted within %s after %d attempts: %s", actionLabel, playgroundActionRetryTimeout, attempt, describeAPIError(lastErr))
+		}
+		t.Logf("%s waiting for playground action readiness: %s", actionLabel, message)
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func playgroundActionStateRejected(err error) (string, bool) {
+	apiErr, ok := err.(*fibe.APIError)
+	if !ok {
+		return "", false
+	}
 	if apiErr.StatusCode == 409 || (apiErr.StatusCode == 422 && apiErr.Code == "INVALID_STATE") {
-		t.Skipf("%s rejected by current playground state: %s", action, apiErr.Message)
-		return true
+		return apiErr.Message, true
 	}
 	if apiErr.Code == "REMOTE_REQUEST_FAILED" && strings.Contains(apiErr.Message, "deployment is already active") {
-		t.Skipf("%s rejected by current playground state: %s", action, apiErr.Message)
-		return true
+		return apiErr.Message, true
 	}
-	return false
+	return "", false
 }
 
 // pollUntil retries fn up to `attempts` times with delay; returns first non-nil result.

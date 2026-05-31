@@ -53,16 +53,16 @@ func sendAgentChatWithTimeout(c *fibe.Client, agentID int64, params *fibe.AgentC
 	return c.Agents.Chat(reqCtx, agentID, params)
 }
 
-func chatEventuallyAccepted(c *fibe.Client, agentID int64, params *fibe.AgentChatParams, attempts int, delay, timeout time.Duration) error {
+func chatEventuallyAcceptedResult(c *fibe.Client, agentID int64, params *fibe.AgentChatParams, attempts int, delay, timeout time.Duration) (map[string]any, error) {
 	var lastErr error
 	for attempt := 1; attempt <= attempts; attempt++ {
-		_, err := sendAgentChatWithTimeout(c, agentID, params, timeout)
+		result, err := sendAgentChatWithTimeout(c, agentID, params, timeout)
 		if err == nil {
-			return nil
+			return result, nil
 		}
 		lastErr = err
 		if !isTransientAgentChatError(err) {
-			return err
+			return nil, err
 		}
 		if attempt < attempts {
 			time.Sleep(delay)
@@ -71,7 +71,12 @@ func chatEventuallyAccepted(c *fibe.Client, agentID int64, params *fibe.AgentCha
 	if lastErr == nil {
 		lastErr = fmt.Errorf("agent chat did not become ready")
 	}
-	return fmt.Errorf("agent chat did not become ready after %d attempts: %w", attempts, lastErr)
+	return nil, fmt.Errorf("agent chat did not become ready after %d attempts: %w", attempts, lastErr)
+}
+
+func chatEventuallyAccepted(c *fibe.Client, agentID int64, params *fibe.AgentChatParams, attempts int, delay, timeout time.Duration) error {
+	_, err := chatEventuallyAcceptedResult(c, agentID, params, attempts, delay, timeout)
+	return err
 }
 
 func waitForAgentChatHealth(chatURL string, attempts int, delay, timeout time.Duration) error {
@@ -111,10 +116,24 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 		t.Skip("set FIBE_TEST_MARQUEE_ID to bootstrap an agent chat")
 	}
 
-	ag := seedAgent(t, c, fibe.ProviderOpenCode)
-	dummyToken := "sdk-opencode-dummy-token"
+	secret, modelOptions, opencodeProvider, credentialSource := opencodeChatCredential(t)
+	providerAPIKeyMode := true
+	params := &fibe.AgentCreateParams{
+		Name:               uniqueName("fx-agent"),
+		Provider:           fibe.ProviderOpenCode,
+		ProviderAPIKeyMode: &providerAPIKeyMode,
+	}
+	if modelOptions != "" {
+		params.ModelOptions = &modelOptions
+	}
 
-	authenticated, err := c.Agents.Authenticate(ctx(), ag.ID, nil, &dummyToken)
+	ag, err := c.Agents.Create(ctx(), params)
+	requireNoError(t, err, "seed opencode agent")
+	t.Cleanup(func() { c.Agents.Delete(ctx(), ag.ID) })
+	t.Logf("using OpenCode credential from %s", credentialSource)
+
+	authParams := &fibe.AgentAuthenticateParams{Token: &secret, OpenCodeProvider: &opencodeProvider}
+	authenticated, err := c.Agents.AuthenticateWithParams(ctx(), ag.ID, authParams)
 	requireNoError(t, err)
 	if !authenticated.Authenticated {
 		t.Fatal("expected authenticated opencode agent")
@@ -135,6 +154,60 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 	})
 
 	return ag
+}
+
+func opencodeChatCredential(t *testing.T) (string, string, string, string) {
+	t.Helper()
+
+	cases := []agentRuntimeMatrixCase{
+		{
+			name:               "OpenCode OpenRouter",
+			provider:           fibe.ProviderOpenCode,
+			providerAPIKeyMode: true,
+			modelOptions:       "google/gemini-2.5-flash-lite",
+			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY",
+			credentialAliases:  []string{"OPENCODE_OPENROUTER_KEY"},
+			opencodeProvider:   "openrouter",
+		},
+		{
+			name:               "OpenCode Anthropic",
+			provider:           fibe.ProviderOpenCode,
+			providerAPIKeyMode: true,
+			modelOptions:       "anthropic/claude-haiku-4-5",
+			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
+			credentialAliases:  []string{"OPENCODE_ANTHROPIC_KEY"},
+			opencodeProvider:   "anthropic",
+		},
+		{
+			name:               "OpenCode OpenAI",
+			provider:           fibe.ProviderOpenCode,
+			providerAPIKeyMode: true,
+			modelOptions:       "openai/gpt-5-mini",
+			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY",
+			credentialAliases:  []string{"OPENCODE_OPENAI_KEY"},
+			opencodeProvider:   "openai",
+		},
+		{
+			name:               "OpenCode Gemini",
+			provider:           fibe.ProviderOpenCode,
+			providerAPIKeyMode: true,
+			modelOptions:       "google/gemini-2.5-flash-lite",
+			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
+			credentialAliases:  []string{"OPENCODE_GEMINI_KEY"},
+			opencodeProvider:   "gemini",
+		},
+	}
+
+	var names []string
+	for _, tc := range cases {
+		if secret, source := lookupAgentRuntimeCredential(tc); secret != "" {
+			return secret, tc.modelOptions, tc.opencodeProvider, source
+		}
+		names = append(names, agentRuntimeCredentialEnvNames(tc)...)
+	}
+
+	t.Skipf("set one of %s to bootstrap an OpenCode agent chat", strings.Join(names, ", "))
+	return "", "", "", ""
 }
 
 func TestAgents_Chat(t *testing.T) {
@@ -165,17 +238,13 @@ func TestAgents_Authenticate(t *testing.T) {
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
-	t.Run("authenticate with bogus token fails with structured error", func(t *testing.T) {
+	t.Run("authenticate accepts arbitrary token without create-time validation", func(t *testing.T) {
 		t.Parallel()
 		bogus := "not-a-real-oauth-token"
-		_, err := c.Agents.Authenticate(ctx(), ag.ID, nil, &bogus)
-		if err == nil {
-			t.Skip("authenticate accepted bogus token (dev mode?)")
-		}
-		if apiErr, ok := err.(*fibe.APIError); ok {
-			if apiErr.StatusCode < 400 {
-				t.Errorf("expected 4xx status, got %d", apiErr.StatusCode)
-			}
+		authenticated, err := c.Agents.Authenticate(ctx(), ag.ID, nil, &bogus)
+		requireNoError(t, err)
+		if !authenticated.Authenticated {
+			t.Fatal("expected arbitrary credential to mark agent authenticated")
 		}
 	})
 

@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	agentRuntimeReadyTimeout       = 12 * time.Minute
-	agentRuntimeIdleTimeout        = 8 * time.Minute
-	agentRuntimeSyncTimeout        = 5 * time.Minute
-	agentRuntimeSendTimeout        = 60 * time.Second
-	agentRuntimeConversationID     = "runtime-matrix"
+	agentRuntimeReadyTimeout   = 12 * time.Minute
+	agentRuntimeIdleTimeout    = 8 * time.Minute
+	agentRuntimeSyncTimeout    = 5 * time.Minute
+	agentRuntimeSendTimeout    = 60 * time.Second
+	agentRuntimeConversationID = "runtime-matrix"
 )
 
 type agentRuntimeMatrixCase struct {
@@ -28,6 +28,8 @@ type agentRuntimeMatrixCase struct {
 	modelOptions       string
 	credentialEnv      string
 	credentialAliases  []string
+	opencodeProvider   string
+	baseURL            string
 }
 
 func TestAgentRuntimeMatrix(t *testing.T) {
@@ -38,7 +40,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "Gemini OAuth",
 			provider:           fibe.ProviderGemini,
 			providerAPIKeyMode: false,
-			modelOptions:       "pro",
+			modelOptions:       "gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_GEMINI_OAUTH_JSON",
 			credentialAliases:  []string{"GEMINI_OAUTH_JSON"},
 		},
@@ -96,6 +98,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			modelOptions:       "google/gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY",
 			credentialAliases:  []string{"OPENCODE_OPENROUTER_KEY"},
+			opencodeProvider:   "openrouter",
 		},
 		{
 			name:               "OpenCode Anthropic",
@@ -104,6 +107,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			modelOptions:       "anthropic/claude-haiku-4-5",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
 			credentialAliases:  []string{"OPENCODE_ANTHROPIC_KEY"},
+			opencodeProvider:   "anthropic",
 		},
 		{
 			name:               "OpenCode OpenAI",
@@ -112,6 +116,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			modelOptions:       "openai/gpt-5-mini",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY",
 			credentialAliases:  []string{"OPENCODE_OPENAI_KEY"},
+			opencodeProvider:   "openai",
 		},
 		{
 			name:               "OpenCode Gemini",
@@ -120,34 +125,33 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			modelOptions:       "google/gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
 			credentialAliases:  []string{"OPENCODE_GEMINI_KEY"},
+			opencodeProvider:   "gemini",
 		},
 	}
 
 	caseFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE"))
 	caseExcludeFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE_EXCEPT"))
+	selectedCases := make([]agentRuntimeMatrixCase, 0, len(cases))
 	configuredRows := 0
 	for _, tc := range cases {
 		if !agentRuntimeCaseSelected(tc, caseFilters, caseExcludeFilters) {
 			continue
 		}
+		selectedCases = append(selectedCases, tc)
 		if secret, _ := lookupAgentRuntimeCredential(tc); secret != "" {
 			configuredRows++
 		}
 	}
+	if len(selectedCases) == 0 {
+		t.Fatalf("no agent runtime matrix rows selected by CHAT_E2E_CASE=%q CHAT_E2E_CASE_EXCEPT=%q", os.Getenv("CHAT_E2E_CASE"), os.Getenv("CHAT_E2E_CASE_EXCEPT"))
+	}
 	if configuredRows == 0 {
-		t.Log("no FIBE_TEST_AGENT_* credential env vars configured; all agent runtime matrix rows will skip")
+		t.Log("no FIBE_TEST_AGENT_* credential env vars configured for selected rows; each selected row will skip for missing credentials")
 	}
 
-	for _, tc := range cases {
+	for _, tc := range selectedCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			if len(caseFilters) > 0 && !agentRuntimeCaseMatchesAny(tc, caseFilters) {
-				t.Skipf("filtered by CHAT_E2E_CASE=%q", strings.Join(caseFilters, ","))
-			}
-			if agentRuntimeCaseMatchesAny(tc, caseExcludeFilters) {
-				t.Skipf("filtered by CHAT_E2E_CASE_EXCEPT=%q", strings.Join(caseExcludeFilters, ","))
-			}
-
 			secret, credentialSource := lookupAgentRuntimeCredential(tc)
 			if secret == "" {
 				t.Skipf("set one of %s to run this agent runtime matrix row", strings.Join(agentRuntimeCredentialEnvNames(tc), ", "))
@@ -189,7 +193,14 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 	})
 
 	agentRuntimeProgressf("%s: authenticating agent %d", tc.name, agent.ID)
-	authenticated, err := c.Agents.Authenticate(ctx(), agent.ID, nil, &secret)
+	authParams := &fibe.AgentAuthenticateParams{Token: &secret}
+	if tc.opencodeProvider != "" {
+		authParams.OpenCodeProvider = &tc.opencodeProvider
+	}
+	if tc.baseURL != "" {
+		authParams.BaseURL = &tc.baseURL
+	}
+	authenticated, err := c.Agents.AuthenticateWithParams(ctx(), agent.ID, authParams)
 	requireNoError(t, err, "authenticate agent")
 	if !authenticated.Authenticated {
 		t.Fatal("expected authenticated agent")
@@ -202,9 +213,9 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 		t.Fatal("expected started chat ID")
 	}
 
-	agentRuntimeProgressf("%s: waiting for runtime to become running and idle", tc.name)
-	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeReadyTimeout, 2*time.Second, "runtime to become running and idle", func(status *fibe.AgentRuntimeStatus) bool {
-		return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
+	agentRuntimeProgressf("%s: waiting for runtime to become running, authenticated, and idle", tc.name)
+	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeReadyTimeout, 2*time.Second, "runtime to become running, authenticated, and idle", func(status *fibe.AgentRuntimeStatus) bool {
+		return status.Status == "running" && status.RuntimeReachable && status.Authenticated && !status.IsProcessing && status.QueueCount == 0
 	})
 
 	conversationID := uniqueName(agentRuntimeConversationID)
@@ -221,10 +232,6 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 
 	agentRuntimeProgressf("%s: verifying first assistant response synced", tc.name)
 	waitForAgentRuntimeAssistantData(t, c, agent.ID, conversationID, agentRuntimeIdleTimeout, 1)
-	agentRuntimeProgressf("%s: waiting for runtime to return idle", tc.name)
-	waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeIdleTimeout, 2*time.Second, "runtime to return to idle", func(status *fibe.AgentRuntimeStatus) bool {
-		return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
-	})
 
 	followupCount := agentRuntimeFollowupCount()
 	for i := 2; i <= followupCount+1; i++ {
@@ -236,9 +243,6 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 		}
 		agentRuntimeProgressf("%s: verifying assistant response %d synced", tc.name, expectedAssistantMessages)
 		waitForAgentRuntimeAssistantData(t, c, agent.ID, conversationID, agentRuntimeIdleTimeout, expectedAssistantMessages)
-		waitForAgentRuntimeStatus(t, c, agent.ID, agentRuntimeIdleTimeout, 2*time.Second, fmt.Sprintf("runtime to return to idle after prompt %d", i), func(status *fibe.AgentRuntimeStatus) bool {
-			return status.Status == "running" && status.RuntimeReachable && !status.IsProcessing && status.QueueCount == 0
-		})
 	}
 
 	agentRuntimeProgressf("%s: waiting for synced messages/activity", tc.name)
@@ -375,7 +379,7 @@ func requiredAgentRuntimeMarqueeID(t *testing.T) int64 {
 
 	raw := strings.TrimSpace(os.Getenv("FIBE_TEST_MARQUEE_ID"))
 	if raw == "" {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run agent runtime matrix rows")
+		t.Fatal("set FIBE_TEST_MARQUEE_ID to run selected agent runtime matrix rows")
 	}
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
@@ -395,8 +399,9 @@ func sendAgentRuntimeMessage(t *testing.T, c *fibe.Client, agentID int64, text s
 		ConversationID: conversationID,
 		BusyPolicy:     "queue",
 	}
-	err := chatEventuallyAccepted(c, agentID, params, agentChatProbeAttempts, agentChatProbeDelay, agentRuntimeSendTimeout)
+	result, err := chatEventuallyAcceptedResult(c, agentID, params, agentChatProbeAttempts, agentChatProbeDelay, agentRuntimeSendTimeout)
 	requireNoError(t, err, "send runtime message")
+	t.Logf("runtime message accepted; response=%s", prettyAgentRuntimeJSON(result))
 }
 
 func waitForAgentRuntimeStatus(
@@ -453,9 +458,10 @@ func agentRuntimeStatusSummary(status *fibe.AgentRuntimeStatus) string {
 		return "nil"
 	}
 	return fmt.Sprintf(
-		"status=%s reachable=%t processing=%t queue=%d",
+		"status=%s reachable=%t authenticated=%t processing=%t queue=%d",
 		status.Status,
 		status.RuntimeReachable,
+		status.Authenticated,
 		status.IsProcessing,
 		status.QueueCount,
 	)
@@ -484,37 +490,48 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 		cancel()
 
 		if messagesErr == nil && activityErr == nil {
-			skipIfAgentRuntimeProviderUnavailable(t, messages.Content, activity.Content)
 			messageCount = agentRuntimeTopLevelCount(messages.Content)
 			assistantCount = agentRuntimeAssistantMessageCount(messages.Content)
 			activityCount = agentRuntimeTopLevelCount(activity.Content)
 			if assistantCount >= minAssistantMessages && activityCount > 0 {
 				return messages, activity
 			}
+			failIfAgentRuntimeProviderUnavailable(t, messages.Content, activity.Content)
 		}
 
 		time.Sleep(2 * time.Second)
 	}
 
+	lastStatus, statusErr := agentRuntimeLatestStatus(c, agentID)
 	t.Fatalf(
-		"timed out waiting for synced assistant output; message_count=%d assistant_count=%d activity_count=%d messages_error=%v activity_error=%v",
+		"timed out waiting for synced assistant output; message_count=%d assistant_count=%d activity_count=%d messages_error=%v activity_error=%v last_status=%s status_error=%v messages_excerpt=%q activity_excerpt=%q",
 		messageCount,
 		assistantCount,
 		activityCount,
 		messagesErr,
 		activityErr,
+		agentRuntimeStatusSummary(lastStatus),
+		statusErr,
+		agentRuntimeDataExcerpt(messages),
+		agentRuntimeDataExcerpt(activity),
 	)
 	return nil, nil
 }
 
-func skipIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
+func agentRuntimeLatestStatus(c *fibe.Client, agentID int64) (*fibe.AgentRuntimeStatus, error) {
+	reqCtx, cancel := ctxTimeout(10 * time.Second)
+	defer cancel()
+	return c.Agents.RuntimeStatus(reqCtx, agentID)
+}
+
+func failIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
 	t.Helper()
 
 	if agentRuntimeProviderQuotaExhausted(contents...) {
-		t.Skip("provider quota or rate limit exhausted for this credential/model")
+		t.Fatalf("provider quota or rate limit exhausted for this credential/model; excerpt=%q", agentRuntimeContentExcerpt(contents))
 	}
 	if agentRuntimeProviderCredentialsMissing(contents...) {
-		t.Skip("provider credentials are missing in the runtime container")
+		t.Fatalf("provider credentials/auth unavailable; excerpt=%q", agentRuntimeContentExcerpt(contents))
 	}
 }
 
@@ -527,10 +544,18 @@ func agentRuntimeProviderQuotaExhausted(contents ...any) bool {
 		for _, marker := range []string{
 			"resource_exhausted",
 			"model_capacity_exhausted",
+			"terminalquotaerror",
 			"quota exceeded",
+			"quota will reset",
 			"quota/rate limit exhausted",
+			"quota or rate limit exhausted",
+			"exhausted your daily quota",
+			"exhausted your capacity",
 			"rate limited",
 			"currently overloaded",
+			"code 429",
+			"code: 429",
+			"code\":429",
 			"status 429",
 			"statuscode\":429",
 			"generate_content_free_tier_requests",
@@ -567,6 +592,58 @@ func agentRuntimeProviderCredentialsMissing(contents ...any) bool {
 		}
 	}
 	return false
+}
+
+func TestAgentRuntimeProviderFailureDetection(t *testing.T) {
+	t.Run("quota marker wins for Gemini terminal quota output", func(t *testing.T) {
+		content := map[string]any{
+			"activity_type": "error",
+			"message":       "Provider turn failed",
+			"details":       "TerminalQuotaError: You have exhausted your daily quota. code: 429",
+		}
+
+		if !agentRuntimeProviderQuotaExhausted(content) {
+			t.Fatal("expected Gemini terminal quota output to be detected")
+		}
+	})
+
+	t.Run("auth failure remains terminal after an earlier assistant response", func(t *testing.T) {
+		content := []map[string]any{
+			{
+				"role": "assistant",
+				"body": "docker e2e provider probe complete.",
+			},
+			{
+				"activity_type": "error",
+				"details":       "Authentication failed for Gemini: credentials are missing.",
+			},
+		}
+
+		if !agentRuntimeProviderCredentialsMissing(content) {
+			t.Fatal("expected runtime auth failure to be detected even after an assistant response")
+		}
+	})
+}
+
+func agentRuntimeDataExcerpt(data *fibe.AgentData) string {
+	if data == nil {
+		return ""
+	}
+	return agentRuntimeContentExcerpt(data.Content)
+}
+
+func agentRuntimeContentExcerpt(content any) string {
+	text := strings.TrimSpace(agentRuntimeContentText(content))
+	if text == "" {
+		return ""
+	}
+	text = strings.Join(strings.Fields(text), " ")
+	const limit = 1500
+	runes := []rune(text)
+	if len(runes) <= limit {
+		return text
+	}
+	return string(runes[:limit]) + "...(truncated)"
 }
 
 func agentRuntimeContentText(content any) string {

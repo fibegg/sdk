@@ -15,6 +15,7 @@ import (
 
 var (
 	admin       *fibe.Client
+	contract    *fibe.Client
 	setupOnce   sync.Once
 	setupErr    error
 	testCtx     = context.Background()
@@ -44,11 +45,23 @@ func adminClient(t *testing.T) *fibe.Client {
 				return nil
 			}),
 		)
+		contract = fibe.NewClient(
+			fibe.WithAPIKey(key),
+			fibe.WithDomain(domain),
+			fibe.WithMaxRetries(2),
+			fibe.WithRetryDelay(500*time.Millisecond, 5*time.Second),
+		)
 	})
 	if setupErr != nil {
 		t.Skipf("skipping integration test: %v", setupErr)
 	}
 	return admin
+}
+
+func contractClient(t *testing.T) *fibe.Client {
+	t.Helper()
+	adminClient(t)
+	return contract
 }
 
 func cliAuthArgs(t *testing.T) []string {

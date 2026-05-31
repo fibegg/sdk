@@ -16,7 +16,6 @@ import (
 //	Authorization: Bearer <api_key>
 //	X-Fibe-API-Key: <api_key>
 //	X-Fibe-Domain:  <domain override>
-//	X-Fibe-Yolo:    1  (per-request destructive bypass)
 //
 // The credentials are injected into the request context; resolveClient()
 // picks them up when the tool handler asks for an SDK client, giving us
@@ -56,7 +55,6 @@ func (s *Server) injectAuthFromRequest(ctx context.Context, r *http.Request) con
 		apiKey = r.Header.Get("X-Fibe-API-Key")
 	}
 	domain := r.Header.Get("X-Fibe-Domain")
-	yolo := r.Header.Get("X-Fibe-Yolo")
 
 	if apiKey != "" {
 		ctx = context.WithValue(ctx, ctxKeyAPIKey{}, apiKey)
@@ -64,15 +62,11 @@ func (s *Server) injectAuthFromRequest(ctx context.Context, r *http.Request) con
 	if domain != "" {
 		ctx = context.WithValue(ctx, ctxKeyDomain{}, domain)
 	}
-	if yolo != "" {
-		ctx = context.WithValue(ctx, ctxKeyYolo{}, yolo)
-	}
 	return ctx
 }
 
 type ctxKeyAPIKey struct{}
 type ctxKeyDomain struct{}
-type ctxKeyYolo struct{}
 
 func bearerFromRequest(r *http.Request) string {
 	h := r.Header.Get("Authorization")
@@ -102,10 +96,4 @@ func domainFromContext(ctx context.Context) string {
 	return ""
 }
 
-func yoloFromContext(ctx context.Context) bool {
-	v, ok := ctx.Value(ctxKeyYolo{}).(string)
-	if !ok {
-		return false
-	}
-	return v == "1" || v == "true" || v == "yes"
-}
+func yoloFromContext(ctx context.Context) bool { return false }

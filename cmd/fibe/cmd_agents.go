@@ -1139,7 +1139,7 @@ EXAMPLES:
 }
 
 func agAuthCmd() *cobra.Command {
-	var code, token string
+	var code, token, opencodeProvider, baseURL string
 
 	cmd := &cobra.Command{
 		Use:   "authenticate <id-or-name>",
@@ -1151,21 +1151,30 @@ Provide either a code (for OAuth flow) or a token (for direct authentication).
 OPTIONAL FLAGS:
   --code    OAuth authorization code
   --token   Direct access token
+  --opencode-provider  OpenCode provider for token auth, default openrouter
+  --base-url           Optional provider API base URL
 
 EXAMPLES:
   fibe agents authenticate builder --token ghp_xxxx
+  fibe agents authenticate opencode-agent --token sk-ant-xxxx --opencode-provider anthropic
   fibe ag authenticate my-agent --code abc123`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			var codePtr, tokenPtr *string
+			params := &fibe.AgentAuthenticateParams{}
 			if code != "" {
-				codePtr = &code
+				params.Code = &code
 			}
 			if token != "" {
-				tokenPtr = &token
+				params.Token = &token
 			}
-			agent, err := c.Agents.AuthenticateByIdentifier(ctx(), args[0], codePtr, tokenPtr)
+			if opencodeProvider != "" {
+				params.OpenCodeProvider = &opencodeProvider
+			}
+			if baseURL != "" {
+				params.BaseURL = &baseURL
+			}
+			agent, err := c.Agents.AuthenticateByIdentifierWithParams(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
@@ -1176,6 +1185,8 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&code, "code", "", "OAuth code")
 	cmd.Flags().StringVar(&token, "token", "", "Access token")
+	cmd.Flags().StringVar(&opencodeProvider, "opencode-provider", "", "OpenCode provider for token auth")
+	cmd.Flags().StringVar(&baseURL, "base-url", "", "Provider API base URL")
 	return cmd
 }
 

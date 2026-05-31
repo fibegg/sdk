@@ -13,13 +13,14 @@ import (
 )
 
 // MockServer implements an httptest.Server that returns mock payloads
-// for standard Fibe REST API calls. 
+// for standard Fibe REST API calls.
 type MockServer struct {
 	server *httptest.Server
 	Mux    *http.ServeMux
 
 	// Interceptors allow you to override specific routes
 	Interceptors map[string]http.HandlerFunc
+	Permissive   bool
 }
 
 // NewMockServer boots an in-memory HTTP server attached to localhost.
@@ -28,7 +29,6 @@ type MockServer struct {
 //	mock := fibetest.NewMockServer()
 //	defer mock.Close()
 //	client := fibe.NewClient(fibe.WithDomain(mock.Domain()))
-//
 func NewMockServer() *MockServer {
 	m := &MockServer{
 		Mux:          http.NewServeMux(),
@@ -83,7 +83,17 @@ func (m *MockServer) handleDefault(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(fibe.Playground{ID: 42, Name: "mock-pg", Status: "running"})
 
 	default:
-		// Generic fallback success
+		if !m.Permissive {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{
+					"code":    "MOCK_ROUTE_NOT_FOUND",
+					"message": "No fibetest mock route or interceptor matched this request",
+					"details": map[string]any{"method": r.Method, "path": r.URL.Path},
+				},
+			})
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	}

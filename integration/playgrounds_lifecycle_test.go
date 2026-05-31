@@ -65,7 +65,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 			return got, false
 		})
 		if d == nil {
-			t.Skip("could not fetch playground detail within timeout")
+			t.Fatal("could not fetch playground detail within timeout")
 		}
 		if d.ExpiresAt == nil {
 			t.Log("ExpiresAt not yet populated within timeout — may require running state")
@@ -85,7 +85,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 			return c2, false
 		})
 		if !found {
-			t.Skip("compose YAML not rendered within timeout")
+			t.Fatal("compose YAML not rendered within timeout")
 		}
 		if !strings.Contains(cmp.ComposeYAML, "services:") {
 			t.Errorf("expected services: in compose YAML")
@@ -144,24 +144,12 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 9. Rollout should transition status (async)
 	t.Run("rollout triggers status change", func(t *testing.T) {
-		_, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
-		if err != nil {
-			if skipIfPlaygroundActionStateRejected(t, err, "rollout") {
-				return
-			}
-			requireNoError(t, err)
-		}
+		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionRollout, "rollout")
 	})
 
 	// 10. HardRestart
 	t.Run("hard restart triggers status change", func(t *testing.T) {
-		_, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
-		if err != nil {
-			if skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
-				return
-			}
-			requireNoError(t, err)
-		}
+		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionHardRestart, "hard restart")
 	})
 
 	// 11. Logs (may return empty if not yet running)
@@ -171,7 +159,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		if err != nil {
 			if apiErr, ok := err.(*fibe.APIError); ok {
 				if apiErr.StatusCode == 404 || apiErr.StatusCode == 409 {
-					t.Skipf("logs not yet available: %s", apiErr.Message)
+					t.Fatalf("logs not available: %s", apiErr.Message)
 				}
 			}
 			requireNoError(t, err)

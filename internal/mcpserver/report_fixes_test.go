@@ -31,33 +31,6 @@ func TestPropBranchesUnmarshalsObjectArray(t *testing.T) {
 	}
 }
 
-// ---------- Aliases: every documented alias accepts both spellings ----------
-
-func TestAliasFieldPrefersCanonical(t *testing.T) {
-	args := map[string]any{"text": "canonical", "message": "alias"}
-	aliasField(args, "text", "message")
-	if args["text"] != "canonical" {
-		t.Errorf("canonical should win, got %v", args["text"])
-	}
-}
-
-func TestAliasFieldFillsFromAlternative(t *testing.T) {
-	args := map[string]any{"message": "via-alias"}
-	aliasField(args, "text", "message")
-	if args["text"] != "via-alias" {
-		t.Errorf("alias fill failed: %v", args["text"])
-	}
-}
-
-func TestAliasFieldEmptyStringIsNotSet(t *testing.T) {
-	// Empty string should NOT block an alias backfill; treat it like absent.
-	args := map[string]any{"text": "", "message": "via-alias"}
-	aliasField(args, "text", "message")
-	if args["text"] != "via-alias" {
-		t.Errorf("empty string should have been overwritten by alias; got %v", args["text"])
-	}
-}
-
 func TestBindArgsUnderstandsURLTagsAndScalarCoercion(t *testing.T) {
 	var p fibe.PlaygroundListParams
 	err := bindArgs(map[string]any{
@@ -201,16 +174,11 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	}
 }
 
-// ---------- fibe launch returns both playspec_id and playground_id ----------
+// ---------- fibe launch returns stable resource IDs ----------
 
 func TestLaunchSurfacesBothIDs(t *testing.T) {
-	// We can't hit the real Fibe API in a unit test, but we can verify the
-	// shape of the map our handler returns by calling it with a mocked
-	// LaunchService via the session client. The simplest path: assert the
-	// tool description mentions both keys and that the LaunchResult struct
-	// has the playspecs_created JSON tag the server emits.
 	var r fibe.LaunchResult
-	if err := json.Unmarshal([]byte(`{"playspecs_created":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"playspec_id":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
 	if r.PlayspecID != 10 {
@@ -221,6 +189,13 @@ func TestLaunchSurfacesBothIDs(t *testing.T) {
 	}
 	if len(r.PropsCreated) != 2 {
 		t.Errorf("PropsCreated=%v want [1,2]", r.PropsCreated)
+	}
+
+	if err := json.Unmarshal([]byte(`{"playspecs_created":11}`), &r); err != nil {
+		t.Fatalf("legacy unmarshal: %v", err)
+	}
+	if r.PlayspecID != 11 {
+		t.Errorf("legacy PlayspecID=%d want 11", r.PlayspecID)
 	}
 }
 

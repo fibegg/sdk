@@ -146,7 +146,7 @@ Rows:
 Examples:
   OPENAI_KEY=SECRET MESSAGE="[SYSCHECK]" mage chatE2E
   OPENAI_KEY=SECRET MESSAGE="[SYSCHECK]" CHAT_E2E_FOLLOWUPS=0 CHAT_E2E_MIN_ENTRIES=0 mage chatE2E
-  CHAT_E2E_CASE=opencode_openai OPENCODE_OPENAI_KEY=SECRET MESSAGE="hello" mage chatE2E
+  CHAT_E2E_CASE=opencode_anthropic OPENCODE_ANTHROPIC_KEY=SECRET MESSAGE="hello" mage chatE2E
   mage chatE2EHelp
 `)
 	return b.String()

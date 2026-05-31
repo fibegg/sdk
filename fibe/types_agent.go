@@ -101,6 +101,14 @@ type AgentCreateParams struct {
 	Mounts                            []AgentMountSpec `json:"mounts,omitempty"`
 }
 
+type AgentAuthenticateParams struct {
+	Code             *string `json:"code,omitempty"`
+	Token            *string `json:"token,omitempty"`
+	Credentials      *string `json:"credentials,omitempty"`
+	OpenCodeProvider *string `json:"opencode_provider,omitempty"`
+	BaseURL          *string `json:"base_url,omitempty"`
+}
+
 func (p *AgentCreateParams) Validate() error {
 	v := &validator{}
 	v.required("name", p.Name)

@@ -11,7 +11,7 @@ import (
 // produces results sorted correctly for both asc and desc directions.
 func TestSortColumns_AllSupportedColumns(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := contractClient(t)
 
 	// Seed fresh resources so we have data with known ordering
 	_ = seedAgent(t, c, fibe.ProviderGemini)
@@ -131,19 +131,10 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 	})
 }
 
-// TestSortColumns_InvalidSortIsRejectedOrIgnored ensures the backend either
-// rejects invalid sort values or ignores them — it should NOT crash.
-func TestSortColumns_InvalidSortIsRejectedOrIgnored(t *testing.T) {
+func TestSortColumns_InvalidSortIsRejected(t *testing.T) {
 	t.Parallel()
 	c := adminClient(t)
 
 	_, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "this_is_not_a_real_column_xyz"})
-	// Either 400/422 OR falls back to default sort — both are acceptable.
-	if err != nil {
-		if apiErr, ok := err.(*fibe.APIError); ok {
-			if apiErr.StatusCode >= 500 {
-				t.Errorf("expected 2xx/4xx for invalid sort, got 5xx: %v", err)
-			}
-		}
-	}
+	requireAPIError(t, err, "INVALID_SORT", 400)
 }

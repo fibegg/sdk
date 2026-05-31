@@ -26,11 +26,17 @@ func TestLaunch_Create(t *testing.T) {
 			}
 			requireNoError(t, err)
 		}
-		// Launch response shape is backend-defined: may return ID/Name/Status or just confirm.
-		// We only ensure the response is non-nil (already guaranteed by err==nil above).
-		_ = result
-		if result.ID != 0 {
-			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.ID) })
+		if result.PlayspecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
+			t.Fatalf("launch response did not include a playspec, playground, or legacy resource ID: %#v", result)
+		}
+		if result.PlaygroundID != 0 {
+			if _, err := c.Playgrounds.Get(ctx(), result.PlaygroundID); err != nil {
+				t.Fatalf("created playground %d could not be fetched: %v", result.PlaygroundID, err)
+			}
+			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.PlaygroundID) })
+		}
+		if result.PlayspecID != 0 {
+			t.Cleanup(func() { c.Playspecs.Delete(ctx(), result.PlayspecID) })
 		}
 	})
 
@@ -47,8 +53,14 @@ func TestLaunch_Create(t *testing.T) {
 			}
 			requireNoError(t, err)
 		}
-		if result.ID != 0 {
-			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.ID) })
+		if result.PlayspecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
+			t.Fatalf("job-mode launch response did not include a playspec, playground, or legacy resource ID: %#v", result)
+		}
+		if result.PlaygroundID != 0 {
+			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.PlaygroundID) })
+		}
+		if result.PlayspecID != 0 {
+			t.Cleanup(func() { c.Playspecs.Delete(ctx(), result.PlayspecID) })
 		}
 	})
 

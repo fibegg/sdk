@@ -11,7 +11,7 @@ import "encoding/json"
 // an earlier SDK version, but the API does not populate them — agents
 // should read PlayspecID / PlaygroundID / PropsCreated instead.
 type LaunchResult struct {
-	PlayspecID   int64   `json:"playspecs_created,omitempty"`
+	PlayspecID   int64   `json:"playspec_id,omitempty"`
 	PlaygroundID int64   `json:"playground_id,omitempty"`
 	PropsCreated []int64 `json:"props_created,omitempty"`
 
@@ -19,6 +19,22 @@ type LaunchResult struct {
 	ID     int64  `json:"id,omitempty"`
 	Status string `json:"status,omitempty"`
 	Name   string `json:"name,omitempty"`
+}
+
+func (r *LaunchResult) UnmarshalJSON(data []byte) error {
+	type alias LaunchResult
+	var raw struct {
+		alias
+		LegacyPlayspecID int64 `json:"playspecs_created,omitempty"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*r = LaunchResult(raw.alias)
+	if r.PlayspecID == 0 {
+		r.PlayspecID = raw.LegacyPlayspecID
+	}
+	return nil
 }
 
 type LaunchParams struct {

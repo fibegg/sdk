@@ -8,7 +8,6 @@ import (
 )
 
 func TestPlaygrounds_Actions(t *testing.T) {
-	t.Parallel()
 	c := adminClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
@@ -25,7 +24,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
 
 	t.Run("status returns valid response", func(t *testing.T) {
-		t.Parallel()
 		status, err := c.Playgrounds.Status(ctx(), pg.ID)
 		requireNoError(t, err)
 
@@ -38,7 +36,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("compose returns response", func(t *testing.T) {
-		t.Parallel()
 		compose, err := c.Playgrounds.Compose(ctx(), pg.ID)
 		requireNoError(t, err)
 
@@ -48,7 +45,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("env_metadata returns structure", func(t *testing.T) {
-		t.Parallel()
 		meta, err := c.Playgrounds.EnvMetadata(ctx(), pg.ID)
 		requireNoError(t, err)
 
@@ -58,7 +54,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("debug returns data", func(t *testing.T) {
-		t.Parallel()
 		debug, err := c.Playgrounds.Debug(ctx(), pg.ID)
 		requireNoError(t, err)
 
@@ -68,7 +63,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("logs for known service", func(t *testing.T) {
-		t.Parallel()
 		logs, err := c.Playgrounds.Logs(ctx(), pg.ID, "web", ptr(10))
 		requireNoError(t, err)
 
@@ -78,7 +72,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("logs for unknown service returns error", func(t *testing.T) {
-		t.Parallel()
 		_, err := c.Playgrounds.Logs(ctx(), pg.ID, "nonexistent-service", nil)
 		if err == nil {
 			t.Error("expected error for unknown service")
@@ -86,7 +79,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("extend_expiration extends time", func(t *testing.T) {
-		t.Parallel()
 		result, err := c.Playgrounds.ExtendExpiration(ctx(), pg.ID, nil)
 		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "extend expiration") {
 			return
@@ -102,7 +94,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("extend_expiration with custom duration", func(t *testing.T) {
-		t.Parallel()
 		result, err := c.Playgrounds.ExtendExpiration(ctx(), pg.ID, ptr(24))
 		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "extend expiration") {
 			return
@@ -115,12 +106,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("rollout triggers redeploy", func(t *testing.T) {
-		t.Parallel()
-		rolled, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
-		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "rollout") {
-			return
-		}
-		requireNoError(t, err)
+		rolled := playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionRollout, "rollout")
 
 		if rolled.ID != pg.ID {
 			t.Errorf("expected ID %d, got %d", pg.ID, rolled.ID)
@@ -128,12 +114,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 	})
 
 	t.Run("hard_restart triggers restart", func(t *testing.T) {
-		t.Parallel()
-		restarted, err := c.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart})
-		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "hard restart") {
-			return
-		}
-		requireNoError(t, err)
+		restarted := playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionHardRestart, "hard restart")
 
 		if restarted.ID != pg.ID {
 			t.Errorf("expected ID %d, got %d", pg.ID, restarted.ID)

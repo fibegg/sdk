@@ -150,12 +150,31 @@ func (s *AgentService) Authenticate(ctx context.Context, id int64, code, token *
 }
 
 func (s *AgentService) AuthenticateByIdentifier(ctx context.Context, identifier string, code, token *string) (*Agent, error) {
+	return s.AuthenticateByIdentifierWithParams(ctx, identifier, &AgentAuthenticateParams{Code: code, Token: token})
+}
+
+func (s *AgentService) AuthenticateWithParams(ctx context.Context, id int64, params *AgentAuthenticateParams) (*Agent, error) {
+	return s.AuthenticateByIdentifierWithParams(ctx, int64Identifier(id), params)
+}
+
+func (s *AgentService) AuthenticateByIdentifierWithParams(ctx context.Context, identifier string, params *AgentAuthenticateParams) (*Agent, error) {
 	body := map[string]any{}
-	if code != nil {
-		body["code"] = *code
-	}
-	if token != nil {
-		body["token"] = *token
+	if params != nil {
+		if params.Code != nil {
+			body["code"] = *params.Code
+		}
+		if params.Token != nil {
+			body["token"] = *params.Token
+		}
+		if params.Credentials != nil {
+			body["credentials"] = *params.Credentials
+		}
+		if params.OpenCodeProvider != nil {
+			body["opencode_provider"] = *params.OpenCodeProvider
+		}
+		if params.BaseURL != nil {
+			body["base_url"] = *params.BaseURL
+		}
 	}
 	var result Agent
 	err := s.client.do(ctx, http.MethodPut, identifierPath("/api/agents", identifier)+"/auth", body, &result)

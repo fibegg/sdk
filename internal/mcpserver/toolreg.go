@@ -116,20 +116,6 @@ type toolOpts struct {
 	// the ones derived from the generic parameter type (e.g., confirm:true
 	// for destructive ops).
 	ExtraSchemaProps []mcp.ToolOption
-	// Aliases maps a canonical arg name to the historical alternatives
-	// clients may pass. Before the handler runs, any alternative that is
-	// set and whose canonical counterpart is not set gets copied under the
-	// canonical name. Prevents field-name drift between CLI flags / schema
-	// docs / MCP input shapes from turning into hard errors.
-	Aliases map[string][]string
-}
-
-// applyAliases runs the configured alias canonicalization on an args map.
-// Safe to call with nil opts.Aliases.
-func applyAliases(args map[string]any, aliases map[string][]string) {
-	for canonical, alts := range aliases {
-		aliasField(args, canonical, alts...)
-	}
 }
 
 func toolIDField(opts toolOpts) string {
@@ -290,7 +276,6 @@ func registerList[P any, R any](s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			var p P
 			if err := bindArgs(args, &p); err != nil {
 				return nil, err
@@ -319,7 +304,6 @@ func registerCreate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: opts.Idempotent},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			var p P
 			if err := bindArgs(args, &p); err != nil {
 				return nil, err
@@ -348,7 +332,6 @@ func registerCreateNested[P any, R any](s *Server, name, desc, parentIDField str
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: opts.Idempotent},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			pid, ok := argInt64(args, parentIDField)
 			if !ok {
 				return nil, fmt.Errorf("required field %q not set", parentIDField)
@@ -379,7 +362,6 @@ func registerUpdate[P any, R any](s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			id, ok := argInt64(args, "id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
@@ -420,7 +402,6 @@ func registerUpdateNested[P any, R any](s *Server, name, desc, parentIDField str
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			pid, ok := argInt64(args, parentIDField)
 			if !ok {
 				return nil, fmt.Errorf("required field %q not set", parentIDField)
@@ -462,7 +443,6 @@ func registerDelete(s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			id, ok := argInt64(args, "id")
 			if !ok {
 				return nil, fmt.Errorf("required field 'id' not set")
@@ -493,7 +473,6 @@ func registerDeleteNested(s *Server, name, desc, parentIDField string, opts tool
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			pid, ok := argInt64(args, parentIDField)
 			if !ok {
 				return nil, fmt.Errorf("required field %q not set", parentIDField)
@@ -533,7 +512,6 @@ func registerIDAction[R any](s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: opts.Destructive, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			idField := toolIDField(opts)
 			id, ok := argInt64(args, idField)
 			if !ok {
@@ -568,7 +546,6 @@ func registerIDActionNoReturn(s *Server, name, desc string, opts toolOpts,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Destructive: opts.Destructive, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			applyAliases(args, opts.Aliases)
 			idField := toolIDField(opts)
 			id, ok := argInt64(args, idField)
 			if !ok {
