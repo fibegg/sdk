@@ -19,7 +19,7 @@ var (
 func testMarqueeID(t *testing.T) int64 {
 	t.Helper()
 	testMarqueeOnce.Do(func() {
-		c := adminClient(t)
+		c := userClient(t)
 
 		if v := os.Getenv("FIBE_TEST_MARQUEE_ID"); v != "" {
 			id, err := strconv.ParseInt(v, 10, 64)
@@ -69,7 +69,7 @@ func setupPlaygroundDeps(t *testing.T, c *fibe.Client) (specID, marqueeID int64)
 
 func TestPlaygrounds_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	var pgID int64
@@ -157,7 +157,7 @@ func TestPlaygrounds_CRUD(t *testing.T) {
 
 func TestPlaygrounds_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("no scope returns 403", func(t *testing.T) {
 		t.Parallel()

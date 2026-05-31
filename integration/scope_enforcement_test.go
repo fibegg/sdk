@@ -9,7 +9,7 @@ import (
 // Migrated from: 10-scope-enforcement.spec.js
 func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	readOnly := createScopedKey(t, c, "readonly-enforcement", []string{"marquees:read"})
 
 	t.Run("can list marquees", func(t *testing.T) {
@@ -49,9 +49,9 @@ func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 }
 
 // Migrated from: 10-scope-enforcement.spec.js
-func TestScopeEnforcement_WildcardKey(t *testing.T) {
+func TestScopeEnforcement_AdminWildcardKey(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := superAdminClient(t)
 	wildcard := createScopedKey(t, c, "wildcard-enforcement", []string{"*"})
 
 	endpoints := []struct {
@@ -82,7 +82,7 @@ func TestScopeEnforcement_WildcardKey(t *testing.T) {
 // Migrated from: 10-scope-enforcement.spec.js
 func TestScopeEnforcement_InvalidScopes(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject nonexistent scope", func(t *testing.T) {
 		t.Parallel()
@@ -118,7 +118,7 @@ func TestScopeEnforcement_InvalidScopes(t *testing.T) {
 
 // Migrated from: 25-agent-scopes.spec.js
 func TestScopeEnforcement_AgentSubResources(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("scope-sub-agent"),
@@ -142,7 +142,7 @@ func TestScopeEnforcement_AgentSubResources(t *testing.T) {
 
 // Migrated from: 28-granular-scopes.spec.js
 func TestScopeEnforcement_GranularScopes(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("granular-agent"),

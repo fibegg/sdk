@@ -8,7 +8,7 @@ import (
 
 func TestAPIKeys_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("create key with specific scopes", func(t *testing.T) {
 		t.Parallel()
@@ -37,7 +37,7 @@ func TestAPIKeys_CRUD(t *testing.T) {
 		requireNoError(t, err)
 
 		if len(result.Data) == 0 {
-			t.Error("expected at least one key (the admin key)")
+			t.Error("expected at least one key (the primary key)")
 		}
 		if result.Meta.Total == 0 {
 			t.Error("expected total > 0")
@@ -71,7 +71,7 @@ func TestAPIKeys_CRUD(t *testing.T) {
 
 func TestAPIKeys_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("read-only key cannot create", func(t *testing.T) {
 		t.Parallel()

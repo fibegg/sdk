@@ -15,7 +15,7 @@ import (
 // It requires FIBE_TEST_MARQUEE_ID pointing to a functional marquee. Without it, the
 // create phase skips but all non-dependent parts still run against a pre-seeded playground.
 func TestPlaygrounds_FullLifecycle(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec := seedPlayspec(t, c)
 	marqueeID := testMarqueeID(t)
@@ -181,7 +181,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 // TestPlaygrounds_ListFilterIntegration verifies list filters work end-to-end on real playgrounds.
 func TestPlaygrounds_ListFilterIntegration(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {

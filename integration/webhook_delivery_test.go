@@ -135,7 +135,7 @@ func formatWebhookDeliveries(deliveries []fibe.WebhookDelivery) string {
 
 func TestWebhook_CreateWithEventFilters(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Pick a real playspec ID to use as filter target
 	spec := seedPlayspec(t, c)
@@ -163,7 +163,7 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 
 func TestWebhook_TestDeliveryAppearsInHistory(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
@@ -194,7 +194,7 @@ func TestWebhook_TestDeliveryAppearsInHistory(t *testing.T) {
 
 func TestWebhook_EventTypesEndpoint(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	types, err := c.WebhookEndpoints.EventTypes(ctx())
 	requireNoError(t, err)
@@ -219,7 +219,7 @@ func TestWebhook_EventTypesEndpoint(t *testing.T) {
 
 func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
 		URL:    "https://sdk-webhook-update.invalid/hook-" + uniqueName(""),
@@ -267,7 +267,7 @@ func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
 
 func TestWebhook_TestEndpointDeliversSignedPayload(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	server, requests := newWebhookCaptureServer(t)
 	secret := "hmac-secret-" + uniqueName("")
 

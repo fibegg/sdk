@@ -9,7 +9,7 @@ import (
 func TestGitHubRepos_CreateFailure(t *testing.T) {
 	t.Parallel()
 	skipThirdpartyIfDisabled(t)
-	c := adminClient(t)
+	c := userClient(t)
 
 	repo, err := c.GitHubRepos.Create(ctx(), &fibe.GitHubRepoCreateParams{
 		Name: "fibegg-invalid",
@@ -39,7 +39,7 @@ func TestGitHubRepos_CreateFailure(t *testing.T) {
 
 func TestGiteaRepos_CreateFailure(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	_, err := c.GiteaRepos.Create(ctx(), &fibe.GiteaRepoCreateParams{
 		Name: "fibegg-invalid",

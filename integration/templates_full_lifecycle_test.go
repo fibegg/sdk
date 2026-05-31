@@ -25,7 +25,7 @@ func seedTemplateCategory(t *testing.T, c *fibe.Client) int64 {
 // UploadImage → Update → DestroyVersion → Delete
 func TestTemplates_FullLifecycle(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	catID := seedTemplateCategory(t, c)
 
@@ -132,7 +132,7 @@ func TestTemplates_FullLifecycle(t *testing.T) {
 
 func TestTemplates_SearchAndFilters(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	catID := seedTemplateCategory(t, c)
 

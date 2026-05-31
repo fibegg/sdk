@@ -12,7 +12,7 @@ import (
 
 func TestMarquee_CreateWithDockerhubAuth(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	enabled := true
 	username := "integration-test-user"
@@ -44,7 +44,7 @@ func TestMarquee_CreateWithDockerhubAuth(t *testing.T) {
 
 func TestMarquee_CreateWithDNSProvider(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	dnsProvider := "cloudflare"
 	creds := map[string]string{
@@ -74,7 +74,7 @@ func TestMarquee_CreateWithDNSProvider(t *testing.T) {
 
 func TestMarquee_CreateWithBuildPlatform(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	platform := "linux/amd64"
 	email := "fx-" + uniqueName("") + "@example.com"
@@ -101,7 +101,7 @@ func TestMarquee_CreateWithBuildPlatform(t *testing.T) {
 
 func TestMarquee_AutoconnectToken(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("token with minimal params returns hex token", func(t *testing.T) {
 		t.Parallel()
@@ -110,7 +110,7 @@ func TestMarquee_AutoconnectToken(t *testing.T) {
 		})
 		if err != nil {
 			if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 403 {
-				t.Skip("autoconnect token requires admin-level scope")
+				t.Skip("autoconnect token requires marquees:write scope")
 			}
 			requireNoError(t, err)
 		}
@@ -147,7 +147,7 @@ func TestMarquee_AutoconnectToken(t *testing.T) {
 
 func TestMarquee_UpdatePartialFields(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	email := "fx-" + uniqueName("") + "@example.com"
 	domains := uniqueName("upd") + ".example.com"
@@ -199,7 +199,7 @@ func TestMarquee_UpdatePartialFields(t *testing.T) {
 
 func TestMarquee_CreateValidationErrors(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("missing host returns validation error", func(t *testing.T) {
 		t.Parallel()

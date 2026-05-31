@@ -8,7 +8,7 @@ import (
 
 func TestWebhookEndpoints_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
 
 	var endpointID int64
@@ -137,7 +137,7 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 
 func TestWebhookEndpoints_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
 		URL:    "https://sdk-webhook-scope.invalid/post",

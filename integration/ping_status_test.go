@@ -6,7 +6,7 @@ import (
 
 func TestClient_Ping(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("ping succeeds with valid key", func(t *testing.T) {
 		t.Parallel()
@@ -26,7 +26,7 @@ func TestClient_Ping(t *testing.T) {
 
 func TestStatus_Get(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("status returns resource summary", func(t *testing.T) {
 		t.Parallel()
@@ -73,7 +73,7 @@ func TestStatus_Get(t *testing.T) {
 
 func TestClient_LastRequestID(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	_, err := c.APIKeys.Me(ctx())
 	requireNoError(t, err)

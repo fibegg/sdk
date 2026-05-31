@@ -9,7 +9,7 @@ import (
 // Migrated from: 34-playspec-muti-job.spec.js
 func TestMutiJob_PlayspecConfig(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
 		RepositoryURL: "https://github.com/octocat/" + uniqueName("Hello-World"),

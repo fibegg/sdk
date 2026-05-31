@@ -14,7 +14,7 @@ import (
 // Migrated from: 14-security-injection.spec.js
 func TestSecurity_SQLInjection(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	injections := []string{
 		"'; DROP TABLE players; --",
@@ -88,7 +88,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 // Migrated from: 14-security-injection.spec.js
 func TestSecurity_XSS(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	xssPayloads := []string{
 		"<script>alert('xss')</script>",
@@ -127,7 +127,7 @@ func TestSecurity_XSS(t *testing.T) {
 // Migrated from: 45-security-idor.spec.js
 func TestSecurity_IDOR(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	resources := []struct {
 		name string
@@ -154,7 +154,7 @@ func TestSecurity_IDOR(t *testing.T) {
 // Migrated from: 21-owasp-security.spec.js
 func TestSecurity_OWASP_BrokenAccessControl(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("different scoped keys cannot cross-access", func(t *testing.T) {
 		t.Parallel()
@@ -172,7 +172,7 @@ func TestSecurity_OWASP_BrokenAccessControl(t *testing.T) {
 // Migrated from: 21-owasp-security.spec.js
 func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("API key token not exposed in list", func(t *testing.T) {
 		t.Parallel()
@@ -208,7 +208,7 @@ func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
 // Migrated from: 47-auth-hardening.spec.js
 func TestSecurity_AuthHardening(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("invalid token returns 401", func(t *testing.T) {
 		t.Parallel()
@@ -267,7 +267,7 @@ func TestSecurity_AuthHardening(t *testing.T) {
 
 // Migrated from: 26-rate-limit-headers.spec.js
 func TestSecurity_RateLimitHeaders(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {
 		t.Skip("FIBE_API_KEY not set")
@@ -304,11 +304,9 @@ func TestSecurity_RateLimitHeaders(t *testing.T) {
 	})
 
 	t.Run("SDK tracks rate limits", func(t *testing.T) {
-		// Because the adminClient() harness explicitly bypasses rate limit headers,
-		// we must spin up a raw client to verify SDK tracking logic parses HTTP 429 schemas!
-		cNoBypass := fibe.NewClient(fibe.WithAPIKey(apiKey), fibe.WithBaseURL(base))
-		cNoBypass.APIKeys.Me(ctx())
-		rl := cNoBypass.RateLimit()
+		c := fibe.NewClient(fibe.WithAPIKey(apiKey), fibe.WithBaseURL(base))
+		c.APIKeys.Me(ctx())
+		rl := c.RateLimit()
 		if rl.Limit == 0 {
 			t.Error("expected non-zero rate limit after request")
 		}

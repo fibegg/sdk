@@ -10,7 +10,7 @@ import (
 // Migrated from: 11-marquee-validation.spec.js
 func TestMarqueeValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("create with minimum port", func(t *testing.T) {
 		t.Parallel()
@@ -71,7 +71,7 @@ func TestMarqueeValidation(t *testing.T) {
 // Migrated from: 12-prop-validation.spec.js
 func TestPropValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject missing repository_url", func(t *testing.T) {
 		t.Parallel()
@@ -107,7 +107,7 @@ func TestPropValidation(t *testing.T) {
 // Migrated from: 13-playspec-validation.spec.js
 func TestPlayspecValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject missing name", func(t *testing.T) {
 		t.Parallel()
@@ -181,7 +181,7 @@ func TestPlayspecValidation(t *testing.T) {
 // Migrated from: 43-secrets-crud.spec.js (validation parts)
 func TestSecretValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject invalid key format", func(t *testing.T) {
 		t.Parallel()
@@ -209,7 +209,7 @@ func TestSecretValidation(t *testing.T) {
 // Migrated from: 21-agents-crud.spec.js (validation parts)
 func TestAgentValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject invalid provider", func(t *testing.T) {
 		t.Parallel()
@@ -256,7 +256,7 @@ func TestAgentValidation(t *testing.T) {
 // Migrated from: 29-webhooks.spec.js (validation parts)
 func TestWebhookValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject missing URL", func(t *testing.T) {
 		t.Parallel()
@@ -299,7 +299,7 @@ func TestWebhookValidation(t *testing.T) {
 // Migrated from: 06-launch.spec.js
 func TestLaunchValidation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("reject missing compose_yaml", func(t *testing.T) {
 		t.Parallel()

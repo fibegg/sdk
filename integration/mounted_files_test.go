@@ -10,7 +10,7 @@ import (
 // Migrated from: 38-agent-mounted-files.spec.js
 func TestAgentMountedFiles(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	mountedFilename := "test.txt"
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
@@ -52,7 +52,7 @@ func TestAgentMountedFiles(t *testing.T) {
 // Migrated from: 39-playspec-mounted-files.spec.js
 func TestPlayspecMountedFiles(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	mountedFilename := "nginx.conf"
 
 	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{

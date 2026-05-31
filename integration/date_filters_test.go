@@ -11,7 +11,7 @@ import (
 // list endpoint that supports them.
 func TestDateFilters_CoverageMatrix(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Use "way in the past" as after-bound (should include all results) and
 	// "way in the future" as before-bound (should exclude all).
@@ -114,7 +114,7 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 // TestDateFilters_RangeBehavior verifies the after/before range intersects correctly.
 func TestDateFilters_RangeBehavior(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Seed a secret so we have at least one entry in the window
 	s := seedSecret(t, c, "date-range")

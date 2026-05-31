@@ -8,22 +8,22 @@ import (
 
 func TestCrossKey_Isolation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
-	adminSecret, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
-		Key:   uniqueName("ADMIN_SECRET"),
-		Value: "admin-value",
+	userSecret, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
+		Key:   uniqueName("USER_SECRET"),
+		Value: "user-value",
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Secrets.Delete(ctx(), *adminSecret.ID) })
+	t.Cleanup(func() { c.Secrets.Delete(ctx(), *userSecret.ID) })
 
 	t.Run("different key same player sees same resources", func(t *testing.T) {
 		t.Parallel()
 		otherKey := createScopedKey(t, c, "same-player", []string{"secrets:read"})
 
-		s, err := otherKey.Secrets.Get(ctx(), *adminSecret.ID, false)
+		s, err := otherKey.Secrets.Get(ctx(), *userSecret.ID, false)
 		requireNoError(t, err)
-		if s.Key != adminSecret.Key {
+		if s.Key != userSecret.Key {
 			t.Error("expected same secret visible from different key")
 		}
 	})
@@ -32,7 +32,7 @@ func TestCrossKey_Isolation(t *testing.T) {
 		t.Parallel()
 		wrongScope := createScopedKey(t, c, "wrong-scope", []string{"agents:read"})
 
-		_, err := wrongScope.Secrets.Get(ctx(), *adminSecret.ID, false)
+		_, err := wrongScope.Secrets.Get(ctx(), *userSecret.ID, false)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
@@ -59,7 +59,7 @@ func TestCrossKey_Isolation(t *testing.T) {
 
 func TestCrossKey_WithKeyConvenience(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	key1, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
 		Label:  uniqueName("key-1"),
@@ -96,7 +96,7 @@ func TestCrossKey_WithKeyConvenience(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
-	t.Run("admin can access everything", func(t *testing.T) {
+	t.Run("primary key can access everything", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Secrets.List(ctx(), nil)
 		requireNoError(t, err)
@@ -107,7 +107,7 @@ func TestCrossKey_WithKeyConvenience(t *testing.T) {
 
 func TestCrossKey_BaseURLShared(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	child := c.WithKey("different-key")
 

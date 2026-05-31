@@ -7,9 +7,10 @@ import (
 )
 
 // TestTricks_FullLifecycle exercises:
-//   Trigger (job-mode playspec) → Status (terminal) → Logs → Rerun → Delete
+//
+//	Trigger (job-mode playspec) → Status (terminal) → Logs → Rerun → Delete
 func TestTricks_FullLifecycle(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {
@@ -37,6 +38,21 @@ func TestTricks_FullLifecycle(t *testing.T) {
 	if !trick.JobMode {
 		t.Error("expected JobMode=true for trick")
 	}
+
+	t.Run("list q finds triggered trick", func(t *testing.T) {
+		r, err := c.Tricks.List(ctx(), &fibe.PlaygroundListParams{Q: trick.Name, PerPage: 50})
+		requireNoError(t, err)
+		found := false
+		for _, listed := range r.Data {
+			if listed.ID == trick.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected Tricks.List(Q=%q) to include trick %d", trick.Name, trick.ID)
+		}
+	})
 
 	// Trick should go through states and reach terminal
 	t.Run("status reaches terminal state", func(t *testing.T) {
@@ -84,7 +100,7 @@ func TestTricks_FullLifecycle(t *testing.T) {
 
 func TestTricks_ListOnlyShowsJobMode(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	r, err := c.Tricks.List(ctx(), &fibe.PlaygroundListParams{PerPage: 50})
 	requireNoError(t, err)
@@ -97,7 +113,7 @@ func TestTricks_ListOnlyShowsJobMode(t *testing.T) {
 
 func TestTricks_TriggerAutoName(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {

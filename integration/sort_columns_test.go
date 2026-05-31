@@ -133,7 +133,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 
 func TestSortColumns_InvalidSortIsRejected(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	_, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "this_is_not_a_real_column_xyz"})
 	requireAPIError(t, err, "INVALID_SORT", 400)

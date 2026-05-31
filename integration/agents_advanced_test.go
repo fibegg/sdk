@@ -25,7 +25,7 @@ func registryCredentialID(raw any) (string, bool) {
 // Migrated from: 21-agents-crud.spec.js (full lifecycle)
 func TestAgents_FullLifecycle(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("create and get detail", func(t *testing.T) {
 		t.Parallel()
@@ -102,7 +102,7 @@ func TestAgents_FullLifecycle(t *testing.T) {
 // Migrated from: 22-artefacts.spec.js (listing only — upload requires multipart)
 func TestArtefacts_List(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("artefact-agent"),
@@ -135,7 +135,7 @@ func TestArtefacts_List(t *testing.T) {
 // Migrated from: 27-playspec-registry-credentials.spec.js
 func TestPlayspecRegistryCredentials(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
 		Name:            uniqueName("registry-spec"),

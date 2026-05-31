@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -14,20 +13,23 @@ import (
 )
 
 var (
-	admin       *fibe.Client
-	contract    *fibe.Client
-	setupOnce   sync.Once
-	setupErr    error
-	testCtx     = context.Background()
-	nameCounter atomic.Int64
+	user          *fibe.Client
+	contract      *fibe.Client
+	setupOnce     sync.Once
+	setupErr      error
+	setupSkip     bool
+	userKeyScopes []string
+	testCtx       = context.Background()
+	nameCounter   atomic.Int64
 )
 
-func adminClient(t *testing.T) *fibe.Client {
+func userClient(t *testing.T) *fibe.Client {
 	t.Helper()
 	setupOnce.Do(func() {
 		key := os.Getenv("FIBE_API_KEY")
 		if key == "" {
 			setupErr = fmt.Errorf("FIBE_API_KEY is required for integration tests")
+			setupSkip = true
 			return
 		}
 		domain := os.Getenv("FIBE_DOMAIN")
@@ -35,33 +37,80 @@ func adminClient(t *testing.T) *fibe.Client {
 			domain = "localhost:3000"
 		}
 
-		admin = fibe.NewClient(
-			fibe.WithAPIKey(key),
-			fibe.WithDomain(domain),
-			fibe.WithMaxRetries(2),
-			fibe.WithRetryDelay(500*time.Millisecond, 5*time.Second),
-			fibe.WithRequestHook(func(req *http.Request) error {
-				req.Header.Set("X-Fibe-Test-Bypass", "true")
-				return nil
-			}),
-		)
-		contract = fibe.NewClient(
-			fibe.WithAPIKey(key),
-			fibe.WithDomain(domain),
-			fibe.WithMaxRetries(2),
-			fibe.WithRetryDelay(500*time.Millisecond, 5*time.Second),
-		)
+		user = integrationClient(key, domain, 2)
+		contract = integrationClient(key, domain, 2)
+
+		me, err := contract.APIKeys.Me(ctx())
+		if err != nil {
+			setupErr = fmt.Errorf("validate FIBE_API_KEY as normal user key: %w", err)
+			return
+		}
+		if hasScope(me.APIKeyScopes, "*") {
+			setupErr = fmt.Errorf("FIBE_API_KEY must use explicit normal-user scopes, not wildcard '*'")
+			return
+		}
+		if len(me.APIKeyScopes) == 0 {
+			setupErr = fmt.Errorf("FIBE_API_KEY did not report api_key_scopes; cannot prove normal-user coverage")
+			return
+		}
+		userKeyScopes = append([]string(nil), me.APIKeyScopes...)
 	})
 	if setupErr != nil {
-		t.Skipf("skipping integration test: %v", setupErr)
+		if setupSkip {
+			t.Skipf("skipping integration test: %v", setupErr)
+		}
+		t.Fatalf("integration test setup failed: %v", setupErr)
 	}
-	return admin
+	return user
 }
 
 func contractClient(t *testing.T) *fibe.Client {
 	t.Helper()
-	adminClient(t)
+	userClient(t)
 	return contract
+}
+
+func superAdminClient(t *testing.T) *fibe.Client {
+	t.Helper()
+	key := os.Getenv("FIBE_ADMIN_API_KEY")
+	if key == "" {
+		t.Skip("FIBE_ADMIN_API_KEY not set — skipping admin-only integration test")
+	}
+	domain := os.Getenv("FIBE_DOMAIN")
+	if domain == "" {
+		domain = "localhost:3000"
+	}
+	client := integrationClient(key, domain, 2)
+	me, err := client.APIKeys.Me(ctx())
+	requireNoError(t, err, "validate FIBE_ADMIN_API_KEY")
+	if !hasScope(me.APIKeyScopes, "*") {
+		t.Fatal("FIBE_ADMIN_API_KEY must have wildcard '*' scope")
+	}
+	return client
+}
+
+func integrationClient(key, domain string, maxRetries int) *fibe.Client {
+	return fibe.NewClient(
+		fibe.WithAPIKey(key),
+		fibe.WithDomain(domain),
+		fibe.WithMaxRetries(maxRetries),
+		fibe.WithRetryDelay(500*time.Millisecond, 5*time.Second),
+	)
+}
+
+func userScopes(t *testing.T) []string {
+	t.Helper()
+	userClient(t)
+	return append([]string(nil), userKeyScopes...)
+}
+
+func hasScope(scopes []string, expected string) bool {
+	for _, scope := range scopes {
+		if scope == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func cliAuthArgs(t *testing.T) []string {
@@ -144,7 +193,7 @@ func createScopedKey(t *testing.T, c *fibe.Client, label string, scopes []string
 
 func userBClient(t *testing.T) *fibe.Client {
 	t.Helper()
-	c := adminClient(t)
+	c := userClient(t)
 	key := os.Getenv("USER_B_API_KEY")
 	if key == "" {
 		t.Skip("USER_B_API_KEY not set — skipping multi-user test")
@@ -154,7 +203,7 @@ func userBClient(t *testing.T) *fibe.Client {
 
 func rateLimitClient(t *testing.T) *fibe.Client {
 	t.Helper()
-	_ = adminClient(t)
+	_ = userClient(t)
 	key := os.Getenv("RATE_LIMIT_TEST_KEY")
 	if key == "" {
 		t.Skip("RATE_LIMIT_TEST_KEY not set — skipping rate limit test")

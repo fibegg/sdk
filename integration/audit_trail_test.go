@@ -12,7 +12,7 @@ import (
 // in the audit log.
 func TestAuditTrail_SecretCreationLogged(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Create a secret
 	s := seedSecret(t, c, "audit")
@@ -50,7 +50,7 @@ func TestAuditTrail_SecretCreationLogged(t *testing.T) {
 // TestAuditTrail_ActionPrefixFilter filters by action prefix.
 func TestAuditTrail_ActionPrefixFilter(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Generate an action by creating a secret
 	_ = seedSecret(t, c, "audit-prefix")
@@ -72,7 +72,7 @@ func TestAuditTrail_ActionPrefixFilter(t *testing.T) {
 // TestAuditTrail_ResourceTypeFilterIsolation ensures filter truly isolates.
 func TestAuditTrail_ResourceTypeFilterIsolation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Create an agent and secret to generate events
 	_ = seedAgent(t, c, fibe.ProviderGemini)

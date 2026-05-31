@@ -14,7 +14,7 @@ import (
 // ArtefactService.Create returned (nil, nil) on success.
 func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
@@ -41,7 +41,7 @@ func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 // TestArtefact_ContentRoundtrip uploads binary and text content, downloads, verifies bytes.
 func TestArtefact_ContentRoundtrip(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 

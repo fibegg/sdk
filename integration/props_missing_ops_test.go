@@ -8,7 +8,7 @@ import (
 
 func TestProps_Attach(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("attach nonexistent repo returns 4xx", func(t *testing.T) {
 		t.Parallel()
@@ -36,7 +36,7 @@ func TestProps_Attach(t *testing.T) {
 
 func TestProps_Mirror(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("mirror with invalid URL returns 400", func(t *testing.T) {
 		t.Parallel()

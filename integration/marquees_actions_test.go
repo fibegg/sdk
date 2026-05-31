@@ -2,6 +2,8 @@ package integration
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
@@ -22,15 +24,12 @@ func testMarqueeParams(prefix string) *fibe.MarqueeCreateParams {
 
 func TestMarquees_GenerateSSHKey(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
-
-	mq, err := c.Marquees.Create(ctx(), testMarqueeParams("mq-ssh"))
-	requireNoError(t, err)
-	t.Cleanup(func() { c.Marquees.Delete(ctx(), mq.ID) })
+	c := userClient(t)
+	marqueeID := testSSHKeyMarqueeID(t, c)
 
 	t.Run("generates and returns public key", func(t *testing.T) {
 		t.Parallel()
-		result, err := c.Marquees.GenerateSSHKey(ctx(), mq.ID)
+		result, err := c.Marquees.GenerateSSHKey(ctx(), marqueeID)
 		requireNoError(t, err)
 
 		if result.PublicKey == "" {
@@ -41,7 +40,7 @@ func TestMarquees_GenerateSSHKey(t *testing.T) {
 	t.Run("read-only key cannot generate ssh key", func(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "mq-ssh-ro", []string{"marquees:read"})
-		_, err := readOnly.Marquees.GenerateSSHKey(ctx(), mq.ID)
+		_, err := readOnly.Marquees.GenerateSSHKey(ctx(), marqueeID)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
@@ -52,9 +51,28 @@ func TestMarquees_GenerateSSHKey(t *testing.T) {
 	})
 }
 
+func testSSHKeyMarqueeID(t *testing.T, c *fibe.Client) int64 {
+	t.Helper()
+	raw := os.Getenv("FIBE_TEST_SSH_KEY_MARQUEE_ID")
+	if raw == "" {
+		t.Skip("set FIBE_TEST_SSH_KEY_MARQUEE_ID to test SSH key generation against a dedicated funded marquee")
+	}
+
+	id, err := strconv.ParseInt(raw, 10, 64)
+	requireNoError(t, err, "parse FIBE_TEST_SSH_KEY_MARQUEE_ID")
+
+	mq, err := c.Marquees.Get(ctx(), id)
+	requireNoError(t, err, "load FIBE_TEST_SSH_KEY_MARQUEE_ID")
+	if !mq.BillingRuntimeActive {
+		t.Fatalf("FIBE_TEST_SSH_KEY_MARQUEE_ID=%d must reference a funded Marquee", id)
+	}
+
+	return id
+}
+
 func TestMarquees_TestConnection(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {
 		t.Skip("set FIBE_TEST_MARQUEE_ID to test connection against a real marquee")
@@ -85,7 +103,7 @@ func TestMarquees_TestConnection(t *testing.T) {
 
 func TestMarquees_StatusTransitions(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("create with disabled status", func(t *testing.T) {
 		t.Parallel()
@@ -139,7 +157,7 @@ func TestMarquees_StatusTransitions(t *testing.T) {
 
 func TestMarquees_DeleteConflicts(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	marqueeID := testMarqueeID(t)
 
 	if marqueeID == 0 {
@@ -171,20 +189,20 @@ func TestMarquees_DeleteConflicts(t *testing.T) {
 
 func TestMarquees_IDOR(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	userB := userBClient(t)
 
 	mq, err := c.Marquees.Create(ctx(), testMarqueeParams("mq-idor"))
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Marquees.Delete(ctx(), mq.ID) })
 
-	t.Run("user B cannot get admin marquee", func(t *testing.T) {
+	t.Run("user B cannot get primary marquee", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Marquees.Get(ctx(), mq.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot update admin marquee", func(t *testing.T) {
+	t.Run("user B cannot update primary marquee", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Marquees.Update(ctx(), mq.ID, &fibe.MarqueeUpdateParams{
 			Name: ptr("hacked"),
@@ -192,19 +210,19 @@ func TestMarquees_IDOR(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot delete admin marquee", func(t *testing.T) {
+	t.Run("user B cannot delete primary marquee", func(t *testing.T) {
 		t.Parallel()
 		err := userB.Marquees.Delete(ctx(), mq.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot generate ssh key for admin marquee", func(t *testing.T) {
+	t.Run("user B cannot generate ssh key for primary marquee", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Marquees.GenerateSSHKey(ctx(), mq.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot test connection for admin marquee", func(t *testing.T) {
+	t.Run("user B cannot test connection for primary marquee", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Marquees.TestConnection(ctx(), mq.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
@@ -213,7 +231,7 @@ func TestMarquees_IDOR(t *testing.T) {
 
 func TestMarquees_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	mq, err := c.Marquees.Create(ctx(), testMarqueeParams("mq-scope"))
 	requireNoError(t, err)

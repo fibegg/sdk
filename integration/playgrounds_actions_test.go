@@ -8,7 +8,7 @@ import (
 )
 
 func TestPlaygrounds_Actions(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	if marqueeID == 0 {
@@ -124,7 +124,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 
 func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	badID := int64(999999999)
 
 	t.Run("status returns 404", func(t *testing.T) {
@@ -178,7 +178,7 @@ func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
 
 func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	if marqueeID == 0 {
@@ -266,7 +266,7 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 
 func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	if marqueeID == 0 {
@@ -341,7 +341,7 @@ func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 
 func TestPlaygrounds_IDOR(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	userB := userBClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
@@ -357,13 +357,13 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
 
-	t.Run("user B cannot get admin playground", func(t *testing.T) {
+	t.Run("user B cannot get primary playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Playgrounds.Get(ctx(), pg.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot update admin playground", func(t *testing.T) {
+	t.Run("user B cannot update primary playground", func(t *testing.T) {
 		t.Parallel()
 		newName := "hacked"
 		_, err := userB.Playgrounds.Update(ctx(), pg.ID, &fibe.PlaygroundUpdateParams{
@@ -372,31 +372,31 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot delete admin playground", func(t *testing.T) {
+	t.Run("user B cannot delete primary playground", func(t *testing.T) {
 		t.Parallel()
 		err := userB.Playgrounds.Delete(ctx(), pg.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot rollout admin playground", func(t *testing.T) {
+	t.Run("user B cannot rollout primary playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot get status of admin playground", func(t *testing.T) {
+	t.Run("user B cannot get status of primary playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Playgrounds.Status(ctx(), pg.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot get compose of admin playground", func(t *testing.T) {
+	t.Run("user B cannot get compose of primary playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Playgrounds.Compose(ctx(), pg.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("user B cannot extend admin playground", func(t *testing.T) {
+	t.Run("user B cannot extend primary playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Playgrounds.ExtendExpiration(ctx(), pg.ID, nil)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)

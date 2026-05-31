@@ -8,7 +8,7 @@ import (
 
 func TestAgents_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	var agentID int64
 
@@ -114,7 +114,7 @@ func TestAgents_CRUD(t *testing.T) {
 
 func TestAgents_Messages(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("msg-agent"),
@@ -154,7 +154,7 @@ func TestAgents_Messages(t *testing.T) {
 
 func TestAgents_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("scope-agent"),
@@ -195,7 +195,7 @@ func TestAgents_ScopeEnforcement(t *testing.T) {
 
 func TestAgents_GetGitHubTokenForRepo(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("gh-token-agent"),
@@ -224,7 +224,7 @@ func TestAgents_GetGitHubTokenForRepo(t *testing.T) {
 
 func TestAgents_GetGiteaToken(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("gitea-token-agent"),

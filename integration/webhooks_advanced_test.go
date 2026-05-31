@@ -10,7 +10,7 @@ import (
 // Migrated from: 29-webhooks.spec.js (advanced)
 func TestWebhooks_EventTypes(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	types, err := c.WebhookEndpoints.EventTypes(ctx())
 	requireNoError(t, err)
@@ -40,7 +40,7 @@ func TestWebhooks_EventTypes(t *testing.T) {
 // Migrated from: 29-webhooks.spec.js
 func TestWebhooks_DeliveryHistory(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	server, requests := newWebhookCaptureServer(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
@@ -111,7 +111,7 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 // Migrated from: 29-webhooks.spec.js
 func TestWebhooks_SecretHandling(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("secret shown on create only", func(t *testing.T) {
 		t.Parallel()

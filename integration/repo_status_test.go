@@ -8,7 +8,7 @@ import (
 
 func TestRepoStatus_Check(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("check with valid github URLs", func(t *testing.T) {
 		t.Parallel()
@@ -60,7 +60,7 @@ func TestRepoStatus_Check(t *testing.T) {
 
 func TestRepoStatus_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("requires appropriate scope", func(t *testing.T) {
 		t.Parallel()

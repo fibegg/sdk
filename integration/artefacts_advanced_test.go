@@ -10,7 +10,7 @@ import (
 
 func TestArtefacts_FilteringAndSorting(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("art-filter-agent"),
@@ -138,7 +138,7 @@ func TestArtefacts_FilteringAndSorting(t *testing.T) {
 
 func TestArtefacts_Download(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("art-download-agent"),
@@ -185,7 +185,7 @@ func TestArtefacts_Download(t *testing.T) {
 
 func TestArtefacts_Immutability(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("art-immutable-agent"),
@@ -207,7 +207,7 @@ func TestArtefacts_Immutability(t *testing.T) {
 
 func TestArtefacts_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("art-scope-agent"),
@@ -233,7 +233,7 @@ func TestArtefacts_ScopeEnforcement(t *testing.T) {
 
 func TestArtefacts_IDOR(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	userB := userBClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
@@ -243,7 +243,7 @@ func TestArtefacts_IDOR(t *testing.T) {
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
 
-	t.Run("user B cannot list admin agent artefacts", func(t *testing.T) {
+	t.Run("user B cannot list primary agent artefacts", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Artefacts.List(ctx(), agent.ID, nil)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)

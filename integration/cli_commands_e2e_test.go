@@ -56,7 +56,7 @@ func parseResourceID(t *testing.T, jsonOutput string) int64 {
 }
 
 func TestCLI_E2E_Commands(t *testing.T) {
-	adminClient(t) // Ensure server is up and env vars are set
+	userClient(t) // Ensure server is up and env vars are set
 
 	tests := []struct {
 		name          string
@@ -104,7 +104,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 			resource:      "api-keys",
 			createCmdName: "create",
 			updateCmdName: "update",
-			createArgs:    []string{"--label", uniqueName("test-key"), "--scope", "*"},
+			createArgs:    []string{"--label", uniqueName("test-key"), "--scope", "agents:read"},
 			updateArgs:    nil, // api-keys don't have update
 			missingArgErr: "required field 'label' not set",
 			cleanupDelete: true,
@@ -169,7 +169,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 // Complex resources that need specific dependencies
 func TestCLI_E2E_ComplexCommands(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	t.Run("playgrounds", func(t *testing.T) {

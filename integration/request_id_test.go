@@ -14,7 +14,7 @@ import (
 
 func TestRequestID_ReturnedInHeader(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {
 		t.Skip("FIBE_API_KEY not set")
@@ -38,7 +38,7 @@ func TestRequestID_ReturnedInHeader(t *testing.T) {
 
 func TestIdempotencyKey(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {
 		t.Skip("FIBE_API_KEY not set")

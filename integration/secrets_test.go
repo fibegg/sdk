@@ -8,7 +8,7 @@ import (
 
 func TestSecrets_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	var secretID int64
 
@@ -101,7 +101,7 @@ func TestSecrets_CRUD(t *testing.T) {
 
 func TestSecrets_ScopeIsolation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
 		Key:   uniqueName("SCOPE_TEST"),
@@ -147,7 +147,7 @@ func TestSecrets_ScopeIsolation(t *testing.T) {
 
 func TestSecrets_ValidationErrors(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("duplicate key name", func(t *testing.T) {
 		t.Parallel()

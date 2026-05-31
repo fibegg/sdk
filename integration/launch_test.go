@@ -8,7 +8,7 @@ import (
 
 func TestLaunch_Create(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("launch parses compose and creates playspec+playground", func(t *testing.T) {
 		// Not parallel: hits shared marquee slot if FIBE_TEST_MARQUEE_ID set

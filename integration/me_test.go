@@ -8,7 +8,7 @@ import (
 
 func TestMe(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	player, err := c.APIKeys.Me(ctx())
 	requireNoError(t, err)
@@ -23,7 +23,7 @@ func TestMe(t *testing.T) {
 
 func TestMe_Unauthorized(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	bad := c.WithKey("invalid-token-that-does-not-exist")
 
 	_, err := bad.APIKeys.Me(ctx())

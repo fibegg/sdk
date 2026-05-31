@@ -8,7 +8,7 @@ import (
 
 func TestImportTemplates_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	categories, err := c.TemplateCategories.List(ctx(), nil)
 	requireNoError(t, err, "list categories")
@@ -177,7 +177,7 @@ func TestImportTemplates_CRUD(t *testing.T) {
 
 func TestTemplateCategories_List(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	result, err := c.TemplateCategories.List(ctx(), nil)
 	requireNoError(t, err)

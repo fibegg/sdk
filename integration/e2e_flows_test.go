@@ -16,7 +16,7 @@ import (
 //  5. Clean up
 func TestE2E_PlayspecToPlayground(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {
@@ -89,7 +89,7 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 // different content types, lists/filters them, downloads one, verifies content matches.
 func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
@@ -149,7 +149,7 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 // TestE2E_SecretRotation verifies full secret lifecycle — create, read, update value, re-read, delete.
 func TestE2E_SecretRotation(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	key := "E2E_ROT_" + uniqueName("KEY")
 	original := "original-" + uniqueName("")

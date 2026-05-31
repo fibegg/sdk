@@ -211,7 +211,7 @@ func opencodeChatCredential(t *testing.T) (string, string, string, string) {
 }
 
 func TestAgents_Chat(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("chat accepts text message", func(t *testing.T) {
 		ag := bootstrapOpencodeChat(t, c)
@@ -234,7 +234,7 @@ func TestAgents_Chat(t *testing.T) {
 
 func TestAgents_Authenticate(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
@@ -263,7 +263,7 @@ func TestAgents_Authenticate(t *testing.T) {
 
 func TestAgents_RevokeGitHubToken(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 
@@ -282,7 +282,7 @@ func TestAgents_RevokeGitHubToken(t *testing.T) {
 
 func TestAgents_UpdateActivity(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	ag := seedAgent(t, c, fibe.ProviderGemini)
 

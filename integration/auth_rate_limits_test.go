@@ -14,7 +14,7 @@ func TestAuthRateLimits_Headers(t *testing.T) {
 	if apiKey == "" {
 		t.Skip("FIBE_API_KEY not set")
 	}
-	base := adminClient(t).BaseURL()
+	base := userClient(t).BaseURL()
 	c := fibe.NewClient(fibe.WithAPIKey(apiKey), fibe.WithBaseURL(base))
 
 	c.APIKeys.Me(ctx())

@@ -9,7 +9,7 @@ import (
 // Migrated from: 23-feedbacks.spec.js
 func TestFeedbacks_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("fb-agent"),
@@ -113,7 +113,7 @@ func TestFeedbacks_CRUD(t *testing.T) {
 // Migrated from: 24-mutters.spec.js
 func TestMutters_Read(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     uniqueName("mutter-agent"),

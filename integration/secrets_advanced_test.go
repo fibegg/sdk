@@ -10,7 +10,7 @@ import (
 // Migrated from: 43-secrets-crud.spec.js
 func TestSecrets_Pagination(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	prefix := uniqueName("PAGE_TEST")
 	var ids []int64
@@ -57,7 +57,7 @@ func TestSecrets_Pagination(t *testing.T) {
 // Migrated from: 43-secrets-crud.spec.js
 func TestSecrets_EncryptionVerification(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	value := "super-secret-password-123!@#"
 	s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
@@ -96,7 +96,7 @@ func TestSecrets_EncryptionVerification(t *testing.T) {
 // Migrated from: 44-audit-logs-api.spec.js
 func TestAuditLogs_AfterSecretOperations(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
 		Key:   uniqueName("AUDIT_TEST"),

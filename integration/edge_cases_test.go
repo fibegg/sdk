@@ -13,7 +13,7 @@ import (
 // Migrated from: 08-error-handling.spec.js + 20-edge-cases.spec.js
 func TestEdgeCases_ErrorHandling(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("nonexistent resource returns structured error", func(t *testing.T) {
 		t.Parallel()
@@ -46,7 +46,7 @@ func TestEdgeCases_ErrorHandling(t *testing.T) {
 // Migrated from: 20-edge-cases.spec.js
 func TestEdgeCases_OversizedInputs(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("oversized agent name", func(t *testing.T) {
 		t.Parallel()
@@ -77,7 +77,7 @@ func TestEdgeCases_OversizedInputs(t *testing.T) {
 
 // Migrated from: 17-api-contract.spec.js
 func TestEdgeCases_APIContract(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("list endpoints return data+meta envelope", func(t *testing.T) {
 		result, err := c.Agents.List(ctx(), nil)
@@ -132,7 +132,7 @@ func TestEdgeCases_APIContract(t *testing.T) {
 
 // Migrated from: 20-edge-cases.spec.js
 func TestEdgeCases_ContentType(t *testing.T) {
-	c := adminClient(t)
+	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {
 		t.Skip("FIBE_API_KEY not set")

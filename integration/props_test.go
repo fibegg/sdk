@@ -8,7 +8,7 @@ import (
 
 func TestProps_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	var propID int64
 
@@ -126,7 +126,7 @@ func TestProps_CRUD(t *testing.T) {
 
 func TestProps_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
 		RepositoryURL: "https://github.com/fibegg/scope-test-repo",

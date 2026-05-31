@@ -9,7 +9,7 @@ import (
 
 func TestErrors_NotFound(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("nonexistent playground", func(t *testing.T) {
 		t.Parallel()
@@ -53,7 +53,7 @@ func TestErrors_NotFound(t *testing.T) {
 
 func TestErrors_Unauthorized(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	bad := c.WithKey("totally-invalid-key")
 
 	t.Run("invalid token gets 401", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestErrors_Unauthorized(t *testing.T) {
 
 func TestErrors_Forbidden(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	readOnly := createScopedKey(t, c, "forbidden-test", []string{"playgrounds:read"})
 
@@ -90,7 +90,7 @@ func TestErrors_Forbidden(t *testing.T) {
 
 func TestErrors_ValidationFailed(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("client-side validation", func(t *testing.T) {
 		t.Parallel()
@@ -123,7 +123,7 @@ func TestErrors_ValidationFailed(t *testing.T) {
 
 func TestErrors_ErrorsAs(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	_, err := c.Playgrounds.Get(ctx(), 999999999)
 	if err == nil {
@@ -141,7 +141,7 @@ func TestErrors_ErrorsAs(t *testing.T) {
 
 func TestErrors_NotRetryable(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	bad := c.WithKey("bad-key")
 
 	_, err := bad.APIKeys.Me(ctx())

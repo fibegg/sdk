@@ -72,7 +72,7 @@ func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 
 func TestProps_EnvDefaults(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	prop, branch := propWithBranchFixture(t, c)
 
@@ -116,7 +116,7 @@ func TestProps_EnvDefaults(t *testing.T) {
 
 func TestProps_EnvDefaults_NonexistentProp(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("returns 404 for nonexistent prop", func(t *testing.T) {
 		t.Parallel()
@@ -127,7 +127,7 @@ func TestProps_EnvDefaults_NonexistentProp(t *testing.T) {
 
 func TestProps_EnvDefaults_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	prop, branch := propWithBranchFixture(t, c)
 
@@ -164,12 +164,12 @@ func TestProps_EnvDefaults_ScopeEnforcement(t *testing.T) {
 
 func TestProps_EnvDefaults_IDOR(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	userB := userBClient(t)
 
 	prop, branch := propWithBranchFixture(t, c)
 
-	t.Run("user B cannot access admin prop env_defaults", func(t *testing.T) {
+	t.Run("user B cannot access primary prop env_defaults", func(t *testing.T) {
 		t.Parallel()
 		_, err := userB.Props.EnvDefaults(ctx(), prop.ID, branch, "")
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)

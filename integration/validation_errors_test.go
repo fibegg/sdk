@@ -11,7 +11,7 @@ import (
 // missing required fields with a structured 422/400.
 func TestValidation_EmptyRequiredFields(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	cases := []struct {
 		name string
@@ -85,7 +85,7 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 // TestValidation_NotFoundIDs verifies 404 behavior across Get/Update/Delete operations.
 func TestValidation_NotFoundIDs(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	bogus := int64(999999999)
 
 	cases := []struct {
@@ -135,7 +135,7 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 // TestValidation_SecretKeyFormat verifies secret key conventions.
 func TestValidation_SecretKeyFormat(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	cases := []struct {
 		name    string
@@ -176,7 +176,7 @@ func TestValidation_SecretKeyFormat(t *testing.T) {
 // TestValidation_ErrorPayloadStructure verifies error responses include RequestID, Code, Message.
 func TestValidation_ErrorPayloadStructure(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	_, err := c.Agents.Get(ctx(), 999999999)
 	if err == nil {

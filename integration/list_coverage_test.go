@@ -9,12 +9,12 @@ import (
 
 // TestListCoverage_Pagination runs pagination tests across every list endpoint.
 // For each endpoint, it verifies:
-//   1. Default list works and returns envelope
-//   2. page=1, per_page=1 returns at most 1 item and Meta reflects params
-//   3. Meta.Total matches default total (bound check)
+//  1. Default list works and returns envelope
+//  2. page=1, per_page=1 returns at most 1 item and Meta reflects params
+//  3. Meta.Total matches default total (bound check)
 func TestListCoverage_Pagination(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Seed 2 of each core resource to ensure Meta.Total >= 2
 	_ = seedSecret(t, c, "pg1")
@@ -128,7 +128,7 @@ func TestListCoverage_Pagination(t *testing.T) {
 // that support it. It requests both _asc and _desc and verifies ordering.
 func TestListCoverage_Sorting(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Seed resources to ensure we have at least 2 for ordering checks
 	_ = seedAgent(t, c, fibe.ProviderGemini)
@@ -214,7 +214,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 // TestListCoverage_Filtering verifies filter parameters actually affect results.
 func TestListCoverage_Filtering(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Seed agents with distinct names so we can test Q and Name filters
 	seedName := uniqueName("filt-needle")
@@ -344,7 +344,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 // TestListCoverage_PaginationBoundaries exercises large page numbers and zero per_page.
 func TestListCoverage_PaginationBoundaries(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("page beyond last returns empty data", func(t *testing.T) {
 		t.Parallel()

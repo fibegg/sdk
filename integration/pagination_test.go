@@ -8,7 +8,7 @@ import (
 
 func TestPagination_Envelope(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("default pagination returns meta", func(t *testing.T) {
 		t.Parallel()
@@ -126,7 +126,7 @@ func TestPagination_Envelope(t *testing.T) {
 
 func TestPagination_Iterator(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	for i := 0; i < 3; i++ {
 		s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{

@@ -8,7 +8,7 @@ import (
 
 func TestAuditLogs_List(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("list all audit logs", func(t *testing.T) {
 		t.Parallel()

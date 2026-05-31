@@ -9,7 +9,7 @@ import (
 
 func TestPlayspec_WithTriggerConfig(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	marquee, err := c.Marquees.Create(ctx(), testMarqueeParams("trigger-mq"))
 	requireNoError(t, err)
@@ -52,7 +52,7 @@ func TestPlayspec_WithTriggerConfig(t *testing.T) {
 
 func TestPlayspec_WithPersistVolumes(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	pv := true
 	spec := seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) {
@@ -68,7 +68,7 @@ func TestPlayspec_WithPersistVolumes(t *testing.T) {
 
 func TestPlayspec_WithDescription(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	desc := "Integration test playspec with description " + uniqueName("")
 	spec := seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) {
@@ -84,7 +84,7 @@ func TestPlayspec_WithDescription(t *testing.T) {
 
 func TestPlayspec_WithRegistryCredential(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec := seedPlayspec(t, c)
 
@@ -111,7 +111,7 @@ func TestPlayspec_WithRegistryCredential(t *testing.T) {
 
 func TestPlayspec_ValidateCompose_Invalid(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("invalid YAML produces errors", func(t *testing.T) {
 		t.Parallel()
@@ -146,7 +146,7 @@ func TestPlayspec_ValidateCompose_Invalid(t *testing.T) {
 
 func TestPlayspec_UpdatePartialFields(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec := seedPlayspec(t, c)
 
@@ -175,7 +175,7 @@ func TestPlayspec_UpdatePartialFields(t *testing.T) {
 
 func TestPlayspec_ListFilters(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	needle := uniqueName("psfilt-needle")
 	_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{

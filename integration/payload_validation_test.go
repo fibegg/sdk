@@ -11,7 +11,7 @@ import (
 // not just the slim list view.
 func TestPayload_PlaygroundDetail(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 	if marqueeID == 0 {
@@ -77,7 +77,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 // TestPayload_PlayspecDetail verifies detailed playspec fields.
 func TestPayload_PlayspecDetail(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec := seedPlayspec(t, c)
 
@@ -105,7 +105,7 @@ func TestPayload_PlayspecDetail(t *testing.T) {
 // TestPayload_APIKeyTokenExposure verifies token is shown ONCE on create.
 func TestPayload_APIKeyTokenExposure(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	k, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
 		Label:  uniqueName("token-check"),
@@ -144,7 +144,7 @@ func TestPayload_APIKeyTokenExposure(t *testing.T) {
 // TestPayload_WebhookDelivery verifies delivery records have populated fields.
 func TestPayload_WebhookDelivery(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
@@ -188,7 +188,7 @@ func TestPayload_WebhookDelivery(t *testing.T) {
 // TestPayload_PlayerMe verifies Me returns expected fields including scopes.
 func TestPayload_PlayerMe(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	me, err := c.APIKeys.Me(ctx())
 	requireNoError(t, err)
@@ -225,7 +225,7 @@ func TestPayload_PlayerMe(t *testing.T) {
 // TestPayload_SecretValueRoundtrip verifies secret encryption + decryption.
 func TestPayload_SecretValueRoundtrip(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	originalValue := "super-secret-value-" + uniqueName("")
 	key := "ROUNDTRIP_" + uniqueName("KEY")

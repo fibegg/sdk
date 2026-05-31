@@ -9,7 +9,7 @@ import (
 // Migrated from: 16-template-versions.spec.js
 func TestTemplateVersions_Lifecycle(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	categories, err := c.TemplateCategories.List(ctx(), nil)
 	requireNoError(t, err)

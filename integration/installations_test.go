@@ -8,7 +8,7 @@ import (
 
 func TestInstallations_List(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("list returns envelope", func(t *testing.T) {
 		t.Parallel()
@@ -48,7 +48,7 @@ func TestInstallations_List(t *testing.T) {
 
 func TestInstallations_Repos(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	list, err := c.Installations.List(ctx())
 	requireNoError(t, err)
@@ -116,7 +116,7 @@ func TestInstallations_Repos(t *testing.T) {
 
 func TestInstallations_Token(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	list, err := c.Installations.List(ctx())
 	requireNoError(t, err)

@@ -8,7 +8,7 @@ import (
 
 func TestImportTemplates_Launch(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {
 		t.Skip("set FIBE_TEST_MARQUEE_ID to test template launch")

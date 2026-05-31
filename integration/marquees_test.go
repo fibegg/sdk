@@ -8,7 +8,7 @@ import (
 
 func TestMarqueesLifecycle(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	// Step 1: Create Marquee
 	params := testMarqueeParams("test-mq")

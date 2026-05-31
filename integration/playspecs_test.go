@@ -8,7 +8,7 @@ import (
 
 func TestPlayspecs_CRUD(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	var specID int64
 
@@ -114,7 +114,7 @@ func TestPlayspecs_CRUD(t *testing.T) {
 
 func TestPlayspecs_ValidateCompose(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	t.Run("valid compose", func(t *testing.T) {
 		t.Parallel()
@@ -129,7 +129,7 @@ func TestPlayspecs_ValidateCompose(t *testing.T) {
 
 func TestPlayspecs_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 
 	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
 		Name:            uniqueName("scope-spec"),

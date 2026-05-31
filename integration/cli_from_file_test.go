@@ -30,7 +30,7 @@ func runCLIWithStdin(t *testing.T, stdin string, args ...string) (string, error)
 
 func TestCLI_FromFile_JSON(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	dir := t.TempDir()
@@ -78,7 +78,7 @@ func TestCLI_FromFile_JSON(t *testing.T) {
 
 func TestCLI_FromFile_YAML(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	dir := t.TempDir()
@@ -124,7 +124,7 @@ func TestCLI_FromFile_YAML(t *testing.T) {
 
 func TestCLI_FromFile_STDIN(t *testing.T) {
 	t.Parallel()
-	c := adminClient(t)
+	c := userClient(t)
 	specID, marqueeID := setupPlaygroundDeps(t, c)
 
 	pgName := uniqueName("test-stdin-cli")

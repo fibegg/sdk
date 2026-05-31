@@ -159,7 +159,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 
 			t.Logf("using credential from %s", credentialSource)
 			marqueeID := requiredAgentRuntimeMarqueeID(t)
-			c := adminClient(t)
+			c := userClient(t)
 			runAgentRuntimeMatrixCase(t, c, marqueeID, tc, secret)
 		})
 	}
@@ -274,7 +274,7 @@ func createAgentRuntimeAPIKey(t *testing.T, c *fibe.Client, tc agentRuntimeMatri
 	agentAccessible := true
 	key, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
 		Label:           uniqueName("fx-agent-runtime-key"),
-		Scopes:          []string{"*"},
+		Scopes:          userScopes(t),
 		AgentAccessible: &agentAccessible,
 	})
 	requireNoError(t, err, "create agent runtime API key")
