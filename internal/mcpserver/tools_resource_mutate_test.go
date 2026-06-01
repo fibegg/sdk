@@ -98,6 +98,23 @@ func TestResourceMutateDryRunValidatesWithoutAPI(t *testing.T) {
 	if result["resource"] != "prop" || result["operation"] != "attach" || result["dry_run"] != true || result["valid"] != true {
 		t.Fatalf("unexpected dry run result: %#v", result)
 	}
+
+	out, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
+		"resource":  "job_env",
+		"operation": "create",
+		"dry_run":   true,
+		"payload": map[string]any{
+			"key":   "SERVICES_ONLY",
+			"value": "",
+		},
+	})
+	if err != nil {
+		t.Fatalf("empty job env dry run dispatch: %v", err)
+	}
+	result = out.(map[string]any)
+	if result["resource"] != "job_env" || result["operation"] != "create" || result["dry_run"] != true || result["valid"] != true {
+		t.Fatalf("unexpected empty job env dry run result: %#v", result)
+	}
 }
 
 func TestResourceMutatePlaygroundActionRequiresConfirm(t *testing.T) {

@@ -42,7 +42,6 @@ type JobEnvSetParams struct {
 func (p *JobEnvSetParams) Validate() error {
 	v := &validator{}
 	v.required("key", p.Key)
-	v.required("value", p.Value)
 	return v.err()
 }
 

@@ -485,6 +485,15 @@ func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
 	if _, _, err := ValidateMutationPayload("agent", "update", map[string]any{"id_or_name": 1}); err == nil {
 		t.Fatal("expected empty update payload to be rejected")
 	}
+	if _, _, err := ValidateMutationPayload("job_env", "create", map[string]any{"key": "SERVICES_ONLY", "value": ""}); err != nil {
+		t.Fatalf("job_env.create should allow an empty value: %v", err)
+	}
+	if _, _, err := ValidateMutationPayload("job_env", "create", map[string]any{"key": "SERVICES_ONLY"}); err == nil {
+		t.Fatal("job_env.create should require the value field to be present")
+	}
+	if _, _, err := ValidateMutationPayload("job_env", "update", map[string]any{"job_env_id": 1, "value": ""}); err != nil {
+		t.Fatalf("job_env.update should allow an empty value update: %v", err)
+	}
 	if _, _, err := ValidateMutationPayload("api_key", "update", map[string]any{"api_key_id": 1, "label": "x"}); err == nil {
 		t.Fatal("expected unsupported operation to be rejected")
 	}

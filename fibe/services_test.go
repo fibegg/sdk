@@ -1458,6 +1458,33 @@ func TestJobEnv_GetReveal(t *testing.T) {
 	}
 }
 
+func TestJobEnv_SetAllowsEmptyValue(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/job_env" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		var body map[string]map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		params := body["job_env"]
+		if params["key"] != "SERVICES_ONLY" || params["value"] != "" {
+			t.Fatalf("unexpected payload: %#v", params)
+		}
+		id := int64(8)
+		value := ""
+		json.NewEncoder(w).Encode(JobEnvEntry{ID: &id, Key: "SERVICES_ONLY", Value: &value})
+	})
+
+	entry, err := c.JobEnv.Set(context.Background(), &JobEnvSetParams{Key: "SERVICES_ONLY", Value: ""})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entry.Value == nil || *entry.Value != "" {
+		t.Fatalf("expected empty value, got %#v", entry.Value)
+	}
+}
+
 func TestImportTemplates_SetSourceCIFields(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "PUT" || r.URL.Path != "/api/import_templates/11/source" {

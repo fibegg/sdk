@@ -33,7 +33,7 @@ func ValidateMutationPayload(rawResource, rawOperation string, payload map[strin
 	if err := validateOperationPayloadCombination(resource, operation, payload); err != nil {
 		return "", "", err
 	}
-	if operation == "update" && !hasMutationUpdateFields(payload, requiredFields(schema)...) {
+	if operation == "update" && !hasMutationUpdateFields(payload, schema, requiredFields(schema)...) {
 		return "", "", fmt.Errorf("%s.%s payload must include at least one field to update besides %s", resource, operation, strings.Join(requiredFields(schema), ", "))
 	}
 	return resource, operation, nil
@@ -134,7 +134,7 @@ func validateObjectPayload(path string, payload map[string]any, schema map[strin
 		}
 		if fieldSchema, ok := props[field].(map[string]any); ok {
 			if schemaHasType(fieldSchema, "string") {
-				if s, ok := value.(string); ok && strings.TrimSpace(s) == "" {
+				if s, ok := value.(string); ok && strings.TrimSpace(s) == "" && !schemaAllowsEmptyString(fieldSchema) {
 					return fmt.Errorf("%s.%s is required", path, field)
 				}
 			}
@@ -461,21 +461,28 @@ func objectValue(v any) (map[string]any, bool) {
 	return nil, false
 }
 
-func hasMutationUpdateFields(payload map[string]any, routingKeys ...string) bool {
+func hasMutationUpdateFields(payload map[string]any, schema map[string]any, routingKeys ...string) bool {
 	skip := map[string]bool{}
 	for _, key := range routingKeys {
 		skip[key] = true
 	}
+	props, _ := schema["properties"].(map[string]any)
 	for key, value := range payload {
 		if skip[key] || value == nil {
 			continue
 		}
-		if s, ok := value.(string); ok && strings.TrimSpace(s) == "" {
+		fieldSchema, _ := props[key].(map[string]any)
+		if s, ok := value.(string); ok && strings.TrimSpace(s) == "" && !schemaAllowsEmptyString(fieldSchema) {
 			continue
 		}
 		return true
 	}
 	return false
+}
+
+func schemaAllowsEmptyString(schema map[string]any) bool {
+	allowed, _ := schema["allowEmptyString"].(bool)
+	return allowed
 }
 
 func stringInSlice(values []string, needle string) bool {

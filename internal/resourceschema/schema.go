@@ -386,8 +386,8 @@ func buildRegistry() map[string]map[string]any {
 	out["template_version"]["toggle_public"] = templateVersionTogglePublicSchema()
 	out["trick"]["trigger"] = renameIdentifierFields(paramsSchema[fibe.TrickTriggerParams]("playspec_id"), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
 	out["trick"]["rerun"] = resourceActionIDSchema("id_or_name", "Source trick ID or name to rerun.")
-	out["job_env"]["create"] = paramsSchema[fibe.JobEnvSetParams]("key", "value")
-	out["job_env"]["update"] = updateParamsSchemaFor[fibe.JobEnvUpdateParams]("job_env_id")
+	out["job_env"]["create"] = jobEnvCreateSchema()
+	out["job_env"]["update"] = jobEnvUpdateSchema()
 	out["memory"]["memorize"] = MemoryMemorizeSchema()
 
 	for _, r := range flatResources {
@@ -431,6 +431,27 @@ func updateParamsSchemaFor[P any](idField string) map[string]any {
 		props[idField] = map[string]any{"type": "integer", "description": schemaIDDescription(idField) + ".", "minimum": 1}
 	}
 	schema["required"] = []string{idField}
+	return schema
+}
+
+func jobEnvCreateSchema() map[string]any {
+	return allowEmptyStringProperty(paramsSchema[fibe.JobEnvSetParams]("key", "value"), "value")
+}
+
+func jobEnvUpdateSchema() map[string]any {
+	return allowEmptyStringProperty(updateParamsSchemaFor[fibe.JobEnvUpdateParams]("job_env_id"), "value")
+}
+
+func allowEmptyStringProperty(schema map[string]any, field string) map[string]any {
+	props, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema
+	}
+	prop, ok := props[field].(map[string]any)
+	if !ok {
+		return schema
+	}
+	prop["allowEmptyString"] = true
 	return schema
 }
 
