@@ -1114,6 +1114,7 @@ func TestAgents_RestartChat(t *testing.T) {
 
 func TestAgents_RuntimeStatus(t *testing.T) {
 	chatURL := "https://agent.example.test"
+	lastError := "OpenCode provider quota/rate limit exhausted for provider=gemini model=gemini-2.5-flash-lite."
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.Path != "/api/agents/5/runtime_status" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
@@ -1126,6 +1127,7 @@ func TestAgents_RuntimeStatus(t *testing.T) {
 			Authenticated:    true,
 			IsProcessing:     false,
 			QueueCount:       0,
+			LastError:        &lastError,
 		})
 	})
 
@@ -1138,6 +1140,9 @@ func TestAgents_RuntimeStatus(t *testing.T) {
 	}
 	if status.ChatURL == nil || *status.ChatURL != chatURL {
 		t.Errorf("unexpected chat URL: %#v", status.ChatURL)
+	}
+	if status.LastError == nil || *status.LastError != lastError {
+		t.Errorf("unexpected last error: %#v", status.LastError)
 	}
 }
 

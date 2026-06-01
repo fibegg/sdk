@@ -250,6 +250,7 @@ type AgentRuntimeStatus struct {
 	Authenticated    bool    `json:"authenticated"`
 	IsProcessing     bool    `json:"is_processing"`
 	QueueCount       int     `json:"queue_count"`
+	LastError        *string `json:"last_error,omitempty"`
 }
 
 type AgentPoke struct {

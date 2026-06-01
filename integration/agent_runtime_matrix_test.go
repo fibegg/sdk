@@ -400,8 +400,50 @@ func sendAgentRuntimeMessage(t *testing.T, c *fibe.Client, agentID int64, text s
 		BusyPolicy:     "queue",
 	}
 	result, err := chatEventuallyAcceptedResult(c, agentID, params, agentChatProbeAttempts, agentChatProbeDelay, agentRuntimeSendTimeout)
-	requireNoError(t, err, "send runtime message")
+	if err != nil {
+		diagnoseAgentRuntimeSendError(t, c, agentID, conversationID, err)
+		requireNoError(t, err, "send runtime message")
+	}
 	t.Logf("runtime message accepted; response=%s", prettyAgentRuntimeJSON(result))
+}
+
+func diagnoseAgentRuntimeSendError(t *testing.T, c *fibe.Client, agentID int64, conversationID string, sendErr error) {
+	t.Helper()
+
+	params := &fibe.AgentDataParams{ConversationID: conversationID}
+	reqCtx, cancel := ctxTimeout(10 * time.Second)
+	messages, messagesErr := c.Agents.GetMessagesByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+	cancel()
+
+	reqCtx, cancel = ctxTimeout(10 * time.Second)
+	activity, activityErr := c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+	cancel()
+
+	lastStatus, statusErr := agentRuntimeLatestStatus(c, agentID)
+	statusLastError := ""
+	if lastStatus != nil && lastStatus.LastError != nil {
+		statusLastError = *lastStatus.LastError
+	}
+
+	failIfAgentRuntimeProviderUnavailable(
+		t,
+		sendErr.Error(),
+		statusLastError,
+		agentRuntimeDataContent(messages),
+		agentRuntimeDataContent(activity),
+	)
+
+	t.Logf(
+		"send runtime message diagnostics after error: send_error=%v last_status=%s status_error=%v runtime_last_error=%q messages_error=%v activity_error=%v messages_excerpt=%q activity_excerpt=%q",
+		sendErr,
+		agentRuntimeStatusSummary(lastStatus),
+		statusErr,
+		statusLastError,
+		messagesErr,
+		activityErr,
+		agentRuntimeDataExcerpt(messages),
+		agentRuntimeDataExcerpt(activity),
+	)
 }
 
 func waitForAgentRuntimeStatus(
@@ -458,12 +500,13 @@ func agentRuntimeStatusSummary(status *fibe.AgentRuntimeStatus) string {
 		return "nil"
 	}
 	return fmt.Sprintf(
-		"status=%s reachable=%t authenticated=%t processing=%t queue=%d",
+		"status=%s reachable=%t authenticated=%t processing=%t queue=%d last_error=%q",
 		status.Status,
 		status.RuntimeReachable,
 		status.Authenticated,
 		status.IsProcessing,
 		status.QueueCount,
+		agentRuntimeStatusLastError(status),
 	)
 }
 
@@ -630,6 +673,20 @@ func agentRuntimeDataExcerpt(data *fibe.AgentData) string {
 		return ""
 	}
 	return agentRuntimeContentExcerpt(data.Content)
+}
+
+func agentRuntimeDataContent(data *fibe.AgentData) any {
+	if data == nil {
+		return nil
+	}
+	return data.Content
+}
+
+func agentRuntimeStatusLastError(status *fibe.AgentRuntimeStatus) string {
+	if status == nil || status.LastError == nil {
+		return ""
+	}
+	return *status.LastError
 }
 
 func agentRuntimeContentExcerpt(content any) string {
