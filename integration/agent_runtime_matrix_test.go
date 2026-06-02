@@ -232,6 +232,7 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 
 	agentRuntimeProgressf("%s: verifying first assistant response synced", tc.name)
 	waitForAgentRuntimeAssistantData(t, c, agent.ID, conversationID, agentRuntimeIdleTimeout, 1)
+	waitForAgentRuntimeIdle(t, c, agent.ID, tc.name, "first assistant response")
 
 	followupCount := agentRuntimeFollowupCount()
 	for i := 2; i <= followupCount+1; i++ {
@@ -243,6 +244,7 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 		}
 		agentRuntimeProgressf("%s: verifying assistant response %d synced", tc.name, expectedAssistantMessages)
 		waitForAgentRuntimeAssistantData(t, c, agent.ID, conversationID, agentRuntimeIdleTimeout, expectedAssistantMessages)
+		waitForAgentRuntimeIdle(t, c, agent.ID, tc.name, fmt.Sprintf("assistant response %d", expectedAssistantMessages))
 	}
 
 	agentRuntimeProgressf("%s: waiting for synced messages/activity", tc.name)
@@ -508,6 +510,15 @@ func agentRuntimeStatusSummary(status *fibe.AgentRuntimeStatus) string {
 		status.QueueCount,
 		agentRuntimeStatusLastError(status),
 	)
+}
+
+func waitForAgentRuntimeIdle(t *testing.T, c *fibe.Client, agentID int64, caseName, phase string) {
+	t.Helper()
+
+	agentRuntimeProgressf("%s: waiting for runtime idle after %s", caseName, phase)
+	waitForAgentRuntimeStatus(t, c, agentID, agentRuntimeIdleTimeout, 2*time.Second, fmt.Sprintf("runtime idle after %s", phase), func(status *fibe.AgentRuntimeStatus) bool {
+		return status.Status == "running" && status.RuntimeReachable && status.Authenticated && !status.IsProcessing && status.QueueCount == 0
+	})
 }
 
 func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int64, conversationID string, timeout time.Duration, minAssistantMessages int) (*fibe.AgentData, *fibe.AgentData) {
