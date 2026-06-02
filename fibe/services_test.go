@@ -721,6 +721,7 @@ func TestPlaygrounds_DebugWithParams(t *testing.T) {
 }
 
 func TestPlaygrounds_Logs(t *testing.T) {
+	exitCode := 1
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/42/logs" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -735,7 +736,13 @@ func TestPlaygrounds_Logs(t *testing.T) {
 		json.NewEncoder(w).Encode(PlaygroundLogs{
 			Service: "web",
 			Lines:   []string{"line1", "line2"},
-			Source:  "live",
+			Source:  "compose_up",
+			Startup: &PlaygroundStartupDiagnostics{
+				State:    "failed",
+				ExitCode: &exitCode,
+				LogTail:  []string{"line1", "line2"},
+			},
+			Diagnostics: map[string]any{"reason": "no_container"},
 		})
 	})
 
@@ -746,6 +753,9 @@ func TestPlaygrounds_Logs(t *testing.T) {
 	}
 	if len(logs.Lines) != 2 {
 		t.Errorf("expected 2 lines, got %d", len(logs.Lines))
+	}
+	if logs.Source != "compose_up" || logs.Startup == nil || logs.Startup.State != "failed" || logs.Diagnostics["reason"] != "no_container" {
+		t.Fatalf("unexpected log diagnostics: %#v", logs)
 	}
 }
 

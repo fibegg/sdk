@@ -202,25 +202,26 @@ func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
 }
 
 type PlaygroundStatus struct {
-	ID                       int64                   `json:"id"`
-	Status                   string                  `json:"status"`
-	MaintenanceEnabled       bool                    `json:"maintenance_enabled"`
-	JobMode                  bool                    `json:"job_mode,omitempty"`
-	StateReason              *string                 `json:"state_reason,omitempty"`
-	StateReasons             []string                `json:"state_reasons,omitempty"`
-	CreationStep             *string                 `json:"creation_step,omitempty"`
-	CreationStepLabel        *string                 `json:"creation_step_label,omitempty"`
-	ErrorMessage             *string                 `json:"error_message,omitempty"`
-	ErrorStep                *string                 `json:"error_step,omitempty"`
-	ErrorStepLabel           *string                 `json:"error_step_label,omitempty"`
-	ErrorDetails             map[string]any          `json:"error_details,omitempty"`
-	FailureDiagnostics       map[string]any          `json:"failure_diagnostics,omitempty"`
-	PlayguardRepairReason    *string                 `json:"playguard_repair_reason,omitempty"`
-	PlayguardRepairLockUntil *time.Time              `json:"playguard_repair_lock_until,omitempty"`
-	NeedsRecreation          *bool                   `json:"needs_recreation,omitempty"`
-	BuildStatuses            []PlaygroundBuildStatus `json:"build_statuses,omitempty"`
-	Services                 []any                   `json:"services,omitempty"`
-	JobResult                *JobResult              `json:"job_result,omitempty"`
+	ID                       int64                         `json:"id"`
+	Status                   string                        `json:"status"`
+	MaintenanceEnabled       bool                          `json:"maintenance_enabled"`
+	JobMode                  bool                          `json:"job_mode,omitempty"`
+	Startup                  *PlaygroundStartupDiagnostics `json:"startup,omitempty"`
+	StateReason              *string                       `json:"state_reason,omitempty"`
+	StateReasons             []string                      `json:"state_reasons,omitempty"`
+	CreationStep             *string                       `json:"creation_step,omitempty"`
+	CreationStepLabel        *string                       `json:"creation_step_label,omitempty"`
+	ErrorMessage             *string                       `json:"error_message,omitempty"`
+	ErrorStep                *string                       `json:"error_step,omitempty"`
+	ErrorStepLabel           *string                       `json:"error_step_label,omitempty"`
+	ErrorDetails             map[string]any                `json:"error_details,omitempty"`
+	FailureDiagnostics       map[string]any                `json:"failure_diagnostics,omitempty"`
+	PlayguardRepairReason    *string                       `json:"playguard_repair_reason,omitempty"`
+	PlayguardRepairLockUntil *time.Time                    `json:"playguard_repair_lock_until,omitempty"`
+	NeedsRecreation          *bool                         `json:"needs_recreation,omitempty"`
+	BuildStatuses            []PlaygroundBuildStatus       `json:"build_statuses,omitempty"`
+	Services                 []any                         `json:"services,omitempty"`
+	JobResult                *JobResult                    `json:"job_result,omitempty"`
 }
 
 const (
@@ -268,9 +269,31 @@ type PlaygroundCompose struct {
 }
 
 type PlaygroundLogs struct {
-	Service string   `json:"service"`
-	Lines   []string `json:"lines"`
-	Source  string   `json:"source"`
+	Service     string                        `json:"service"`
+	Lines       []string                      `json:"lines"`
+	Source      string                        `json:"source"`
+	Startup     *PlaygroundStartupDiagnostics `json:"startup,omitempty"`
+	Diagnostics map[string]any                `json:"diagnostics,omitempty"`
+}
+
+type PlaygroundStartupDiagnostics struct {
+	ComposeProject       string                               `json:"compose_project,omitempty"`
+	RemotePlaygroundPath string                               `json:"remote_playground_path,omitempty"`
+	ComposePath          string                               `json:"compose_path,omitempty"`
+	Available            bool                                 `json:"available"`
+	State                string                               `json:"state,omitempty"`
+	ExitCode             *int                                 `json:"exit_code,omitempty"`
+	Artifacts            map[string]PlaygroundStartupArtifact `json:"artifacts,omitempty"`
+	LogTail              []string                             `json:"log_tail,omitempty"`
+	MissingArtifacts     []string                             `json:"missing_artifacts,omitempty"`
+	Error                string                               `json:"error,omitempty"`
+}
+
+type PlaygroundStartupArtifact struct {
+	Path   string  `json:"path,omitempty"`
+	Exists bool    `json:"exists"`
+	PID    *string `json:"pid,omitempty"`
+	Alive  *bool   `json:"alive,omitempty"`
 }
 
 type PlaygroundEnvMetadata struct {
