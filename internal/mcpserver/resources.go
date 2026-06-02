@@ -238,7 +238,7 @@ var pipelineDSLSchema = map[string]any{
 			"steps": []map[string]any{
 				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id_or_name": "starter"}}},
 				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"id_or_name": "$.pg.id", "status": "running"}},
-				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"id_or_name": "$.pg.id", "service": "web", "tail": 100}},
+				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"id_or_name": "$.pg.id", "tail": 100}},
 			},
 			"return": "$.logs.lines",
 		},

@@ -329,7 +329,7 @@ var knownPropertyDescriptions = map[string]string{
 	"resource":               "Resource name or alias.",
 	"response_mode":          "Response detail mode.",
 	"secret":                 "Whether the value is secret, or a webhook signing secret.",
-	"service":                "Compose service name.",
+	"service":                "Compose service name where applicable; log tools use all services when omitted.",
 	"service_subdomains":     "Per-service subdomain overrides.",
 	"services":               "Per-service configuration.",
 	"sort":                   "Sort expression.",

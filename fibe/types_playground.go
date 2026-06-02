@@ -272,8 +272,15 @@ type PlaygroundLogs struct {
 	Service     string                        `json:"service"`
 	Lines       []string                      `json:"lines"`
 	Source      string                        `json:"source"`
+	Entries     []LogEntry                    `json:"entries,omitempty"`
 	Startup     *PlaygroundStartupDiagnostics `json:"startup,omitempty"`
 	Diagnostics map[string]any                `json:"diagnostics,omitempty"`
+}
+
+type LogEntry struct {
+	Service string `json:"service,omitempty"`
+	Line    string `json:"line"`
+	Source  string `json:"source,omitempty"`
 }
 
 type PlaygroundStartupDiagnostics struct {

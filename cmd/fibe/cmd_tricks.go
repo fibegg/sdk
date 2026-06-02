@@ -310,21 +310,20 @@ func trLogsCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "logs <id-or-name>",
-		Short: "Get service logs from a trick",
-		Long: `Retrieve logs from a specific service in a trick.
+		Short: "Get logs from a trick",
+		Long: `Retrieve logs from a trick.
 
 For completed tricks, logs are served from cache. For running tricks,
-logs are fetched live from the container.
-
-REQUIRED FLAGS:
-  --service   Name of the service to get logs from
+logs are fetched live from containers. All services are returned by default;
+use --service to focus on one service.
 
 OPTIONAL FLAGS:
+  --service   Optional service name to filter logs
   --tail      Number of lines to return (default: 50)
   --follow    Stream logs continuously
 
 EXAMPLES:
-  fibe tricks logs 42 --service worker
+  fibe tricks logs 42
   fibe tr logs 42 --service app --tail 200
   fibe tr logs 42 --follow
   fibe tr logs 42 --service app --follow --duration 10m`,
@@ -332,9 +331,6 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if follow {
 				return runLogMonitor(cmd, "trick", args[0], service, tail, maxLines, duration)
-			}
-			if service == "" {
-				return fmt.Errorf("required flag \"service\" not set")
 			}
 			c := newClient()
 			var t *int
@@ -354,7 +350,7 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().StringVar(&service, "service", "", "Service name (required for snapshots; optional for --follow)")
+	cmd.Flags().StringVar(&service, "service", "", "Optional service name")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Number of lines")
 	cmd.Flags().BoolVar(&follow, "follow", false, "Stream logs continuously")
 	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Follow mode: stop after N log lines (0 = unbounded)")

@@ -157,14 +157,17 @@ func (s *PlaygroundService) ComposeByIdentifier(ctx context.Context, identifier 
 	return &result, err
 }
 
-// Logs triggers an async log snapshot and polls for the result.
+// Logs triggers an async log snapshot and polls for the result. Empty service returns all services.
 func (s *PlaygroundService) Logs(ctx context.Context, id int64, service string, tail *int) (*PlaygroundLogs, error) {
 	return s.LogsByIdentifier(ctx, int64Identifier(id), service, tail)
 }
 
 func (s *PlaygroundService) LogsByIdentifier(ctx context.Context, identifier string, service string, tail *int) (*PlaygroundLogs, error) {
 	base := identifierPath("/api/playgrounds", identifier)
-	body := map[string]any{"service": service}
+	body := map[string]any{}
+	if service != "" {
+		body["service"] = service
+	}
 	if tail != nil {
 		body["tail"] = *tail
 	}

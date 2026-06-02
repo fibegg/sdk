@@ -13,9 +13,9 @@ import (
 // string parameters, or compose-YAML payloads.
 func (s *Server) registerCustomTools() {
 	// ---------- fibe_playgrounds_logs ----------
-	// Needs: id (int64), service (string), tail (int, optional).
+	// Needs: id_or_name (identifier), service (string, optional), tail (int, optional).
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve the consolidated service logs from a playground. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.", tier: tierBrownfield,
+		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -23,9 +23,6 @@ func (s *Server) registerCustomTools() {
 				return nil, err
 			}
 			service := argString(args, "service")
-			if service == "" {
-				return nil, fmt.Errorf("required field 'service' not set")
-			}
 			var tail *int
 			if t, ok := argInt64(args, "tail"); ok && t > 0 {
 				n := int(t)
@@ -34,9 +31,9 @@ func (s *Server) registerCustomTools() {
 			return c.Playgrounds.LogsByIdentifier(ctx, identifier, service, tail)
 		},
 	}, mcp.NewTool("fibe_playgrounds_logs",
-		mcp.WithDescription("[MODE:DIALOG] Retrieve the consolidated service logs from a playground. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid."),
+		mcp.WithDescription("[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid."),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
-		mcp.WithString("service", mcp.Required(), mcp.Description("Compose service name, for example web or worker.")),
+		mcp.WithString("service", mcp.Description("Optional Compose service name, for example web or worker. Omit to return all services.")),
 		mcp.WithNumber("tail", mcp.Description("Number of log lines to return (default: 50)")),
 	))
 

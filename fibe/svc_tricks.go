@@ -110,7 +110,7 @@ func (s *TrickService) StatusByIdentifier(ctx context.Context, identifier string
 	return s.client.Playgrounds.StatusByIdentifier(ctx, identifier)
 }
 
-// Logs returns logs for a specific service in a trick.
+// Logs returns logs for a trick. Empty service returns all services.
 func (s *TrickService) Logs(ctx context.Context, id int64, service string, tail *int) (*PlaygroundLogs, error) {
 	return s.client.Playgrounds.Logs(ctx, id, service, tail)
 }

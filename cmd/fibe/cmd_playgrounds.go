@@ -705,21 +705,20 @@ func pgLogsCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "logs <id-or-name>",
-		Short: "Get service logs from a playground",
-		Long: `Retrieve logs from a specific service in a playground.
+		Short: "Get logs from a playground",
+		Long: `Retrieve logs from a playground.
 
-Returns the most recent log lines from the specified service container.
+Returns the most recent log lines from all services by default. Use --service
+to focus on one service container.
 By default returns the last 50 lines.
 
-REQUIRED FLAGS:
-  --service   Name of the service to get logs from
-
 OPTIONAL FLAGS:
+  --service   Optional service name to filter logs
   --tail      Number of lines to return (default: 50)
   --follow    Stream logs continuously
 
 EXAMPLES:
-  fibe playgrounds logs 42 --service web
+  fibe playgrounds logs 42
   fibe pg logs 42 --service web --tail 100
   fibe pg logs 42 --follow
   fibe pg logs 42 --service web --follow --duration 10m`,
@@ -727,9 +726,6 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if follow {
 				return runLogMonitor(cmd, "playground", args[0], service, tail, maxLines, duration)
-			}
-			if service == "" {
-				return fmt.Errorf("required flag \"service\" not set")
 			}
 			c := newClient()
 			var t *int
@@ -749,7 +745,7 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().StringVar(&service, "service", "", "Service name (required for snapshots; optional for --follow)")
+	cmd.Flags().StringVar(&service, "service", "", "Optional service name")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Number of lines")
 	cmd.Flags().BoolVar(&follow, "follow", false, "Stream logs continuously")
 	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Follow mode: stop after N log lines (0 = unbounded)")
@@ -831,6 +827,16 @@ func printPlaygroundLogs(logs *fibe.PlaygroundLogs) {
 		if len(logs.Lines) > 0 {
 			fmt.Println()
 		}
+	}
+	if logs.Service == "" && len(logs.Entries) > 0 {
+		for _, entry := range logs.Entries {
+			if entry.Service == "" {
+				fmt.Println(entry.Line)
+				continue
+			}
+			fmt.Printf("[%s] %s\n", entry.Service, entry.Line)
+		}
+		return
 	}
 	for _, line := range logs.Lines {
 		fmt.Println(line)

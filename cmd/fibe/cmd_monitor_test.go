@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"nhooyr.io/websocket"
@@ -163,22 +162,97 @@ func TestLogsSnapshotJSONOutput(t *testing.T) {
 	}
 }
 
-func TestLogsSnapshotRequiresService(t *testing.T) {
-	setupAuthTest(t)
+func TestLogsSnapshotJSONOutputAllServices(t *testing.T) {
 	for name, args := range map[string][]string{
-		"playgrounds": {"playgrounds", "logs", "demo"},
-		"tricks":      {"tricks", "logs", "demo"},
+		"playgrounds": {"--output", "json", "playgrounds", "logs", "demo", "--tail", "12"},
+		"tricks":      {"--output", "json", "tricks", "logs", "demo", "--tail", "12"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			cmd := RootCmd()
-			cmd.SetOut(&bytes.Buffer{})
-			cmd.SetErr(&bytes.Buffer{})
-			cmd.SetArgs(args)
-			err := cmd.Execute()
-			if err == nil || !strings.Contains(err.Error(), `required flag "service" not set`) {
-				t.Fatalf("expected service validation error, got %v", err)
+			setupAuthTest(t)
+			var body map[string]any
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/logs" {
+					t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatalf("decode logs body: %v", err)
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"service": nil,
+					"lines":   []string{"[web] ready", "[worker] done"},
+					"source":  "live",
+					"entries": []map[string]any{
+						{"service": "web", "line": "ready", "source": "live"},
+						{"service": "worker", "line": "done", "source": "live"},
+					},
+				})
+			}))
+			defer srv.Close()
+
+			t.Setenv("FIBE_DOMAIN", srv.URL)
+			t.Setenv("FIBE_API_KEY", "pk_test")
+
+			out, err := captureStdout(func() error {
+				cmd := RootCmd()
+				cmd.SetArgs(args)
+				return cmd.Execute()
+			})
+			if err != nil {
+				t.Fatalf("execute: %v", err)
+			}
+			if _, ok := body["service"]; ok {
+				t.Fatalf("all-service snapshot should omit service: %#v", body)
+			}
+			if body["tail"] != float64(12) {
+				t.Fatalf("unexpected snapshot request body: %#v", body)
+			}
+			var got map[string]any
+			if err := json.Unmarshal([]byte(out), &got); err != nil {
+				t.Fatalf("decode snapshot JSON %q: %v", out, err)
+			}
+			entries := got["entries"].([]any)
+			if len(entries) != 2 || entries[0].(map[string]any)["service"] != "web" {
+				t.Fatalf("unexpected all-service snapshot JSON: %#v", got)
 			}
 		})
+	}
+}
+
+func TestLogsSnapshotTableOutputAllServices(t *testing.T) {
+	setupAuthTest(t)
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/logs" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode logs body: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"service": nil,
+			"lines":   []string{"[web] ready"},
+			"source":  "live",
+			"entries": []map[string]any{{"service": "web", "line": "ready", "source": "live"}},
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	out, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"playgrounds", "logs", "demo"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if _, ok := body["service"]; ok {
+		t.Fatalf("all-service snapshot should omit service: %#v", body)
+	}
+	if out != "[web] ready\n" {
+		t.Fatalf("unexpected table output: %q", out)
 	}
 }
 

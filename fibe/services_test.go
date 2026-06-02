@@ -759,6 +759,41 @@ func TestPlaygrounds_Logs(t *testing.T) {
 	}
 }
 
+func TestPlaygrounds_LogsAllServicesOmitsService(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/logs" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode logs body: %v", err)
+		}
+		if _, ok := body["service"]; ok {
+			t.Errorf("all-service logs should omit service: %#v", body)
+		}
+		if body["tail"] != float64(25) {
+			t.Errorf("unexpected logs body: %#v", body)
+		}
+		json.NewEncoder(w).Encode(PlaygroundLogs{
+			Lines:  []string{"[web] ready", "[worker] done"},
+			Source: "live",
+			Entries: []LogEntry{
+				{Service: "web", Line: "ready", Source: "live"},
+				{Service: "worker", Line: "done", Source: "live"},
+			},
+		})
+	})
+
+	tail := 25
+	logs, err := c.Playgrounds.LogsByIdentifier(context.Background(), "demo", "", &tail)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if logs.Service != "" || len(logs.Entries) != 2 || logs.Entries[0].Service != "web" || logs.Entries[0].Line != "ready" {
+		t.Fatalf("unexpected all-service logs: %#v", logs)
+	}
+}
+
 func TestAgents_List(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(listEnv([]Agent{
