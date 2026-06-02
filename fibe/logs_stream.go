@@ -5,12 +5,22 @@ import (
 	"time"
 )
 
-// LogLine is a single streamed log line. Source mirrors the `source` field
-// on PlaygroundLogs ("cache" / "live"), which remains useful for callers
-// distinguishing replayed history from live tail.
+// LogLine is a single streamed log line kept for compatibility with older
+// callers. New code should prefer LogStreamEvent.
 type LogLine struct {
 	Text   string
 	Source string
+}
+
+type LogStreamEvent struct {
+	Type       string    `json:"type"`
+	Line       string    `json:"line,omitempty"`
+	Stream     string    `json:"stream,omitempty"`
+	Service    string    `json:"service,omitempty"`
+	Timestamp  string    `json:"timestamp,omitempty"`
+	Status     string    `json:"status,omitempty"`
+	Message    string    `json:"message,omitempty"`
+	ReceivedAt time.Time `json:"received_at"`
 }
 
 // LogsStreamOptions controls LogsStream polling behavior.
@@ -18,92 +28,48 @@ type LogsStreamOptions struct {
 	// Tail is the initial number of lines to fetch. Defaults to 50.
 	Tail int
 
-	// PollInterval is the gap between /logs fetches. Defaults to 2s.
+	// PollInterval is retained for compatibility with polling-backed SDK
+	// versions. ActionCable-backed streams ignore it.
 	PollInterval time.Duration
 
-	// MaxLines caps the total number of lines sent on the channel. 0 = unlimited.
+	// MaxLines caps the total number of log lines sent on the channel. 0 = unlimited.
 	MaxLines int
 }
 
-// LogsStream returns a channel that emits new log lines from a playground
-// service as they arrive. The channel is closed when ctx is cancelled, the
-// server returns an error, or MaxLines is reached.
-//
-// The initial batch (the last `Tail` lines) is replayed on the channel
-// first — callers that only want "new" lines after connect can discard
-// lines where Source == "cache".
-//
-// Implementation detail: the SDK does not have a true streaming logs
-// endpoint today, so this polls /logs on an interval and emits any new
-// tail entries (de-duplicated by content). Once the server gains an SSE
-// endpoint this function will be swapped to consume it without callers
-// needing to change.
 func (s *PlaygroundService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
 	return s.LogsStreamByIdentifier(ctx, int64Identifier(id), service, opts)
 }
 
 func (s *PlaygroundService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
-	if opts == nil {
-		opts = &LogsStreamOptions{}
-	}
-	if opts.Tail <= 0 {
-		opts.Tail = 50
-	}
-	if opts.PollInterval <= 0 {
-		opts.PollInterval = 2 * time.Second
-	}
-
 	ch := make(chan LogLine, 64)
 	go func() {
 		defer close(ch)
-
-		var lastSig string
-		var sent int
-		first := true
-
-		for {
-			tail := opts.Tail
-			logs, err := s.LogsByIdentifier(ctx, identifier, service, &tail)
-			if err != nil {
-				return
-			}
-
-			// Find the first line we haven't seen yet.
-			start := 0
-			if lastSig != "" {
-				for i, line := range logs.Lines {
-					if line == lastSig {
-						start = i + 1
-					}
+		events, errs := s.LogStreamByIdentifier(ctx, identifier, service, opts)
+		for events != nil || errs != nil {
+			select {
+			case ev, ok := <-events:
+				if !ok {
+					events = nil
+					continue
 				}
-			}
-
-			for _, line := range logs.Lines[start:] {
-				source := logs.Source
-				if first {
-					// Mark replayed lines as cache on the first pass so
-					// callers can distinguish them from "live" additions.
-					if source == "" {
-						source = "cache"
-					}
+				if ev.Type != "log" {
+					continue
+				}
+				source := ev.Stream
+				if source == "" {
+					source = "live"
 				}
 				select {
-				case ch <- LogLine{Text: line, Source: source}:
-					sent++
-					lastSig = line
-					if opts.MaxLines > 0 && sent >= opts.MaxLines {
-						return
-					}
+				case ch <- LogLine{Text: ev.Line, Source: source}:
 				case <-ctx.Done():
 					return
 				}
-			}
-			first = false
-
-			select {
+			case _, ok := <-errs:
+				if !ok {
+					errs = nil
+				}
 			case <-ctx.Done():
 				return
-			case <-time.After(opts.PollInterval):
 			}
 		}
 	}()
@@ -111,12 +77,121 @@ func (s *PlaygroundService) LogsStreamByIdentifier(ctx context.Context, identifi
 	return ch
 }
 
-// LogsStream is the equivalent method on TrickService. Tricks share the
-// playground log endpoint so the implementation delegates to PlaygroundService.
+func (s *PlaygroundService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+	return s.logStreamByID(ctx, id, service, opts)
+}
+
+func (s *PlaygroundService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+	events := make(chan LogStreamEvent, 64)
+	errs := make(chan error, 1)
+	go func() {
+		defer close(events)
+		defer close(errs)
+		playground, err := s.GetByIdentifier(ctx, identifier)
+		if err != nil {
+			sendLogStreamError(ctx, errs, err)
+			return
+		}
+		streamEvents(ctx, s.client.Cable.SubscribeLogStream, playground.ID, service, normalizedLogsStreamOptions(opts), events, errs)
+	}()
+	return events, errs
+}
+
+func (s *PlaygroundService) logStreamByID(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+	events := make(chan LogStreamEvent, 64)
+	errs := make(chan error, 1)
+	go func() {
+		defer close(events)
+		defer close(errs)
+		streamEvents(ctx, s.client.Cable.SubscribeLogStream, id, service, normalizedLogsStreamOptions(opts), events, errs)
+	}()
+	return events, errs
+}
+
 func (s *TrickService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
 	return s.LogsStreamByIdentifier(ctx, int64Identifier(id), service, opts)
 }
 
 func (s *TrickService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
 	return s.client.Playgrounds.LogsStreamByIdentifier(ctx, identifier, service, opts)
+}
+
+func (s *TrickService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+	return s.client.Playgrounds.logStreamByID(ctx, id, service, opts)
+}
+
+func (s *TrickService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+	events := make(chan LogStreamEvent, 64)
+	errs := make(chan error, 1)
+	go func() {
+		defer close(events)
+		defer close(errs)
+		trick, err := s.GetByIdentifier(ctx, identifier)
+		if err != nil {
+			sendLogStreamError(ctx, errs, err)
+			return
+		}
+		streamEvents(ctx, s.client.Cable.SubscribeLogStream, trick.ID, service, normalizedLogsStreamOptions(opts), events, errs)
+	}()
+	return events, errs
+}
+
+func normalizedLogsStreamOptions(opts *LogsStreamOptions) *LogsStreamOptions {
+	if opts == nil {
+		return &LogsStreamOptions{}
+	}
+	return &LogsStreamOptions{
+		Tail:         opts.Tail,
+		PollInterval: opts.PollInterval,
+		MaxLines:     opts.MaxLines,
+	}
+}
+
+func streamEvents(ctx context.Context, subscribe func(context.Context, int64, string, *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error), id int64, service string, opts *LogsStreamOptions, out chan<- LogStreamEvent, errs chan<- error) {
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	events, streamErrs := subscribe(streamCtx, id, service, opts)
+	lineCount := 0
+	for events != nil || streamErrs != nil {
+		select {
+		case ev, ok := <-events:
+			if !ok {
+				events = nil
+				continue
+			}
+			select {
+			case out <- ev:
+			case <-streamCtx.Done():
+				return
+			}
+			if ev.Type == "log" {
+				lineCount++
+				if opts.MaxLines > 0 && lineCount >= opts.MaxLines {
+					return
+				}
+			}
+		case err, ok := <-streamErrs:
+			if !ok {
+				streamErrs = nil
+				continue
+			}
+			if err != nil {
+				sendLogStreamError(streamCtx, errs, err)
+				return
+			}
+		case <-streamCtx.Done():
+			return
+		}
+	}
+}
+
+func sendLogStreamError(ctx context.Context, errs chan<- error, err error) {
+	if err == nil {
+		return
+	}
+	select {
+	case errs <- err:
+	case <-ctx.Done():
+	}
 }

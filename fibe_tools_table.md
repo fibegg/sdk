@@ -21,6 +21,7 @@
 | `fibe_local_playgrounds_link` | [MODE:BROWNFIELD] Link local playground mounts into a working directory. |
 | `fibe_monitor_follow` | [MODE:OVERSEER] Stream agent-produced events as live MCP progress notifications |
 | `fibe_monitor_list` | [MODE:OVERSEER] List agent-produced monitor events |
+| `fibe_monitor_logs_follow` | [MODE:BROWNFIELD] Stream live playground or trick logs as progress notifications. |
 | `fibe_mutter` | [MODE:SIDEEFFECTS] Create one short mutter for an agent: a visible internal note used for progress, proof, blocker, or problem updates. |
 | `fibe_mutters_get` | [MODE:OVERSEER] Retrieve an agent's mutter stream by agent_id, with optional query/status/severity/playground filters. |
 | `fibe_pipeline` | [MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs. |
@@ -28,7 +29,7 @@
 | `fibe_playgrounds_action` | [MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. |
 | `fibe_playgrounds_debug` | [MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment. |
 | `fibe_playgrounds_logs` | [MODE:DIALOG] Retrieve the consolidated service logs from a playground. Use when troubleshooting startup errors. |
-| `fibe_playgrounds_logs_follow` | [MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications |
+| `fibe_playgrounds_logs_follow` | [MODE:BROWNFIELD] Compatibility alias for fibe_monitor_logs_follow with target=playground. |
 | `fibe_playgrounds_transform` | [MODE:BROWNFIELD] Transform a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. |
 | `fibe_playgrounds_wait` | [MODE:DIALOG] Block and poll until a playground reaches a specified target state (has timeout) |
 | `fibe_repo_status_check` | [MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs. |

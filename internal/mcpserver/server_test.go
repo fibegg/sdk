@@ -614,6 +614,9 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 	if !advertised["fibe_playgrounds_logs_follow"] {
 		t.Errorf("fibe_playgrounds_logs_follow should be advertised in core mode")
 	}
+	if !advertised["fibe_monitor_logs_follow"] {
+		t.Errorf("fibe_monitor_logs_follow should be advertised in core mode")
+	}
 	if advertised["fibe_auth_set"] {
 		t.Errorf("fibe_auth_set should not be advertised in core mode; it belongs to the other tier")
 	}

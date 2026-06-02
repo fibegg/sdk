@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,12 +15,13 @@ func monitorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "monitor",
 		Aliases: []string{"mon"},
-		Short:   "List and follow agent messages, activity, mutters, and artefacts",
-		Long: `Monitor agent-produced events with a single paginated list API.
+		Short:   "List/follow agent events and stream playground or trick logs",
+		Long: `Monitor Fibe activity and runtime logs.
 
-Two modes:
-  list    One-shot paginated query.
-  follow  Poll for newly produced events.
+Modes:
+  list    One-shot paginated query for agent-produced events.
+  follow  Poll for newly produced agent events.
+  logs    Stream playground or trick logs over Fibe's live log stream.
 
 Monitorable types (see --type):
   message       Chat messages
@@ -30,7 +33,7 @@ Tokens need scope "monitor:read". Per-agent granular allowlist is supported
 via granular_scopes on the API key. Use monitor list -q ... as the canonical
 agent-content search surface.`,
 	}
-	cmd.AddCommand(monitorListCmd(), monitorFollowCmd())
+	cmd.AddCommand(monitorListCmd(), monitorFollowCmd(), monitorLogsCmd())
 	return cmd
 }
 
@@ -165,6 +168,99 @@ EXAMPLES:
 	cmd.Flags().DurationVar(&pollInterval, "poll-interval", 2*time.Second, "Polling interval")
 	cmd.Flags().DurationVar(&duration, "duration", 0, "Stop after this duration (0 = until cancelled)")
 	return cmd
+}
+
+func monitorLogsCmd() *cobra.Command {
+	var target, service string
+	var tail, maxLines int
+	var duration time.Duration
+	cmd := &cobra.Command{
+		Use:   "logs <id-or-name>",
+		Short: "Stream playground or trick logs",
+		Long: `Stream live runtime logs for a playground or trick.
+
+By default this subscribes to all services for a playground. Pass --service
+to stream one Compose service. Use --target trick for job-mode playgrounds.
+
+EXAMPLES:
+  fibe monitor logs 42
+  fibe mon logs staging --service web
+  fibe mon logs ci-run --target trick --duration 10m --max-lines 500`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runLogMonitor(cmd, target, args[0], service, tail, maxLines, duration)
+		},
+	}
+	cmd.Flags().StringVar(&target, "target", "playground", "Target type: playground or trick")
+	cmd.Flags().StringVar(&service, "service", "", "Optional Compose service name")
+	cmd.Flags().IntVar(&tail, "tail", 0, "Initial lines from history (0 = server default)")
+	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Stop after N log lines (0 = unbounded)")
+	cmd.Flags().DurationVar(&duration, "duration", 0, "Stop after this duration (0 = until cancelled)")
+	return cmd
+}
+
+func runLogMonitor(cmd *cobra.Command, target, identifier, service string, tail int, maxLines int, duration time.Duration) error {
+	monitorCtx := ctx()
+	cancel := func() {}
+	if duration > 0 {
+		monitorCtx, cancel = context.WithTimeout(monitorCtx, duration)
+	}
+	defer cancel()
+
+	opts := &fibe.LogsStreamOptions{Tail: tail, MaxLines: maxLines}
+	var events <-chan fibe.LogStreamEvent
+	var errs <-chan error
+	switch strings.ToLower(strings.TrimSpace(target)) {
+	case "", "playground", "playgrounds":
+		events, errs = newClient().Playgrounds.LogStreamByIdentifier(monitorCtx, identifier, service, opts)
+	case "trick", "tricks":
+		events, errs = newClient().Tricks.LogStreamByIdentifier(monitorCtx, identifier, service, opts)
+	default:
+		return fmt.Errorf("unknown target %q: expected playground or trick", target)
+	}
+
+	jsonOutput := effectiveOutput() != "table"
+	enc := json.NewEncoder(cmd.OutOrStdout())
+	for events != nil || errs != nil {
+		select {
+		case ev, ok := <-events:
+			if !ok {
+				events = nil
+				continue
+			}
+			if jsonOutput {
+				if err := enc.Encode(ev); err != nil {
+					return err
+				}
+				continue
+			}
+			switch ev.Type {
+			case "log":
+				if service == "" && ev.Service != "" {
+					fmt.Fprintf(cmd.OutOrStdout(), "%s | %s\n", ev.Service, ev.Line)
+				} else {
+					fmt.Fprintln(cmd.OutOrStdout(), ev.Line)
+				}
+			case "status":
+				if ev.Message != "" {
+					fmt.Fprintf(cmd.ErrOrStderr(), "[%s] %s\n", ev.Status, ev.Message)
+				} else {
+					fmt.Fprintf(cmd.ErrOrStderr(), "[%s]\n", ev.Status)
+				}
+			}
+		case err, ok := <-errs:
+			if !ok {
+				errs = nil
+				continue
+			}
+			if err != nil && monitorCtx.Err() == nil {
+				return err
+			}
+		case <-monitorCtx.Done():
+			return nil
+		}
+	}
+	return nil
 }
 
 func truncateString(s string, max int) string {

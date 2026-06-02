@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -303,6 +304,9 @@ EXAMPLES:
 func trLogsCmd() *cobra.Command {
 	var service string
 	var tail int
+	var follow bool
+	var maxLines int
+	var duration time.Duration
 
 	cmd := &cobra.Command{
 		Use:   "logs <id-or-name>",
@@ -317,12 +321,21 @@ REQUIRED FLAGS:
 
 OPTIONAL FLAGS:
   --tail      Number of lines to return (default: 50)
+  --follow    Stream logs continuously
 
 EXAMPLES:
   fibe tricks logs 42 --service worker
-  fibe tr logs 42 --service app --tail 200`,
+  fibe tr logs 42 --service app --tail 200
+  fibe tr logs 42 --follow
+  fibe tr logs 42 --service app --follow --duration 10m`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if follow {
+				return runLogMonitor(cmd, "trick", args[0], service, tail, maxLines, duration)
+			}
+			if service == "" {
+				return fmt.Errorf("required flag \"service\" not set")
+			}
 			c := newClient()
 			var t *int
 			if tail > 0 {
@@ -336,16 +349,16 @@ EXAMPLES:
 				outputJSON(logs)
 				return nil
 			}
-			for _, line := range logs.Lines {
-				fmt.Println(line)
-			}
+			printPlaygroundLogs(logs)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&service, "service", "", "Service name (required)")
+	cmd.Flags().StringVar(&service, "service", "", "Service name (required for snapshots; optional for --follow)")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Number of lines")
-	cmd.MarkFlagRequired("service")
+	cmd.Flags().BoolVar(&follow, "follow", false, "Stream logs continuously")
+	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Follow mode: stop after N log lines (0 = unbounded)")
+	cmd.Flags().DurationVar(&duration, "duration", 0, "Follow mode: stop after this duration (0 = until cancelled)")
 	return cmd
 }
 

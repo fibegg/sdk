@@ -176,7 +176,7 @@ Supports `parallel` blocks for concurrent independent steps and `for_each` for f
 
 ### Streaming
 
-`fibe_playgrounds_wait` and `fibe_playgrounds_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips.
+`fibe_playgrounds_wait`, `fibe_monitor_logs_follow`, and the compatibility `fibe_playgrounds_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. CLI users can run `fibe monitor logs <id-or-name>` for continuous playground or trick logs.
 
 ### Resources
 

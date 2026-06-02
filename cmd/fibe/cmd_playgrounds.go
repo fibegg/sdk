@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -698,6 +699,9 @@ EXAMPLES:
 func pgLogsCmd() *cobra.Command {
 	var service string
 	var tail int
+	var follow bool
+	var maxLines int
+	var duration time.Duration
 
 	cmd := &cobra.Command{
 		Use:   "logs <id-or-name>",
@@ -712,12 +716,21 @@ REQUIRED FLAGS:
 
 OPTIONAL FLAGS:
   --tail      Number of lines to return (default: 50)
+  --follow    Stream logs continuously
 
 EXAMPLES:
   fibe playgrounds logs 42 --service web
-  fibe pg logs 42 --service web --tail 100`,
+  fibe pg logs 42 --service web --tail 100
+  fibe pg logs 42 --follow
+  fibe pg logs 42 --service web --follow --duration 10m`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if follow {
+				return runLogMonitor(cmd, "playground", args[0], service, tail, maxLines, duration)
+			}
+			if service == "" {
+				return fmt.Errorf("required flag \"service\" not set")
+			}
 			c := newClient()
 			var t *int
 			if tail > 0 {
@@ -731,16 +744,16 @@ EXAMPLES:
 				outputJSON(logs)
 				return nil
 			}
-			for _, line := range logs.Lines {
-				fmt.Println(line)
-			}
+			printPlaygroundLogs(logs)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&service, "service", "", "Service name (required)")
+	cmd.Flags().StringVar(&service, "service", "", "Service name (required for snapshots; optional for --follow)")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Number of lines")
-	cmd.MarkFlagRequired("service")
+	cmd.Flags().BoolVar(&follow, "follow", false, "Stream logs continuously")
+	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Follow mode: stop after N log lines (0 = unbounded)")
+	cmd.Flags().DurationVar(&duration, "duration", 0, "Follow mode: stop after this duration (0 = until cancelled)")
 	return cmd
 }
 
@@ -786,10 +799,90 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() == "table" {
+				printPlaygroundDebugSummary(debug)
+				return nil
+			}
 			outputJSON(debug)
 			return nil
 		},
 	}
+}
+
+func printPlaygroundLogs(logs *fibe.PlaygroundLogs) {
+	if logs.Source == "compose_up" || logs.Source == "none" {
+		fmt.Printf("Source: %s\n", logs.Source)
+		if logs.Startup != nil {
+			fmt.Printf("Startup: %s", logs.Startup.State)
+			if logs.Startup.ExitCode != nil {
+				fmt.Printf(" exit=%d", *logs.Startup.ExitCode)
+			}
+			if !logs.Startup.Available {
+				fmt.Print(" unavailable")
+			}
+			fmt.Println()
+			if len(logs.Startup.MissingArtifacts) > 0 {
+				fmt.Printf("Missing artifacts: %s\n", strings.Join(logs.Startup.MissingArtifacts, ", "))
+			}
+			if logs.Startup.Error != "" {
+				fmt.Printf("Error: %s\n", logs.Startup.Error)
+			}
+		}
+		if len(logs.Lines) > 0 {
+			fmt.Println()
+		}
+	}
+	for _, line := range logs.Lines {
+		fmt.Println(line)
+	}
+}
+
+func printPlaygroundDebugSummary(debug map[string]any) {
+	if playground, ok := debug["playground"].(map[string]any); ok {
+		fmt.Printf("Playground: %v", playground["id"])
+		if name, ok := playground["name"].(string); ok && name != "" {
+			fmt.Printf(" %s", name)
+		}
+		if status, ok := playground["status"].(string); ok && status != "" {
+			fmt.Printf(" status=%s", status)
+		}
+		fmt.Println()
+	}
+	if startup, ok := debug["startup"].(map[string]any); ok {
+		fmt.Printf("Startup: %v", startup["state"])
+		if exitCode, ok := startup["exit_code"]; ok && exitCode != nil {
+			fmt.Printf(" exit=%v", exitCode)
+		}
+		if available, ok := startup["available"].(bool); ok && !available {
+			fmt.Print(" unavailable")
+		}
+		fmt.Println()
+		if missing, ok := stringSliceFromAny(startup["missing_artifacts"]); ok && len(missing) > 0 {
+			fmt.Printf("Missing artifacts: %s\n", strings.Join(missing, ", "))
+		}
+		if logTail, ok := stringSliceFromAny(startup["log_tail"]); ok && len(logTail) > 0 {
+			fmt.Println("Compose-up log tail:")
+			for _, line := range logTail {
+				fmt.Println(line)
+			}
+		}
+		return
+	}
+	outputJSON(debug)
+}
+
+func stringSliceFromAny(value any) ([]string, bool) {
+	items, ok := value.([]any)
+	if !ok {
+		return nil, false
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if text, ok := item.(string); ok {
+			out = append(out, text)
+		}
+	}
+	return out, true
 }
 
 func fmtMaintenance(enabled bool) string {

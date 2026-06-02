@@ -1,6 +1,6 @@
 # Fibe MCP Tools
 
-Total Tools: 41
+Total Tools: 42
 
 ## `fibe_agents_duplicate`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** True
@@ -116,6 +116,12 @@ Total Tools: 41
 ### Description
 [MODE:OVERSEER] List agent-produced monitor events
 
+## `fibe_monitor_logs_follow`
+**Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
+
+### Description
+[MODE:BROWNFIELD] Stream live playground or trick logs as progress notifications.
+
 ## `fibe_mutter`
 **Tier:** base | **Destructive:** False | **Idempotent:** False
 
@@ -162,7 +168,7 @@ Total Tools: 41
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** True | **Read-only:** True
 
 ### Description
-[MODE:SIDEEFFECTS] Stream the live service logs from a playground as progress notifications
+[MODE:BROWNFIELD] Compatibility alias for fibe_monitor_logs_follow with target=playground.
 
 ## `fibe_playgrounds_transform`
 **Tier:** brownfield | **Destructive:** False | **Idempotent:** False
