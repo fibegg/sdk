@@ -50,7 +50,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			providerAPIKeyMode: true,
 			modelOptions:       "gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_GEMINI_API_KEY",
-			credentialAliases:  []string{"GEMINI_KEY"},
+			credentialAliases:  []string{"GEMINI_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"},
 		},
 		{
 			name:               "Claude manual",
@@ -124,7 +124,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			providerAPIKeyMode: true,
 			modelOptions:       "google/gemini-2.5-flash-lite",
 			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
-			credentialAliases:  []string{"OPENCODE_GEMINI_KEY"},
+			credentialAliases:  []string{"OPENCODE_GEMINI_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"},
 			opencodeProvider:   "gemini",
 		},
 	}
