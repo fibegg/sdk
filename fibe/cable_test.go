@@ -22,6 +22,9 @@ func TestCableSubscribeResource(t *testing.T) {
 		if !strings.Contains(strings.Join(protocols, ","), apiKeyProtocolPrefix) {
 			t.Fatalf("missing api key subprotocol: %#v", protocols)
 		}
+		if got := r.Header.Get("Authorization"); got != "Bearer "+apiKey {
+			t.Fatalf("missing bearer authorization header: %q", got)
+		}
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			Subprotocols: []string{actionCableProtocol},
 		})
@@ -76,6 +79,9 @@ func TestCableSubscribeLogStream(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/cable" {
 			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer "+apiKey {
+			t.Fatalf("missing bearer authorization header: %q", got)
 		}
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			Subprotocols: []string{actionCableProtocol},

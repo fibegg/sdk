@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -126,6 +127,9 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 	}
 
 	conn, _, err := websocket.Dial(ctx, s.client.cableURL(), &websocket.DialOptions{
+		HTTPHeader: http.Header{
+			"Authorization": []string{"Bearer " + s.client.cfg.apiKey},
+		},
 		Subprotocols: []string{
 			actionCableProtocol,
 			apiKeyProtocolPrefix + base64.RawURLEncoding.EncodeToString([]byte(s.client.cfg.apiKey)),
