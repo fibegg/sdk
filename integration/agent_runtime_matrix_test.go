@@ -421,6 +421,10 @@ func diagnoseAgentRuntimeSendError(t *testing.T, c *fibe.Client, agentID int64, 
 	activity, activityErr := c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 	cancel()
 
+	reqCtx, cancel = ctxTimeout(10 * time.Second)
+	providerTraffic, providerTrafficErr := c.Agents.GetProviderTrafficByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+	cancel()
+
 	lastStatus, statusErr := agentRuntimeLatestStatus(c, agentID)
 	statusLastError := ""
 	if lastStatus != nil && lastStatus.LastError != nil {
@@ -434,15 +438,18 @@ func diagnoseAgentRuntimeSendError(t *testing.T, c *fibe.Client, agentID int64, 
 		agentRuntimeDataContent(messages),
 		agentRuntimeDataContent(activity),
 	)
+	failIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
 
 	t.Logf(
-		"send runtime message diagnostics after error: send_error=%v last_status=%s status_error=%v runtime_last_error=%q messages_error=%v activity_error=%v messages_excerpt=%q activity_excerpt=%q",
+		"send runtime message diagnostics after error: send_error=%v last_status=%s status_error=%v runtime_last_error=%q messages_error=%v activity_error=%v provider_traffic_error=%v provider_traffic_count=%d messages_excerpt=%q activity_excerpt=%q",
 		sendErr,
 		agentRuntimeStatusSummary(lastStatus),
 		statusErr,
 		statusLastError,
 		messagesErr,
 		activityErr,
+		providerTrafficErr,
+		agentRuntimeTopLevelCount(agentRuntimeDataContent(providerTraffic)),
 		agentRuntimeDataExcerpt(messages),
 		agentRuntimeDataExcerpt(activity),
 	)
@@ -529,9 +536,11 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 	var activity *fibe.AgentData
 	var messagesErr error
 	var activityErr error
+	var providerTrafficErr error
 	var messageCount int
 	var assistantCount int
 	var activityCount int
+	var providerTrafficCount int
 
 	for time.Now().Before(deadline) {
 		params := &fibe.AgentDataParams{ConversationID: conversationID}
@@ -543,14 +552,22 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 		activity, activityErr = c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
+		reqCtx, cancel = ctxTimeout(10 * time.Second)
+		providerTraffic, providerTrafficErr := c.Agents.GetProviderTrafficByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
+		cancel()
+
 		if messagesErr == nil && activityErr == nil {
 			messageCount = agentRuntimeTopLevelCount(messages.Content)
 			assistantCount = agentRuntimeAssistantMessageCount(messages.Content)
 			activityCount = agentRuntimeTopLevelCount(activity.Content)
+			providerTrafficCount = agentRuntimeTopLevelCount(agentRuntimeDataContent(providerTraffic))
 			if assistantCount >= minAssistantMessages && activityCount > 0 {
 				return messages, activity
 			}
 			failIfAgentRuntimeProviderUnavailable(t, messages.Content, activity.Content)
+			if providerTrafficErr == nil {
+				failIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
+			}
 		}
 
 		time.Sleep(2 * time.Second)
@@ -558,12 +575,14 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 
 	lastStatus, statusErr := agentRuntimeLatestStatus(c, agentID)
 	t.Fatalf(
-		"timed out waiting for synced assistant output; message_count=%d assistant_count=%d activity_count=%d messages_error=%v activity_error=%v last_status=%s status_error=%v messages_excerpt=%q activity_excerpt=%q",
+		"timed out waiting for synced assistant output; message_count=%d assistant_count=%d activity_count=%d provider_traffic_count=%d messages_error=%v activity_error=%v provider_traffic_error=%v last_status=%s status_error=%v messages_excerpt=%q activity_excerpt=%q",
 		messageCount,
 		assistantCount,
 		activityCount,
+		providerTrafficCount,
 		messagesErr,
 		activityErr,
+		providerTrafficErr,
 		agentRuntimeStatusSummary(lastStatus),
 		statusErr,
 		agentRuntimeDataExcerpt(messages),
@@ -586,6 +605,17 @@ func failIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
 	}
 	if agentRuntimeProviderCredentialsMissing(contents...) {
 		t.Fatalf("provider credentials/auth unavailable; excerpt=%q", agentRuntimeContentExcerpt(contents))
+	}
+}
+
+func failIfAgentRuntimeProviderTrafficUnavailable(t *testing.T, content any) {
+	t.Helper()
+
+	if agentRuntimeProviderQuotaExhausted(content) {
+		t.Fatal("provider quota or rate limit exhausted for this credential/model; provider traffic contains quota/rate-limit marker")
+	}
+	if agentRuntimeProviderCredentialsMissing(content) {
+		t.Fatal("provider credentials/auth unavailable; provider traffic contains auth/credential marker")
 	}
 }
 

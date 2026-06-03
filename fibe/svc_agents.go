@@ -444,6 +444,20 @@ func (s *AgentService) GetActivityByIdentifierWithParams(ctx context.Context, id
 	return &result, err
 }
 
+func (s *AgentService) GetProviderTraffic(ctx context.Context, id int64) (*AgentData, error) {
+	return s.GetProviderTrafficByIdentifier(ctx, int64Identifier(id))
+}
+
+func (s *AgentService) GetProviderTrafficByIdentifier(ctx context.Context, identifier string) (*AgentData, error) {
+	return s.GetProviderTrafficByIdentifierWithParams(ctx, identifier, nil)
+}
+
+func (s *AgentService) GetProviderTrafficByIdentifierWithParams(ctx context.Context, identifier string, params *AgentDataParams) (*AgentData, error) {
+	var result AgentData
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/agents", identifier)+"/provider_traffic"+buildQuery(params), nil, &result)
+	return &result, err
+}
+
 func (s *AgentService) UpdateActivity(ctx context.Context, id int64, content any) error {
 	return s.UpdateActivityByIdentifier(ctx, int64Identifier(id), content)
 }

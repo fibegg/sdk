@@ -20,6 +20,11 @@ func waitForPlaygroundStatus(t *testing.T, c *fibe.Client, id int64, targets []s
 	if timeout > CapWaitTimeout {
 		timeout = CapWaitTimeout
 	}
+	return waitForPlaygroundStatusWithin(t, c, id, targets, timeout)
+}
+
+func waitForPlaygroundStatusWithin(t *testing.T, c *fibe.Client, id int64, targets []string, timeout time.Duration) string {
+	t.Helper()
 	deadline := time.Now().Add(timeout)
 	interval := 2 * time.Second
 	lastStatus := ""
@@ -47,6 +52,7 @@ func waitForPlaygroundStatus(t *testing.T, c *fibe.Client, id int64, targets []s
 // CapWaitTimeout caps any wait to this value so a single test can't consume
 // the full suite timeout.
 const CapWaitTimeout = 20 * time.Second
+const PlaygroundLaunchWaitTimeout = 2 * time.Minute
 const playgroundActionRetryTimeout = 3 * time.Minute
 
 // waitForPlaygroundActive polls until status is 'running' or 'error', returns whether running.

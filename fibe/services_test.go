@@ -1310,6 +1310,10 @@ func TestAgents_DataReadsPassConversationID(t *testing.T) {
 			if r.Method != "GET" || r.URL.Path != "/api/agents/5/activity" {
 				t.Fatalf("unexpected activity request %s %s", r.Method, r.URL.Path)
 			}
+		case 3:
+			if r.Method != "GET" || r.URL.Path != "/api/agents/5/provider_traffic" {
+				t.Fatalf("unexpected provider traffic request %s %s", r.Method, r.URL.Path)
+			}
 		default:
 			t.Fatalf("unexpected extra request %d: %s %s", step, r.Method, r.URL.String())
 		}
@@ -1325,8 +1329,11 @@ func TestAgents_DataReadsPassConversationID(t *testing.T) {
 	if _, err := c.Agents.GetActivityByIdentifierWithParams(context.Background(), "5", &AgentDataParams{ConversationID: "thread-1"}); err != nil {
 		t.Fatalf("activity: %v", err)
 	}
-	if step != 2 {
-		t.Fatalf("expected 2 requests, got %d", step)
+	if _, err := c.Agents.GetProviderTrafficByIdentifierWithParams(context.Background(), "5", &AgentDataParams{ConversationID: "thread-1"}); err != nil {
+		t.Fatalf("provider traffic: %v", err)
+	}
+	if step != 3 {
+		t.Fatalf("expected 3 requests, got %d", step)
 	}
 }
 

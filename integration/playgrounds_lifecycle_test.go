@@ -42,11 +42,11 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		t.Errorf("expected PlayspecID=%d, got %v", *spec.ID, pg.PlayspecID)
 	}
 
-	// 2. Status polling: expect transition from pending → in_progress → running/error
+	// 2. Status polling: expect transition from pending → in_progress → running
 	t.Run("status transitions", func(t *testing.T) {
-		finalStatus := waitForPlaygroundStatus(t, c, pg.ID, []string{"running", "error", "failed"}, CapWaitTimeout)
-		if finalStatus == "" {
-			t.Error("playground status never left empty")
+		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
+		if finalStatus != "running" {
+			t.Fatalf("playground did not reach running status: got %q", finalStatus)
 		}
 		t.Logf("playground final status: %s", finalStatus)
 	})
@@ -145,11 +145,19 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	// 9. Rollout should transition status (async)
 	t.Run("rollout triggers status change", func(t *testing.T) {
 		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionRollout, "rollout")
+		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
+		if finalStatus != "running" {
+			t.Fatalf("playground did not return to running after rollout: got %q", finalStatus)
+		}
 	})
 
 	// 10. HardRestart
 	t.Run("hard restart triggers status change", func(t *testing.T) {
 		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionHardRestart, "hard restart")
+		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
+		if finalStatus != "running" {
+			t.Fatalf("playground did not return to running after hard restart: got %q", finalStatus)
+		}
 	})
 
 	// 11. Logs (may return empty if not yet running)

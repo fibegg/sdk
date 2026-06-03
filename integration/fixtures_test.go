@@ -47,6 +47,8 @@ func jobComposeYAML() string {
 	return `services:
   worker:
     image: alpine:3
+    labels:
+      fibe.gg/job_watch: "true"
     command: ["sh", "-c", "echo done"]
 `
 }
