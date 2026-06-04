@@ -74,6 +74,7 @@ SORTING:
 RESULT COLUMN:
   ✓   All watched services exited successfully
   ✗   One or more services failed
+  ?   Completed, but result details are not available in this response
   ⏳  Still running or pending
 
 OUTPUT:
@@ -388,7 +389,7 @@ func trickResult(pg fibe.Playground) string {
 			}
 			return "✗"
 		}
-		return "✓"
+		return "?"
 	case "error":
 		return "✗"
 	default:
