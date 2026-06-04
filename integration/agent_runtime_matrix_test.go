@@ -154,7 +154,11 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			secret, credentialSource := lookupAgentRuntimeCredential(tc)
 			if secret == "" {
-				t.Skipf("set one of %s to run this agent runtime matrix row", strings.Join(agentRuntimeCredentialEnvNames(tc), ", "))
+				message := fmt.Sprintf("set one of %s to run this agent runtime matrix row", strings.Join(agentRuntimeCredentialEnvNames(tc), ", "))
+				if agentRuntimeMissingCredentialAllowed(tc) {
+					t.Skip(message)
+				}
+				t.Fatal(message)
 			}
 
 			t.Logf("using credential from %s", credentialSource)
@@ -268,6 +272,32 @@ func lookupAgentRuntimeCredential(tc agentRuntimeMatrixCase) (string, string) {
 		}
 	}
 	return "", ""
+}
+
+func agentRuntimeMissingCredentialAllowed(tc agentRuntimeMatrixCase) bool {
+	if !agentRuntimeHardFailMissingCredentials() {
+		return true
+	}
+	return agentRuntimeCaseMatchesAny(tc, agentRuntimeCaseFilters(agentRuntimeAllowedMissingCredentialCases()))
+}
+
+func agentRuntimeHardFailMissingCredentials() bool {
+	for _, envName := range []string{"CHAT_E2E_HARD_FAIL_MISSING_CREDENTIALS", "FIBE_TEST_AGENT_HARD_FAIL_MISSING_CREDENTIALS"} {
+		switch strings.ToLower(strings.TrimSpace(os.Getenv(envName))) {
+		case "1", "true", "yes", "on":
+			return true
+		}
+	}
+	return false
+}
+
+func agentRuntimeAllowedMissingCredentialCases() string {
+	for _, envName := range []string{"CHAT_E2E_ALLOWED_MISSING_CREDENTIAL_CASES", "FIBE_TEST_AGENT_ALLOWED_MISSING_CREDENTIAL_CASES"} {
+		if value := strings.TrimSpace(os.Getenv(envName)); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func createAgentRuntimeAPIKey(t *testing.T, c *fibe.Client, tc agentRuntimeMatrixCase) int64 {
@@ -600,26 +630,31 @@ func agentRuntimeLatestStatus(c *fibe.Client, agentID int64) (*fibe.AgentRuntime
 func failIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
 	t.Helper()
 
-	if agentRuntimeProviderQuotaExhausted(contents...) {
-		t.Fatalf("provider quota or rate limit exhausted for this credential/model; excerpt=%q", agentRuntimeContentExcerpt(contents))
+	if marker, ok := agentRuntimeProviderQuotaExhaustedMarker(contents...); ok {
+		t.Fatalf("provider quota or rate limit exhausted for this credential/model; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
 	}
-	if agentRuntimeProviderCredentialsMissing(contents...) {
-		t.Fatalf("provider credentials/auth unavailable; excerpt=%q", agentRuntimeContentExcerpt(contents))
+	if marker, ok := agentRuntimeProviderCredentialsMissingMarker(contents...); ok {
+		t.Fatalf("provider credentials/auth unavailable; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
 	}
 }
 
 func failIfAgentRuntimeProviderTrafficUnavailable(t *testing.T, content any) {
 	t.Helper()
 
-	if agentRuntimeProviderQuotaExhausted(content) {
-		t.Fatal("provider quota or rate limit exhausted for this credential/model; provider traffic contains quota/rate-limit marker")
+	if marker, ok := agentRuntimeProviderQuotaExhaustedMarker(content); ok {
+		t.Fatalf("provider quota or rate limit exhausted for this credential/model; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
 	}
-	if agentRuntimeProviderCredentialsMissing(content) {
-		t.Fatal("provider credentials/auth unavailable; provider traffic contains auth/credential marker")
+	if marker, ok := agentRuntimeProviderCredentialsMissingMarker(content); ok {
+		t.Fatalf("provider credentials/auth unavailable; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
 	}
 }
 
 func agentRuntimeProviderQuotaExhausted(contents ...any) bool {
+	_, ok := agentRuntimeProviderQuotaExhaustedMarker(contents...)
+	return ok
+}
+
+func agentRuntimeProviderQuotaExhaustedMarker(contents ...any) (string, bool) {
 	for _, content := range contents {
 		text := strings.ToLower(agentRuntimeContentText(content))
 		if text == "" {
@@ -645,14 +680,19 @@ func agentRuntimeProviderQuotaExhausted(contents ...any) bool {
 			"generate_content_free_tier_requests",
 		} {
 			if strings.Contains(text, marker) {
-				return true
+				return marker, true
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
 func agentRuntimeProviderCredentialsMissing(contents ...any) bool {
+	_, ok := agentRuntimeProviderCredentialsMissingMarker(contents...)
+	return ok
+}
+
+func agentRuntimeProviderCredentialsMissingMarker(contents ...any) (string, bool) {
 	for _, content := range contents {
 		text := strings.ToLower(agentRuntimeContentText(content))
 		if text == "" {
@@ -671,14 +711,45 @@ func agentRuntimeProviderCredentialsMissing(contents ...any) bool {
 			"provider authentication failed",
 		} {
 			if strings.Contains(text, marker) {
-				return true
+				return marker, true
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
 func TestAgentRuntimeProviderFailureDetection(t *testing.T) {
+	t.Run("strict missing credential policy only allows configured rows", func(t *testing.T) {
+		t.Setenv("CHAT_E2E_HARD_FAIL_MISSING_CREDENTIALS", "1")
+		t.Setenv("CHAT_E2E_ALLOWED_MISSING_CREDENTIAL_CASES", "Claude API key,anthropic")
+
+		claudeAPIKey := agentRuntimeMatrixCase{name: "Claude API key", provider: fibe.ProviderClaudeCode, credentialEnv: "FIBE_TEST_AGENT_ANTHROPIC_API_KEY"}
+		openCodeAnthropic := agentRuntimeMatrixCase{
+			name:              "OpenCode Anthropic",
+			provider:          fibe.ProviderOpenCode,
+			modelOptions:      "anthropic/claude-haiku-4-5",
+			credentialEnv:     "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
+			credentialAliases: []string{"OPENCODE_ANTHROPIC_KEY"},
+		}
+		openCodeGemini := agentRuntimeMatrixCase{
+			name:              "OpenCode Gemini",
+			provider:          fibe.ProviderOpenCode,
+			modelOptions:      "google/gemini-2.5-flash-lite",
+			credentialEnv:     "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
+			credentialAliases: []string{"OPENCODE_GEMINI_KEY", "GEMINI_API_KEY"},
+		}
+
+		if !agentRuntimeMissingCredentialAllowed(claudeAPIKey) {
+			t.Fatal("expected Claude API key missing credentials to be allowed")
+		}
+		if !agentRuntimeMissingCredentialAllowed(openCodeAnthropic) {
+			t.Fatal("expected OpenCode Anthropic missing credentials to be allowed by the Anthropic credential-family token")
+		}
+		if agentRuntimeMissingCredentialAllowed(openCodeGemini) {
+			t.Fatal("expected OpenCode Gemini missing credentials to fail in strict mode")
+		}
+	})
+
 	t.Run("quota marker wins for Gemini terminal quota output", func(t *testing.T) {
 		content := map[string]any{
 			"activity_type": "error",
@@ -736,7 +807,7 @@ func agentRuntimeContentExcerpt(content any) string {
 		return ""
 	}
 	text = strings.Join(strings.Fields(text), " ")
-	const limit = 1500
+	const limit = 4000
 	runes := []rune(text)
 	if len(runes) <= limit {
 		return text
