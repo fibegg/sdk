@@ -1,0 +1,46 @@
+#!/bin/sh
+set -eu
+
+host=e2e-dns
+timeout=120
+
+resolve_ipv4() {
+  ip=""
+  if command -v getent >/dev/null 2>&1; then
+    ip="$(getent hosts "$1" 2>/dev/null | awk '/^[0-9]+\./ { print $1; exit }')"
+    [ -n "$ip" ] && { printf '%s\n' "$ip"; return; }
+  fi
+  if command -v nslookup >/dev/null 2>&1; then
+    ip="$(nslookup "$1" 2>/dev/null | awk '/^Address: / && $2 ~ /^[0-9]+\./ { print $2; exit }')"
+    [ -n "$ip" ] && { printf '%s\n' "$ip"; return; }
+  fi
+  ping -c 1 "$1" 2>/dev/null | sed -n 's/^PING [^(]*(\([0-9.]*\)).*/\1/p' | head -n 1
+}
+
+deadline="$(($(date +%s) + timeout))"
+dns_ip=""
+while [ "$(date +%s)" -lt "$deadline" ]; do
+  dns_ip="$(resolve_ipv4 "$host")"
+  [ -n "$dns_ip" ] && break
+  sleep 1
+done
+
+if [ -z "$dns_ip" ]; then
+  echo "[e2e-dns] unable to resolve $host" >&2
+  exit 1
+fi
+
+{
+  printf 'nameserver %s\n' "$dns_ip"
+  printf 'options ndots:0\n'
+} > /etc/resolv.conf
+
+if [ -n "${TEST_MARQUEE_ROOT_DOMAIN:-}" ]; then
+  deadline="$(($(date +%s) + timeout))"
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    [ -n "$(resolve_ipv4 "$TEST_MARQUEE_ROOT_DOMAIN")" ] && exit 0
+    sleep 1
+  done
+  echo "[e2e-dns] unable to resolve $TEST_MARQUEE_ROOT_DOMAIN via $host" >&2
+  exit 1
+fi

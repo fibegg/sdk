@@ -130,17 +130,65 @@ func TestListCoverage_Sorting(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Seed resources to ensure we have at least 2 for ordering checks
-	_ = seedAgent(t, c, fibe.ProviderGemini)
-	_ = seedAgent(t, c, fibe.ProviderClaudeCode)
-	_ = seedSecret(t, c, "sort-a")
-	_ = seedSecret(t, c, "sort-b")
-	_ = seedPlayspec(t, c)
-	_ = seedPlayspec(t, c)
+	tag := func(prefix string) string {
+		return strings.ReplaceAll(uniqueName(prefix), "-", "")
+	}
+
+	agentTag := tag("sortagent")
+	_ = seedAgent(t, c, fibe.ProviderGemini, func(p *fibe.AgentCreateParams) { p.Name = agentTag + "alpha" })
+	_ = seedAgent(t, c, fibe.ProviderClaudeCode, func(p *fibe.AgentCreateParams) { p.Name = agentTag + "bravo" })
+
+	secretTag := tag("sortsecret")
+	secretA, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "alpha", Value: "sort-value-a"})
+	requireNoError(t, err, "seed sort secret alpha")
+	secretB, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "bravo", Value: "sort-value-b"})
+	requireNoError(t, err, "seed sort secret bravo")
+	t.Cleanup(func() {
+		if secretA.ID != nil {
+			c.Secrets.Delete(ctx(), *secretA.ID)
+		}
+		if secretB.ID != nil {
+			c.Secrets.Delete(ctx(), *secretB.ID)
+		}
+	})
+
+	playspecTag := tag("sortplayspec")
+	_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) { p.Name = playspecTag + "alpha" })
+	_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) { p.Name = playspecTag + "bravo" })
+
+	propTag := tag("sortprop")
+	propA, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+		RepositoryURL: "https://github.com/octocat/" + uniqueName("sort-prop-alpha"),
+		Name:          ptr(propTag + "alpha"),
+	})
+	requireNoError(t, err, "seed sort prop alpha")
+	propB, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+		RepositoryURL: "https://github.com/octocat/" + uniqueName("sort-prop-bravo"),
+		Name:          ptr(propTag + "bravo"),
+	})
+	requireNoError(t, err, "seed sort prop bravo")
+	t.Cleanup(func() {
+		c.Props.Delete(ctx(), propA.ID)
+		c.Props.Delete(ctx(), propB.ID)
+	})
+
+	marqueeTag := tag("sortmarquee")
+	marqueeParamsA := testMarqueeParams("sort-marquee-alpha")
+	marqueeParamsA.Name = marqueeTag + "alpha"
+	marqueeA, err := c.Marquees.Create(ctx(), marqueeParamsA)
+	requireNoError(t, err, "seed sort marquee alpha")
+	marqueeParamsB := testMarqueeParams("sort-marquee-bravo")
+	marqueeParamsB.Name = marqueeTag + "bravo"
+	marqueeB, err := c.Marquees.Create(ctx(), marqueeParamsB)
+	requireNoError(t, err, "seed sort marquee bravo")
+	t.Cleanup(func() {
+		c.Marquees.Delete(ctx(), marqueeA.ID)
+		c.Marquees.Delete(ctx(), marqueeB.ID)
+	})
 
 	t.Run("agents sort name_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "name_asc", PerPage: 50})
+		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Name: agentTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, a := range r.Data {
@@ -151,7 +199,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 
 	t.Run("agents sort created_at_desc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "created_at_desc", PerPage: 50})
+		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Name: agentTag, Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
 		if len(r.Data) < 2 {
 			t.Skip("not enough agents to verify sort")
@@ -168,7 +216,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 
 	t.Run("playspecs sort name_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Sort: "name_asc", PerPage: 50})
+		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Name: playspecTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, p := range r.Data {
@@ -179,7 +227,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 
 	t.Run("secrets sort key_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Sort: "key_asc", PerPage: 50})
+		r, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Key: secretTag, Sort: "key_asc", PerPage: 50})
 		requireNoError(t, err)
 		keys := make([]string, 0, len(r.Data))
 		for _, s := range r.Data {
@@ -190,7 +238,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 
 	t.Run("props sort name_desc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Props.List(ctx(), &fibe.PropListParams{Sort: "name_desc", PerPage: 50})
+		r, err := c.Props.List(ctx(), &fibe.PropListParams{Name: propTag, Sort: "name_desc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, p := range r.Data {
@@ -201,7 +249,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 
 	t.Run("marquees sort name_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{Sort: "name_asc", PerPage: 50})
+		r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{Name: marqueeTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, m := range r.Data {

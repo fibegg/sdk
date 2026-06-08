@@ -502,7 +502,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&branch, "branch", "", "Branch name (required)")
-	cmd.Flags().StringVar(&envFile, "env-file", "", "Env file path")
+	cmd.Flags().StringVar(&envFile, "env-file", ".env", "Env file path")
 	cmd.MarkFlagRequired("branch")
 	return cmd
 }

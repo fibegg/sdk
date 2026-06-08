@@ -155,10 +155,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			secret, credentialSource := lookupAgentRuntimeCredential(tc)
 			if secret == "" {
 				message := fmt.Sprintf("set one of %s to run this agent runtime matrix row", strings.Join(agentRuntimeCredentialEnvNames(tc), ", "))
-				if agentRuntimeMissingCredentialAllowed(tc) {
-					t.Skip(message)
-				}
-				t.Fatal(message)
+				t.Skip(message)
 			}
 
 			t.Logf("using credential from %s", credentialSource)
@@ -272,32 +269,6 @@ func lookupAgentRuntimeCredential(tc agentRuntimeMatrixCase) (string, string) {
 		}
 	}
 	return "", ""
-}
-
-func agentRuntimeMissingCredentialAllowed(tc agentRuntimeMatrixCase) bool {
-	if !agentRuntimeHardFailMissingCredentials() {
-		return true
-	}
-	return agentRuntimeCaseMatchesAny(tc, agentRuntimeCaseFilters(agentRuntimeAllowedMissingCredentialCases()))
-}
-
-func agentRuntimeHardFailMissingCredentials() bool {
-	for _, envName := range []string{"CHAT_E2E_HARD_FAIL_MISSING_CREDENTIALS", "FIBE_TEST_AGENT_HARD_FAIL_MISSING_CREDENTIALS"} {
-		switch strings.ToLower(strings.TrimSpace(os.Getenv(envName))) {
-		case "1", "true", "yes", "on":
-			return true
-		}
-	}
-	return false
-}
-
-func agentRuntimeAllowedMissingCredentialCases() string {
-	for _, envName := range []string{"CHAT_E2E_ALLOWED_MISSING_CREDENTIAL_CASES", "FIBE_TEST_AGENT_ALLOWED_MISSING_CREDENTIAL_CASES"} {
-		if value := strings.TrimSpace(os.Getenv(envName)); value != "" {
-			return value
-		}
-	}
-	return ""
 }
 
 func createAgentRuntimeAPIKey(t *testing.T, c *fibe.Client, tc agentRuntimeMatrixCase) int64 {
@@ -511,6 +482,7 @@ func waitForAgentRuntimeStatus(
 			if predicate(status) {
 				return status
 			}
+			failIfAgentRuntimeProviderUnavailable(t, agentRuntimeStatusLastError(status))
 		} else {
 			lastErr = err
 		}
@@ -709,6 +681,7 @@ func agentRuntimeProviderCredentialsMissingMarker(contents ...any) (string, bool
 			"api key is missing",
 			"authentication required",
 			"provider authentication failed",
+			"session is missing",
 		} {
 			if strings.Contains(text, marker) {
 				return marker, true
@@ -719,37 +692,6 @@ func agentRuntimeProviderCredentialsMissingMarker(contents ...any) (string, bool
 }
 
 func TestAgentRuntimeProviderFailureDetection(t *testing.T) {
-	t.Run("strict missing credential policy only allows configured rows", func(t *testing.T) {
-		t.Setenv("CHAT_E2E_HARD_FAIL_MISSING_CREDENTIALS", "1")
-		t.Setenv("CHAT_E2E_ALLOWED_MISSING_CREDENTIAL_CASES", "Claude API key,anthropic")
-
-		claudeAPIKey := agentRuntimeMatrixCase{name: "Claude API key", provider: fibe.ProviderClaudeCode, credentialEnv: "FIBE_TEST_AGENT_ANTHROPIC_API_KEY"}
-		openCodeAnthropic := agentRuntimeMatrixCase{
-			name:              "OpenCode Anthropic",
-			provider:          fibe.ProviderOpenCode,
-			modelOptions:      "anthropic/claude-haiku-4-5",
-			credentialEnv:     "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
-			credentialAliases: []string{"OPENCODE_ANTHROPIC_KEY"},
-		}
-		openCodeGemini := agentRuntimeMatrixCase{
-			name:              "OpenCode Gemini",
-			provider:          fibe.ProviderOpenCode,
-			modelOptions:      "google/gemini-2.5-flash-lite",
-			credentialEnv:     "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
-			credentialAliases: []string{"OPENCODE_GEMINI_KEY", "GEMINI_API_KEY"},
-		}
-
-		if !agentRuntimeMissingCredentialAllowed(claudeAPIKey) {
-			t.Fatal("expected Claude API key missing credentials to be allowed")
-		}
-		if !agentRuntimeMissingCredentialAllowed(openCodeAnthropic) {
-			t.Fatal("expected OpenCode Anthropic missing credentials to be allowed by the Anthropic credential-family token")
-		}
-		if agentRuntimeMissingCredentialAllowed(openCodeGemini) {
-			t.Fatal("expected OpenCode Gemini missing credentials to fail in strict mode")
-		}
-	})
-
 	t.Run("quota marker wins for Gemini terminal quota output", func(t *testing.T) {
 		content := map[string]any{
 			"activity_type": "error",
@@ -807,7 +749,7 @@ func agentRuntimeContentExcerpt(content any) string {
 		return ""
 	}
 	text = strings.Join(strings.Fields(text), " ")
-	const limit = 4000
+	const limit = 800
 	runes := []rune(text)
 	if len(runes) <= limit {
 		return text

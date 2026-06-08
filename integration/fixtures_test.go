@@ -89,15 +89,19 @@ func seedPlayspec(t *testing.T, c *fibe.Client, opts ...func(*fibe.PlayspecCreat
 }
 
 // seedAgent creates an agent and registers cleanup.
-func seedAgent(t *testing.T, c *fibe.Client, provider string) *fibe.Agent {
+func seedAgent(t *testing.T, c *fibe.Client, provider string, opts ...func(*fibe.AgentCreateParams)) *fibe.Agent {
 	t.Helper()
 	if provider == "" {
 		provider = fibe.ProviderGemini
 	}
-	ag, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
+	params := &fibe.AgentCreateParams{
 		Name:     uniqueName("fx-agent"),
 		Provider: provider,
-	})
+	}
+	for _, o := range opts {
+		o(params)
+	}
+	ag, err := c.Agents.Create(ctx(), params)
 	requireNoError(t, err, "seed agent")
 	t.Cleanup(func() { c.Agents.Delete(ctx(), ag.ID) })
 	return ag

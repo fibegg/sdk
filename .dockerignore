@@ -1,6 +1,12 @@
 .git
 .DS_Store
+.cache/
+.env
+.env.*
 bin/
 dist/
+coverage/
+tmp/
 *.test
 *.out
+*.prof

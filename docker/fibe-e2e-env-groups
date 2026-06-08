@@ -1,0 +1,142 @@
+#!/bin/sh
+
+FIBE_E2E_TIMEOUTS_DEFAULTS='{"check":7200,"check_after":10800,"results":10800,"runtime_wait_seconds":600,"auth_service_start_seconds":300,"fibe_compose_up":900,"opencode_turn_ms":180000,"playwright_bootstrap_seconds":600,"playwright_bootstrap_file_seconds":600,"playwright_api":180000,"playwright_api_global":5400000,"playwright_api_provision":600000,"playwright_api_provision_deadline":540000,"playwright_api_job_status":600000,"playwright_api_job_test":660000,"playwright_webhook_wait_ms":45000,"playwright_ui":300000,"playwright_ui_expect":45000,"playwright_ui_action":60000,"playwright_ui_navigation":300000,"playwright_ui_navigation_test":300000,"playwright_ui_auth_security":"","playwright_integration":1200000,"playwright_integration_global":7200000,"playwright_integration_expect":30000,"playwright_integration_import":420000,"playwright_integration_playground_wait_minutes":"","playwright_agent":180000,"playwright_agent_global":1800000,"playwright_bazaar_provision_minutes":25,"playwright_bazaar_http_attempts":90,"playwright_bazaar_http_interval_ms":5000,"playwright_bazaar_http_request_ms":15000,"agent_runtime_ready_ms":720000,"agent_runtime_ready_poll_ms":2500,"agent_runtime_ready_progress_ms":30000,"go_tests":"7200s","lint":"","app_pw_tests":"","app_pw_api":"","app_pw_ui":"","app_pw_integration":"","app_pw_agent":"","app_pw_thirdparty":"","app_pw_bazaar":"","app_go_tests":"","fibe_agent_ci":""}'
+FIBE_E2E_PARALLELISM_DEFAULTS='{"playwright":4,"playwright_ui":12,"playwright_integration":4,"playwright_thirdparty":4,"playwright_bazaar":4,"go_tests":4,"lint":1,"registry_warmup":4,"playwright_fully_parallel":""}'
+FIBE_E2E_SETTINGS_DEFAULTS='{"playwright_reporter":"list","playwright_video":"off","go_test_format":"testname","go_test_hide_summary":"","bazaar_layers":"default","bazaar_template_slugs":""}'
+
+fibe_e2e_json_value() {
+  fibe_e2e_json="$1"
+  fibe_e2e_key="$2"
+  fibe_e2e_default="$3"
+  if [ -z "$fibe_e2e_json" ]; then
+    printf '%s\n' "$fibe_e2e_default"
+    return 0
+  fi
+
+  fibe_e2e_raw="$(
+    printf '%s' "$fibe_e2e_json" |
+      tr '\n' ' ' |
+      sed -nE 's/.*"'"$fibe_e2e_key"'"[[:space:]]*:[[:space:]]*("[^"]*"|[^,}]*).*/\1/p' |
+      head -n 1 |
+      sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+  )"
+  if [ -z "$fibe_e2e_raw" ]; then
+    printf '%s\n' "$fibe_e2e_default"
+    return 0
+  fi
+
+  case "$fibe_e2e_raw" in
+    \"*\")
+      fibe_e2e_raw="${fibe_e2e_raw#\"}"
+      fibe_e2e_raw="${fibe_e2e_raw%\"}"
+      printf '%s\n' "$fibe_e2e_raw" | sed 's/\\"/"/g; s/\\\\/\\/g'
+      ;;
+    null) printf '\n' ;;
+    *) printf '%s\n' "$fibe_e2e_raw" ;;
+  esac
+}
+
+fibe_e2e_group_value() {
+  case "$1" in
+    FIBE_E2E_TIMEOUTS) printf '%s\n' "${FIBE_E2E_TIMEOUTS:-}" ;;
+    FIBE_E2E_PARALLELISM) printf '%s\n' "${FIBE_E2E_PARALLELISM:-}" ;;
+    FIBE_E2E_SETTINGS) printf '%s\n' "${FIBE_E2E_SETTINGS:-}" ;;
+    *) printf '\n' ;;
+  esac
+}
+
+fibe_e2e_group_defaults() {
+  case "$1" in
+    FIBE_E2E_TIMEOUTS) printf '%s\n' "$FIBE_E2E_TIMEOUTS_DEFAULTS" ;;
+    FIBE_E2E_PARALLELISM) printf '%s\n' "$FIBE_E2E_PARALLELISM_DEFAULTS" ;;
+    FIBE_E2E_SETTINGS) printf '%s\n' "$FIBE_E2E_SETTINGS_DEFAULTS" ;;
+    *) printf '\n' ;;
+  esac
+}
+
+fibe_e2e_export_json() {
+  fibe_e2e_group="$1"
+  fibe_e2e_key="$2"
+  fibe_e2e_var="$3"
+  fibe_e2e_group_default="$(fibe_e2e_group_defaults "$fibe_e2e_group")"
+  fibe_e2e_default="$(fibe_e2e_json_value "$fibe_e2e_group_default" "$fibe_e2e_key" "")"
+  fibe_e2e_value="$(fibe_e2e_json_value "$(fibe_e2e_group_value "$fibe_e2e_group")" "$fibe_e2e_key" "$fibe_e2e_default")"
+  export "$fibe_e2e_var=$fibe_e2e_value"
+}
+
+fibe_e2e_apply_timeouts() {
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS check E2E_CHECK_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS check_after E2E_CHECK_AFTER_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS results E2E_RESULTS_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS runtime_wait_seconds E2E_RUNTIME_WAIT_TIMEOUT_SECONDS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS auth_service_start_seconds FIBE_AUTH_SERVICE_START_TIMEOUT_SECONDS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS fibe_compose_up FIBE_COMPOSE_UP_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS opencode_turn_ms OPENCODE_APP_SERVER_TURN_TIMEOUT_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bootstrap_seconds PLAYWRIGHT_E2E_BOOTSTRAP_TIMEOUT_SECONDS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bootstrap_file_seconds PLAYWRIGHT_E2E_BOOTSTRAP_FILE_TIMEOUT_SECONDS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api PLAYWRIGHT_API_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api_global PLAYWRIGHT_API_GLOBAL_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api_provision PLAYWRIGHT_API_PROVISION_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api_provision_deadline PLAYWRIGHT_API_PROVISION_DEADLINE
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api_job_status PLAYWRIGHT_API_JOB_STATUS_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_api_job_test PLAYWRIGHT_API_JOB_TEST_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_webhook_wait_ms PLAYWRIGHT_WEBHOOK_WAIT_TIMEOUT_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui PLAYWRIGHT_UI_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui_expect PLAYWRIGHT_UI_EXPECT_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui_action PLAYWRIGHT_UI_ACTION_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui_navigation PLAYWRIGHT_UI_NAVIGATION_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui_navigation_test PLAYWRIGHT_UI_NAVIGATION_TEST_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_ui_auth_security PLAYWRIGHT_UI_AUTH_SECURITY_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_integration PLAYWRIGHT_INTEGRATION_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_integration_global PLAYWRIGHT_INTEGRATION_GLOBAL_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_integration_expect PLAYWRIGHT_INTEGRATION_EXPECT_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_integration_import PLAYWRIGHT_INTEGRATION_IMPORT_TEST_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_integration_playground_wait_minutes PLAYWRIGHT_INTEGRATION_PLAYGROUND_WAIT_MINUTES
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_agent PLAYWRIGHT_AGENT_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_agent_global PLAYWRIGHT_AGENT_GLOBAL_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bazaar_provision_minutes PLAYWRIGHT_BAZAAR_PROVISION_TIMEOUT_MINUTES
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bazaar_http_attempts PLAYWRIGHT_BAZAAR_HTTP_ATTEMPTS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bazaar_http_interval_ms PLAYWRIGHT_BAZAAR_HTTP_INTERVAL_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS playwright_bazaar_http_request_ms PLAYWRIGHT_BAZAAR_HTTP_REQUEST_TIMEOUT_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS agent_runtime_ready_ms FIBE_AGENT_RUNTIME_READY_TIMEOUT_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS agent_runtime_ready_poll_ms FIBE_AGENT_RUNTIME_READY_POLL_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS agent_runtime_ready_progress_ms FIBE_AGENT_RUNTIME_READY_PROGRESS_MS
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS go_tests GO_TEST_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS lint E2E_LINT_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_tests E2E_APP_PW_TESTS_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_api E2E_APP_PW_API_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_ui E2E_APP_PW_UI_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_integration E2E_APP_PW_INTEGRATION_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_agent E2E_APP_PW_AGENT_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_thirdparty E2E_APP_PW_THIRDPARTY_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_pw_bazaar E2E_APP_PW_BAZAAR_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS app_go_tests E2E_APP_GO_TESTS_TIMEOUT
+  fibe_e2e_export_json FIBE_E2E_TIMEOUTS fibe_agent_ci E2E_FIBE_AGENT_CI_TIMEOUT
+}
+
+fibe_e2e_apply_parallelism() {
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright PLAYWRIGHT_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_ui PLAYWRIGHT_UI_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_integration PLAYWRIGHT_INTEGRATION_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_thirdparty PLAYWRIGHT_THIRDPARTY_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_bazaar PLAYWRIGHT_BAZAAR_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_fully_parallel PLAYWRIGHT_FULLY_PARALLEL
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM go_tests GO_TEST_PARALLEL
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM lint PARALLEL_TEST_PROCESSORS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM registry_warmup REGISTRY_WARMUP_JOBS
+}
+
+fibe_e2e_apply_settings() {
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_reporter PLAYWRIGHT_REPORTER
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_video PLAYWRIGHT_VIDEO_MODE
+  fibe_e2e_export_json FIBE_E2E_SETTINGS go_test_format GO_TEST_FORMAT
+  fibe_e2e_export_json FIBE_E2E_SETTINGS go_test_hide_summary GO_TEST_HIDE_SUMMARY
+  fibe_e2e_export_json FIBE_E2E_SETTINGS bazaar_layers PLAYWRIGHT_BAZAAR_LAYERS
+  fibe_e2e_export_json FIBE_E2E_SETTINGS bazaar_template_slugs PLAYWRIGHT_BAZAAR_TEMPLATE_SLUGS
+}
+
+fibe_e2e_apply_env_groups() {
+  fibe_e2e_apply_timeouts
+  fibe_e2e_apply_parallelism
+  fibe_e2e_apply_settings
+}

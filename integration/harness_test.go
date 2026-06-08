@@ -95,7 +95,18 @@ func integrationClient(key, domain string, maxRetries int) *fibe.Client {
 		fibe.WithDomain(domain),
 		fibe.WithMaxRetries(maxRetries),
 		fibe.WithRetryDelay(500*time.Millisecond, 5*time.Second),
+		fibe.WithTimeout(integrationHTTPTimeout()),
 	)
+}
+
+func integrationHTTPTimeout() time.Duration {
+	raw := os.Getenv("FIBE_INTEGRATION_HTTP_TIMEOUT")
+	if raw != "" {
+		if parsed, err := time.ParseDuration(raw); err == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return 120 * time.Second
 }
 
 func userScopes(t *testing.T) []string {

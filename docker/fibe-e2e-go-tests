@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export E2E_RUN_ID="${E2E_RUN_ID:-$(date -u +%Y%m%d%H%M%S)-$$}"
+
+if [ "${1:-}" != "--inside-wrapper" ] && [ "${1:-}" != "--run-go-tests" ]; then
+  exec /bin/bash /etc/fibe-e2e/check-wrapper.sh app-go-tests "$0" --inside-wrapper
+fi
+
+if [ "${1:-}" = "--inside-wrapper" ]; then
+  shift
+fi
+
+if [ -f /etc/fibe-e2e/env-groups.sh ]; then
+  # shellcheck source=/dev/null
+  . /etc/fibe-e2e/env-groups.sh
+  if type fibe_e2e_apply_env_groups >/dev/null 2>&1; then
+    fibe_e2e_apply_env_groups
+  fi
+fi
+
+wait_timeout="${E2E_RUNTIME_WAIT_TIMEOUT_SECONDS:-600}"
+
+wait_for_file() {
+  local path="$1" label="$2" deadline
+  deadline="$(($(date +%s) + wait_timeout))"
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    [ -s "$path" ] && return 0
+    sleep 1
+  done
+  echo "[runner] timed out waiting for $label at $path" >&2
+  return 1
+}
+
+wait_for_tcp() {
+  local host="$1" port="$2" label="$3" deadline
+  deadline="$(($(date +%s) + wait_timeout))"
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    (echo >"/dev/tcp/$host/$port") >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  echo "[runner] timed out waiting for $label at $host:$port" >&2
+  return 1
+}
+
+wait_for_http() {
+  local url="$1" label="$2" deadline
+  deadline="$(($(date +%s) + wait_timeout))"
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    curl -fsS "$url" >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  echo "[runner] timed out waiting for $label at $url" >&2
+  return 1
+}
+
+wait_for_file /fibe-data/run/public-env "packed Fibe public environment"
+. /fibe-data/run/public-env
+wait_for_file /ssh-dind/marquee.env "DinD marquee environment"
+wait_for_file /ssh-dind/id_rsa "DinD SSH key"
+set -a
+. /ssh-dind/marquee.env
+set +a
+
+export TEST_MARQUEE_HOST="${TEST_MARQUEE_HOST:-dind-sdk}"
+export TEST_MARQUEE_ROOT_DOMAIN="${TEST_MARQUEE_ROOT_DOMAIN:-sdk.e2e.fibe.test}"
+export FIBE_TEST_GATEWAY_HOST="${FIBE_TEST_GATEWAY_HOST:-$TEST_MARQUEE_HOST}"
+export FIBE_TEST_GATEWAY_URL="${FIBE_TEST_GATEWAY_URL:-http://${FIBE_TEST_GATEWAY_HOST}:80}"
+fibe-e2e-use-dns
+export FIBE_DOMAIN="${FIBE_PACKED_RAILS_URL:-http://fibe-app:3000}"
+wait_for_http "${FIBE_DOMAIN}/up" "packed Fibe Rails"
+wait_for_tcp "$TEST_MARQUEE_HOST" 22 "DinD SSH"
+
+export FIBE_E2E_BOOTSTRAP=1
+export TEST_MARQUEE_USER=root
+export TEST_MARQUEE_PORT=22
+export TEST_MARQUEE_PRIVATE_KEY_PATH=/ssh-dind/id_rsa
+export WEBHOOK_CATCHER_HOST="${WEBHOOK_CATCHER_HOST:-app-go-tests}"
+export FIBE_TEST_AGENT_GEMINI_OAUTH_JSON="${FIBE_TEST_AGENT_GEMINI_OAUTH_JSON:-${GEMINI_OAUTH_JSON:-}}"
+export FIBE_TEST_AGENT_GEMINI_API_KEY="${FIBE_TEST_AGENT_GEMINI_API_KEY:-${GEMINI_API_KEY:-${GOOGLE_GENERATIVE_AI_API_KEY:-${GOOGLE_API_KEY:-}}}}"
+export FIBE_TEST_AGENT_CLAUDE_CODE_OAUTH_TOKEN="${FIBE_TEST_AGENT_CLAUDE_CODE_OAUTH_TOKEN:-${CLAUDE_CODE_OAUTH_TOKEN:-}}"
+export FIBE_TEST_AGENT_ANTHROPIC_API_KEY="${FIBE_TEST_AGENT_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
+export FIBE_TEST_AGENT_CODEX_AUTH_JSON="${FIBE_TEST_AGENT_CODEX_AUTH_JSON:-${CODEX_AUTH_JSON:-}}"
+export FIBE_TEST_AGENT_OPENAI_API_KEY="${FIBE_TEST_AGENT_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
+export FIBE_TEST_AGENT_CURSOR_API_KEY="${FIBE_TEST_AGENT_CURSOR_API_KEY:-${CURSOR_API_KEY:-}}"
+export FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY="${FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY:-${OPENROUTER_API_KEY:-}}"
+export FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY="${FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
+export FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY="${FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
+export FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY="${FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY:-${GEMINI_API_KEY:-${GOOGLE_GENERATIVE_AI_API_KEY:-${GOOGLE_API_KEY:-}}}}"
+
+if [ "${THIRDPARTY_TESTS:-1}" = "0" ]; then
+  export FIBE_SKIP_THIRDPARTY_TESTS=1
+fi
+
+run_go_tests() {
+  local artifact_dir="${GO_TEST_ARTIFACT_DIR:-/e2e-logs}"
+  if ! mkdir -p "$artifact_dir" 2>/dev/null; then
+    artifact_dir="${TMPDIR:-/tmp}"
+    mkdir -p "$artifact_dir"
+  fi
+
+  local json="${GO_TEST_JSON:-$artifact_dir/app-go-tests.gotestsum.jsonl}"
+  local skipped="$artifact_dir/app-go-tests.skipped.txt"
+  local failed_tests="$artifact_dir/app-go-tests.failed.txt"
+  rm -f "$json"
+  : > "$skipped"
+  : > "$failed_tests"
+
+  local status=0
+  gotestsum --format "${GO_TEST_FORMAT:-testname}" --jsonfile "$json" -- "$@" || status=$?
+  summarize_go_test_json "$json" "$skipped" "$failed_tests"
+  return "$status"
+}
+
+summarize_go_test_json() {
+  local json="$1" skipped="$2" failed_tests="$3"
+  [ -s "$json" ] || return 0
+
+  grep '"Action":"skip"' "$json" \
+    | sed -n 's/.*"Package":"\([^"]*\)".*"Test":"\([^"]*\)".*/\1 \2/p' \
+    | sort -u > "$skipped" || true
+  grep '"Action":"fail"' "$json" \
+    | sed -n 's/.*"Package":"\([^"]*\)".*"Test":"\([^"]*\)".*/\1 \2/p' \
+    | sort -u > "$failed_tests" || true
+
+  echo "SDK gotestsum JSONL: $json"
+  echo "SDK skipped tests: $skipped"
+  echo "SDK failed tests: $failed_tests"
+}
+
+if [ "${1:-}" = "--run-go-tests" ]; then
+  shift
+  run_go_tests "$@"
+  exit "$?"
+fi
+
+args=(./integration/... -count=1 -parallel "${GO_TEST_PARALLEL:-4}" -timeout "${GO_TEST_TIMEOUT:-7200s}")
+[ -n "${GO_TEST_RUN:-}" ] && args+=(-run "$GO_TEST_RUN")
+
+run_go_tests "${args[@]}"
