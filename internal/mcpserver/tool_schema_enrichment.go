@@ -192,6 +192,14 @@ func descriptionForToolProperty(toolName, name string, schema map[string]any) st
 	if isNumericIDSchema(name, schema) {
 		return idDescription(name)
 	}
+	if strings.HasPrefix(toolName, "fibe_agents_") {
+		switch name {
+		case "mode":
+			return "Agent provider auth mode. Creating an Agent does not inherit auth from another Agent; use fibe_agents_duplicate when inherited auth is required. Use fibe-mana only when the environment reports it configured."
+		case "provider_api_key_mode":
+			return "Provider key source for a new Agent. Use Secrets/provider-key configuration for brand-new Agents; use fibe_agents_duplicate to inherit existing auth material."
+		}
+	}
 	if desc, ok := knownPropertyDescriptions[name]; ok {
 		return desc
 	}
@@ -209,7 +217,7 @@ func idDescription(name string) string {
 	case "id":
 		return "ID of the selected resource"
 	case "api_key_id":
-		return "API key ID"
+		return "Provider API key ID"
 	case "agent_id":
 		return "Agent ID"
 	case "artefact_id":

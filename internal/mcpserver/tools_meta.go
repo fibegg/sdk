@@ -625,6 +625,11 @@ func (s *Server) recommendedToolForCLIArgs(args []string) string {
 			return "fibe_mutter"
 		}
 	}
+	if strings.Join(path, " ") == "artefacts create" {
+		if _, ok := s.dispatcher.lookup("fibe_artefact_upload"); ok {
+			return "fibe_artefact_upload"
+		}
+	}
 	if isCLIResourceMutationPath(path) {
 		if _, ok := s.dispatcher.lookup("fibe_resource_mutate"); ok {
 			return "fibe_resource_mutate"
@@ -642,7 +647,6 @@ func isCLIResourceMutationPath(path []string) bool {
 		"agents create":                   true,
 		"agents update":                   true,
 		"api-keys create":                 true,
-		"artefacts create":                true,
 		"marquees create":                 true,
 		"marquees update":                 true,
 		"playgrounds create":              true,

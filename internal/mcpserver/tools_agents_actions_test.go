@@ -99,6 +99,21 @@ func TestAgentSendMessageToolUploadsAttachmentsAndPassesConversationControls(t *
 	}
 }
 
+func TestAgentCreateConversationInputSchemaUsesIdentifierName(t *testing.T) {
+	schema := agentCreateConversationInputSchema()
+	props := schema["properties"].(map[string]any)
+	if _, ok := props["id_or_name"]; !ok {
+		t.Fatalf("expected id_or_name property: %#v", props)
+	}
+	if _, ok := props["agent_id"]; ok {
+		t.Fatalf("agent_id should not be advertised: %#v", props)
+	}
+	required := schema["required"].([]string)
+	if len(required) != 2 || required[0] != "id_or_name" || required[1] != "conversation_id" {
+		t.Fatalf("required = %#v, want id_or_name and conversation_id", required)
+	}
+}
+
 func TestResourceListAgentsPassesIncludeRuntimeStatus(t *testing.T) {
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || r.URL.Path != "/api/agents" {

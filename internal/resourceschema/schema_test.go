@@ -2,6 +2,7 @@ package resourceschema
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
@@ -98,15 +99,8 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		t.Fatalf("playground.action action_type enum missing: %#v", actionProps["action_type"])
 	}
 
-	artefactCreate, _, op, ok := SchemaFor("artefacts", "create")
-	if !ok || op != "create" {
-		t.Fatalf("artefact.create schema missing")
-	}
-	artefactProps := artefactCreate.(map[string]any)["properties"].(map[string]any)
-	for _, want := range []string{"agent_id_or_name", "name", "filename", "content_base64", "content_path", "description", "playground_id_or_name"} {
-		if _, ok := artefactProps[want]; !ok {
-			t.Fatalf("artefact.create missing property %q: %#v", want, artefactProps)
-		}
+	if _, _, _, ok := SchemaFor("artefacts", "create"); ok {
+		t.Fatalf("artefact.create should not be exposed through generic resource schema")
 	}
 
 	mutterCreate, _, op, ok := SchemaFor("mutter", "create")
@@ -273,6 +267,10 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	}
 	if !reflect.DeepEqual(providerEnum, fibe.ValidProviders) {
 		t.Fatalf("agent.create provider enum = %#v, want %#v", providerEnum, fibe.ValidProviders)
+	}
+	modeDescription := createProps["mode"].(map[string]any)["description"].(string)
+	if !strings.Contains(modeDescription, "does not inherit auth") || !strings.Contains(modeDescription, "fibe_agents_duplicate") {
+		t.Fatalf("agent.create mode description should explain auth inheritance, got %q", modeDescription)
 	}
 
 	playspecCreate, _, op, ok := SchemaFor("playspec", "create")
@@ -530,7 +528,6 @@ func TestNamedResourceMutationSchemasDoNotExposeLegacyTargetAliases(t *testing.T
 		{resource: "agent", operation: "upload_attachment"},
 		{resource: "agent_poke", operation: "create"},
 		{resource: "agent_poke", operation: "update"},
-		{resource: "artefact", operation: "create"},
 		{resource: "mutter", operation: "create"},
 		{resource: "playground", operation: "create"},
 		{resource: "playground", operation: "update"},

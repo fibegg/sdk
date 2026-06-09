@@ -345,14 +345,17 @@ func buildRegistry() map[string]map[string]any {
 	playgroundTransform := playgroundTransformSchema()
 	out["playground"]["transform"] = playgroundTransform
 	agentCreate := withPropertyEnum(renameIdentifierFields(paramsSchema[fibe.AgentCreateParams]("name", "provider"), map[string]string{"build_in_public_playground_id": "build_in_public_playground_id_or_name"}), "provider", fibe.ValidProviders)
-	out["agent"]["create"] = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
+	agentCreate = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
+	withPropertyDescription(agentCreate, "mode", "Agent provider auth mode. Creating an Agent does not inherit auth from another Agent; use fibe_agents_duplicate when inherited auth is required. Use fibe-mana only when the environment reports it configured.")
+	withPropertyDescription(agentCreate, "provider_api_key_mode", "Provider key source for a new Agent. Use Secrets/provider-key configuration for brand-new Agents; use fibe_agents_duplicate to inherit existing auth material.")
+	withPropertyDescription(agentCreate, "api_key_id", "Provider API key ID for a brand-new Agent when provider-api-key mode uses an existing key.")
+	out["agent"]["create"] = agentCreate
 	out["agent"]["update"] = renameIdentifierFields(renameSchemaField(updateParamsSchemaFor[fibe.AgentUpdateParams]("agent_id"), "agent_id", "id_or_name", "Agent ID or name."), map[string]string{"build_in_public_playground_id": "build_in_public_playground_id_or_name"})
 	out["agent"]["restart_chat"] = resourceActionIDSchema("id_or_name", "Agent ID or name whose active chat runtime should be restarted.")
 	out["agent"]["upload_attachment"] = agentUploadAttachmentSchema()
 	out["agent"]["watch"] = resourceWatchSchema("agent")
 	out["agent_poke"]["create"] = agentPokeCreateSchema()
 	out["agent_poke"]["update"] = agentPokeUpdateSchema()
-	out["artefact"]["create"] = artefactCreateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
 	out["playspec"]["create"] = withPlayspecConfigSchemas(paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml"))
 	out["playspec"]["update"] = withPlayspecConfigSchemas(renameSchemaField(updateParamsSchemaFor[fibe.PlayspecUpdateParams]("playspec_id"), "playspec_id", "id_or_name", "Playspec ID or slug-safe name."))
@@ -546,23 +549,6 @@ func renameIdentifierFields(schema map[string]any, fields map[string]string) map
 		renameSchemaField(schema, oldName, newName, schemaIDDescription(oldName)+" or name.")
 	}
 	return schema
-}
-
-func artefactCreateSchema() map[string]any {
-	return map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []string{"agent_id_or_name"},
-		"properties": map[string]any{
-			"agent_id_or_name":      namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the artefact."),
-			"name":                  map[string]any{"type": "string", "description": "Artefact display name. Also used as the filename fallback by artefact.create."},
-			"filename":              map[string]any{"type": "string", "description": "Filename for the uploaded artefact. Defaults to name when omitted."},
-			"content_base64":        map[string]any{"type": "string", "description": "Base64-encoded file content. Use either content_base64 or content_path."},
-			"content_path":          map[string]any{"type": "string", "description": "Absolute local file path to read and upload. Use either content_path or content_base64."},
-			"description":           map[string]any{"type": "string", "description": "Optional human-readable artefact description."},
-			"playground_id_or_name": namedIdentifierSchema("playground_id_or_name", "Optional playground ID or slug-safe name to associate with the artefact."),
-		},
-	}
 }
 
 func artefactListParamsSchema() map[string]any {
@@ -1227,6 +1213,16 @@ func withDescription(schema map[string]any, description string) map[string]any {
 	if schema["description"] == nil {
 		schema["description"] = description
 	}
+	return schema
+}
+
+func withPropertyDescription(schema map[string]any, property string, description string) map[string]any {
+	props, _ := schema["properties"].(map[string]any)
+	prop, _ := props[property].(map[string]any)
+	if prop == nil {
+		return schema
+	}
+	prop["description"] = description
 	return schema
 }
 
