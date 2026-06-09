@@ -39,9 +39,12 @@ type Playground struct {
 }
 
 type PlaygroundServiceInfo struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Image  string `json:"image,omitempty"`
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	Image    string `json:"image,omitempty"`
+	Health   string `json:"health,omitempty"`
+	Running  bool   `json:"running,omitempty"`
+	ExitCode *int   `json:"exit_code,omitempty"`
 }
 
 type PlaygroundBuildStatus struct {
@@ -220,7 +223,7 @@ type PlaygroundStatus struct {
 	PlayguardRepairLockUntil *time.Time                    `json:"playguard_repair_lock_until,omitempty"`
 	NeedsRecreation          *bool                         `json:"needs_recreation,omitempty"`
 	BuildStatuses            []PlaygroundBuildStatus       `json:"build_statuses,omitempty"`
-	Services                 []any                         `json:"services,omitempty"`
+	Services                 []PlaygroundServiceInfo       `json:"services,omitempty"`
 	JobResult                *JobResult                    `json:"job_result,omitempty"`
 }
 

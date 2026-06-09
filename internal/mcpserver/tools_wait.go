@@ -16,15 +16,16 @@ import (
 // hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state, streaming state reasons and build commits.", tier: tierBrownfield,
+		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args)
 		},
 	}, mcp.NewTool("fibe_playgrounds_wait",
-		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state, streaming state reasons and build commits."),
+		mcp.WithDescription("[MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready."),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("status", mcp.Required(), mcp.Description("Target playground status, for example running, stopped, or has_changes.")),
+		mcp.WithString("readiness", mcp.Description("Readiness mode: services waits for reported service readiness when status is running; lifecycle waits only for the top-level status. Defaults to services for status=running and lifecycle otherwise.")),
 		mcp.WithString("timeout", mcp.Description("Max wait duration as Go duration string (e.g. \"5m\"; default: 10m)")),
 		mcp.WithString("interval", mcp.Description("Polling interval as Go duration string (default: 3s)")),
 	))
@@ -43,6 +44,10 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 	if target == "" {
 		return nil, fmt.Errorf("required field 'status' not set")
 	}
+	readiness, err := fibe.NormalizePlaygroundWaitReadiness(argString(args, "readiness"), target)
+	if err != nil {
+		return nil, err
+	}
 	timeout := parseDuration(argString(args, "timeout"), 10*time.Minute)
 	interval := parseDuration(argString(args, "interval"), 3*time.Second)
 
@@ -59,6 +64,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			status    string
 			payload   any
 			fetchErr  error
+			pending   string
 			terminal  bool
 			terminalE string
 		)
@@ -83,7 +89,8 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			s.sendProgress(ctx, progressToken, float64(tick), playgroundWaitProgressMessage(pg))
 		}
 
-		if status == target {
+		ready, pending := fibe.PlaygroundStatusMatchesWaitTarget(pg, target, readiness)
+		if ready {
 			return payload, nil
 		}
 		if terminal {
@@ -94,7 +101,13 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-deadline:
-			return nil, fmt.Errorf("timeout after %s — last status: %s", timeout, status)
+			if pending == "" {
+				pending = fmt.Sprintf("last status: %s", status)
+			}
+			if len(pg.Services) > 0 {
+				pending = fmt.Sprintf("%s; services: %s", pending, fibe.PlaygroundServiceReadinessSummary(pg.Services))
+			}
+			return nil, fmt.Errorf("timeout after %s — %s", timeout, pending)
 		case <-time.After(interval):
 		}
 	}
@@ -113,6 +126,9 @@ func playgroundWaitProgressMessage(pg *fibe.PlaygroundStatus) string {
 	builds := activeBuildProgressParts(pg.BuildStatuses)
 	if len(builds) > 0 {
 		parts = append(parts, "commits: "+strings.Join(builds, ", "))
+	}
+	if len(pg.Services) > 0 {
+		parts = append(parts, "services: "+fibe.PlaygroundServiceReadinessSummary(pg.Services))
 	}
 	return strings.Join(parts, " | ")
 }

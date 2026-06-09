@@ -4,7 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+)
+
+const (
+	PlaygroundWaitReadinessLifecycle = "lifecycle"
+	PlaygroundWaitReadinessServices  = "services"
 )
 
 type PlaygroundService struct {
@@ -116,8 +122,16 @@ func (s *PlaygroundService) WaitForStatus(ctx context.Context, id int64, target 
 }
 
 func (s *PlaygroundService) WaitForStatusByIdentifier(ctx context.Context, identifier string, target string, timeout time.Duration, interval time.Duration) (*Playground, error) {
+	return s.WaitForStatusWithReadinessByIdentifier(ctx, identifier, target, "", timeout, interval)
+}
+
+func (s *PlaygroundService) WaitForStatusWithReadinessByIdentifier(ctx context.Context, identifier string, target string, readiness string, timeout time.Duration, interval time.Duration) (*Playground, error) {
 	if target == "" {
 		target = "running"
+	}
+	readiness, err := NormalizePlaygroundWaitReadiness(readiness, target)
+	if err != nil {
+		return nil, err
 	}
 	if timeout <= 0 {
 		timeout = 10 * time.Minute
@@ -131,7 +145,8 @@ func (s *PlaygroundService) WaitForStatusByIdentifier(ctx context.Context, ident
 		if err != nil {
 			return nil, err
 		}
-		if status.Status == target {
+		ready, pendingReason := PlaygroundStatusMatchesWaitTarget(status, target, readiness)
+		if ready {
 			return s.GetByIdentifier(ctx, identifier)
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
@@ -141,10 +156,112 @@ func (s *PlaygroundService) WaitForStatusByIdentifier(ctx context.Context, ident
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-deadline:
-			return nil, fmt.Errorf("timeout after %s — last status: %s", timeout, status.Status)
+			if pendingReason == "" {
+				pendingReason = fmt.Sprintf("last status: %s", status.Status)
+			}
+			return nil, fmt.Errorf("timeout after %s — %s", timeout, pendingReason)
 		case <-time.After(interval):
 		}
 	}
+}
+
+func NormalizePlaygroundWaitReadiness(readiness string, target string) (string, error) {
+	readiness = strings.TrimSpace(strings.ToLower(readiness))
+	if readiness == "" {
+		if strings.TrimSpace(strings.ToLower(target)) == "running" || target == "" {
+			return PlaygroundWaitReadinessServices, nil
+		}
+		return PlaygroundWaitReadinessLifecycle, nil
+	}
+	switch readiness {
+	case PlaygroundWaitReadinessLifecycle, PlaygroundWaitReadinessServices:
+		return readiness, nil
+	default:
+		return "", fmt.Errorf("unsupported readiness %q; expected %q or %q", readiness, PlaygroundWaitReadinessLifecycle, PlaygroundWaitReadinessServices)
+	}
+}
+
+func PlaygroundStatusMatchesWaitTarget(status *PlaygroundStatus, target string, readiness string) (bool, string) {
+	if status == nil {
+		return false, "status unavailable"
+	}
+	if target == "" {
+		target = "running"
+	}
+	if status.Status != target {
+		return false, fmt.Sprintf("last status: %s", status.Status)
+	}
+	if readiness != PlaygroundWaitReadinessServices || target != "running" {
+		return true, ""
+	}
+	return PlaygroundServicesReady(status.Services)
+}
+
+func PlaygroundServicesReady(services []PlaygroundServiceInfo) (bool, string) {
+	if len(services) == 0 {
+		return false, "service readiness unavailable: no services reported"
+	}
+	pending := make([]string, 0)
+	for _, service := range services {
+		if playgroundServiceReady(service) {
+			continue
+		}
+		pending = append(pending, playgroundServiceSummary(service))
+	}
+	if len(pending) > 0 {
+		return false, "services not ready: " + strings.Join(pending, ", ")
+	}
+	return true, ""
+}
+
+func PlaygroundServiceReadinessSummary(services []PlaygroundServiceInfo) string {
+	if len(services) == 0 {
+		return "none reported"
+	}
+	parts := make([]string, 0, len(services))
+	for _, service := range services {
+		parts = append(parts, playgroundServiceSummary(service))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func playgroundServiceReady(service PlaygroundServiceInfo) bool {
+	status := strings.ToLower(strings.TrimSpace(service.Status))
+	health := strings.ToLower(strings.TrimSpace(service.Health))
+	if service.ExitCode != nil && *service.ExitCode != 0 {
+		return false
+	}
+	if health == "unhealthy" || health == "starting" {
+		return false
+	}
+	if service.Running {
+		return health == "" || health == "healthy"
+	}
+	return status == "running" && (health == "" || health == "healthy")
+}
+
+func playgroundServiceSummary(service PlaygroundServiceInfo) string {
+	name := strings.TrimSpace(service.Name)
+	if name == "" {
+		name = "<unnamed>"
+	}
+	status := strings.TrimSpace(service.Status)
+	if status == "" {
+		status = "unknown"
+	}
+	parts := []string{name + "=" + status}
+	if health := strings.TrimSpace(service.Health); health != "" {
+		parts = append(parts, "health="+health)
+	}
+	if service.Running {
+		parts = append(parts, "running")
+	} else {
+		parts = append(parts, "not-running")
+	}
+	if service.ExitCode != nil {
+		parts = append(parts, fmt.Sprintf("exit=%d", *service.ExitCode))
+	}
+	return strings.Join(parts, "/")
 }
 
 func (s *PlaygroundService) Compose(ctx context.Context, id int64) (*PlaygroundCompose, error) {

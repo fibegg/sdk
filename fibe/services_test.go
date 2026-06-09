@@ -113,6 +113,15 @@ func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
 			"id":            129,
 			"status":        "running",
 			"state_reasons": []string{"Playguard repair: remote build script missing"},
+			"services": []map[string]any{
+				{
+					"name":      "web",
+					"status":    "running",
+					"health":    "healthy",
+					"running":   true,
+					"exit_code": nil,
+				},
+			},
 			"build_statuses": []map[string]any{
 				{
 					"service_name": "web",
@@ -141,6 +150,9 @@ func TestPlaygrounds_StatusByIdentifierUsesName(t *testing.T) {
 	if len(status.BuildStatuses) != 1 || status.BuildStatuses[0].Latest == nil || status.BuildStatuses[0].Latest.CommitSHA != "abcdef1234567890" {
 		t.Fatalf("missing build status: %#v", status.BuildStatuses)
 	}
+	if len(status.Services) != 1 || status.Services[0].Name != "web" || status.Services[0].Health != "healthy" || !status.Services[0].Running {
+		t.Fatalf("missing typed service status: %#v", status.Services)
+	}
 }
 
 func TestPlaygrounds_WaitForStatusByIdentifier(t *testing.T) {
@@ -152,7 +164,11 @@ func TestPlaygrounds_WaitForStatusByIdentifier(t *testing.T) {
 			if calls.Add(1) >= 2 {
 				status = "running"
 			}
-			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 42, Status: status})
+			response := PlaygroundStatus{ID: 42, Status: status}
+			if status == "running" {
+				response.Services = []PlaygroundServiceInfo{{Name: "web", Status: "running", Health: "healthy", Running: true}}
+			}
+			json.NewEncoder(w).Encode(response)
 		case "/api/playgrounds/next":
 			json.NewEncoder(w).Encode(Playground{ID: 42, Name: "next", Status: "running"})
 		default:
@@ -167,6 +183,60 @@ func TestPlaygrounds_WaitForStatusByIdentifier(t *testing.T) {
 	}
 	if pg.ID != 42 || calls.Load() != 2 {
 		t.Fatalf("pg=%#v calls=%d, want id 42 after two status polls", pg, calls.Load())
+	}
+}
+
+func TestPlaygrounds_WaitForStatusByIdentifierWaitsForServiceReadiness(t *testing.T) {
+	var calls atomic.Int32
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/playgrounds/next/status":
+			call := calls.Add(1)
+			response := PlaygroundStatus{ID: 42, Status: "running"}
+			if call == 1 {
+				response.Services = []PlaygroundServiceInfo{{Name: "web", Status: "created", Running: false}}
+			} else {
+				response.Services = []PlaygroundServiceInfo{{Name: "web", Status: "running", Health: "healthy", Running: true}}
+			}
+			json.NewEncoder(w).Encode(response)
+		case "/api/playgrounds/next":
+			json.NewEncoder(w).Encode(Playground{ID: 42, Name: "next", Status: "running"})
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	pg, err := c.Playgrounds.WaitForStatusByIdentifier(context.Background(), "next", "running", time.Second, time.Millisecond)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pg.ID != 42 || calls.Load() != 2 {
+		t.Fatalf("pg=%#v calls=%d, want id 42 after service readiness", pg, calls.Load())
+	}
+}
+
+func TestPlaygrounds_WaitForStatusWithLifecycleReadinessUsesTopLevelStatus(t *testing.T) {
+	var calls atomic.Int32
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/playgrounds/next/status":
+			calls.Add(1)
+			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 42, Status: "running"})
+		case "/api/playgrounds/next":
+			json.NewEncoder(w).Encode(Playground{ID: 42, Name: "next", Status: "running"})
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	pg, err := c.Playgrounds.WaitForStatusWithReadinessByIdentifier(context.Background(), "next", "running", PlaygroundWaitReadinessLifecycle, time.Second, time.Millisecond)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pg.ID != 42 || calls.Load() != 1 {
+		t.Fatalf("pg=%#v calls=%d, want id 42 after one lifecycle status poll", pg, calls.Load())
 	}
 }
 
