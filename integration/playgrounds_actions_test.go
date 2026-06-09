@@ -343,15 +343,31 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+		Name:            uniqueName("pg-idor-spec"),
+		BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
+		Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+	})
+	requireNoError(t, err, "create playspec for playground IDOR")
+	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
 
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test playground IDOR")
+	privateMarquee, dockerE2EPrivateMarquee := ensureFundedPrivateE2EMarquee(t, "pg-idor-marquee")
+	marqueeID := privateMarquee.ID
+	if !dockerE2EPrivateMarquee {
+		marquee, err := c.Marquees.Create(ctx(), testMarqueeParams("pg-idor-marquee"))
+		requireNoError(t, err, "create private marquee for playground IDOR")
+		marqueeID = marquee.ID
+		t.Cleanup(func() { c.Marquees.Delete(ctx(), marqueeID) })
+		if !marquee.BillingRuntimeActive {
+			t.Skip("private Marquee is not funded; enable SDK_E2E_BOOTSTRAP/FIBE_E2E_BOOTSTRAP to provision a funded private Marquee")
+		}
+	} else {
+		t.Cleanup(func() { c.Marquees.Delete(ctx(), marqueeID) })
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
 		Name:       uniqueName("pg-idor"),
-		PlayspecID: specID,
+		PlayspecID: *spec.ID,
 		MarqueeID:  &marqueeID,
 	})
 	requireNoError(t, err)

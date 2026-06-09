@@ -383,6 +383,54 @@ func e2eRunID() string {
 	return e2eSlug(raw, 24)
 }
 
+func ensureFundedPrivateE2EMarquee(t *testing.T, prefix string) (e2eResource, bool) {
+	t.Helper()
+	if !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
+		return e2eResource{}, false
+	}
+
+	apiKey := os.Getenv("FIBE_API_KEY")
+	if apiKey == "" {
+		t.Fatal("FIBE_API_KEY is required to create private Docker E2E Marquee")
+	}
+	baseURL := strings.TrimRight(firstEnv("FIBE_DOMAIN", "FIBE_URL", "FIBE_BASE_URL"), "/")
+	if baseURL == "" {
+		baseURL = "http://localhost:3000"
+	}
+	sshKey, err := dockerE2ESSHPrivateKey()
+	if err != nil {
+		t.Fatalf("load Docker E2E Marquee SSH key: %v", err)
+	}
+
+	client := &e2eBootstrapClient{
+		baseURL:    baseURL,
+		adminToken: envDefault("E2E_ADMIN_API_KEY", defaultE2EAdminAPIKey),
+		http:       &http.Client{Timeout: integrationHTTPTimeout()},
+	}
+	player, err := client.currentPlayer(apiKey)
+	if err != nil {
+		t.Fatalf("load primary Docker E2E player: %v", err)
+	}
+
+	rootDomain := envDefault("TEST_MARQUEE_ROOT_DOMAIN", dockerE2ERootDomain())
+	marquee, err := client.ensureMarquee(player.ID, map[string]any{
+		"name":                    uniqueName(prefix),
+		"host":                    uniqueHost(),
+		"port":                    2222,
+		"user":                    "testuser",
+		"ssh_private_key":         sshKey,
+		"domains_input":           fmt.Sprintf("%s.%s", e2eSlug(uniqueName(prefix), 63), rootDomain),
+		"status":                  "active",
+		"billing_requested_until": time.Now().Add(7 * 24 * time.Hour).UTC().Format(time.RFC3339),
+		"https_enabled":           false,
+		"tls_certificate_source":  "provided",
+	})
+	if err != nil {
+		t.Fatalf("create funded private Docker E2E Marquee: %v", err)
+	}
+	return marquee, true
+}
+
 func compactE2EUsername(parts ...string) string {
 	value := e2eSlug(strings.Join(parts, "-"), 0)
 	if len(value) <= e2eUsernameMaxLength {
