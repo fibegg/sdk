@@ -261,7 +261,7 @@ selected profile with /api/me before keeping the new session client.`),
 		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
 
 Views:
-  names    list all local playground names, playspecs, IDs, and paths; omit id_or_name
+  names    list selector-visible local playground names, playspecs, IDs, and paths; omit id_or_name
   urls     exposed service URLs for one playground
   mounts   source-code mount locations for one playground
   details  full local metadata for one playground

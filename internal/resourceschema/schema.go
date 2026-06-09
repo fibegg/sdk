@@ -198,6 +198,23 @@ func SchemaFor(rawResource, rawOperation string) (any, string, string, bool) {
 	return schema, name, op, ok
 }
 
+func CommandSchemaFor(rawResource, rawOperation string) (any, string, string, bool) {
+	if schema, name, op, ok := SchemaFor(rawResource, rawOperation); ok {
+		return schema, name, op, true
+	}
+	name, ok := CanonicalResource(rawResource)
+	if !ok {
+		return nil, "", "", false
+	}
+	op := NormalizeResource(rawOperation)
+	switch name + "." + op {
+	case "artefact.create":
+		return artefactCreateCommandSchema(), name, op, true
+	default:
+		return nil, name, op, false
+	}
+}
+
 func CatalogResponse() map[string]any {
 	return map[string]any{
 		"resources": Catalog(),
@@ -559,6 +576,32 @@ func artefactListParamsSchema() map[string]any {
 			"playground_id": "playground_id_or_name",
 		},
 	)
+}
+
+func artefactCreateCommandSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"anyOf": []any{
+			map[string]any{"required": []string{"body"}},
+			map[string]any{"required": []string{"content_path"}},
+			map[string]any{"required": []string{"content_base64"}},
+		},
+		"properties": map[string]any{
+			"agent_id_or_name":      namedIdentifierSchema("agent_id_or_name", "Agent ID or name that owns the artefact."),
+			"playground_id_or_name": namedIdentifierSchema("playground_id_or_name", "Optional playground ID or name to associate with the artefact."),
+			"name":                  map[string]any{"type": "string", "description": "Artefact name."},
+			"description":           map[string]any{"type": "string", "description": "Artefact description."},
+			"body":                  map[string]any{"type": "string", "description": "Inline artefact body."},
+			"plain_text":            map[string]any{"type": "boolean", "description": "Render body as plain text."},
+			"skill":                 map[string]any{"type": "boolean", "description": "Expose the artefact as a skill."},
+			"skill_enabled":         map[string]any{"type": "boolean", "description": "Enable the artefact skill by default."},
+			"content_path":          map[string]any{"type": "string", "description": "Absolute local file path to upload."},
+			"content_base64":        map[string]any{"type": "string", "description": "Base64-encoded file content."},
+			"filename":              map[string]any{"type": "string", "description": "Uploaded filename."},
+			"content_type":          map[string]any{"type": "string", "description": "Uploaded content type."},
+		},
+	}
 }
 
 func agentUploadAttachmentSchema() map[string]any {

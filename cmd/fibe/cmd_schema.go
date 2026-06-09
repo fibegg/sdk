@@ -60,7 +60,7 @@ Examples:
 			}
 
 			if operation != "" {
-				schema, _, op, ok := resourceschema.SchemaFor(canonical, operation)
+				schema, _, op, ok := resourceschema.CommandSchemaFor(canonical, operation)
 				if !ok {
 					return fmt.Errorf("unknown operation %q for resource %q", op, canonical)
 				}

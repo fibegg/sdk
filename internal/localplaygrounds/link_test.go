@@ -143,6 +143,71 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 	}
 }
 
+func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
+	root := t.TempDir()
+	normalDir := filepath.Join(root, "normal-app--1")
+	jobMapDir := filepath.Join(root, "ci-map--2")
+	jobArrayDir := filepath.Join(root, "ci-array--3")
+	for _, dir := range []string{normalDir, jobMapDir, jobArrayDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	normalCompose := `services:
+  web:
+    image: nginx
+    labels:
+      fibe.gg/playspec: normal-app
+`
+	jobMapCompose := `services:
+  test:
+    image: alpine
+    labels:
+      fibe.gg/playspec: ci-map
+      fibe.gg/job_watch: "true"
+`
+	jobArrayCompose := `services:
+  test:
+    image: alpine
+    labels:
+      - "fibe.gg/playspec=ci-array"
+      - "fibe.gg/job_watch=true"
+`
+	if err := os.WriteFile(filepath.Join(normalDir, "compose.yml"), []byte(normalCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(jobMapDir, "compose.yml"), []byte(jobMapCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(jobArrayDir, "compose.yml"), []byte(jobArrayCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	playgrounds, err := Scan(root)
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	names := Names(playgrounds)
+	if len(names) != 1 || names[0].Name != "normal-app--1" {
+		t.Fatalf("names=%#v want only normal-app--1", names)
+	}
+
+	mapJob, err := Find(playgrounds, "ci-map")
+	if err != nil {
+		t.Fatalf("Find ci-map: %v", err)
+	}
+	if !mapJob.JobMode || !mapJob.Services["test"].JobWatch {
+		t.Fatalf("map job metadata not set: %#v", mapJob)
+	}
+	arrayJob, err := Find(playgrounds, "ci-array")
+	if err != nil {
+		t.Fatalf("Find ci-array: %v", err)
+	}
+	if !arrayJob.JobMode || !arrayJob.Services["test"].JobWatch {
+		t.Fatalf("array job metadata not set: %#v", arrayJob)
+	}
+}
+
 func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
 	root := t.TempDir()
 	pgDir := filepath.Join(root, "compose-without-id")
@@ -305,6 +370,40 @@ func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
 	}
 	if len(entries) != 1 || entries[0].Name() != ".current_playground" {
 		t.Fatalf("entries=%v want only .current_playground", entries)
+	}
+}
+
+func TestLinkRejectsJobModeWithoutClearingTarget(t *testing.T) {
+	linkDir := filepath.Join(t.TempDir(), "playground")
+	if err := os.MkdirAll(linkDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stalePath := filepath.Join(linkDir, "stale.txt")
+	if err := os.WriteFile(stalePath, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	pg := &Playground{
+		DirName:  "ci-fibeagent--24",
+		Playspec: "ci-fibeagent",
+		JobMode:  true,
+		Services: map[string]*Service{
+			"test": {
+				Name:     "test",
+				JobWatch: true,
+			},
+		},
+	}
+
+	_, err := LinkPlayground(pg, linkDir)
+	if err == nil {
+		t.Fatal("LinkPlayground succeeded, want error")
+	}
+	if !strings.Contains(err.Error(), "cannot link job-mode playground") {
+		t.Fatalf("error=%q want job-mode error", err.Error())
+	}
+	if data, err := os.ReadFile(stalePath); err != nil || string(data) != "old" {
+		t.Fatalf("stale target changed, data=%q err=%v", data, err)
 	}
 }
 

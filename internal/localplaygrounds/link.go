@@ -27,6 +27,7 @@ type Service struct {
 	HostMount string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
 	Prop      string `json:"prop,omitempty" yaml:"prop,omitempty"`
 	Branch    string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	JobWatch  bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
 }
 
 type Playground struct {
@@ -34,6 +35,7 @@ type Playground struct {
 	DirName  string              `json:"name" yaml:"name"`
 	Path     string              `json:"path" yaml:"path"`
 	Playspec string              `json:"playspec" yaml:"playspec"`
+	JobMode  bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
 	Services map[string]*Service `json:"services" yaml:"services"`
 }
 
@@ -193,6 +195,9 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 func Names(playgrounds []Playground) []NameEntry {
 	items := make([]NameEntry, 0, len(playgrounds))
 	for _, pg := range playgrounds {
+		if pg.JobMode {
+			continue
+		}
 		items = append(items, NameEntry{
 			ID:       pg.ID,
 			Name:     pg.DirName,
@@ -287,6 +292,9 @@ func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if linkDir == "" {
 		linkDir = "/app/playground"
+	}
+	if pg.JobMode {
+		return nil, fmt.Errorf("cannot link job-mode playground %s", pg.DirName)
 	}
 	if err := prepareLinkDir(linkDir); err != nil {
 		return nil, err
@@ -404,6 +412,10 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 			Expose:    labelExists(labels, "fibe.gg/port"),
 			Subdomain: labels["fibe.gg/subdomain"],
 			StartCmd:  trimCommand(labels["fibe.gg/start_command"]),
+			JobWatch:  truthy(labels["fibe.gg/job_watch"]),
+		}
+		if service.JobWatch {
+			pg.JobMode = true
 		}
 		if pg.Playspec == dirName {
 			if playspec := labels["fibe.gg/playspec"]; playspec != "" {
