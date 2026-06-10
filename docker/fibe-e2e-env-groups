@@ -38,9 +38,9 @@ fibe_e2e_json_value() {
 
 fibe_e2e_group_value() {
   case "$1" in
-    FIBE_E2E_TIMEOUTS) printf '%s\n' "${FIBE_E2E_TIMEOUTS:-}" ;;
-    FIBE_E2E_PARALLELISM) printf '%s\n' "${FIBE_E2E_PARALLELISM:-}" ;;
-    FIBE_E2E_SETTINGS) printf '%s\n' "${FIBE_E2E_SETTINGS:-}" ;;
+    FIBE_E2E_TIMEOUTS) printf '%s\n' "${FIBE_E2E_TIMEOUTS:-${DOCKER_E2E_TIMEOUTS:-}}" ;;
+    FIBE_E2E_PARALLELISM) printf '%s\n' "${FIBE_E2E_PARALLELISM:-${DOCKER_E2E_PARALLELISM:-}}" ;;
+    FIBE_E2E_SETTINGS) printf '%s\n' "${FIBE_E2E_SETTINGS:-${DOCKER_E2E_SETTINGS:-}}" ;;
     *) printf '\n' ;;
   esac
 }

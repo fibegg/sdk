@@ -55,7 +55,8 @@ func bootstrapDockerE2E() (func() error, error) {
 		return nil, err
 	}
 
-	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: 30 * time.Second}}
+	requestTimeout := time.Duration(envInt("FIBE_E2E_BOOTSTRAP_REQUEST_TIMEOUT_SECONDS", 180)) * time.Second
+	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: requestTimeout}}
 	if err := client.waitForFibe(); err != nil {
 		return nil, err
 	}
