@@ -361,8 +361,6 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 		if !marquee.BillingRuntimeActive {
 			t.Skip("private Marquee is not funded; enable SDK_E2E_BOOTSTRAP/FIBE_E2E_BOOTSTRAP to provision a funded private Marquee")
 		}
-	} else {
-		t.Cleanup(func() { c.Marquees.Delete(ctx(), marqueeID) })
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
