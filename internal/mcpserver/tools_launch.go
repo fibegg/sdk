@@ -34,6 +34,7 @@ func (s *Server) registerLaunchTools() {
 		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; without it only the playspec is created.")),
 		mcp.WithBoolean("job_mode", mcp.Description("Create as a trick/job instead of a playground. Requires marquee_id_or_name.")),
 		mcp.WithBoolean("create_playground", mcp.Description("Force playground creation. Defaults to true when marquee_id_or_name is set, false otherwise.")),
+		mcp.WithBoolean("persist_volumes", mcp.Description("Persist Docker volumes across trick/playground recreations. Optional; omitted means the server infers from named compose volumes.")),
 		mcp.WithObject("variables", mcp.Description("Template variables map for Fibe template compilation. Optional.")),
 		mcp.WithObject("prop_mappings", mcp.Description("Map repository URL to Prop ID or name. Optional.")),
 	))
@@ -77,6 +78,11 @@ func launchArgs(ctx context.Context, c *fibe.Client, args map[string]any) (*fibe
 		value := argBool(args, "create_playground")
 		createPlayground = &value
 	}
+	var persistVolumes *bool
+	if _, ok := args["persist_volumes"]; ok {
+		value := argBool(args, "persist_volumes")
+		persistVolumes = &value
+	}
 
 	params := &fibe.LaunchParams{
 		ComposeYAML:            composeYAML,
@@ -84,6 +90,7 @@ func launchArgs(ctx context.Context, c *fibe.Client, args map[string]any) (*fibe
 		JobMode:                jobMode,
 		MarqueeIdentifier:      marqueeIdentifier,
 		CreatePlayground:       createPlayground,
+		PersistVolumes:         persistVolumes,
 		Variables:              launchVariables(args["variables"]),
 		PropMappings:           map[string]int64{},
 		PropMappingIdentifiers: map[string]string{},

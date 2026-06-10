@@ -11,14 +11,18 @@ import (
 
 func TestLaunchArgsAcceptComposeYAML(t *testing.T) {
 	params, err := launchArgs(context.Background(), nil, map[string]any{
-		"name":         "todo",
-		"compose_yaml": "services:\n  web:\n    image: nginx\n",
+		"name":            "todo",
+		"compose_yaml":    "services:\n  web:\n    image: nginx\n",
+		"persist_volumes": true,
 	})
 	if err != nil {
 		t.Fatalf("launchArgs: %v", err)
 	}
 	if params.Name != "todo" || params.ComposeYAML == "" {
 		t.Fatalf("unexpected params: %#v", params)
+	}
+	if params.PersistVolumes == nil || *params.PersistVolumes != true {
+		t.Fatalf("persist volumes = %#v, want true", params.PersistVolumes)
 	}
 }
 

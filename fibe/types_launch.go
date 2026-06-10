@@ -49,6 +49,7 @@ type LaunchParams struct {
 	MarqueeID              *int64            `json:"marquee_id,omitempty"`
 	MarqueeIdentifier      string            `json:"-"`
 	CreatePlayground       *bool             `json:"create_playground,omitempty"`
+	PersistVolumes         *bool             `json:"persist_volumes,omitempty"`
 	Variables              map[string]string `json:"variables,omitempty"`
 	PropMappings           map[string]int64  `json:"prop_mappings,omitempty"`
 	PropMappingIdentifiers map[string]string `json:"-"`

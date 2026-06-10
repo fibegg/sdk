@@ -13,7 +13,7 @@ func launchCmd() *cobra.Command {
 	var name, compose string
 	var repoFile, repoRef, githubAccount string
 	var githubInstallationID int64
-	var jobMode, createPlayground, noCreatePlayground bool
+	var jobMode, createPlayground, noCreatePlayground, persistVolumes bool
 	var marqueeID string
 	var launchVars []string
 	var launchProps []string
@@ -40,6 +40,7 @@ REQUIRED INPUT:
 OPTIONAL FLAGS:
   --marquee-id            Target marquee for the playground/trick
   --job-mode              Create as a trick (job-mode) instead of a playground (requires --marquee-id)
+  --persist-volumes       Persist Docker volumes across trick/playground recreations
   --no-create-playground  Create only the playspec; skip playground deployment even with --marquee-id
 
 EXAMPLES:
@@ -48,6 +49,7 @@ EXAMPLES:
   fibe launch https://github.com/owner/repo --ref main --marquee-id 12
   fibe launch --name my-app --compose @docker-compose.yml --marquee-id 12
   fibe launch --name ci-run --compose @docker-compose.yml --marquee-id 12 --job-mode
+  fibe launch owner/repo --ref unstable --marquee-id 12 --job-mode --persist-volumes
   fibe launch --name spec-only --compose @docker-compose.yml --no-create-playground` + generateSchemaDoc(&fibe.LaunchParams{}),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -89,6 +91,10 @@ EXAMPLES:
 			if cmd.Flags().Changed("no-create-playground") && noCreatePlayground {
 				v := false
 				params.CreatePlayground = &v
+			}
+			if cmd.Flags().Changed("persist-volumes") {
+				v := persistVolumes
+				params.PersistVolumes = &v
 			}
 			if cmd.Flags().Changed("var") && len(launchVars) > 0 {
 				params.Variables = make(map[string]string)
@@ -176,6 +182,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name. Required when --job-mode is set; without it only the playspec is created.")
 	cmd.Flags().BoolVar(&createPlayground, "create-playground", false, "Force playground creation. Defaults to true when --marquee-id is set, false otherwise.")
 	cmd.Flags().BoolVar(&noCreatePlayground, "no-create-playground", false, "Skip playground deployment even when --marquee-id is set.")
+	cmd.Flags().BoolVar(&persistVolumes, "persist-volumes", false, "Persist Docker volumes across trick/playground recreations")
 	cmd.Flags().StringSliceVar(&launchVars, "var", nil, "Set template variables (e.g., --var subdomain=foo --var fibe_domain=foo.fibe.live)")
 	cmd.Flags().StringSliceVar(&launchProps, "prop", nil, "Map private Git repository to Prop ID or name (e.g., --prop https://github.com/fibegg/fibe.git=my-prop)")
 	return cmd
