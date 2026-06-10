@@ -31,14 +31,13 @@ SUBCOMMANDS:
   mirror            Mirror a GitHub repo to Gitea
   sync <id-or-name>         Trigger repository sync
   branches <id-or-name>     List branches
-  env-defaults <id-or-name> Get env defaults for a branch
-  with-compose      List props that have docker-compose`,
+  env-defaults <id-or-name> Get env defaults for a branch`,
 	}
 
 	cmd.AddCommand(
 		propListCmd(), propGetCmd(), propCreateCmd(), propUpdateCmd(),
 		propDeleteCmd(), propAttachCmd(), propMirrorCmd(), propSyncCmd(),
-		propBranchesCmd(), propEnvDefaultsCmd(), propWithComposeCmd(),
+		propBranchesCmd(), propEnvDefaultsCmd(),
 	)
 	return cmd
 }
@@ -173,7 +172,7 @@ func propGetCmd() *cobra.Command {
 }
 
 func propCreateCmd() *cobra.Command {
-	var repoURL, name, defaultBranch, provider, dockerCompose string
+	var repoURL, name, defaultBranch, provider string
 	var private bool
 
 	cmd := &cobra.Command{
@@ -194,7 +193,6 @@ OPTIONAL FLAGS:
   --private           Mark as private (default: false)
   --default-branch    Default branch name
   --provider          Provider: github or gitea
-  --docker-compose    Inline docker-compose YAML (use @file.yml to read from disk)
 
 For 'credentials' (nested map) use --from-file with JSON.
 
@@ -223,10 +221,6 @@ EXAMPLES:
 			if cmd.Flags().Changed("provider") {
 				params.Provider = &provider
 			}
-			if cmd.Flags().Changed("docker-compose") {
-				v := resolveStringValue(dockerCompose)
-				params.DockerComposeYAML = &v
-			}
 			if params.RepositoryURL == "" {
 				return fmt.Errorf("required field 'url' not set")
 			}
@@ -248,12 +242,11 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&private, "private", false, "Mark as private")
 	cmd.Flags().StringVar(&defaultBranch, "default-branch", "", "Default branch name")
 	cmd.Flags().StringVar(&provider, "provider", "", "Provider (github, gitea)")
-	cmd.Flags().StringVar(&dockerCompose, "docker-compose", "", "Inline docker-compose YAML (use @file)")
 	return cmd
 }
 
 func propUpdateCmd() *cobra.Command {
-	var name, repoURL, defaultBranch, provider, dockerCompose string
+	var name, repoURL, defaultBranch, provider string
 	var private bool
 
 	cmd := &cobra.Command{
@@ -267,7 +260,6 @@ OPTIONAL FLAGS:
   --private           Update private setting
   --default-branch    Update default branch
   --provider          Update provider (github, gitea)
-  --docker-compose    Update inline compose YAML (use @file)
 
 EXAMPLES:
   fibe props update 5 --name renamed
@@ -294,10 +286,6 @@ EXAMPLES:
 			if cmd.Flags().Changed("provider") {
 				params.Provider = &provider
 			}
-			if cmd.Flags().Changed("docker-compose") {
-				v := resolveStringValue(dockerCompose)
-				params.DockerComposeYAML = &v
-			}
 			prop, err := c.Props.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
@@ -316,7 +304,6 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&private, "private", false, "Update private setting")
 	cmd.Flags().StringVar(&defaultBranch, "default-branch", "", "Update default branch")
 	cmd.Flags().StringVar(&provider, "provider", "", "Update provider (github, gitea)")
-	cmd.Flags().StringVar(&dockerCompose, "docker-compose", "", "Update docker-compose YAML (use @file)")
 	return cmd
 }
 
@@ -505,33 +492,4 @@ EXAMPLES:
 	cmd.Flags().StringVar(&envFile, "env-file", ".env", "Env file path")
 	cmd.MarkFlagRequired("branch")
 	return cmd
-}
-
-func propWithComposeCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "with-compose",
-		Short: "List props that have docker-compose files",
-		Long: `List all props that have a docker-compose.yml detected in their repository.
-
-EXAMPLES:
-  fibe props with-compose`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			props, err := c.Props.WithDockerCompose(ctx(), nil)
-			if err != nil {
-				return err
-			}
-			if effectiveOutput() != "table" {
-				outputJSON(props)
-				return nil
-			}
-			headers := []string{"ID", "NAME", "URL", "PROVIDER"}
-			rows := make([][]string, len(props.Data))
-			for i, p := range props.Data {
-				rows[i] = []string{fmtInt64(p.ID), p.Name, p.RepositoryURL, p.Provider}
-			}
-			outputTable(headers, rows)
-			return nil
-		},
-	}
 }

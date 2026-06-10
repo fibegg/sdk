@@ -278,7 +278,6 @@ var knownPropertyDescriptions = map[string]string{
 	"description":            "Optional description.",
 	"dns_credentials":        "DNS provider credentials.",
 	"dns_provider":           "DNS provider name.",
-	"docker_compose_yaml":    "Docker Compose YAML content.",
 	"dockerhub_auth_enabled": "Enable Docker Hub authentication.",
 	"dockerhub_token":        "Docker Hub access token.",
 	"dockerhub_username":     "Docker Hub username.",

@@ -16,24 +16,6 @@ func (s *PropService) List(ctx context.Context, params *PropListParams) (*ListRe
 	return doList[Prop](s.client, ctx, path)
 }
 
-func (s *PropService) WithDockerCompose(ctx context.Context, params *PropListParams) (*ListResult[Prop], error) {
-	values := url.Values{}
-	values.Set("with_docker_compose", "true")
-	if params != nil {
-		query := buildQuery(params)
-		if query != "" {
-			extra, _ := url.ParseQuery(query[1:])
-			for key, vals := range extra {
-				for _, val := range vals {
-					values.Add(key, val)
-				}
-			}
-		}
-	}
-	path := "/api/props?" + values.Encode()
-	return doList[Prop](s.client, ctx, path)
-}
-
 func (s *PropService) Get(ctx context.Context, id int64) (*Prop, error) {
 	return s.GetByIdentifier(ctx, int64Identifier(id))
 }

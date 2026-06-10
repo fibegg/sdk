@@ -99,15 +99,6 @@ func TestProps_CRUD(t *testing.T) {
 		requireNoError(t, err)
 	})
 
-	t.Run("with docker compose", func(t *testing.T) {
-		t.Parallel()
-		result, err := c.Props.WithDockerCompose(ctx(), nil)
-		requireNoError(t, err)
-		if result.Meta.Page == 0 {
-			t.Error("expected meta.page > 0")
-		}
-	})
-
 	t.Run("delete prop", func(t *testing.T) {
 		t.Parallel()
 		prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{

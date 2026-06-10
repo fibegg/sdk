@@ -18,18 +18,16 @@ type Prop struct {
 	Branches              []string `json:"branches,omitempty"`
 	OriginalRepositoryURL *string  `json:"original_repository_url,omitempty"`
 	HasCredentials        *bool    `json:"has_credentials,omitempty"`
-	DockerComposeYAML     *string  `json:"docker_compose_yaml,omitempty"`
 	ServiceNames          []string `json:"service_names,omitempty"`
 }
 
 type PropCreateParams struct {
-	RepositoryURL     string         `json:"repository_url"`
-	Name              *string        `json:"name,omitempty"`
-	Private           *bool          `json:"private,omitempty"`
-	DefaultBranch     *string        `json:"default_branch,omitempty"`
-	Provider          *string        `json:"provider,omitempty"`
-	DockerComposeYAML *string        `json:"docker_compose_yaml,omitempty"`
-	Credentials       map[string]any `json:"credentials,omitempty"`
+	RepositoryURL string         `json:"repository_url"`
+	Name          *string        `json:"name,omitempty"`
+	Private       *bool          `json:"private,omitempty"`
+	DefaultBranch *string        `json:"default_branch,omitempty"`
+	Provider      *string        `json:"provider,omitempty"`
+	Credentials   map[string]any `json:"credentials,omitempty"`
 }
 
 func (p *PropCreateParams) Validate() error {
@@ -39,13 +37,12 @@ func (p *PropCreateParams) Validate() error {
 }
 
 type PropUpdateParams struct {
-	Name              *string        `json:"name,omitempty"`
-	RepositoryURL     *string        `json:"repository_url,omitempty"`
-	Private           *bool          `json:"private,omitempty"`
-	DefaultBranch     *string        `json:"default_branch,omitempty"`
-	Provider          *string        `json:"provider,omitempty"`
-	DockerComposeYAML *string        `json:"docker_compose_yaml,omitempty"`
-	Credentials       map[string]any `json:"credentials,omitempty"`
+	Name          *string        `json:"name,omitempty"`
+	RepositoryURL *string        `json:"repository_url,omitempty"`
+	Private       *bool          `json:"private,omitempty"`
+	DefaultBranch *string        `json:"default_branch,omitempty"`
+	Provider      *string        `json:"provider,omitempty"`
+	Credentials   map[string]any `json:"credentials,omitempty"`
 }
 
 type PropBranches struct {
