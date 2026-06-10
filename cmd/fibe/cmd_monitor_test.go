@@ -218,6 +218,77 @@ func TestLogsSnapshotJSONOutputAllServices(t *testing.T) {
 	}
 }
 
+func TestTricksLogsSnapshotDefaultsToAllCachedLogs(t *testing.T) {
+	setupAuthTest(t)
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/logs" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode logs body: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"service": "results",
+			"lines":   []string{"line1", "line2"},
+			"source":  "cached",
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	out, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"tricks", "logs", "demo", "--service", "results"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if body["service"] != "results" || body["tail"] != float64(0) {
+		t.Fatalf("unexpected snapshot request body: %#v", body)
+	}
+	if out != "line1\nline2\n" {
+		t.Fatalf("unexpected table output: %q", out)
+	}
+}
+
+func TestPlaygroundLogsSnapshotAllFlagRequestsAllCachedLogs(t *testing.T) {
+	setupAuthTest(t)
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds/demo/logs" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode logs body: %v", err)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"service": "results",
+			"lines":   []string{"line1"},
+			"source":  "cached",
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	_, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"playgrounds", "logs", "demo", "--service", "results", "--all"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if body["service"] != "results" || body["tail"] != float64(0) {
+		t.Fatalf("unexpected snapshot request body: %#v", body)
+	}
+}
+
 func TestLogsSnapshotTableOutputAllServices(t *testing.T) {
 	setupAuthTest(t)
 	var body map[string]any

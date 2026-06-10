@@ -305,6 +305,7 @@ EXAMPLES:
 func trLogsCmd() *cobra.Command {
 	var service string
 	var tail int
+	var all bool
 	var follow bool
 	var maxLines int
 	var duration time.Duration
@@ -317,27 +318,37 @@ func trLogsCmd() *cobra.Command {
 For completed tricks, logs are served from cache. For running tricks,
 logs are fetched live from containers. All services are returned by default;
 use --service to focus on one service.
+Snapshot trick logs return all cached job logs by default. Use --tail to limit
+the number of cached lines.
 
 OPTIONAL FLAGS:
   --service   Optional service name to filter logs
-  --tail      Number of lines to return (default: 50)
+  --tail      Number of lines to return; 0 means all cached job logs
+  --all       Return all cached job logs
   --follow    Stream logs continuously
 
 EXAMPLES:
   fibe tricks logs 42
   fibe tr logs 42 --service app --tail 200
+  fibe tr logs 42 --service results --all
   fibe tr logs 42 --follow
   fibe tr logs 42 --service app --follow --duration 10m`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if all && cmd.Flags().Changed("tail") && tail > 0 {
+				return fmt.Errorf("--all and --tail are mutually exclusive")
+			}
+			if all && follow {
+				return fmt.Errorf("--all is only supported for snapshot logs; omit --follow")
+			}
+			if all {
+				tail = 0
+			}
 			if follow {
 				return runLogMonitor(cmd, "trick", args[0], service, tail, maxLines, duration)
 			}
 			c := newClient()
-			var t *int
-			if tail > 0 {
-				t = &tail
-			}
+			t := &tail
 			logs, err := c.Tricks.LogsByIdentifier(ctx(), args[0], service, t)
 			if err != nil {
 				return err
@@ -353,6 +364,7 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&service, "service", "", "Optional service name")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Number of lines")
+	cmd.Flags().BoolVar(&all, "all", false, "Return all cached job logs")
 	cmd.Flags().BoolVar(&follow, "follow", false, "Stream logs continuously")
 	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Follow mode: stop after N log lines (0 = unbounded)")
 	cmd.Flags().DurationVar(&duration, "duration", 0, "Follow mode: stop after this duration (0 = until cancelled)")
