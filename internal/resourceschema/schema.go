@@ -404,7 +404,11 @@ func buildRegistry() map[string]map[string]any {
 	out["template"]["upgrade_playspecs"] = templateUpgradePlayspecsSchema()
 	out["template_version"]["create"] = templateVersionCreateSchema()
 	out["template_version"]["toggle_public"] = templateVersionTogglePublicSchema()
-	out["trick"]["trigger"] = renameIdentifierFields(paramsSchema[fibe.TrickTriggerParams]("playspec_id"), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
+	trickTrigger := renameIdentifierFields(paramsSchema[fibe.TrickTriggerParams]("playspec_id"), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
+	withPropertyDescription(trickTrigger, "env_overrides", "Per-run environment overrides for this job-mode run.")
+	withPropertyDescription(trickTrigger, "only_services", "Limit this job-mode run to these service names.")
+	withPropertyDescription(trickTrigger, "except_services", "Exclude these service names from this job-mode run.")
+	out["trick"]["trigger"] = trickTrigger
 	out["trick"]["rerun"] = resourceActionIDSchema("id_or_name", "Source trick ID or name to rerun.")
 	out["job_env"]["create"] = jobEnvCreateSchema()
 	out["job_env"]["update"] = jobEnvUpdateSchema()

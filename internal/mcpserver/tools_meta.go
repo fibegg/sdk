@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -398,8 +399,10 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 	))
 }
 
-// runCobra implements the fibe_run escape hatch. It invokes a sub-command of
-// the cobra root with args from the MCP request and captures output.
+// runCobra implements the fibe_run escape hatch. In real MCP sessions it runs
+// the configured fibe executable as a subprocess so behavior matches the
+// installed CLI. Embedded tests and hosts without CobraExecutable use the
+// in-process cobra fallback below.
 //
 // This is particularly sensitive: every cmd_*.go handler uses fmt.Println /
 // fmt.Printf which writes directly to os.Stdout. Under the MCP stdio
@@ -414,9 +417,6 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 // restore the previous os.Stdout (still stderr, not the MCP pipe) so later
 // tool calls remain isolated.
 func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error) {
-	if s.cfg.CobraRoot == nil {
-		return nil, fmt.Errorf("fibe_run not available: server was started without CobraRoot")
-	}
 	raw, ok := args["args"]
 	if !ok {
 		return nil, fmt.Errorf("required field 'args' not set")
@@ -448,6 +448,39 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 
 	// Force JSON output for predictable downstream parsing.
 	strs = append([]string{"--output", "json"}, strs...)
+	if s.cfg.CobraExecutable != "" {
+		return s.runCobraSubprocess(ctx, strs, userArgs, timeoutMs)
+	}
+
+	if s.cfg.CobraRoot == nil {
+		return nil, fmt.Errorf("fibe_run not available: server was started without CobraRoot or CobraExecutable")
+	}
+	return s.runCobraInProcess(ctx, strs, userArgs, timeoutMs)
+}
+
+func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs []string, timeoutMs int64) (any, error) {
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
+
+	limit := fibeRunCaptureLimit()
+	var stdoutBuf truncatingBuffer
+	stdoutBuf.limit = limit
+	var stderrBuf truncatingBuffer
+	stderrBuf.limit = limit
+
+	cmd := exec.CommandContext(ctx, s.cfg.CobraExecutable, strs...)
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+	cmd.Env = os.Environ()
+	execErr := cmd.Run()
+
+	result := fibeRunResult(strs, userArgs, timeoutMs, stdoutBuf, stderrBuf, execErr, ctx, s.recommendedToolForCLIArgs(userArgs))
+	result["execution_mode"] = "subprocess"
+	result["executable"] = s.cfg.CobraExecutable
+	return result, nil
+}
+
+func (s *Server) runCobraInProcess(ctx context.Context, strs []string, userArgs []string, timeoutMs int64) (any, error) {
 
 	// Serialize fibe_run across concurrent MCP calls. Cobra mutates flag
 	// state on the shared root so this also prevents flag races. Note that
@@ -468,10 +501,7 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 
 	// Drain the pipe into a buffer. If this goroutine leaks we don't care
 	// because each fibe_run call creates a fresh pipe.
-	limit := fibeRunCaptureMaxBytes
-	if limit <= 0 {
-		limit = 1 << 20
-	}
+	limit := fibeRunCaptureLimit()
 	var stdoutBuf truncatingBuffer
 	stdoutBuf.limit = limit
 	done := make(chan struct{})
@@ -496,6 +526,12 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 	_ = r.Close()
 	os.Stdout = prevStdout
 
+	result := fibeRunResult(strs, userArgs, timeoutMs, stdoutBuf, stderrBuf, execErr, ctx, s.recommendedToolForCLIArgs(userArgs))
+	result["execution_mode"] = "embedded"
+	return result, nil
+}
+
+func fibeRunResult(strs []string, userArgs []string, timeoutMs int64, stdoutBuf truncatingBuffer, stderrBuf truncatingBuffer, execErr error, ctx context.Context, recommended string) map[string]any {
 	result := map[string]any{
 		"args":   strs,
 		"stdout": stdoutBuf.String(),
@@ -504,7 +540,7 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 	if timeoutMs > 0 {
 		result["timeout_ms"] = timeoutMs
 	}
-	if recommended := s.recommendedToolForCLIArgs(userArgs); recommended != "" {
+	if recommended != "" {
 		result["recommended_tool"] = recommended
 		result["warning"] = fmt.Sprintf("prefer %s over fibe_run when possible", recommended)
 	}
@@ -517,7 +553,7 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		result["stderr_total_bytes"] = stderrBuf.total
 	}
 	if stdoutBuf.truncated || stderrBuf.truncated {
-		result["capture_limit_bytes"] = limit
+		result["capture_limit_bytes"] = stdoutBuf.limit
 	}
 	if execErr != nil {
 		result["error"] = execErr.Error()
@@ -525,7 +561,15 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 			result["timed_out"] = true
 		}
 	}
-	return result, nil
+	return result
+}
+
+func fibeRunCaptureLimit() int {
+	limit := fibeRunCaptureMaxBytes
+	if limit <= 0 {
+		return 1 << 20
+	}
+	return limit
 }
 
 func (s *Server) runCobraArgs(ctx context.Context, args ...string) (any, error) {

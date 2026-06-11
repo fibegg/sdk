@@ -404,6 +404,10 @@ EXAMPLES:
 			if err := c.Props.SyncByIdentifier(ctx(), args[0]); err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(map[string]any{"ok": true, "prop": args[0], "message": "sync scheduled"})
+				return nil
+			}
 			fmt.Printf("Sync scheduled for prop %s\n", args[0])
 			return nil
 		},

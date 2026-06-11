@@ -20,4 +20,9 @@ func TestTrickResultDoesNotAssumeCompletedMeansSuccess(t *testing.T) {
 	if got := trickResult(fibe.Playground{Status: "completed", JobResult: &fibe.JobResult{Success: &success}}); got != "✗" {
 		t.Fatalf("completed failed trick rendered %q, want ✗", got)
 	}
+
+	resultStatus := "failed"
+	if got := trickResult(fibe.Playground{Status: "completed", ResultStatus: &resultStatus}); got != "✗" {
+		t.Fatalf("completed failed result_status rendered %q, want ✗", got)
+	}
 }

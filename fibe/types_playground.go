@@ -10,6 +10,7 @@ type Playground struct {
 	ID                 int64          `json:"id"`
 	Name               string         `json:"name"`
 	Status             string         `json:"status"`
+	ResultStatus       *string        `json:"result_status,omitempty"`
 	MaintenanceEnabled bool           `json:"maintenance_enabled"`
 	JobMode            bool           `json:"job_mode"`
 	StateReason        *string        `json:"state_reason,omitempty"`
@@ -36,6 +37,9 @@ type Playground struct {
 	BuildStatuses            []PlaygroundBuildStatus `json:"build_statuses,omitempty"`
 	Services                 []PlaygroundServiceInfo `json:"services,omitempty"`
 	JobResult                *JobResult              `json:"job_result,omitempty"`
+	RunOverrides             map[string]any          `json:"run_overrides,omitempty"`
+	Teardown                 map[string]any          `json:"teardown,omitempty"`
+	ServiceSources           []map[string]any        `json:"service_sources,omitempty"`
 }
 
 type PlaygroundServiceInfo struct {
@@ -71,10 +75,31 @@ type PlaygroundBuildRecordSnapshot struct {
 }
 
 type JobResult struct {
-	ID             *int64         `json:"id"`
-	Success        *bool          `json:"success"`
-	CompletedAt    *time.Time     `json:"completed_at"`
-	ServiceResults map[string]any `json:"service_results"`
+	ID             *int64            `json:"id"`
+	Success        *bool             `json:"success"`
+	CompletedAt    *time.Time        `json:"completed_at"`
+	ServiceResults map[string]any    `json:"service_results"`
+	Summary        *JobResultSummary `json:"summary,omitempty"`
+}
+
+type JobResultSummary struct {
+	ServicesTotal int                   `json:"services_total"`
+	WatchedTotal  int                   `json:"watched_total"`
+	Failed        []string              `json:"failed"`
+	Succeeded     []string              `json:"succeeded"`
+	Rows          []JobResultSummaryRow `json:"rows"`
+}
+
+type JobResultSummaryRow struct {
+	Name              string `json:"name"`
+	Watched           bool   `json:"watched"`
+	Status            string `json:"status,omitempty"`
+	ExitCode          *int   `json:"exit_code,omitempty"`
+	Result            string `json:"result,omitempty"`
+	FinishedAt        string `json:"finished_at,omitempty"`
+	LogLines          int    `json:"log_lines,omitempty"`
+	LogBytes          int    `json:"log_bytes,omitempty"`
+	StructuredSummary any    `json:"structured_summary,omitempty"`
 }
 
 type PlaygroundCreateParams struct {
@@ -87,6 +112,9 @@ type PlaygroundCreateParams struct {
 	NeverExpire        *bool                     `json:"never_expire,omitempty"`
 	Services           map[string]*ServiceConfig `json:"services,omitempty"`
 	BuildOverridesYAML map[string]any            `json:"build_overrides_yaml,omitempty"`
+	EnvOverrides       map[string]string         `json:"env_overrides,omitempty"`
+	OnlyServices       []string                  `json:"only_services,omitempty"`
+	ExceptServices     []string                  `json:"except_services,omitempty"`
 }
 
 func (p *PlaygroundCreateParams) Validate() error {
@@ -166,6 +194,7 @@ type PlaygroundListParams struct {
 	MarqueeID          int64  `url:"marquee_id,omitempty"`
 	MarqueeIdentifier  string `url:"marquee_id,omitempty"`
 	Name               string `url:"name,omitempty"`
+	ResultStatus       string `url:"result_status,omitempty"`
 	CreatedAfter       string `url:"created_after,omitempty"`
 	CreatedBefore      string `url:"created_before,omitempty"`
 	Sort               string `url:"sort,omitempty"`
@@ -207,6 +236,7 @@ func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
 type PlaygroundStatus struct {
 	ID                       int64                         `json:"id"`
 	Status                   string                        `json:"status"`
+	ResultStatus             *string                       `json:"result_status,omitempty"`
 	MaintenanceEnabled       bool                          `json:"maintenance_enabled"`
 	JobMode                  bool                          `json:"job_mode,omitempty"`
 	Startup                  *PlaygroundStartupDiagnostics `json:"startup,omitempty"`
@@ -225,6 +255,8 @@ type PlaygroundStatus struct {
 	BuildStatuses            []PlaygroundBuildStatus       `json:"build_statuses,omitempty"`
 	Services                 []PlaygroundServiceInfo       `json:"services,omitempty"`
 	JobResult                *JobResult                    `json:"job_result,omitempty"`
+	RunOverrides             map[string]any                `json:"run_overrides,omitempty"`
+	Teardown                 map[string]any                `json:"teardown,omitempty"`
 }
 
 const (
@@ -319,11 +351,14 @@ type PlaygroundExtendResult struct {
 }
 
 type TrickTriggerParams struct {
-	PlayspecID         int64  `json:"playspec_id"`
-	PlayspecIdentifier string `json:"-"`
-	MarqueeID          *int64 `json:"marquee_id,omitempty"`
-	MarqueeIdentifier  string `json:"-"`
-	Name               string `json:"name,omitempty"` // auto-generated if empty
+	PlayspecID         int64             `json:"playspec_id"`
+	PlayspecIdentifier string            `json:"-"`
+	MarqueeID          *int64            `json:"marquee_id,omitempty"`
+	MarqueeIdentifier  string            `json:"-"`
+	Name               string            `json:"name,omitempty"` // auto-generated if empty
+	EnvOverrides       map[string]string `json:"env_overrides,omitempty"`
+	OnlyServices       []string          `json:"only_services,omitempty"`
+	ExceptServices     []string          `json:"except_services,omitempty"`
 }
 
 func (p *TrickTriggerParams) playspecIdentifier() string {

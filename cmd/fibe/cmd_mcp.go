@@ -142,6 +142,9 @@ EXAMPLES:
 
 			// Wire the cobra root tree so fibe_help and fibe_run can introspect it.
 			cfg.CobraRoot = cmd.Root()
+			if exe, err := os.Executable(); err == nil {
+				cfg.CobraExecutable = exe
+			}
 
 			srv := mcpserver.New(cfg)
 			if err := srv.RegisterAll(); err != nil {
@@ -420,6 +423,9 @@ brownfield, overseer, local, other).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := mcpserver.DefaultConfig()
 			cfg.CobraRoot = cmd.Root()
+			if exe, err := os.Executable(); err == nil {
+				cfg.CobraExecutable = exe
+			}
 			srv := mcpserver.New(cfg)
 			if err := srv.RegisterAll(); err != nil {
 				return fmt.Errorf("register: %w", err)

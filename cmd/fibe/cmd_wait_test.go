@@ -47,7 +47,7 @@ func TestWaitTrickUsesIdentifierEndpoint(t *testing.T) {
 	var gotPath string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.EscapedPath()
-		if r.Method != http.MethodGet || gotPath != "/api/playgrounds/nightly-build" {
+		if r.Method != http.MethodGet || gotPath != "/api/playgrounds/nightly-build/status" {
 			t.Fatalf("unexpected request %s %s", r.Method, gotPath)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"id": 77, "name": "nightly-build", "status": "completed", "job_mode": true})
@@ -62,7 +62,35 @@ func TestWaitTrickUsesIdentifierEndpoint(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
-	if gotPath != "/api/playgrounds/nightly-build" {
+	if gotPath != "/api/playgrounds/nightly-build/status" {
 		t.Fatalf("path=%q", gotPath)
+	}
+}
+
+func TestWaitTrickFailsOnFailedJobResult(t *testing.T) {
+	setupAuthTest(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.EscapedPath() != "/api/playgrounds/nightly-build/status" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.EscapedPath())
+		}
+		success := false
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":            77,
+			"status":        "completed",
+			"job_mode":      true,
+			"result_status": "failed",
+			"job_result":    map[string]any{"success": success},
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	cmd := waitCmd()
+	cmd.SetArgs([]string{"trick", "nightly-build", "--status", "completed", "--timeout", "1s"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected failed job result error")
 	}
 }

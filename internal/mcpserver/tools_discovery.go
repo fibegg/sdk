@@ -64,7 +64,7 @@ func (s *Server) registerDiscoveryTools() {
 				if tierFilterSet != nil && !tierFilterSet[t.tier] {
 					continue
 				}
-				if pattern != "" && !strings.Contains(strings.ToLower(name), pattern) {
+				if pattern != "" && !toolCatalogEntryMatchesPattern(name, t.description, pattern) {
 					continue
 				}
 				e := entry{
@@ -98,10 +98,10 @@ Use this to discover the full capability surface when the server advertises a na
 
 FILTERS:
   tier           "meta" | "base" | "greenfield" | "brownfield" | "overseer" | "local" | "other" | "core" | "full" | "all" (default: all)
-  name_pattern   Case-insensitive substring match on tool name
+  name_pattern   Case-insensitive substring match on tool name or description
   include_schema Include each tool's input JSON schema (bloats output; default: false)`),
 		mcp.WithString("tier", mcp.Enum("meta", "base", "greenfield", "brownfield", "overseer", "local", "other", "core", "full", "all"), mcp.Description("Filter by named tool tier or shortcut. core means meta, base, greenfield, and brownfield; full/all means every tier.")),
-		mcp.WithString("name_pattern", mcp.Description("Substring to match in tool name")),
+		mcp.WithString("name_pattern", mcp.Description("Substring to match in tool name or description")),
 		mcp.WithBoolean("include_schema", mcp.Description("Include input schemas (larger response)")),
 	))
 
@@ -150,6 +150,13 @@ Discover available tool names and their input schemas via fibe_tools_catalog.`),
 		mcp.WithObject("args", mcp.Description("The target tool's args object")),
 		mcp.WithBoolean("confirm", mcp.Description("Forwarded as args.confirm for destructive tools")),
 	))
+}
+
+func toolCatalogEntryMatchesPattern(name, description, pattern string) bool {
+	needle := strings.ToLower(strings.TrimSpace(pattern))
+	return needle == "" ||
+		strings.Contains(strings.ToLower(name), needle) ||
+		strings.Contains(strings.ToLower(description), needle)
 }
 
 // advertisedToolNames returns the set of tool names that are actually

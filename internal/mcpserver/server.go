@@ -94,9 +94,14 @@ type Config struct {
 	PipelineMaxIterations int
 
 	// CobraRoot is the root of the fibe cobra command tree. Used by the
-	// fibe_help tool to surface cobra Long help text and by the fibe_run
-	// escape hatch to dispatch any CLI command as an MCP tool call.
+	// fibe_help tool to surface cobra Long help text and, when no executable
+	// path is configured, by fibe_run's embedded fallback.
 	CobraRoot *cobra.Command
+
+	// CobraExecutable is the fibe binary path used by fibe_run in real MCP
+	// sessions. Running a subprocess keeps escape-hatch behavior aligned with
+	// the installed CLI instead of mutating the server's in-process cobra tree.
+	CobraExecutable string
 }
 
 // DefaultConfig returns a Config populated with sensible defaults.

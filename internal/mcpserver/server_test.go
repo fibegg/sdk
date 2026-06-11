@@ -414,6 +414,24 @@ func TestToolsCatalogIncludesEnrichedSchemas(t *testing.T) {
 	}
 }
 
+func TestToolsCatalogNamePatternMatchesDescriptions(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test", ToolSet: "core", PipelineCacheSize: 4})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_tools_catalog", map[string]any{
+		"name_pattern": "registered and available",
+	})
+	if err != nil {
+		t.Fatalf("fibe_tools_catalog: %v", err)
+	}
+	result := out.(map[string]any)
+	if result["count"].(int) == 0 {
+		t.Fatalf("expected description match, got %#v", result)
+	}
+}
+
 func assertSchemaDescriptionsAndIDMinimums(t *testing.T, path string, schema map[string]any) {
 	t.Helper()
 	props, _ := schema["properties"].(map[string]any)

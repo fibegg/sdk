@@ -54,6 +54,9 @@ func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) 
 		PlayspecIdentifier: params.PlayspecIdentifier,
 		MarqueeID:          params.MarqueeID,
 		MarqueeIdentifier:  params.MarqueeIdentifier,
+		EnvOverrides:       params.EnvOverrides,
+		OnlyServices:       params.OnlyServices,
+		ExceptServices:     params.ExceptServices,
 	}
 
 	return s.client.Playgrounds.Create(ctx, createParams)

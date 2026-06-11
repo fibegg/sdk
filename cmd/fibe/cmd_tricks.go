@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -49,7 +50,7 @@ SUBCOMMANDS:
 }
 
 func trListCmd() *cobra.Command {
-	var query, status, name, sort, createdAfter, createdBefore string
+	var query, status, resultStatus, name, sort, createdAfter, createdBefore string
 	var playspecID string
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -59,6 +60,7 @@ func trListCmd() *cobra.Command {
 FILTERS:
   -q, --query           Search across name (substring match)
   --status              Filter by exact status. Values: pending, in_progress, running, completed, error
+  --result-status       Filter job result. Values: succeeded, failed, unknown
   --name                Filter by name (substring match)
   --playspec-id         Filter by playspec ID or name
 
@@ -94,6 +96,9 @@ EXAMPLES:
 			}
 			if status != "" {
 				params.Status = status
+			}
+			if resultStatus != "" {
+				params.ResultStatus = resultStatus
 			}
 			if name != "" {
 				params.Name = name
@@ -139,6 +144,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
+	cmd.Flags().StringVar(&resultStatus, "result-status", "", "Filter by job result status (succeeded, failed, unknown)")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
 	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Filter by playspec ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
@@ -190,6 +196,9 @@ func trTriggerCmd() *cobra.Command {
 	var playspecID string
 	var marqueeID string
 	var name string
+	var envOverridesJSON string
+	var onlyServices []string
+	var exceptServices []string
 
 	cmd := &cobra.Command{
 		Use:   "trigger",
@@ -207,11 +216,15 @@ REQUIRED FLAGS:
 OPTIONAL FLAGS:
   --marquee-id    Target server ID or name
   --name          Custom trick name (auto-generated if omitted)
+  --env-overrides JSON object of per-run environment overrides
+  --only-service  Run only these service names (repeatable)
+  --except-service Exclude these service names (repeatable)
 
 EXAMPLES:
   fibe tricks trigger --playspec-id nightly-build
   fibe tr trigger --playspec-id nightly-build --marquee-id next
-  fibe tr trigger --playspec-id nightly-build --name "my-ci-run"`,
+  fibe tr trigger --playspec-id nightly-build --name "my-ci-run"
+  fibe tr trigger --playspec-id nightly-build --only-service tests --env-overrides '{"GH_TOKEN":"..."}'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TrickTriggerParams{
@@ -222,6 +235,19 @@ EXAMPLES:
 			}
 			if cmd.Flags().Changed("name") {
 				params.Name = name
+			}
+			if cmd.Flags().Changed("env-overrides") {
+				parsed, err := parseStringMapJSONFlag(envOverridesJSON, "env-overrides")
+				if err != nil {
+					return err
+				}
+				params.EnvOverrides = parsed
+			}
+			if len(onlyServices) > 0 {
+				params.OnlyServices = onlyServices
+			}
+			if len(exceptServices) > 0 {
+				params.ExceptServices = exceptServices
 			}
 
 			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
@@ -244,6 +270,9 @@ EXAMPLES:
 	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Job-mode playspec ID or name (required)")
 	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional)")
 	cmd.Flags().StringVar(&name, "name", "", "Custom trick name (auto-generated if omitted)")
+	cmd.Flags().StringVar(&envOverridesJSON, "env-overrides", "", "JSON object of per-run environment overrides")
+	cmd.Flags().StringSliceVar(&onlyServices, "only-service", nil, "Run only this service name (repeatable or comma-separated)")
+	cmd.Flags().StringSliceVar(&exceptServices, "except-service", nil, "Exclude this service name (repeatable or comma-separated)")
 	return cmd
 }
 
@@ -294,8 +323,8 @@ EXAMPLES:
 				return nil
 			}
 			fmt.Printf("Trick %d: %s\n", status.ID, status.Status)
-			if status.JobResult != nil && status.JobResult.Success != nil {
-				fmt.Printf("Result:  %s\n", trickResultFromJobResult(status.JobResult))
+			if outcome := fibe.TrickStatusOutcome(status); outcome != fibe.TrickResultRunning {
+				fmt.Printf("Result:  %s\n", trickOutcomeLabel(outcome))
 			}
 			return nil
 		},
@@ -393,17 +422,13 @@ EXAMPLES:
 
 // trickResult returns a human-readable result indicator for a trick.
 func trickResult(pg fibe.Playground) string {
-	switch pg.Status {
-	case "completed":
-		if pg.JobResult != nil && pg.JobResult.Success != nil {
-			if *pg.JobResult.Success {
-				return "✓"
-			}
-			return "✗"
-		}
-		return "?"
-	case "error":
+	switch fibe.TrickOutcome(pg) {
+	case fibe.TrickResultSucceeded:
+		return "✓"
+	case fibe.TrickResultFailed:
 		return "✗"
+	case fibe.TrickResultUnknown:
+		return "?"
 	default:
 		return "⏳"
 	}
@@ -418,4 +443,25 @@ func trickResultFromJobResult(jr *fibe.JobResult) string {
 		return "✓ success"
 	}
 	return "✗ failed"
+}
+
+func trickOutcomeLabel(outcome string) string {
+	switch outcome {
+	case fibe.TrickResultSucceeded:
+		return "✓ success"
+	case fibe.TrickResultFailed:
+		return "✗ failed"
+	case fibe.TrickResultUnknown:
+		return "? unknown"
+	default:
+		return "⏳ running"
+	}
+}
+
+func parseStringMapJSONFlag(raw, flagName string) (map[string]string, error) {
+	var out map[string]string
+	if err := json.Unmarshal([]byte(raw), &out); err != nil {
+		return nil, fmt.Errorf("--%s must be a JSON object with string values: %w", flagName, err)
+	}
+	return out, nil
 }
