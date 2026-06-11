@@ -14,8 +14,14 @@ func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 		if branch == "" {
 			return false
 		}
-		_, err := c.Props.EnvDefaults(ctx(), prop.ID, branch, seededPropEnvFile)
+		result, err := c.Props.EnvDefaults(ctx(), prop.ID, branch, seededPropEnvFile)
 		if err == nil {
+			if strings.HasPrefix(prop.Name, seededPropNamePrefix) || strings.HasPrefix(prop.RepositoryURL, seededPropRepoPrefix) {
+				if result.Defaults["FIBE_E2E"] != "1" {
+					t.Logf("skipping prop %d/%s branch %q for env_defaults fixture: missing seeded defaults %#v", prop.ID, prop.Name, branch, result.Defaults)
+					return false
+				}
+			}
 			return true
 		}
 		t.Logf("skipping prop %d/%s branch %q for env_defaults fixture: %v", prop.ID, prop.Name, branch, err)

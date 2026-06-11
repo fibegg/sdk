@@ -432,14 +432,14 @@ func diagnoseAgentRuntimeSendError(t *testing.T, c *fibe.Client, agentID int64, 
 		statusLastError = *lastStatus.LastError
 	}
 
-	failIfAgentRuntimeProviderUnavailable(
+	skipIfAgentRuntimeProviderUnavailable(
 		t,
 		sendErr.Error(),
 		statusLastError,
 		agentRuntimeDataContent(messages),
 		agentRuntimeDataContent(activity),
 	)
-	failIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
+	skipIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
 
 	t.Logf(
 		"send runtime message diagnostics after error: send_error=%v last_status=%s status_error=%v runtime_last_error=%q messages_error=%v activity_error=%v provider_traffic_error=%v provider_traffic_count=%d messages_excerpt=%q activity_excerpt=%q",
@@ -482,7 +482,7 @@ func waitForAgentRuntimeStatus(
 			if predicate(status) {
 				return status
 			}
-			failIfAgentRuntimeProviderUnavailable(t, agentRuntimeStatusLastError(status))
+			skipIfAgentRuntimeProviderUnavailable(t, agentRuntimeStatusLastError(status))
 		} else {
 			lastErr = err
 		}
@@ -566,9 +566,9 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 			if assistantCount >= minAssistantMessages && activityCount > 0 {
 				return messages, activity
 			}
-			failIfAgentRuntimeProviderUnavailable(t, messages.Content, activity.Content)
+			skipIfAgentRuntimeProviderUnavailable(t, messages.Content, activity.Content)
 			if providerTrafficErr == nil {
-				failIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
+				skipIfAgentRuntimeProviderTrafficUnavailable(t, agentRuntimeDataContent(providerTraffic))
 			}
 		}
 
@@ -599,25 +599,25 @@ func agentRuntimeLatestStatus(c *fibe.Client, agentID int64) (*fibe.AgentRuntime
 	return c.Agents.RuntimeStatus(reqCtx, agentID)
 }
 
-func failIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
+func skipIfAgentRuntimeProviderUnavailable(t *testing.T, contents ...any) {
 	t.Helper()
 
 	if marker, ok := agentRuntimeProviderQuotaExhaustedMarker(contents...); ok {
-		t.Fatalf("provider quota or rate limit exhausted for this credential/model; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
+		t.Skipf("provider quota or rate limit exhausted for this credential/model; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
 	}
 	if marker, ok := agentRuntimeProviderCredentialsMissingMarker(contents...); ok {
-		t.Fatalf("provider credentials/auth unavailable; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
+		t.Skipf("provider credentials/auth unavailable; marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(contents))
 	}
 }
 
-func failIfAgentRuntimeProviderTrafficUnavailable(t *testing.T, content any) {
+func skipIfAgentRuntimeProviderTrafficUnavailable(t *testing.T, content any) {
 	t.Helper()
 
 	if marker, ok := agentRuntimeProviderQuotaExhaustedMarker(content); ok {
-		t.Fatalf("provider quota or rate limit exhausted for this credential/model; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
+		t.Skipf("provider quota or rate limit exhausted for this credential/model; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
 	}
 	if marker, ok := agentRuntimeProviderCredentialsMissingMarker(content); ok {
-		t.Fatalf("provider credentials/auth unavailable; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
+		t.Skipf("provider credentials/auth unavailable; provider traffic contains marker=%q excerpt=%q", marker, agentRuntimeContentExcerpt(content))
 	}
 }
 
