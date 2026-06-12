@@ -18,7 +18,7 @@ import (
 func agentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "agents",
-		Aliases: []string{"ag"},
+		Aliases: []string{"ag", "agent"},
 		Short:   "Manage AI agents",
 		Long: `Manage Fibe agents — AI-powered assistants that work with your playgrounds.
 
@@ -960,34 +960,57 @@ func agSendMessageCmd() *cobra.Command {
 	var attachmentFilenames []string
 
 	cmd := &cobra.Command{
-		Use:     "send-message <id-or-name>",
-		Aliases: []string{"chat"},
+		Use:     "chat <id-or-name> [message]",
+		Aliases: []string{"send-message"},
 		Short:   "Send a message to an agent",
 		Long: `Send a text message to an agent and receive a response.
 
 The agent processes the message asynchronously (status: 202 Accepted).
 
-REQUIRED FLAGS:
-  --text                  Message text to send
+MESSAGE:
+  Pass text as a positional argument, with --text, or pass "-" to read stdin.
 
 OPTIONAL FLAGS:
+  --text                  Message text to send
   --conversation-id       Specific conversation/thread ID
   --busy-policy           Agent busy behavior, e.g. queue
   --attach                Local file path to upload before sending. Repeatable
   --attachment-filename   Already-uploaded filename to include. Repeatable
 
 EXAMPLES:
-  fibe agents send-message builder --text "Fix the failing tests"
-  fibe ag send-message my-agent --text "Deploy to staging"
-  fibe ag send-message my-agent --conversation-id conv-123 --text "Use this log" --attach ./log.txt
+  fibe agent chat builder "Fix the failing tests"
+  fibe agent chat builder - < prompt.md
+  fibe agents send-message builder --text "old form still works"
+  fibe ag chat my-agent --conversation-id conv-123 "Use this log" --attach ./log.txt
   echo '{"text": "Debug the build output"}' | fibe agents send-message my-agent -f -
-  fibe agents send-message my-agent -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
-		Args: cobra.ExactArgs(1),
+  fibe agent chat my-agent -f instructions.json` + generateSchemaDoc(&fibe.AgentChatParams{}),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AgentChatParams{}
-			if err := applyFromFile(params); err != nil {
-				return err
+			positionalText := ""
+			if len(args) > 1 {
+				positionalText = strings.Join(args[1:], " ")
+			}
+			if positionalText != "" && cmd.Flags().Changed("text") {
+				return fmt.Errorf("pass message either as positional text or --text, not both")
+			}
+			if positionalText == "-" && flagFromFile == "-" {
+				return fmt.Errorf("cannot read both message text and --from-file from stdin")
+			}
+			if flagFromFile != "" || positionalText == "" {
+				if err := applyFromFile(params); err != nil {
+					return err
+				}
+			}
+			if positionalText == "-" {
+				data, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					return fmt.Errorf("read message from stdin: %w", err)
+				}
+				params.Text = string(data)
+			} else if positionalText != "" {
+				params.Text = positionalText
 			}
 			if cmd.Flags().Changed("text") {
 				params.Text = text
@@ -1025,7 +1048,7 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().StringVar(&text, "text", "", "Chat message text (required)")
+	cmd.Flags().StringVar(&text, "text", "", "Chat message text")
 	cmd.Flags().StringVar(&conversationID, "conversation-id", "", "Specific conversation/thread ID")
 	cmd.Flags().StringVar(&busyPolicy, "busy-policy", "", "Agent busy behavior, e.g. queue")
 	cmd.Flags().StringArrayVar(&attachmentPaths, "attach", nil, "Local file path to upload before sending (repeatable)")
@@ -1041,7 +1064,7 @@ func agUploadAttachmentCmd() *cobra.Command {
 		Short:   "Upload a chat attachment",
 		Long: `Upload a file for an agent chat.
 
-The returned filename can be passed to send-message with --attachment-filename
+The returned filename can be passed to chat/send-message with --attachment-filename
 or later downloaded with download-attachment.
 
 REQUIRED FLAGS:

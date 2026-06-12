@@ -153,6 +153,7 @@ func (p PlaygroundCreateParams) MarshalJSON() ([]byte, error) {
 type ServiceConfig struct {
 	Subdomain          string            `json:"subdomain,omitempty"`
 	ExposureVisibility string            `json:"exposure_visibility,omitempty"`
+	PathRule           string            `json:"path_rule,omitempty"`
 	StartCommand       string            `json:"start_command,omitempty"`
 	DockerfilePath     string            `json:"dockerfile_path,omitempty"`
 	EnvFilePath        string            `json:"env_file_path,omitempty"`

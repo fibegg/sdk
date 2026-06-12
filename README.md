@@ -65,6 +65,10 @@ fibe schema agent create
 # Create an agent
 fibe agents create --name "My Assistant" --provider "claude-code"
 
+# Send one chat turn by agent name
+fibe agent chat my-agent "Fix the failing tests"
+fibe agent chat my-agent - < prompt.md
+
 # List agents with bounded runtime status for the returned page
 fibe agents list --include-runtime-status --per-page 100 -o json
 
@@ -74,6 +78,9 @@ fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
 
 # Watch agent resource events through AnyCable
 fibe agents watch --max-events 5 --duration 1m
+
+# Create a playground from an existing Playspec and override one service field
+fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
 
 # Block until a playground starts running by name or ID
 fibe wait playground next --status running --timeout 5m

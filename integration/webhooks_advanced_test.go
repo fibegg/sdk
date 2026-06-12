@@ -61,13 +61,17 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("deliveries list returns results", func(t *testing.T) {
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
-		defer cancel()
-
-		result, err := c.WebhookEndpoints.ListDeliveries(reqCtx, *ep.ID, nil)
+		reqCtx, cancel := ctxTimeout(webhookTimeout())
+		err := c.WebhookEndpoints.Test(reqCtx, *ep.ID)
+		cancel()
 		requireNoError(t, err)
 
-		if result.Data == nil {
+		deliveries, found := pollWebhookDeliveries(c, *ep.ID, webhookTimeout())
+		if !found {
+			t.Fatalf("expected delivery history to include a test delivery within %s", webhookTimeout())
+		}
+
+		if deliveries == nil {
 			t.Error("expected deliveries data to be non-nil")
 		}
 	})

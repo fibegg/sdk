@@ -161,18 +161,20 @@ func setupAuthTest(t *testing.T) {
 	t.Setenv("FIBE_DOMAIN", "")
 
 	prevAPIKey, prevDomain, prevProfile := flagAPIKey, flagDomain, flagProfile
-	prevOutput, prevOnly := flagOutput, flagOnly
+	prevOutput, prevOnly, prevFromFile := flagOutput, flagOnly, flagFromFile
 	flagAPIKey = ""
 	flagDomain = ""
 	flagProfile = ""
 	flagOutput = ""
 	flagOnly = nil
+	flagFromFile = ""
 	t.Cleanup(func() {
 		flagAPIKey = prevAPIKey
 		flagDomain = prevDomain
 		flagProfile = prevProfile
 		flagOutput = prevOutput
 		flagOnly = prevOnly
+		flagFromFile = prevFromFile
 	})
 }
 
