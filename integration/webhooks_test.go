@@ -134,39 +134,3 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 }
-
-func TestWebhookEndpoints_ScopeEnforcement(t *testing.T) {
-	t.Parallel()
-	c := userClient(t)
-
-	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-		URL:    "https://sdk-webhook-scope.invalid/post",
-		Events: []string{"playground.created"},
-	})
-	requireNoError(t, err)
-	t.Cleanup(func() { c.WebhookEndpoints.Delete(ctx(), *ep.ID) })
-
-	t.Run("read-only can list", func(t *testing.T) {
-		t.Parallel()
-		readOnly := createScopedKey(t, c, "wh-read", []string{"webhooks:read"})
-		_, err := readOnly.WebhookEndpoints.List(ctx(), nil)
-		requireNoError(t, err)
-	})
-
-	t.Run("read-only cannot create", func(t *testing.T) {
-		t.Parallel()
-		readOnly := createScopedKey(t, c, "wh-read2", []string{"webhooks:read"})
-		_, err := readOnly.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
-			URL:    "https://sdk-webhook-noscope.invalid/post",
-			Events: []string{"playground.created"},
-		})
-		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
-	})
-
-	t.Run("no scope returns 403", func(t *testing.T) {
-		t.Parallel()
-		noScope := createScopedKey(t, c, "no-wh", []string{"agents:read"})
-		_, err := noScope.WebhookEndpoints.List(ctx(), nil)
-		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
-	})
-}

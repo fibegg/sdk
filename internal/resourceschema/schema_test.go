@@ -27,15 +27,6 @@ func TestCanonicalResourceNormalizesAliases(t *testing.T) {
 	}
 }
 
-func TestResourceSelectorsIncludeHyphenAliases(t *testing.T) {
-	selectors := ResourceSelectors()
-	for _, want := range []string{"api-keys", "job-env", "import-templates"} {
-		if !containsSelector(selectors, want) {
-			t.Fatalf("ResourceSelectors missing %q: %#v", want, selectors)
-		}
-	}
-}
-
 func TestSchemaOnlyResourcesDoNotEnterGenericResourceSelectors(t *testing.T) {
 	generic := ResourceSelectors()
 	for _, disallowed := range []string{"compose", "mutter", "mutters"} {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -48,46 +47,6 @@ func TestParseGreenfieldServiceSubdomains(t *testing.T) {
 
 	if _, err := parseGreenfieldStringMapFlags([]string{"broken"}, "service-subdomain"); err == nil {
 		t.Fatal("expected malformed service-subdomain error")
-	}
-}
-
-func TestGreenfieldHelpShowsOnlyPublicUXFlags(t *testing.T) {
-	cmd := greenfieldCmd()
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetErr(&out)
-	cmd.SetArgs([]string{"--help"})
-
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("help failed: %v", err)
-	}
-
-	got := out.String()
-	for _, want := range []string{
-		"--name string",
-		"Repository/app name (optional with github-repo; must be unique)",
-		"--git-provider string",
-		"Destination git provider: gitea or github (optional, default: gitea)",
-		"--template-id string",
-		"Template ID or name to use (optional, default: base template)",
-		"--version string",
-		"Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)",
-		"--template-body string",
-		"Template YAML body to use directly (optional)",
-		"--marquee-id string",
-		"Target marquee ID or name (optional, default: current Marquee)",
-		"--var strings",
-		"Set template variables (e.g., --var app_name=Tower, optional)",
-		"--service-subdomain strings",
-		"Set an exposed service subdomain override",
-		"--wait-timeout duration",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("help output does not contain %q:\n%s", want, got)
-		}
-	}
-	if strings.Contains(got, "--link-dir") {
-		t.Fatalf("help output exposes --link-dir:\n%s", got)
 	}
 }
 

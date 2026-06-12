@@ -1,6 +1,8 @@
 # Fibe MCP Tools
 
-Total Tools: 42
+Total Listed Tools: 43
+
+Note: this generated Markdown lists the advertised/native tool docs. The MCP server can register a larger callable catalog; regenerate with `go run ./cmd/fibe mcp docs` when the server surface changes.
 
 ## `fibe_agents_duplicate`
 **Tier:** overseer | **Destructive:** False | **Idempotent:** True

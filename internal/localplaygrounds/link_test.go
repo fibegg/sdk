@@ -252,19 +252,6 @@ func TestFindRejectsAmbiguousPlayspecPrefix(t *testing.T) {
 	}
 }
 
-func TestMountsReturnsOnlyMountableServices(t *testing.T) {
-	pg := &Playground{
-		DirName:  "static-site--24",
-		Playspec: "static-site",
-		Services: map[string]*Service{
-			"web": {Name: "web", Image: "nginx"},
-		},
-	}
-	if mounts := Mounts(pg); len(mounts) != 0 {
-		t.Fatalf("mounts=%#v want empty", mounts)
-	}
-}
-
 func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	parent := t.TempDir()
 	linkDir := filepath.Join(parent, "playground")

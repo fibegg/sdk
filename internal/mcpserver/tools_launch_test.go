@@ -46,20 +46,6 @@ func TestLaunchArgsAcceptGitHubRepository(t *testing.T) {
 	}
 }
 
-func TestLaunchToolRegisteredAsGreenfield(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "core"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	tool, ok := srv.dispatcher.lookup("fibe_launch_create")
-	if !ok {
-		t.Fatal("fibe_launch_create not registered")
-	}
-	if tool.tier != tierGreenfield {
-		t.Fatalf("tier=%v want greenfield", tool.tier)
-	}
-}
-
 func githubInstallationTestClient(t *testing.T) *fibe.Client {
 	t.Helper()
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

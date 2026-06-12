@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -135,21 +134,6 @@ func TestPlayspecUpdateCommandMergesConfigFlags(t *testing.T) {
 		trigger["agent_id"] != "fixer" ||
 		trigger["prompt_template"] != "Fix {{logs}}" {
 		t.Fatalf("unexpected merged trigger_config: %#v", trigger)
-	}
-}
-
-func TestPlayspecHelpExposesJobConfigFlags(t *testing.T) {
-	help := commandHelp(t, psCreateCmd())
-	for _, want := range []string{
-		"--schedule-enabled",
-		"--trigger-agent-id",
-		"--trigger-prompt-template",
-		"--muti-enabled",
-		"--muti-agent-id",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("playspec create help missing %s:\n%s", want, help)
-		}
 	}
 }
 

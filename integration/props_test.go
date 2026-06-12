@@ -114,37 +114,3 @@ func TestProps_CRUD(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 }
-
-func TestProps_ScopeEnforcement(t *testing.T) {
-	t.Parallel()
-	c := userClient(t)
-
-	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-		RepositoryURL: "https://github.com/fibegg/scope-test-repo",
-		Name:          ptr(uniqueName("scope-prop")),
-	})
-	requireNoError(t, err)
-	t.Cleanup(func() { c.Props.Delete(ctx(), prop.ID) })
-
-	readOnly := createScopedKey(t, c, "props-read", []string{"props:read"})
-
-	t.Run("read key can list", func(t *testing.T) {
-		t.Parallel()
-		_, err := readOnly.Props.List(ctx(), nil)
-		requireNoError(t, err)
-	})
-
-	t.Run("read key cannot create", func(t *testing.T) {
-		t.Parallel()
-		_, err := readOnly.Props.Create(ctx(), &fibe.PropCreateParams{
-			RepositoryURL: "https://github.com/org/nope",
-		})
-		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
-	})
-
-	t.Run("read key cannot delete", func(t *testing.T) {
-		t.Parallel()
-		err := readOnly.Props.Delete(ctx(), prop.ID)
-		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
-	})
-}

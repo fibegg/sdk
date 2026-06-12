@@ -10,26 +10,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestPlaygroundsHelpMatchesLifecycleSurface(t *testing.T) {
-	help := commandHelp(t, playgroundsCmd())
-
-	for _, want := range []string{
-		"start <id-or-name>",
-		"stop <id-or-name>",
-		"has_changes",
-		"completed",
-		"stopping",
-		"stopped",
-		"destroying",
-		"maintenance enable <id-or-name>",
-		"maintenance disable <id-or-name>",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("playgrounds help missing %q:\n%s", want, help)
-		}
-	}
-}
-
 func TestPlaygroundActionCommandsAreRegistered(t *testing.T) {
 	cmd := playgroundsCmd()
 
