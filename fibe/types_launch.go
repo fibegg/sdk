@@ -50,6 +50,9 @@ type LaunchParams struct {
 	MarqueeIdentifier      string            `json:"-"`
 	CreatePlayground       *bool             `json:"create_playground,omitempty"`
 	PersistVolumes         *bool             `json:"persist_volumes,omitempty"`
+	EnvOverrides           map[string]string `json:"env_overrides,omitempty"`
+	ServiceSubdomains      map[string]string `json:"service_subdomains,omitempty"`
+	Services               map[string]any    `json:"services,omitempty"`
 	Variables              map[string]string `json:"variables,omitempty"`
 	PropMappings           map[string]int64  `json:"prop_mappings,omitempty"`
 	PropMappingIdentifiers map[string]string `json:"-"`

@@ -61,8 +61,6 @@ services:
     environment:
       APP_NAME: $$var__app_name
     labels:
-      fibe.gg/repo_url: "https://github.com/fibegg/demo-backend"
-      fibe.gg/source_mount: "/app"
       fibe.gg/port: "80"
       fibe.gg/visibility: "external"
       fibe.gg/subdomain: "$$var__app_name"
@@ -156,11 +154,12 @@ services:
 	}
 
 	// 6. Test launch with explicit template ID
-	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_launch", map[string]any{
+	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_launch", map[string]any{
 		"template_id_or_name": templateID,
+		"marquee_id_or_name":  activeMarqueeID,
 	})
 	if err != nil {
-		t.Fatalf("fibe_templates_launch failed: %v", err)
+		t.Fatalf("fibe_launch failed: %v", err)
 	}
 
 	// 7. Test debug tool

@@ -141,14 +141,9 @@ func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[stri
 		return nil, 0, fmt.Errorf("required field 'name' not set")
 	}
 
-	marqueeIdentifier := argString(args, "marquee_id_or_name")
-	marqueeID, ok := argInt64(args, "marquee_id_or_name")
-	if (!ok || marqueeID <= 0) && marqueeIdentifier == "" {
-		envID, err := parseMarqueeIDEnv()
-		if err != nil {
-			return nil, 0, err
-		}
-		marqueeID = envID
+	marqueeID, marqueeIdentifier, err := resolveMCPMarquee(ctx, c, args)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	timeout := parseDuration(argString(args, "wait_timeout"), 10*time.Minute)
@@ -162,7 +157,7 @@ func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[stri
 		TemplateBody:       templateBody,
 		GitProvider:        gitProvider,
 		Private:            private,
-		MarqueeID:          &marqueeID,
+		MarqueeID:          marqueeID,
 		MarqueeIdentifier:  marqueeIdentifier,
 		Variables:          greenfieldVariables(args["variables"]),
 		ServiceSubdomains:  greenfieldStringMap(args["service_subdomains"]),

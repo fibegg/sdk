@@ -344,8 +344,7 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_templates_versions_patch_preview",
 		"fibe_playspecs_switch_version",
 		"fibe_playspecs_switch_version_preview",
-		"fibe_templates_develop",
-		"fibe_playgrounds_retemplate",
+			"fibe_templates_develop",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); ok {
 			t.Fatalf("%s should not be registered", name)
@@ -355,11 +354,11 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 	for _, name := range []string{
 		"fibe_resource_mutate",
 		"fibe_mutter",
-		"fibe_playgrounds_transform",
+		"fibe_playgrounds_switch_template",
 		"fibe_templates_change",
 		"fibe_playgrounds_action",
 		"fibe_feedbacks_get",
-		"fibe_templates_launch",
+		"fibe_launch",
 		"fibe_feedbacks_list",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); !ok {
@@ -619,7 +618,7 @@ func TestSchemaToolAdvertisesResourceAndOperationEnums(t *testing.T) {
 			t.Fatalf("fibe_schema operation enum missing %q: %#v", want, operationEnum)
 		}
 	}
-	for _, removed := range []string{"develop", "retemplate"} {
+		for _, removed := range []string{"develop"} {
 		if containsString(operationEnum, removed) {
 			t.Fatalf("fibe_schema operation enum should not include removed alias %q: %#v", removed, operationEnum)
 		}

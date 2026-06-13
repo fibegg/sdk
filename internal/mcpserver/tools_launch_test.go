@@ -11,9 +11,10 @@ import (
 
 func TestLaunchArgsAcceptComposeYAML(t *testing.T) {
 	params, err := launchArgs(context.Background(), nil, map[string]any{
-		"name":            "todo",
-		"compose_yaml":    "services:\n  web:\n    image: nginx\n",
-		"persist_volumes": true,
+		"name":              "todo",
+		"compose_yaml":      "services:\n  web:\n    image: nginx\n",
+		"create_playground": false,
+		"persist_volumes":   true,
 	})
 	if err != nil {
 		t.Fatalf("launchArgs: %v", err)
@@ -29,8 +30,9 @@ func TestLaunchArgsAcceptComposeYAML(t *testing.T) {
 func TestLaunchArgsAcceptGitHubRepository(t *testing.T) {
 	client := githubInstallationTestClient(t)
 	params, err := launchArgs(context.Background(), client, map[string]any{
-		"repository_url": "owner/repo@feature/foo",
-		"config_path":    "deploy/fibe.yml",
+		"repository_url":    "owner/repo@feature/foo",
+		"config_path":       "deploy/fibe.yml",
+		"create_playground": false,
 	})
 	if err != nil {
 		t.Fatalf("launchArgs: %v", err)

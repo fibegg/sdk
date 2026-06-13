@@ -18,8 +18,11 @@ type GreenfieldCreateParams struct {
 	Private              *bool             `json:"private,omitempty"`
 	MarqueeID            *int64            `json:"marquee_id,omitempty"`
 	MarqueeIdentifier    string            `json:"-"`
+	PersistVolumes       *bool             `json:"persist_volumes,omitempty"`
 	Variables            map[string]any    `json:"variables,omitempty"`
+	EnvOverrides         map[string]string `json:"env_overrides,omitempty"`
 	ServiceSubdomains    map[string]string `json:"service_subdomains,omitempty"`
+	Services             map[string]any    `json:"services,omitempty"`
 }
 
 func (p *GreenfieldCreateParams) Validate() error {

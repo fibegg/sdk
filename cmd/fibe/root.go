@@ -61,7 +61,7 @@ AUTHENTICATION:
 EXAMPLES:
   fibe playgrounds list                      List all playgrounds
   fibe tricks list                           List all tricks (jobs)
-  fibe tricks trigger --playspec-id 12       Run a trick
+  fibe tricks trigger --playspec 12          Run a trick
   fibe agents list                           List all agents
   fibe playgrounds logs 42 --service web     Stream logs for a service
   fibe doctor                                  Check auth and show user info

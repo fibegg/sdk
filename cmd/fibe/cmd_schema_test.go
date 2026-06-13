@@ -16,7 +16,7 @@ func TestSchemaCustomCreateOperations(t *testing.T) {
 		{args: []string{"mutter", "create"}, want: []string{`"mutter.create"`, `"agent_id_or_name"`, `"type"`, `"body"`}},
 		{args: []string{"template_version", "create"}, want: []string{`"template_version.create"`, `"template_id_or_name"`, `"template_body_path"`, `"response_mode"`}},
 		{args: []string{"template", "change"}, want: []string{`"template.change"`, `"target_type"`, `"base_version_id"`, `"post_apply"`}},
-		{args: []string{"playground", "transform"}, want: []string{`"playground.transform"`, `"id_or_name"`, `"provision_missing_props"`}},
+		{args: []string{"playground", "switch_template"}, want: []string{`"playground.switch_template"`, `"id_or_name"`, `"provision_missing_props"`}},
 	} {
 		out, err := captureStdout(func() error {
 			cmd := schemaCmd()

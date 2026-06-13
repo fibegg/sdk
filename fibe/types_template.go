@@ -258,6 +258,7 @@ type ImportTemplateLaunchParams struct {
 	MarqueeIdentifier string            `json:"-"`
 	Version           *int64            `json:"version,omitempty"`
 	Name              string            `json:"name,omitempty"`
+	PersistVolumes    *bool             `json:"persist_volumes,omitempty"`
 	Variables         map[string]any    `json:"variables,omitempty"`
 	EnvOverrides      map[string]string `json:"env_overrides,omitempty"`
 	ServiceSubdomains map[string]string `json:"service_subdomains,omitempty"`

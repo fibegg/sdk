@@ -30,7 +30,7 @@ var mutationCaseKeys = []struct {
 	{resource: "playground", operation: "create"},
 	{resource: "playground", operation: "update"},
 	{resource: "playground", operation: "action"},
-	{resource: "playground", operation: "transform"},
+	{resource: "playground", operation: "switch_template"},
 	{resource: "playspec", operation: "create"},
 	{resource: "playspec", operation: "update"},
 	{resource: "prop", operation: "create"},

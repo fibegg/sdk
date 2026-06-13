@@ -39,22 +39,21 @@ SUBCOMMANDS:
   source clear <id-or-name>                  Clear tracked source
   upgrade-playspecs <id-or-name>             Upgrade linked job Playspecs to a version
   fork <id-or-name>                          Fork a template into your account
-  upload-image <id-or-name>                  Upload a cover image
-  launch <id-or-name>                        Launch a playground from template`,
+  upload-image <id-or-name>                  Upload a cover image`,
 	}
 	cmd.AddCommand(
 		tplListCmd(), tplGetCmd(), tplCreateCmd(), tplUpdateCmd(), tplDeleteCmd(),
 		tplSearchCmd(), tplVersionsCmd(),
 		tplCreateVersionCmd(), tplDestroyVersionCmd(), tplTogglePublicCmd(),
 		tplSourceCmd(), tplUpgradePlayspecsCmd(),
-		tplForkCmd(), tplUploadImageCmd(), tplLaunchCmd(),
+		tplForkCmd(), tplUploadImageCmd(),
 	)
 	return cmd
 }
 
 func tplListCmd() *cobra.Command {
 	var query, name, sort string
-	var categoryID int64
+	var category string
 	var system string
 	cmd := &cobra.Command{
 		Use: "list", Short: "List all templates",
@@ -63,7 +62,7 @@ func tplListCmd() *cobra.Command {
 FILTERS:
   -q, --query           Full-text search across name, description (PostgreSQL FTS)
   --name                Filter by name (substring match)
-  --category-id         Filter by category ID
+  --category            Filter by category ID, name, or slug
   --system              Filter system templates. Values: true, false
 
 SORTING:
@@ -79,7 +78,7 @@ OUTPUT:
 EXAMPLES:
   fibe templates list
   fibe tpl list -q "node"
-  fibe tpl list --category-id 3 --sort name_asc
+  fibe tpl list --category web --sort name_asc
   fibe tpl list --system true -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -90,8 +89,12 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if categoryID > 0 {
-				params.CategoryID = categoryID
+			if category != "" {
+				id, err := resolveCategoryID(c, category)
+				if err != nil {
+					return err
+				}
+				params.CategoryID = id
 			}
 			if system == "true" {
 				t := true
@@ -128,7 +131,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Full-text search across name, description")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().Int64Var(&categoryID, "category-id", 0, "Filter by category ID")
+	cmd.Flags().StringVar(&category, "category", "", "Filter by category ID, name, or slug")
 	cmd.Flags().StringVar(&system, "system", "", "Filter system templates (true/false)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. updated_at_desc)")
 	return cmd
@@ -151,10 +154,10 @@ func tplGetCmd() *cobra.Command {
 
 func tplCreateCmd() *cobra.Command {
 	var name, desc, body string
-	var catID int64
+	var category string
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new template",
-		Long: "Create a new import template.\n\nTEMPLATE CONSTRAINTS:\n  - Templates are heavily opinionated YAML mappings used to generate generalized Playspecs.\n  - The 'body' must be a valid predefined YAML template matching Fibe's Template Schema engine.\n\nREQUIRED FLAGS:\n  --name          Template name\n  --body          Template body (YAML)\n\nOPTIONAL FLAGS:\n  --category-id   Category ID (defaults to \"Uncategorized\" on the server when omitted)\n  --description   Free-form description\n\nEXAMPLES:\n  fibe templates create --name \"Node.js\" --body @template.yml\n  fibe templates create --name \"Node.js\" --category-id 1 --body @template.yml",
+		Long: "Create a new import template.\n\nTEMPLATE CONSTRAINTS:\n  - Templates are heavily opinionated YAML mappings used to generate generalized Playspecs.\n  - The 'body' must be a valid predefined YAML template matching Fibe's Template Schema engine.\n\nREQUIRED FLAGS:\n  --name          Template name\n  --body          Template body (YAML)\n\nOPTIONAL FLAGS:\n  --category      Category ID, name, or slug (defaults to \"Uncategorized\" on the server when omitted)\n  --description   Free-form description\n\nEXAMPLES:\n  fibe templates create --name \"Node.js\" --body @template.yml\n  fibe templates create --name \"Node.js\" --category web --body @template.yml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ImportTemplateCreateParams{}
@@ -167,8 +170,12 @@ func tplCreateCmd() *cobra.Command {
 			if cmd.Flags().Changed("description") {
 				params.Description = desc
 			}
-			if cmd.Flags().Changed("category-id") {
-				params.CategoryID = catID
+			if cmd.Flags().Changed("category") {
+				id, err := resolveCategoryID(c, category)
+				if err != nil {
+					return err
+				}
+				params.CategoryID = id
 			}
 			if cmd.Flags().Changed("body") {
 				params.TemplateBody = body
@@ -195,7 +202,7 @@ func tplCreateCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Name (required)")
 	cmd.Flags().StringVar(&desc, "description", "", "Description")
-	cmd.Flags().Int64Var(&catID, "category-id", 0, "Category ID (optional, defaults to Uncategorized)")
+	cmd.Flags().StringVar(&category, "category", "", "Category ID, name, or slug (optional, defaults to Uncategorized)")
 	cmd.Flags().StringVar(&body, "body", "", "Template body YAML (required)")
 	return cmd
 }
@@ -231,11 +238,15 @@ func tplUpdateCmd() *cobra.Command {
 }
 
 func tplDeleteCmd() *cobra.Command {
-	return &cobra.Command{
+	var yes bool
+	cmd := &cobra.Command{
 		Use: "delete <id-or-name>", Short: "Delete a template", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			identifier := args[0]
+			if err := confirmDestructive(fmt.Sprintf("Delete template %s", identifier), yes); err != nil {
+				return err
+			}
 			if err := c.ImportTemplates.DeleteByIdentifier(ctx(), identifier); err != nil {
 				return err
 			}
@@ -243,6 +254,8 @@ func tplDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "Skip interactive confirmation")
+	return cmd
 }
 
 func tplSearchCmd() *cobra.Command {
@@ -403,7 +416,7 @@ func tplSourceSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			templateIdentifier := args[0]
 			if propID == "" {
-				return fmt.Errorf("required field 'prop-id' not set")
+				return fmt.Errorf("required field 'prop' not set")
 			}
 			if path == "" {
 				return fmt.Errorf("required field 'path' not set")
@@ -422,9 +435,9 @@ func tplSourceSetCmd() *cobra.Command {
 			if cmd.Flags().Changed("ci-enabled") || cmd.Flags().Changed("ci") {
 				params.CIEnabled = &ciEnabled
 			}
-			if cmd.Flags().Changed("ci-marquee-id") {
+			if cmd.Flags().Changed("ci-marquee") {
 				params.CIMarqueeIdentifier = ciMarqueeID
-			} else if cmd.Flags().Changed("marquee-id") {
+			} else if cmd.Flags().Changed("marquee") {
 				params.CIMarqueeIdentifier = marqueeID
 			}
 			result, err := newClient().ImportTemplates.SetSourceByIdentifier(ctx(), templateIdentifier, params)
@@ -435,15 +448,15 @@ func tplSourceSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop-id", "", "Source Prop ID or name (required)")
+	cmd.Flags().StringVar(&propID, "prop", "", "Source Prop ID or name (required)")
 	cmd.Flags().StringVar(&path, "path", "", "Source YAML path, e.g. fibe-ci.yml")
 	cmd.Flags().StringVar(&ref, "ref", "", "Source ref/branch")
 	cmd.Flags().BoolVar(&autoRefresh, "auto-refresh", true, "Refresh versions from matching pushes")
 	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Playspecs")
 	cmd.Flags().BoolVar(&ciEnabled, "ci-enabled", false, "Enable CI workflow sync for this template source")
 	cmd.Flags().BoolVar(&ciEnabled, "ci", false, "Alias for --ci-enabled")
-	cmd.Flags().StringVar(&ciMarqueeID, "ci-marquee-id", "", "Marquee ID or name used by CI workflow sync")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Alias for --ci-marquee-id")
+	cmd.Flags().StringVar(&ciMarqueeID, "ci-marquee", "", "Marquee ID or name used by CI workflow sync")
+	cmd.Flags().StringVar(&marqueeID, "marquee", "", "Alias for --ci-marquee")
 	return cmd
 }
 
@@ -544,37 +557,6 @@ EXAMPLES:
 			return nil
 		},
 	}
-}
-
-func tplLaunchCmd() *cobra.Command {
-	var marqueeID string
-	var name string
-	var version int64
-	cmd := &cobra.Command{
-		Use: "launch <id-or-name>", Short: "Launch a playground from template", Args: cobra.ExactArgs(1),
-		Long: "Create a new playground using this template.\n\nThe target Marquee must be funded. The server returns MARQUEE_NOT_FUNDED when billing is expired or missing.\n\nREQUIRED FLAGS:\n  --marquee-id   Target marquee for the new playground\n\nOPTIONAL FLAGS:\n  --name         Override generated playground name\n  --version      Launch a specific template version\n\nEXAMPLES:\n  fibe templates launch rails-starter --marquee-id next\n  fibe templates launch rails-starter --marquee-id next --name my-playground --version 3",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			params := &fibe.ImportTemplateLaunchParams{MarqueeIdentifier: marqueeID}
-			if name != "" {
-				params.Name = name
-			}
-			if version > 0 {
-				params.Version = &version
-			}
-			result, err := c.ImportTemplates.LaunchWithParamsByIdentifier(ctx(), args[0], params)
-			if err != nil {
-				return err
-			}
-			outputJSON(result)
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (required)")
-	cmd.Flags().StringVar(&name, "name", "", "Optional playground name")
-	cmd.Flags().Int64Var(&version, "version", 0, "Optional template version")
-	cmd.MarkFlagRequired("marquee-id")
-	return cmd
 }
 
 func tplCreateVersionCmd() *cobra.Command {

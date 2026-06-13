@@ -25,7 +25,7 @@ func init() {
 			psRemoveMountedFileCmd(),
 			psAddRegistryCredentialCmd(),
 			psRemoveRegistryCredentialCmd(),
-			psSwitchVersionCmd(),
+			psSwitchTemplateCmd(),
 		)
 	}
 }
@@ -197,23 +197,27 @@ EXAMPLES:
 }
 
 func psRemoveRegistryCredentialCmd() *cobra.Command {
-	var credentialID string
+	var credential string
 	cmd := &cobra.Command{
 		Use:   "remove-registry-credential <id-or-name>",
 		Short: "Detach a docker registry credential from a playspec",
 		Long: `Detach a docker registry credential from a playspec.
 
 REQUIRED FLAGS:
-  --credential-id   ID of the credential to remove
+  --credential   ID, registry URL, username, or registry_type/registry_url/username selector
 
 		EXAMPLES:
-	  fibe playspecs remove-registry-credential 42 --credential-id 7`,
+	  fibe playspecs remove-registry-credential 42 --credential 7`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if credentialID == "" {
-				return fmt.Errorf("required flag --credential-id not set")
+			if credential == "" {
+				return fmt.Errorf("required flag --credential not set")
 			}
 			c := newClient()
+			credentialID, err := resolveCredentialID(c, args[0], credential)
+			if err != nil {
+				return err
+			}
 			if err := c.Playspecs.RemoveRegistryCredentialByIdentifier(ctx(), args[0], credentialID); err != nil {
 				return err
 			}
@@ -221,11 +225,11 @@ REQUIRED FLAGS:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&credentialID, "credential-id", "", "Credential ID to remove (required)")
+	cmd.Flags().StringVar(&credential, "credential", "", "Credential ID or unique selector to remove (required)")
 	return cmd
 }
 
-func psSwitchVersionCmd() *cobra.Command {
+func psSwitchTemplateCmd() *cobra.Command {
 	var targetID int64
 	var vars []string
 	var regenerate []string
@@ -233,12 +237,12 @@ func psSwitchVersionCmd() *cobra.Command {
 	var preview bool
 
 	cmd := &cobra.Command{
-		Use:   "switch-version <id-or-name>",
-		Short: "Preview or apply a template version switch for a playspec",
+		Use:   "switch-template <id-or-name>",
+		Short: "Preview or apply a template switch for a playspec",
 		Long: `Switch a template-backed playspec to any readable template version in the same fork tree.
 
 REQUIRED FLAGS:
-  --target-template-version-id   Target template version ID
+  --template-version   Target template version ID
 
 OPTIONAL FLAGS:
   --var key=value                Override a template variable (repeatable)
@@ -247,12 +251,12 @@ OPTIONAL FLAGS:
   --preview                      Only preview the switch
 
 EXAMPLES:
-  fibe playspecs switch-version 42 --target-template-version-id 123 --preview
-  fibe ps switch-version 42 --target-template-version-id 123 --var app_name=demo --confirm-warnings`,
+  fibe playspecs switch-template 42 --template-version 123 --preview
+  fibe ps switch-template 42 --template-version 123 --var app_name=demo --confirm-warnings`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if targetID == 0 {
-				return fmt.Errorf("required flag --target-template-version-id not set")
+				return fmt.Errorf("required flag --template-version not set")
 			}
 			parsedVars, err := parseKeyValueFlags(vars)
 			if err != nil {
@@ -286,25 +290,12 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().Int64Var(&targetID, "target-template-version-id", 0, "Target template version ID")
+	cmd.Flags().Int64Var(&targetID, "template-version", 0, "Target template version ID")
 	cmd.Flags().StringArrayVar(&vars, "var", nil, "Template variable override as key=value (repeatable)")
 	cmd.Flags().StringArrayVar(&regenerate, "regenerate", nil, "Random variable to regenerate (repeatable)")
 	cmd.Flags().BoolVar(&confirmWarnings, "confirm-warnings", false, "Confirm risky switch warnings")
 	cmd.Flags().BoolVar(&preview, "preview", false, "Preview without applying")
 	return cmd
-}
-
-func parseKeyValueFlags(values []string) (map[string]any, error) {
-	out := map[string]any{}
-	for _, raw := range values {
-		key, value, ok := strings.Cut(raw, "=")
-		key = normalizeVariableFlagKey(key)
-		if !ok || key == "" {
-			return nil, fmt.Errorf("invalid --var %q, expected key=value", raw)
-		}
-		out[key] = value
-	}
-	return out, nil
 }
 
 func outputTemplateVersionSwitchTable(result *fibe.PlayspecTemplateVersionSwitchResult) {

@@ -18,7 +18,7 @@ import (
 func (s *Server) registerResourceMutationTools() {
 	s.registerResourceMutateTool()
 	s.registerPlaygroundMutationTools()
-	s.registerPlaygroundTransformTools()
+	s.registerPlaygroundSwitchTemplateTools()
 	s.registerAgentMutationTools()
 	s.registerFeedbackMutationTools()
 }
@@ -70,7 +70,7 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 	switch resource + "." + operation {
 	case "playground.action":
 		return true
-	case "playground.transform":
+	case "playground.switch_template":
 		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
 		return mode == "" || mode == "apply"
 	case "template.change":
@@ -191,11 +191,12 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			return nil, err
 		}
 		if p.MarqueeID == nil && p.MarqueeIdentifier == "" {
-			envID, err := parseMarqueeIDEnv()
+			marqueeID, marqueeIdentifier, err := resolveMCPMarquee(ctx, c, payload)
 			if err != nil {
-				return nil, fmt.Errorf("marquee_id is required either in payload or via FIBE_MARQUEE_ID env var: %w", err)
+				return nil, err
 			}
-			p.MarqueeID = &envID
+			p.MarqueeID = marqueeID
+			p.MarqueeIdentifier = marqueeIdentifier
 		}
 		return c.Playgrounds.Create(ctx, &p)
 	case "playground.update":
@@ -219,16 +220,16 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 			p.Force = &force
 		}
 		return c.Playgrounds.ActionByIdentifier(ctx, identifier, p)
-	case "playground.transform":
+	case "playground.switch_template":
 		mode := strings.ToLower(strings.TrimSpace(argString(payload, "mode")))
 		if mode == "" {
 			mode = "apply"
 		}
-		params, err := buildTransformParams(payload, mode)
+		params, err := buildSwitchTemplateParams(payload, mode)
 		if err != nil {
 			return nil, err
 		}
-		return c.Transform(ctx, params)
+		return c.SwitchPlaygroundTemplate(ctx, params)
 	case "playspec.create":
 		var p fibe.PlayspecCreateParams
 		if err := bindArgs(payload, &p); err != nil {

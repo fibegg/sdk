@@ -12,7 +12,7 @@ func TestPlaygroundsTransformApplyRequiresConfirm(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_switch_template", map[string]any{
 		"id_or_name":          1,
 		"template_version_id": 2,
 	})
@@ -27,7 +27,7 @@ func TestPlaygroundsTransformPreviewDoesNotRequireConfirm(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_switch_template", map[string]any{
 		"id_or_name":          1,
 		"template_version_id": 2,
 		"mode":                "preview",
@@ -46,7 +46,7 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_transform", map[string]any{
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_switch_template", map[string]any{
 		"id_or_name": 1,
 		"confirm":    true,
 	})
@@ -56,13 +56,13 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 }
 
 func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
-	params, err := buildTransformParams(map[string]any{
+	params, err := buildSwitchTemplateParams(map[string]any{
 		"id_or_name":           7,
 		"template_version_id":  22,
 		"reuse_existing_props": true,
 	}, "apply")
 	if err != nil {
-		t.Fatalf("buildTransformParams: %v", err)
+		t.Fatalf("buildSwitchTemplateParams: %v", err)
 	}
 	if params.PlaygroundID != 0 || params.PlaygroundIdentifier != "7" {
 		t.Fatalf("unexpected playground identifiers: %#v", params)
@@ -71,23 +71,12 @@ func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 		t.Fatalf("template_version_id=%d want 22", params.TemplateVersionID)
 	}
 	if !params.Wait {
-		t.Fatal("transform apply should wait by default")
+		t.Fatal("switch-template apply should wait by default")
 	}
 	if params.ProvisionMissingProps != "gitea" {
 		t.Fatalf("provision_missing_props=%q want gitea", params.ProvisionMissingProps)
 	}
 	if !params.ReuseExistingProps {
 		t.Fatal("reuse_existing_props=false want true")
-	}
-}
-
-func TestPlaygroundsRetemplateAliasIsRemoved(t *testing.T) {
-	srv := New(mockServerConfig())
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-
-	if _, ok := srv.dispatcher.lookup("fibe_playgrounds_retemplate"); ok {
-		t.Fatal("fibe_playgrounds_retemplate should not be registered")
 	}
 }

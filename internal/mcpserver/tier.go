@@ -44,11 +44,12 @@ var toolTierByName = map[string]toolTier{
 }
 
 var confirmForwardingTools = map[string]bool{
-	"fibe_call":                  true,
-	"fibe_pipeline":              true,
-	"fibe_resource_mutate":       true,
-	"fibe_templates_change":      true,
-	"fibe_playgrounds_transform": true,
+	"fibe_call":                        true,
+	"fibe_pipeline":                    true,
+	"fibe_resource_mutate":             true,
+	"fibe_templates_change":            true,
+	"fibe_playgrounds_switch_template": true,
+	"fibe_run":                         true,
 }
 
 // includeTool decides whether a tool should be advertised on the mcp-go

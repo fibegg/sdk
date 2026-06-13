@@ -35,8 +35,8 @@ func TestTricksTriggerSendsRunOverrides(t *testing.T) {
 	cmd := tricksCmd()
 	cmd.SetArgs([]string{
 		"trigger",
-		"--playspec-id", "nightly-build",
-		"--marquee-id", "lyke",
+		"--playspec", "nightly-build",
+		"--marquee", "lyke",
 		"--name", "run",
 		"--env-overrides", `{"GH_TOKEN":"secret"}`,
 		"--only-service", "tests",

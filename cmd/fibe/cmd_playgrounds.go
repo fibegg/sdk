@@ -44,6 +44,7 @@ SUBCOMMANDS:
   update <id-or-name>       Update playground settings
   delete <id-or-name>       Delete a playground
   rollout <id-or-name>      Recreate with latest config
+  switch-template <id-or-name> Switch playground to another template version
   hard-restart <id-or-name> Hard restart all services
   stop <id-or-name>         Stop playground containers
   start <id-or-name>        Start a stopped playground
@@ -64,6 +65,7 @@ SUBCOMMANDS:
 		pgUpdateCmd(),
 		pgDeleteCmd(),
 		pgRolloutCmd(),
+		pgSwitchTemplateCmd(),
 		pgHardRestartCmd(),
 		pgStopCmd(),
 		pgStartCmd(),
@@ -80,7 +82,7 @@ SUBCOMMANDS:
 
 func pgListCmd() *cobra.Command {
 	var query, status, name, sort, createdAfter, createdBefore string
-	var playspecID, marqueeID string
+	var playspec, marquee string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all playgrounds (excludes tricks)",
@@ -91,8 +93,8 @@ FILTERS:
   -q, --query           Search across name (substring match)
   --status              Filter by exact status. Values: pending, in_progress, running, error, has_changes, completed, stopping, stopped, destroying
   --name                Filter by name (substring match)
-  --playspec-id         Filter by playspec ID or name
-  --marquee-id          Filter by marquee ID or name
+  --playspec            Filter by playspec ID or name
+  --marquee             Filter by marquee ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601, e.g. 2026-01-15)
@@ -128,11 +130,11 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if playspecID != "" {
-				params.PlayspecIdentifier = playspecID
+			if playspec != "" {
+				params.PlayspecIdentifier = playspec
 			}
-			if marqueeID != "" {
-				params.MarqueeIdentifier = marqueeID
+			if marquee != "" {
+				params.MarqueeIdentifier = marquee
 			}
 			if createdAfter != "" {
 				params.CreatedAfter = createdAfter
@@ -172,8 +174,8 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Filter by playspec ID or name")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Filter by marquee ID or name")
+	cmd.Flags().StringVar(&playspec, "playspec", "", "Filter by playspec ID or name")
+	cmd.Flags().StringVar(&marquee, "marquee", "", "Filter by marquee ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc, name_asc)")
@@ -221,10 +223,8 @@ EXAMPLES:
 
 func pgCreateCmd() *cobra.Command {
 	var name string
-	var playspecID string
-	var playspecAlias string
-	var marqueeID string
-	var marqueeAlias string
+	var playspec string
+	var marquee string
 	var serviceFlags []string
 
 	cmd := &cobra.Command{
@@ -232,7 +232,7 @@ func pgCreateCmd() *cobra.Command {
 		Short: "Deploy a playspec blueprint as a running playground",
 		Long: `Deploy a playspec blueprint onto a marquee host as a running playground.
 
-Requires an existing playspec-id.
+Requires an existing playspec.
 For an automated one-shot deployment directly from raw Docker Compose YAML 
 (without pre-creating a playspec), use the 'fibe launch' command instead.
 
@@ -243,8 +243,8 @@ SUBDOMAIN BOUNDARIES:
 
 REQUIRED FLAGS:
   --name          Playground name
-  --playspec-id   ID or name of the playspec to use (alias: --playspec)
-  --marquee-id    ID or name of the target marquee (alias: --marquee)
+  --playspec      ID or name of the playspec to use
+  --marquee       ID or name of the target marquee
 
 SERVICE OVERRIDES:
   --service SERVICE.FIELD=VALUE may be repeated and merges into the services payload.
@@ -255,7 +255,7 @@ SERVICE OVERRIDES:
 
 EXAMPLES:
   fibe playgrounds create --name my-app --playspec starter --marquee next
-  fibe pg create --name staging --playspec-id starter --marquee-id next
+  fibe pg create --name staging --playspec starter --marquee next
   fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
   echo '{"name": "test", "playspec_id": 5, "marquee_id": "next"}' | fibe pg create -f -
   fibe pg create -f payload.json` + generateSchemaDoc(&fibe.PlaygroundCreateParams{}),
@@ -269,19 +269,11 @@ EXAMPLES:
 			if cmd.Flags().Changed("name") {
 				params.Name = name
 			}
-			playspecIdentifier, changed, err := resolveAliasedStringFlag(cmd, "playspec-id", playspecID, "playspec", playspecAlias)
-			if err != nil {
-				return err
+			if cmd.Flags().Changed("playspec") {
+				params.PlayspecIdentifier = playspec
 			}
-			if changed {
-				params.PlayspecIdentifier = playspecIdentifier
-			}
-			marqueeIdentifier, changed, err := resolveAliasedStringFlag(cmd, "marquee-id", marqueeID, "marquee", marqueeAlias)
-			if err != nil {
-				return err
-			}
-			if changed {
-				params.MarqueeIdentifier = marqueeIdentifier
+			if cmd.Flags().Changed("marquee") {
+				params.MarqueeIdentifier = marquee
 			}
 			if len(serviceFlags) > 0 {
 				if err := applyPlaygroundServiceOverrides(params, serviceFlags); err != nil {
@@ -293,10 +285,27 @@ EXAMPLES:
 				return fmt.Errorf("required field 'name' not set")
 			}
 			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
-				return fmt.Errorf("required field 'playspec-id' not set")
+				return fmt.Errorf("required field 'playspec' not set")
 			}
 			if params.MarqueeID == nil && params.MarqueeIdentifier == "" {
-				return fmt.Errorf("required field 'marquee-id' not set")
+				inferred, err := resolveLaunchMarqueeIdentifier(c, "")
+				if err != nil {
+					return err
+				}
+				params.MarqueeIdentifier = inferred
+			}
+			if len(params.Services) > 0 {
+				playspecIdentifier := params.PlayspecIdentifier
+				if playspecIdentifier == "" && params.PlayspecID > 0 {
+					playspecIdentifier = strconv.FormatInt(params.PlayspecID, 10)
+				}
+				ps, err := c.Playspecs.GetByIdentifier(ctx(), playspecIdentifier)
+				if err != nil {
+					return err
+				}
+				if err := validateServiceOverrideNames(playspecServiceNames(ps), params.Services); err != nil {
+					return err
+				}
 			}
 
 			pg, err := c.Playgrounds.Create(ctx(), params)
@@ -313,141 +322,15 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Playground name (required)")
-	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Playspec ID or name (required)")
-	cmd.Flags().StringVar(&playspecAlias, "playspec", "", "Alias for --playspec-id")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Marquee ID or name (required)")
-	cmd.Flags().StringVar(&marqueeAlias, "marquee", "", "Alias for --marquee-id")
+	cmd.Flags().StringVar(&playspec, "playspec", "", "Playspec ID or name (required)")
+	cmd.Flags().StringVar(&marquee, "marquee", "", "Marquee ID or name (optional when exactly one launchable Marquee exists)")
 	cmd.Flags().StringArrayVar(&serviceFlags, "service", nil, "Set service config as SERVICE.FIELD=VALUE (repeatable)")
 	return cmd
 }
 
-func resolveAliasedStringFlag(cmd *cobra.Command, canonicalName, canonicalValue, aliasName, aliasValue string) (string, bool, error) {
-	canonicalChanged := cmd.Flags().Changed(canonicalName)
-	aliasChanged := cmd.Flags().Changed(aliasName)
-	if canonicalChanged && aliasChanged && canonicalValue != aliasValue {
-		return "", false, fmt.Errorf("conflicting values for --%s and --%s", canonicalName, aliasName)
-	}
-	if aliasChanged {
-		return aliasValue, true, nil
-	}
-	if canonicalChanged {
-		return canonicalValue, true, nil
-	}
-	return "", false, nil
-}
-
-func applyPlaygroundServiceOverrides(params *fibe.PlaygroundCreateParams, values []string) error {
-	if params.Services == nil {
-		params.Services = map[string]*fibe.ServiceConfig{}
-	}
-	for _, value := range values {
-		if err := applyPlaygroundServiceOverride(params.Services, value); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func applyPlaygroundServiceOverride(services map[string]*fibe.ServiceConfig, raw string) error {
-	left, value, ok := strings.Cut(raw, "=")
-	if !ok {
-		return fmt.Errorf("--service must use SERVICE.FIELD=VALUE")
-	}
-	serviceName, field, ok := strings.Cut(strings.TrimSpace(left), ".")
-	if !ok || strings.TrimSpace(serviceName) == "" || strings.TrimSpace(field) == "" {
-		return fmt.Errorf("--service must use SERVICE.FIELD=VALUE")
-	}
-	serviceName = strings.TrimSpace(serviceName)
-	field = strings.TrimSpace(field)
-	cfg := services[serviceName]
-	if cfg == nil {
-		cfg = &fibe.ServiceConfig{}
-		services[serviceName] = cfg
-	}
-
-	switch {
-	case field == "subdomain":
-		cfg.Subdomain = value
-	case field == "exposure_port":
-		port, err := parsePlaygroundServicePort(value)
-		if err != nil {
-			return fmt.Errorf("--service %s.exposure_port: %w", serviceName, err)
-		}
-		cfg.ExposurePort = &port
-	case field == "exposure_visibility":
-		if value != "internal" && value != "external" {
-			return fmt.Errorf("--service %s.exposure_visibility must be internal or external", serviceName)
-		}
-		cfg.ExposureVisibility = value
-	case field == "path_rule":
-		cfg.PathRule = value
-	case field == "start_command":
-		cfg.StartCommand = value
-	case field == "image":
-		cfg.Image = value
-	case field == "dockerfile_path":
-		cfg.DockerfilePath = value
-	case field == "env_file_path":
-		cfg.EnvFilePath = value
-	case field == "healthcheck_path":
-		cfg.HealthcheckPath = value
-	case strings.HasPrefix(field, "env_vars."):
-		key := strings.TrimPrefix(field, "env_vars.")
-		if key == "" {
-			return fmt.Errorf("--service env_vars key cannot be blank")
-		}
-		if cfg.EnvVars == nil {
-			cfg.EnvVars = map[string]string{}
-		}
-		cfg.EnvVars[key] = value
-	case strings.HasPrefix(field, "git_config."):
-		if err := applyPlaygroundGitConfigOverride(cfg, serviceName, strings.TrimPrefix(field, "git_config."), value); err != nil {
-			return err
-		}
-	default:
-		if field == "port_mappings" || strings.HasPrefix(field, "port_mappings.") {
-			return fmt.Errorf("--service does not support port_mappings; use -f JSON/YAML for port mappings")
-		}
-		if strings.Contains(field, ".") {
-			return fmt.Errorf("--service does not support service names with dots; use -f JSON/YAML")
-		}
-		return fmt.Errorf("--service field %q is not supported", field)
-	}
-	return nil
-}
-
-func parsePlaygroundServicePort(value string) (int, error) {
-	port, err := strconv.Atoi(value)
-	if err != nil || port < 1 || port > 65535 {
-		return 0, fmt.Errorf("must be an integer from 1 to 65535")
-	}
-	return port, nil
-}
-
-func applyPlaygroundGitConfigOverride(cfg *fibe.ServiceConfig, serviceName, field, value string) error {
-	if cfg.GitConfig == nil {
-		cfg.GitConfig = &fibe.GitConfig{}
-	}
-	switch field {
-	case "branch_name":
-		cfg.GitConfig.BranchName = value
-	case "base_branch_name":
-		cfg.GitConfig.BaseBranchName = value
-	case "create_branch":
-		parsed, err := strconv.ParseBool(value)
-		if err != nil {
-			return fmt.Errorf("--service %s.git_config.create_branch must be true or false", serviceName)
-		}
-		cfg.GitConfig.CreateBranch = parsed
-	default:
-		return fmt.Errorf("--service git_config field %q is not supported", field)
-	}
-	return nil
-}
-
 func pgUpdateCmd() *cobra.Command {
 	var name string
-	var playspecID, marqueeID string
+	var playspec, marquee string
 
 	cmd := &cobra.Command{
 		Use:   "update <id-or-name>",
@@ -456,16 +339,16 @@ func pgUpdateCmd() *cobra.Command {
 
 OPTIONAL FLAGS:
   --name           New playground name
-  --playspec-id    Switch to a different playspec by ID or name
-  --marquee-id     Move to a different marquee by ID or name
+  --playspec       Switch to a different playspec by ID or name
+  --marquee        Move to a different marquee by ID or name
 
 For complex updates (services, build_overrides_yaml), use --from-file:
   fibe playgrounds update 42 -f update.json
 
 EXAMPLES:
   fibe playgrounds update 42 --name new-name
-  fibe pg update 42 --marquee-id 7
-  fibe pg update 42 --playspec-id 12 --marquee-id 7` + generateSchemaDoc(&fibe.PlaygroundUpdateParams{}),
+  fibe pg update 42 --marquee 7
+  fibe pg update 42 --playspec 12 --marquee 7` + generateSchemaDoc(&fibe.PlaygroundUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -476,11 +359,11 @@ EXAMPLES:
 			if cmd.Flags().Changed("name") {
 				params.Name = &name
 			}
-			if cmd.Flags().Changed("playspec-id") {
-				params.PlayspecIdentifier = playspecID
+			if cmd.Flags().Changed("playspec") {
+				params.PlayspecIdentifier = playspec
 			}
-			if cmd.Flags().Changed("marquee-id") {
-				params.MarqueeIdentifier = marqueeID
+			if cmd.Flags().Changed("marquee") {
+				params.MarqueeIdentifier = marquee
 			}
 			pg, err := c.Playgrounds.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
@@ -496,8 +379,8 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "New playground name")
-	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Switch to a different playspec by ID or name")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Move to a different marquee by ID or name")
+	cmd.Flags().StringVar(&playspec, "playspec", "", "Switch to a different playspec by ID or name")
+	cmd.Flags().StringVar(&marquee, "marquee", "", "Move to a different marquee by ID or name")
 	return cmd
 }
 

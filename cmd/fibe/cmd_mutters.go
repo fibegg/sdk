@@ -26,26 +26,26 @@ SUBCOMMANDS:
 }
 
 func mutterGetCmd() *cobra.Command {
-	var playgroundID, query, status, severity string
+	var playground, query, status, severity string
 	cmd := &cobra.Command{
 		Use: "get <agent-id-or-name>", Short: "Get agent mutters", Args: cobra.ExactArgs(1),
 		Long: `Get mutters for an agent with optional filters.
 
 FILTERS:
   -q, --query           Search across mutter values (substring match)
-  --playground-id       Filter by playground ID
+  --playground          Filter by playground ID or name or name
   --status              Filter by status
   --severity            Filter by severity
 
 EXAMPLES:
   fibe mutters get my-agent
-  fibe mutters get my-agent --playground-id 42
+  fibe mutters get my-agent --playground 42
   fibe mutters get my-agent --status error --severity high -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.MutterListParams{}
-			if playgroundID != "" {
-				params.PlaygroundID = playgroundID
+			if playground != "" {
+				params.PlaygroundID = playground
 			}
 			if query != "" {
 				params.Query = query
@@ -71,7 +71,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across mutter values")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID")
+	cmd.Flags().StringVar(&playground, "playground", "", "Filter by playground ID or name or name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&severity, "severity", "", "Filter by severity")
 	return cmd
@@ -79,7 +79,7 @@ EXAMPLES:
 
 func mutterCreateCmd() *cobra.Command {
 	var typ, body string
-	var playgroundID string
+	var playground string
 	cmd := &cobra.Command{
 		Use: "create <agent-id-or-name>", Short: "Create a mutter item", Args: cobra.ExactArgs(1),
 		Long: `Create a new mutter item for an agent.
@@ -89,11 +89,11 @@ REQUIRED FLAGS:
   --body    Item body content
 
 OPTIONAL FLAGS:
-  --playground-id   Associate with a playground
+  --playground      Associate with a playground
 
 EXAMPLES:
   fibe mutters create my-agent --type observation --body "Service restarted"
-  fibe mutters create my-agent --type alert --body "High CPU" --playground-id 42`,
+  fibe mutters create my-agent --type alert --body "High CPU" --playground 42`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 
@@ -105,8 +105,8 @@ EXAMPLES:
 			}
 
 			params := &fibe.MutterItemParams{Type: typ, Body: body}
-			if cmd.Flags().Changed("playground-id") {
-				params.PlaygroundIdentifier = playgroundID
+			if cmd.Flags().Changed("playground") {
+				params.PlaygroundIdentifier = playground
 			}
 			mutter, err := c.Mutters.CreateItemByAgentIdentifier(ctx(), args[0], params)
 			if err != nil {
@@ -118,6 +118,6 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&typ, "type", "", "Item type (required)")
 	cmd.Flags().StringVar(&body, "body", "", "Item body (required)")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Associate with a playground ID or name")
+	cmd.Flags().StringVar(&playground, "playground", "", "Associate with a playground ID or name")
 	return cmd
 }

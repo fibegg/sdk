@@ -42,7 +42,6 @@ Examples:
 func lpInfoCmd() *cobra.Command {
 	var view string
 	var playground string
-	var playgroundID string
 
 	cmd := &cobra.Command{
 		Use:   "info",
@@ -60,7 +59,7 @@ Views:
 			if view == "" {
 				return fmt.Errorf("required flag '--view' not set")
 			}
-			selector, err := localPlaygroundSelector(view, playground, playgroundID)
+			selector, err := localPlaygroundSelector(view, playground)
 			if err != nil {
 				return err
 			}
@@ -125,29 +124,21 @@ Views:
 
 	cmd.Flags().StringVar(&view, "view", "", "Info view: names, urls, mounts, or details")
 	cmd.Flags().StringVar(&playground, "playground", "", "Local playground ID, name, compose project, playspec, or unique playspec prefix")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Local playground numeric ID")
 	return cmd
 }
 
-func localPlaygroundSelector(view, playground, playgroundID string) (string, error) {
+func localPlaygroundSelector(view, playground string) (string, error) {
 	playground = strings.TrimSpace(playground)
-	playgroundID = strings.TrimSpace(playgroundID)
 	if view == "names" {
-		if playground != "" || playgroundID != "" {
-			return "", fmt.Errorf("view 'names' does not accept --playground or --playground-id")
+		if playground != "" {
+			return "", fmt.Errorf("view 'names' does not accept --playground")
 		}
 		return "", nil
-	}
-	if playground != "" && playgroundID != "" {
-		return "", fmt.Errorf("pass only one of --playground or --playground-id")
-	}
-	if playgroundID != "" {
-		return playgroundID, nil
 	}
 	if playground != "" {
 		return playground, nil
 	}
-	return "", fmt.Errorf("view '%s' requires --playground or --playground-id", view)
+	return "", fmt.Errorf("view '%s' requires --playground", view)
 }
 
 func outputLocalPlaygroundDetails(pg *localplaygrounds.Playground) {

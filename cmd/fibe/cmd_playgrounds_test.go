@@ -90,11 +90,21 @@ func TestPlaygroundMaintenanceDisableCommandMapsActionBody(t *testing.T) {
 	}
 }
 
-func TestPlaygroundCreateAliasesAndServiceOverridesMapBody(t *testing.T) {
+func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 	setupAuthTest(t)
 
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/starter" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":   7,
+				"name": "starter",
+				"services": []map[string]any{
+					{"name": "web"},
+				},
+			})
+			return
+		}
 		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
@@ -149,21 +159,22 @@ func TestPlaygroundCreateAliasesAndServiceOverridesMapBody(t *testing.T) {
 	}
 }
 
-func TestPlaygroundCreateRejectsConflictingAliases(t *testing.T) {
+func TestPlaygroundCreateRejectsRetiredIDFlags(t *testing.T) {
 	setupAuthTest(t)
 
+	retiredFlag := "--playspec" + "-id"
 	cmd := playgroundsCmd()
-	cmd.SetArgs([]string{"create", "--name", "demo", "--playspec-id", "one", "--playspec", "two", "--marquee", "next"})
+	cmd.SetArgs([]string{"create", "--name", "demo", retiredFlag, "one", "--marquee", "next"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
 	}
-	if got := err.Error(); got != "conflicting values for --playspec-id and --playspec" {
+	if got := err.Error(); !strings.Contains(got, "unknown flag: "+retiredFlag) {
 		t.Fatalf("error = %q", got)
 	}
 }
 
-func TestPlaygroundCreateRequiresMarqueeLocally(t *testing.T) {
+func TestPlaygroundCreateRequiresMarqueeWhenInferenceFails(t *testing.T) {
 	setupAuthTest(t)
 
 	cmd := playgroundsCmd()
@@ -172,7 +183,7 @@ func TestPlaygroundCreateRequiresMarqueeLocally(t *testing.T) {
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
 	}
-	if got := err.Error(); got != "required field 'marquee-id' not set" {
+	if got := err.Error(); !strings.Contains(got, "Authentication required") && !strings.Contains(got, "API key") {
 		t.Fatalf("error = %q", got)
 	}
 }

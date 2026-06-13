@@ -14,15 +14,15 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestMarqueeIDFromEnv(t *testing.T) {
+func TestResolveLaunchMarqueeIdentifierUsesEnv(t *testing.T) {
 	t.Setenv("FIBE_MARQUEE_ID", "42")
 
-	id, err := marqueeIDFromEnv()
+	id, err := resolveLaunchMarqueeIdentifier(nil, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if id != 42 {
-		t.Fatalf("id=%d want 42", id)
+	if id != "42" {
+		t.Fatalf("id=%q want 42", id)
 	}
 }
 
