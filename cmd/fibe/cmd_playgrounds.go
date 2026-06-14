@@ -188,12 +188,15 @@ func pgGetCmd() *cobra.Command {
 		Short: "Show detailed playground information",
 		Long: `Get detailed information about a specific playground.
 
-Includes all fields from list plus: compose project, internal password,
+Includes all fields from list plus: compose project, service URLs,
 environment overrides, error messages, service status, and job results.
+The default table output does not print the internal HTTP basic-auth password.
+Use structured output with --only internal_password when you intentionally need it.
 
 EXAMPLES:
   fibe playgrounds get 42
   fibe playgrounds get my-playground
+  fibe pg get 42 --output json --only service_urls
   fibe pg get 42 --output json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -206,19 +209,247 @@ EXAMPLES:
 				outputJSON(pg)
 				return nil
 			}
-			fmt.Printf("ID:        %d\n", pg.ID)
-			fmt.Printf("Name:      %s\n", pg.Name)
-			fmt.Printf("Status:    %s\n", pg.Status)
-			fmt.Printf("Maintenance: %s\n", fmtMaintenance(pg.MaintenanceEnabled))
-			fmt.Printf("Playspec:  %s\n", fmtStr(pg.PlayspecName))
-			fmt.Printf("Expires:   %s\n", fmtTime(pg.ExpiresAt))
-			fmt.Printf("Created:   %s\n", fmtTimeVal(pg.CreatedAt))
-			if pg.ErrorMessage != nil {
-				fmt.Printf("Error:     %s\n", *pg.ErrorMessage)
-			}
+			printPlaygroundDetails(pg)
 			return nil
 		},
 	}
+}
+
+func printPlaygroundDetails(pg *fibe.Playground) {
+	fmt.Printf("ID:              %d\n", pg.ID)
+	fmt.Printf("Name:            %s\n", pg.Name)
+	fmt.Printf("Status:          %s\n", pg.Status)
+	fmt.Printf("Maintenance:     %s\n", fmtMaintenance(pg.MaintenanceEnabled))
+	fmt.Printf("Job mode:        %s\n", fmtBool(pg.JobMode))
+	fmt.Printf("Playspec:        %s (%s)\n", fmtStr(pg.PlayspecName), fmtInt64Ptr(pg.PlayspecID))
+	fmt.Printf("Marquee:         %s (%s)\n", fmtStr(pg.MarqueeName), fmtInt64Ptr(pg.MarqueeID))
+	fmt.Printf("Compose project: %s\n", fmtStr(pg.ComposeProject))
+	if pg.PersistentVolumePrefix != nil {
+		fmt.Printf("Volume prefix:   %s\n", *pg.PersistentVolumePrefix)
+	}
+	if pg.RootDomain != nil {
+		fmt.Printf("Root domain:     %s\n", *pg.RootDomain)
+	}
+	if pg.RoutingScheme != nil {
+		fmt.Printf("Routing scheme:  %s\n", *pg.RoutingScheme)
+	}
+	fmt.Printf("Expires:         %s\n", fmtTime(pg.ExpiresAt))
+	fmt.Printf("Created:         %s\n", fmtTimeVal(pg.CreatedAt))
+	if pg.LastAppliedAt != nil {
+		fmt.Printf("Last applied:    %s\n", fmtTime(pg.LastAppliedAt))
+	}
+	if pg.NeedsRecreation != nil {
+		fmt.Printf("Needs recreation: %s\n", fmtBoolPtr(pg.NeedsRecreation))
+	}
+	if reason := strings.TrimSpace(strings.Join(pg.StateReasons, "; ")); reason != "" {
+		fmt.Printf("Reason:          %s\n", reason)
+	} else if pg.StateReason != nil && strings.TrimSpace(*pg.StateReason) != "" {
+		fmt.Printf("Reason:          %s\n", *pg.StateReason)
+	}
+	if pg.ErrorMessage != nil {
+		fmt.Printf("Error:           %s\n", *pg.ErrorMessage)
+	}
+
+	printPlaygroundServiceURLs(pg.ServiceURLs)
+	printPlaygroundServices(pg.Services)
+	printPlaygroundSources(pg.ServiceSources)
+	printPlaygroundBuildStatuses(pg.BuildStatuses)
+	printPlaygroundJobResult(pg.JobResult)
+	printPlaygroundTeardown(pg.Teardown)
+}
+
+func printPlaygroundServiceURLs(urls []fibe.PlaygroundServiceURL) {
+	if len(urls) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("Service URLs:")
+	rows := make([][]string, len(urls))
+	authRequired := false
+	for i, url := range urls {
+		if url.AuthRequired {
+			authRequired = true
+		}
+		rows[i] = []string{
+			valueOrDash(url.Name),
+			valueOrDash(url.Type),
+			playgroundURLAccess(url),
+			playgroundURLStatus(url),
+			valueOrDash(url.URL),
+		}
+	}
+	outputTable([]string{"SERVICE", "TYPE", "ACCESS", "STATUS", "URL"}, rows)
+	if authRequired {
+		fmt.Println()
+		fmt.Println("HTTP basic auth: username playground; password hidden. Use -o json --only internal_password when you intentionally need it.")
+	}
+}
+
+func printPlaygroundServices(services []fibe.PlaygroundServiceInfo) {
+	if len(services) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("Services:")
+	rows := make([][]string, len(services))
+	for i, service := range services {
+		rows[i] = []string{
+			valueOrDash(service.Name),
+			valueOrDash(service.Status),
+			valueOrDash(service.Health),
+			fmtBool(service.Running),
+			fmtIntPtr(service.ExitCode),
+			valueOrDash(service.Image),
+		}
+	}
+	outputTable([]string{"SERVICE", "STATUS", "HEALTH", "RUNNING", "EXIT", "IMAGE"}, rows)
+}
+
+func printPlaygroundSources(sources []map[string]any) {
+	if len(sources) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("Sources:")
+	rows := make([][]string, len(sources))
+	for i, source := range sources {
+		rows[i] = []string{
+			mapValueString(source, "service"),
+			mapValueString(source, "prop_name"),
+			mapValueString(source, "branch"),
+			mapValueString(source, "repository_url"),
+		}
+	}
+	outputTable([]string{"SERVICE", "PROP", "BRANCH", "REPOSITORY"}, rows)
+}
+
+func printPlaygroundBuildStatuses(statuses []fibe.PlaygroundBuildStatus) {
+	if len(statuses) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("Builds:")
+	rows := make([][]string, len(statuses))
+	for i, status := range statuses {
+		rows[i] = []string{
+			valueOrDash(status.ServiceName),
+			valueOrDash(status.Branch),
+			fmtBuildSnapshot(status.Active),
+			fmtBuildSnapshot(status.Running),
+			fmtBuildSnapshot(status.Latest),
+		}
+	}
+	outputTable([]string{"SERVICE", "BRANCH", "ACTIVE", "RUNNING", "LATEST"}, rows)
+}
+
+func printPlaygroundJobResult(result *fibe.JobResult) {
+	if result == nil {
+		return
+	}
+
+	fmt.Println()
+	fmt.Printf("Job result: %s\n", jobResultLabel(result.Success))
+	if result.Summary != nil {
+		summary := result.Summary
+		fmt.Printf("Job summary: %d watched, %d succeeded, %d failed\n", summary.WatchedTotal, len(summary.Succeeded), len(summary.Failed))
+	}
+}
+
+func printPlaygroundTeardown(teardown map[string]any) {
+	if len(teardown) == 0 {
+		return
+	}
+
+	fmt.Println()
+	fmt.Printf("Teardown: %s\n", truncateString(compactJSON(teardown), 240))
+}
+
+func playgroundURLAccess(url fibe.PlaygroundServiceURL) string {
+	if url.AuthRequired {
+		if url.Visibility != "" {
+			return url.Visibility + " auth"
+		}
+		return "auth"
+	}
+	return valueOrDefault(url.Visibility, "public")
+}
+
+func playgroundURLStatus(url fibe.PlaygroundServiceURL) string {
+	parts := []string{}
+	if url.Status != "" {
+		parts = append(parts, url.Status)
+	}
+	if url.Health != "" {
+		parts = append(parts, "health="+url.Health)
+	}
+	if url.Running != nil {
+		if *url.Running {
+			parts = append(parts, "running")
+		} else {
+			parts = append(parts, "not-running")
+		}
+	}
+	if url.ExitCode != nil {
+		parts = append(parts, fmt.Sprintf("exit=%d", *url.ExitCode))
+	}
+	if len(parts) == 0 {
+		return "-"
+	}
+	return strings.Join(parts, "/")
+}
+
+func fmtIntPtr(value *int) string {
+	if value == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%d", *value)
+}
+
+func fmtBuildSnapshot(build *fibe.PlaygroundBuildRecordSnapshot) string {
+	if build == nil {
+		return "-"
+	}
+	sha := displayBuildSHA(build)
+	if sha == "" {
+		return build.Status
+	}
+	return build.Status + "@" + sha
+}
+
+func jobResultLabel(success *bool) string {
+	if success == nil {
+		return "unknown"
+	}
+	if *success {
+		return "succeeded"
+	}
+	return "failed"
+}
+
+func mapValueString(values map[string]any, key string) string {
+	if values == nil {
+		return "-"
+	}
+	return valueOrDash(fmt.Sprint(values[key]))
+}
+
+func valueOrDefault(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
+
+func valueOrDash(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" || value == "<nil>" {
+		return "-"
+	}
+	return value
 }
 
 func pgCreateCmd() *cobra.Command {

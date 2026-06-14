@@ -60,7 +60,7 @@ Generated from the MCP registry.
 | `fibe_playgrounds_wait` | brownfield | yes | [MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready. |
 | `fibe_repo_status_check` | other | yes | [MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs. |
 | `fibe_resource_delete` | base | yes | [MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, name, or key where supported. |
-| `fibe_resource_get` | base | yes | [MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Use artefact_attachment or agent_attachment to download attached runtime file content. |
+| `fibe_resource_get` | base | yes | [MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Playground reads include service_urls and service runtime status. Use artefact_attachment or agent_attachment to download attached runtime file content. |
 | `fibe_resource_list` | base | yes | [MODE:DIALOG] List a supported flat Fibe resource. Use fibe_schema with resource=list to discover resource names, aliases, and list params. |
 | `fibe_resource_mutate` | base | yes | [MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. Actions that use a Marquee require it to be funded. |
 | `fibe_resource_watch` | base | yes | [MODE:DIALOG] Watch supported Fibe resource events. |

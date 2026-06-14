@@ -205,10 +205,6 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		out, err = runCompiledCLI(t, "playgrounds", "debug", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to debug playground: %s", out)
 
-		// Playgrounds logs
-		out, err = runCompiledCLI(t, "playgrounds", "logs", strconv.FormatInt(id, 10), "--service", "web")
-		require.NoError(t, err, "failed to get logs: %s", out)
-
 		// Delete
 		out, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)

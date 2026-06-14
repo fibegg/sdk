@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -111,6 +112,8 @@ func waitForAgentChatHealth(chatURL string, attempts int, delay, timeout time.Du
 func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 	t.Helper()
 
+	skipThirdpartyIfDisabled(t)
+
 	marqueeID := testMarqueeID(t)
 	if marqueeID == 0 {
 		t.Skip("set FIBE_TEST_MARQUEE_ID to bootstrap an agent chat")
@@ -159,7 +162,38 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 func opencodeChatCredential(t *testing.T) (string, string, string, string) {
 	t.Helper()
 
-	cases := []agentRuntimeMatrixCase{
+	cases := selectedOpencodeChatCases()
+	if len(cases) == 0 {
+		t.Skipf("no OpenCode agent chat cases selected by CHAT_E2E_CASE=%q CHAT_E2E_CASE_EXCEPT=%q", os.Getenv("CHAT_E2E_CASE"), os.Getenv("CHAT_E2E_CASE_EXCEPT"))
+	}
+
+	var names []string
+	for _, tc := range cases {
+		if secret, source := lookupAgentRuntimeCredential(tc); secret != "" {
+			return secret, tc.modelOptions, tc.opencodeProvider, source
+		}
+		names = append(names, agentRuntimeCredentialEnvNames(tc)...)
+	}
+
+	t.Skipf("set one of %s to bootstrap an OpenCode agent chat", strings.Join(names, ", "))
+	return "", "", "", ""
+}
+
+func selectedOpencodeChatCases() []agentRuntimeMatrixCase {
+	caseFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE"))
+	caseExcludeFilters := agentRuntimeCaseFilters(os.Getenv("CHAT_E2E_CASE_EXCEPT"))
+	cases := opencodeChatCases()
+	selectedCases := make([]agentRuntimeMatrixCase, 0, len(cases))
+	for _, tc := range cases {
+		if agentRuntimeCaseSelected(tc, caseFilters, caseExcludeFilters) {
+			selectedCases = append(selectedCases, tc)
+		}
+	}
+	return selectedCases
+}
+
+func opencodeChatCases() []agentRuntimeMatrixCase {
+	return []agentRuntimeMatrixCase{
 		{
 			name:               "OpenCode OpenRouter",
 			provider:           fibe.ProviderOpenCode,
@@ -197,17 +231,68 @@ func opencodeChatCredential(t *testing.T) (string, string, string, string) {
 			opencodeProvider:   "gemini",
 		},
 	}
+}
 
-	var names []string
-	for _, tc := range cases {
-		if secret, source := lookupAgentRuntimeCredential(tc); secret != "" {
-			return secret, tc.modelOptions, tc.opencodeProvider, source
+func TestSelectedOpencodeChatCasesHonorsChatFilters(t *testing.T) {
+	t.Run("excludes matching OpenCode case", func(t *testing.T) {
+		t.Setenv("CHAT_E2E_CASE", "")
+		t.Setenv("CHAT_E2E_CASE_EXCEPT", "OpenCode Anthropic")
+
+		names := strings.Join(opencodeChatCaseNames(selectedOpencodeChatCases()), ",")
+		want := "OpenCode OpenRouter,OpenCode OpenAI,OpenCode Gemini"
+		if names != want {
+			t.Fatalf("selected OpenCode chat cases = %q, want %q", names, want)
 		}
-		names = append(names, agentRuntimeCredentialEnvNames(tc)...)
-	}
+	})
 
-	t.Skipf("set one of %s to bootstrap an OpenCode agent chat", strings.Join(names, ", "))
-	return "", "", "", ""
+	t.Run("non OpenCode include selects no chat cases", func(t *testing.T) {
+		t.Setenv("CHAT_E2E_CASE", "Codex API key")
+		t.Setenv("CHAT_E2E_CASE_EXCEPT", "")
+
+		if got := selectedOpencodeChatCases(); len(got) != 0 {
+			t.Fatalf("selected %d OpenCode chat cases for Codex-only filter: %v", len(got), opencodeChatCaseNames(got))
+		}
+	})
+}
+
+func TestOpencodeChatCredentialIgnoresExcludedCredentials(t *testing.T) {
+	clearOpencodeChatCredentialEnv(t)
+	t.Setenv("CHAT_E2E_CASE", "")
+	t.Setenv("CHAT_E2E_CASE_EXCEPT", "OpenCode Anthropic")
+	t.Setenv("FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY", "anthropic-secret")
+	t.Setenv("FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", "openai-secret")
+
+	secret, modelOptions, opencodeProvider, credentialSource := opencodeChatCredential(t)
+	if secret != "openai-secret" {
+		t.Fatalf("secret source value = %q, want openai-secret", secret)
+	}
+	if modelOptions != "openai/gpt-5-mini" {
+		t.Fatalf("model options = %q, want openai/gpt-5-mini", modelOptions)
+	}
+	if opencodeProvider != "openai" {
+		t.Fatalf("OpenCode provider = %q, want openai", opencodeProvider)
+	}
+	if credentialSource != "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY" {
+		t.Fatalf("credential source = %q, want FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", credentialSource)
+	}
+}
+
+func opencodeChatCaseNames(cases []agentRuntimeMatrixCase) []string {
+	names := make([]string, 0, len(cases))
+	for _, tc := range cases {
+		names = append(names, tc.name)
+	}
+	return names
+}
+
+func clearOpencodeChatCredentialEnv(t *testing.T) {
+	t.Helper()
+
+	for _, tc := range opencodeChatCases() {
+		for _, envName := range agentRuntimeCredentialEnvNames(tc) {
+			t.Setenv(envName, "")
+		}
+	}
 }
 
 func TestAgents_Chat(t *testing.T) {

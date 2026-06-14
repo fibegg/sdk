@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -160,8 +161,13 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 11. Logs (may return empty if not yet running)
+	// 11. Logs: canonical real SDK logs success coverage.
 	t.Run("logs for web service", func(t *testing.T) {
+		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
+		if finalStatus != "running" {
+			t.Fatalf("playground did not reach running before logs: got %q", finalStatus)
+		}
+
 		tail := 20
 		logs, err := c.Playgrounds.Logs(ctx(), pg.ID, "web", &tail)
 		if err != nil {
@@ -177,7 +183,22 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 12. Logs for nonexistent service returns 4xx
+	// 12. CLI logs shares the same real running playground instead of
+	// launching a separate playground in the broad CLI smoke.
+	t.Run("cli logs for web service", func(t *testing.T) {
+		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
+		if finalStatus != "running" {
+			t.Fatalf("playground did not reach running before CLI logs: got %q", finalStatus)
+		}
+
+		out, err := runCompiledCLI(t, "playgrounds", "logs", strconv.FormatInt(pg.ID, 10), "--service", "web")
+		requireNoError(t, err, "failed to get CLI playground logs: "+out)
+		if !strings.Contains(out, `"service": "web"`) {
+			t.Errorf("expected CLI logs JSON to include service web, got: %s", out)
+		}
+	})
+
+	// 13. Logs for nonexistent service returns 4xx
 	t.Run("logs for nonexistent service returns error", func(t *testing.T) {
 		_, err := c.Playgrounds.Logs(ctx(), pg.ID, "nonexistent-service", nil)
 		if err == nil {

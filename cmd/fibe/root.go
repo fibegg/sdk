@@ -79,11 +79,11 @@ LLM AGENT USAGE:
   fibe agents get 5 --only id,name,authenticated
 
 ADVANCED PARAMETERS (JSON/YAML):
-  Complex creation operations support loading payloads from files or standard input using --from-file (-f).
-  Local config:   fibe pg create -f payload.json
-  Piped input:    echo '{"name": "test"}' | fibe pg create
-  Explicit "-" :  cat payload.yml | fibe pg create -f -
-  Overrides:      fibe pg create -f payload.json --name "override-name"
+  Complex creation operations support loading payloads from files with --from-file (-f).
+  Local config:     fibe pg create -f payload.json
+  File redirection: fibe pg create < payload.json
+  Explicit stdin:   cat payload.yml | fibe pg create -f -
+  Overrides:        fibe pg create -f payload.json --name "override-name"
 
 PAGINATION:
   List commands return 25 items by default.

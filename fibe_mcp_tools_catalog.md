@@ -2714,7 +2714,7 @@ Generated from the MCP registry.
 **Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Use artefact_attachment or agent_attachment to download attached runtime file content.
+[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Playground reads include service_urls and service runtime status. Use artefact_attachment or agent_attachment to download attached runtime file content.
 
 ### Input Schema
 ```json

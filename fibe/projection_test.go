@@ -36,6 +36,56 @@ func TestWithFields_FiltersSingleObject(t *testing.T) {
 	}
 }
 
+func TestPlaygroundGetDecodesDetailAccessFields(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/playgrounds/42" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":                       42,
+			"name":                     "demo",
+			"status":                   "running",
+			"marquee_name":             "edge",
+			"root_domain":              "example.test",
+			"routing_scheme":           "https",
+			"persistent_volume_prefix": "demo-edge",
+			"service_urls": []map[string]any{
+				{
+					"name":          "web",
+					"type":          "static",
+					"url":           "https://demo.example.test",
+					"visibility":    "internal",
+					"auth_required": true,
+					"status":        "running",
+					"health":        "healthy",
+					"running":       true,
+				},
+			},
+		})
+	})
+
+	pg, err := c.Playgrounds.Get(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pg.MarqueeName == nil || *pg.MarqueeName != "edge" {
+		t.Fatalf("marquee_name = %#v", pg.MarqueeName)
+	}
+	if pg.RootDomain == nil || *pg.RootDomain != "example.test" {
+		t.Fatalf("root_domain = %#v", pg.RootDomain)
+	}
+	if pg.PersistentVolumePrefix == nil || *pg.PersistentVolumePrefix != "demo-edge" {
+		t.Fatalf("persistent_volume_prefix = %#v", pg.PersistentVolumePrefix)
+	}
+	if len(pg.ServiceURLs) != 1 {
+		t.Fatalf("service_urls = %#v", pg.ServiceURLs)
+	}
+	url := pg.ServiceURLs[0]
+	if url.Name != "web" || url.URL != "https://demo.example.test" || !url.AuthRequired || url.Running == nil || *url.Running != true {
+		t.Fatalf("unexpected service URL: %#v", url)
+	}
+}
+
 func TestWithFields_FiltersListData(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(listEnv([]Playground{

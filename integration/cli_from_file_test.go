@@ -139,18 +139,16 @@ func TestCLI_FromFile_STDIN(t *testing.T) {
 	data, err := json.Marshal(params)
 	requireNoError(t, err, "marshal json")
 
-	// 1. Will succeed using implicit auto-detected stdin pipe
+	// 1. Implicit pipe stdin is intentionally ignored; explicit "-" is required for pipes.
 	out, err := runCLIWithStdin(t, string(data), "pg", "create")
-	if err != nil && !strings.Contains(err.Error(), "required field 'name' not set") {
-		// Actually implicit Stdin is detected by os.Stat, which might not be completely true when exec.Command puts a reader in Stdin.
-		// So it might either work or complain 'name not set'. We requireNoError because we piped it!
-		if err != nil && !strings.Contains(out, "read from stdin: ") {
-			requireNoError(t, err, "failed creating playground from implicit STDIN:\nOUTPUT: "+out)
-		}
+	if err == nil {
+		t.Fatalf("expected implicit pipe stdin to be ignored, got success:\nOUTPUT: %s", out)
+	}
+	if !strings.Contains(out, "required field 'name' not set") && !strings.Contains(err.Error(), "required field 'name' not set") {
+		requireNoError(t, err, "unexpected implicit STDIN error:\nOUTPUT: "+out)
 	}
 
-	// Wait, if it fails because named pipe isn't perfectly simulated, let's gracefully continue
-	// 3. Test explicit '-' parsing
+	// 2. Test explicit '-' parsing
 	pgName2 := uniqueName("test-stdin-explicit")
 	params["name"] = pgName2
 	data2, _ := json.Marshal(params)

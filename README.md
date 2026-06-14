@@ -81,6 +81,12 @@ fibe agents watch --max-events 5 --duration 1m
 
 # Create a playground from an existing Playspec and override one service field
 fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
+cat payload.yml | fibe pg create -f -   # explicit stdin
+fibe pg create < payload.yml           # file redirection
+
+# Inspect service URLs and runtime service status
+fibe pg get demo
+fibe pg get demo -o json --only service_urls
 
 # Block until a playground starts running by name or ID
 fibe wait playground next --status running --timeout 5m
@@ -160,7 +166,7 @@ Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments
 
 ### Tool surface
 
-The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_launch`. Agent list/runtime, attachment, and scheduled poke flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, download runtime files through `fibe_resource_get` using `agent_attachment`, and manage scheduled pokes through the `agent_poke` resource aliases `agent_pokes` and `pokes`. Playspec job automation uses `fibe_resource_mutate` with `playspec.create` or `playspec.update`; inspect `fibe_schema(resource:"playspec", operation:"create")` for `schedule_config`, `trigger_config`, and `muti_config` payload fields. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls.
+The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_launch`. Agent list/runtime, attachment, and scheduled poke flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, download runtime files through `fibe_resource_get` using `agent_attachment`, and manage scheduled pokes through the `agent_poke` resource aliases `agent_pokes` and `pokes`. Inspect Playground URLs and services through `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; the detailed response includes `service_urls` and `services`, while `fibe_playgrounds_debug` remains the deeper diagnostics surface for raw compose/routes/log context. Playspec job automation uses `fibe_resource_mutate` with `playspec.create` or `playspec.update`; inspect `fibe_schema(resource:"playspec", operation:"create")` for `schedule_config`, `trigger_config`, and `muti_config` payload fields. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls.
 
 The generated registry docs currently list 60 registered dispatcher tools. By default, `fibe mcp serve` uses the `full` tool surface and advertises the 59 non-hidden tools. Use `--tools core` or `FIBE_MCP_TOOLS=core` to narrow the native surface to the 39 meta/base/greenfield/brownfield tools, or pass a comma-separated tier list such as `--tools other,meta`. Hidden tools are not advertised natively even in `full`, but remain dispatcher-reachable through `fibe_call` and `fibe_pipeline` when the caller already knows the tool name. Use `fibe_tools_catalog` to inspect `advertised` and `hidden` flags for a running server. Regenerate `fibe_mcp_tools_catalog.md` and `fibe_tools_table.md` deterministically from the Go MCP registry with:
 

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 FIBE_E2E_TIMEOUTS_DEFAULTS='{"check":7200,"check_after":10800,"results":10800,"runtime_wait_seconds":600,"auth_service_start_seconds":300,"fibe_compose_up":900,"opencode_turn_ms":180000,"playwright_bootstrap_seconds":600,"playwright_bootstrap_file_seconds":600,"playwright_api":180000,"playwright_api_global":5400000,"playwright_api_provision":600000,"playwright_api_provision_deadline":540000,"playwright_api_job_status":600000,"playwright_api_job_test":660000,"playwright_webhook_wait_ms":45000,"playwright_ui":300000,"playwright_ui_expect":45000,"playwright_ui_action":60000,"playwright_ui_navigation":300000,"playwright_ui_navigation_test":300000,"playwright_ui_auth_security":"","playwright_integration":1200000,"playwright_integration_global":7200000,"playwright_integration_expect":30000,"playwright_integration_import":420000,"playwright_integration_playground_wait_minutes":"","playwright_agent":180000,"playwright_agent_global":1800000,"playwright_bazaar_provision_minutes":25,"playwright_bazaar_http_attempts":90,"playwright_bazaar_http_interval_ms":5000,"playwright_bazaar_http_request_ms":15000,"agent_runtime_ready_ms":720000,"agent_runtime_ready_poll_ms":2500,"agent_runtime_ready_progress_ms":30000,"go_tests":"7200s","lint":"","app_pw_tests":"","app_pw_api":"","app_pw_ui":"","app_pw_integration":"","app_pw_agent":"","app_pw_thirdparty":"","app_pw_bazaar":"","app_go_tests":"","fibe_agent_ci":""}'
-FIBE_E2E_PARALLELISM_DEFAULTS='{"playwright":4,"playwright_ui":12,"playwright_integration":4,"playwright_thirdparty":4,"playwright_bazaar":4,"go_tests":4,"lint":1,"registry_warmup":4,"playwright_fully_parallel":""}'
-FIBE_E2E_SETTINGS_DEFAULTS='{"playwright_reporter":"list","playwright_video":"off","go_test_format":"testname","go_test_hide_summary":"","bazaar_layers":"default","bazaar_template_slugs":""}'
+FIBE_E2E_PARALLELISM_DEFAULTS='{"api":4,"ui":12,"integration":4,"agent":1,"thirdparty":4,"bazaar":4,"go_tests":4,"lint":1,"registry_warmup":4}'
+FIBE_E2E_SETTINGS_DEFAULTS='{"playwright_reporter":"list","playwright_video":"off","playwright_trace":"on-first-retry","playwright_retries":"","playwright_max_failures":"","playwright_parallel_safe_modes":"","playwright_fully_parallel":"","go_test_format":"testname","go_test_hide_summary":"","bazaar_layers":"default","bazaar_template_slugs":""}'
 
 fibe_e2e_json_value() {
   fibe_e2e_json="$1"
@@ -115,12 +115,12 @@ fibe_e2e_apply_timeouts() {
 }
 
 fibe_e2e_apply_parallelism() {
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright PLAYWRIGHT_WORKERS
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_ui PLAYWRIGHT_UI_WORKERS
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_integration PLAYWRIGHT_INTEGRATION_WORKERS
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_thirdparty PLAYWRIGHT_THIRDPARTY_WORKERS
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_bazaar PLAYWRIGHT_BAZAAR_WORKERS
-  fibe_e2e_export_json FIBE_E2E_PARALLELISM playwright_fully_parallel PLAYWRIGHT_FULLY_PARALLEL
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM api PLAYWRIGHT_API_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM ui PLAYWRIGHT_UI_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM integration PLAYWRIGHT_INTEGRATION_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM agent PLAYWRIGHT_AGENT_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM thirdparty PLAYWRIGHT_THIRDPARTY_WORKERS
+  fibe_e2e_export_json FIBE_E2E_PARALLELISM bazaar PLAYWRIGHT_BAZAAR_WORKERS
   fibe_e2e_export_json FIBE_E2E_PARALLELISM go_tests GO_TEST_PARALLEL
   fibe_e2e_export_json FIBE_E2E_PARALLELISM lint PARALLEL_TEST_PROCESSORS
   fibe_e2e_export_json FIBE_E2E_PARALLELISM registry_warmup REGISTRY_WARMUP_JOBS
@@ -129,6 +129,11 @@ fibe_e2e_apply_parallelism() {
 fibe_e2e_apply_settings() {
   fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_reporter PLAYWRIGHT_REPORTER
   fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_video PLAYWRIGHT_VIDEO_MODE
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_trace PLAYWRIGHT_TRACE_MODE
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_retries PLAYWRIGHT_RETRIES
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_max_failures PLAYWRIGHT_MAX_FAILURES
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_parallel_safe_modes PLAYWRIGHT_PARALLEL_SAFE_MODES
+  fibe_e2e_export_json FIBE_E2E_SETTINGS playwright_fully_parallel PLAYWRIGHT_FULLY_PARALLEL
   fibe_e2e_export_json FIBE_E2E_SETTINGS go_test_format GO_TEST_FORMAT
   fibe_e2e_export_json FIBE_E2E_SETTINGS go_test_hide_summary GO_TEST_HIDE_SUMMARY
   fibe_e2e_export_json FIBE_E2E_SETTINGS bazaar_layers PLAYWRIGHT_BAZAAR_LAYERS
