@@ -7,15 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes documented yet._
+
+## [0.2.40] - 2026-06-13
+
 ### Added
 - **MCP server (`fibe mcp`)**: The `fibe` binary now doubles as a local [Model Context Protocol](https://modelcontextprotocol.io) server so LLM agents can drive Fibe without paying the `fork+exec` cost of invoking the CLI per operation.
   - **`fibe mcp serve`** — stdio transport (default), SSE (`--http :port`), or streamable-HTTP (`--http :port --streamable`).
-  - **136 tools total** with a curated agent workflow surface. Set `FIBE_MCP_TOOLS=full` to expose the complete registered catalog.
+  - **60 registered dispatcher tools** with a curated agent workflow surface. The default/full tool surface advertises 59 non-hidden tools, while `--tools core` / `FIBE_MCP_TOOLS=core` advertises the 39 meta/base/greenfield/brownfield tools.
   - **`fibe_pipeline`** — compose multiple tool calls in one round-trip with JSONPath bindings, `parallel` blocks, `for_each` fanout, `dry_run` validation. Results cached per session for 5 minutes under a `pipeline_id`; re-query via `fibe_pipeline_result` with a JSONPath projection.
   - **`idempotency_key`** on `fibe_pipeline` is threaded into per-step SDK contexts (sha256 of `key:step_id`) so destructive pipeline retries hit the server-side 24-hour idempotency cache.
-  - **Streaming**: `fibe_playgrounds_wait` emits MCP progress notifications per poll tick; `fibe_monitor_logs_follow` streams playground or trick log lines as notifications, with `fibe_playgrounds_logs_follow` retained as a playground compatibility alias.
+  - **Streaming**: `fibe_playgrounds_wait` emits MCP progress notifications per poll tick, and `fibe_logs_follow` streams playground or trick log lines as notifications.
   - **`--yolo` / `FIBE_MCP_YOLO=1`** skips the `confirm:true` gate on destructive tools for non-interactive (CI) use.
-  - **Multi-tenant auth** (HTTP transport): resolves API key from `Authorization: Bearer …`, `X-Fibe-API-Key`, a prior `fibe_auth_set` tool call, or the server-wide default. Each session gets its own `*fibe.Client` with isolated circuit-breaker state.
+  - **Multi-tenant auth** (HTTP transport): resolves API key from a prior session `fibe_auth_use` / `fibe_auth_set`, then `Authorization: Bearer …` or `X-Fibe-API-Key`, then the server-wide default. Each session caches its own `*fibe.Client` with isolated circuit-breaker state.
   - **Structured errors**: `*fibe.APIError` (`code`, `status`, `message`, `request_id`, `details`, `retry_after_seconds`, `idempotent_replayed`) survives intact through MCP tool-error results.
   - **Resources**: `fibe://me`, `fibe://status`, `fibe://schema`, `fibe://schema/{resource}`, `fibe://help/{path}`, `fibe://pipeline/schema`, `fibe://pipelines/{id}`.
   - **Audit log**: set `FIBE_MCP_AUDIT_LOG=/path/to/log.jsonl` (or `stderr`) for one JSON line per tool call with sensitive-arg redaction.
@@ -32,13 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Structured Error Output**: CLI errors are now fully structured JSON or YAML error objects containing an `error` struct with `code`, `message`, `details`, and `request_id`, instead of unstructured text output. Use the `--explain-errors` flag or run with `-o yaml`/`-o json`.
 - **System-level properties**: `APIError` now includes `x-request-id` to debug API issues and `x-idempotent-replayed` to verify if a request resulted in cache reuse on the server.
 - **Circuit Breaker Protection**: In-memory SDK rate limit tracking and automated circuit breakers are built into the client object for enterprise workloads.
-- **Completion command**: Run `fibe completion bash|zsh|fish` to install shell conveniences.
+- **Completion command**: Run `fibe completion bash|zsh|fish|powershell` to install shell conveniences.
 - **Dashboard Data**: Fetch everything at once using the `/api/status` endpoint and `fibe status`.
 
 ### Changed
 - **Cross-Service Pagination**: The pagination across all services has been unified to standard offsets via `page` and `per_page` query arguments instead of `limit` and `offset` everywhere.
-- **Strong Webhook Security**: Replay attack protections added with `VerifyWebhookSignatureWithMaxAge(r, secret, maxAge)` instead of basic signature verification.
-- **HTTP Transport Stability**: Retrying an operation is more resiliant now; the SDK consumes memory appropriately up to safe 10MB ranges before dumping streaming IO responses.
+- **Strong Webhook Security**: `VerifyWebhookSignatureWithMaxAge(r, secret, maxAge)` was added alongside `VerifyWebhookSignature` for replay protection when callers need a payload age limit.
+- **HTTP Transport Stability**: Retrying an operation is more resilient now; response bodies are decoded with a 10 MB limit and drained to keep connections reusable.
 
 ### Removed
 - Removed the experimental `gorilla/websocket` client stream since the standard REST endpoints natively return current playground statuses and history.

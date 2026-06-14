@@ -1,5 +1,14 @@
 # Fibe MCP Tools Catalog
 
+Generated from the MCP registry.
+
+- Registered tools: 60
+- Advertised with `FIBE_MCP_TOOLS=full`: 59
+- Advertised with `FIBE_MCP_TOOLS=core`: 39
+- Hidden dispatcher-only tools: 1
+
+`full` advertises every non-hidden registered tool. Hidden tools remain dispatcher-reachable through `fibe_call` and `fibe_pipeline`, and `fibe_tools_catalog` reports them with `hidden:true`.
+
 ## `fibe_agent_defaults_get`
 **Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 

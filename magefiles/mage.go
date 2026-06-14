@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/fibegg/sdk/internal/mcpserver"
 	"github.com/magefile/mage/sh"
 )
 
@@ -64,46 +63,11 @@ func Test() error {
 }
 
 func ToolsDocs() error {
-	catalog, table, err := renderToolsDocs()
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile("fibe_mcp_tools_catalog.md", catalog, 0644); err != nil {
-		return err
-	}
-	return os.WriteFile("fibe_tools_table.md", table, 0644)
+	return sh.RunV("go", "run", "./scripts/docs")
 }
 
 func ToolsDocsCheck() error {
-	catalog, table, err := renderToolsDocs()
-	if err != nil {
-		return err
-	}
-	if err := checkGeneratedFile("fibe_mcp_tools_catalog.md", catalog); err != nil {
-		return err
-	}
-	return checkGeneratedFile("fibe_tools_table.md", table)
-}
-
-func renderToolsDocs() ([]byte, []byte, error) {
-	cfg := mcpserver.DefaultConfig()
-	srv := mcpserver.New(cfg)
-	if err := srv.RegisterAll(); err != nil {
-		return nil, nil, fmt.Errorf("register tools: %w", err)
-	}
-	docs := mcpserver.GenerateToolDocs(srv.AllTools())
-	return []byte(docs.CatalogMarkdown), []byte(docs.TableMarkdown), nil
-}
-
-func checkGeneratedFile(path string, expected []byte) error {
-	current, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	if string(current) != string(expected) {
-		return fmt.Errorf("%s is stale; run `mage toolsDocs`", path)
-	}
-	return nil
+	return sh.RunV("go", "run", "./scripts/docs", "--check")
 }
 
 func IntegrationTest() error {
