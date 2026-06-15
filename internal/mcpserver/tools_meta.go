@@ -438,6 +438,9 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		strs = append(strs, token)
 	}
 	userArgs := append([]string(nil), strs...)
+	if legacy := s.legacyFibeRunSyntaxResult(userArgs); legacy != nil {
+		return legacy, nil
+	}
 
 	var timeoutMs int64
 	if v, ok := argInt64(args, "timeout_ms"); ok {
@@ -460,6 +463,84 @@ func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error)
 		return nil, fmt.Errorf("fibe_run not available: server was started without CobraRoot or CobraExecutable")
 	}
 	return s.runCobraInProcess(ctx, strs, userArgs, timeoutMs)
+}
+
+func (s *Server) legacyFibeRunSyntaxResult(userArgs []string) map[string]any {
+	if len(userArgs) == 0 {
+		return nil
+	}
+	if resourceResult := legacyResourceCommandResult(userArgs); resourceResult != nil {
+		return resourceResult
+	}
+	if containsCLIFlag(userArgs, "--format") {
+		result := map[string]any{
+			"args":              userArgs,
+			"ok":                false,
+			"legacy_cli_syntax": true,
+			"unsupported_flag":  "--format",
+			"error":             "fibe_run received obsolete CLI syntax: --format is not a Fibe CLI flag",
+			"guidance":          "Use --output for raw CLI commands, and prefer dedicated MCP tools over fibe_run. For resource reads, call fibe_resource_list or fibe_resource_get directly.",
+		}
+		if recommended := s.recommendedToolForCLIArgs(userArgs); recommended != "" {
+			result["recommended_tool"] = recommended
+			result["warning"] = fmt.Sprintf("prefer %s over fibe_run when possible", recommended)
+		}
+		return result
+	}
+	return nil
+}
+
+func legacyResourceCommandResult(userArgs []string) map[string]any {
+	command := strings.ToLower(strings.TrimSpace(userArgs[0]))
+	if command != "resource" && command != "resources" {
+		return nil
+	}
+	result := map[string]any{
+		"args":              userArgs,
+		"ok":                false,
+		"legacy_cli_syntax": true,
+		"error":             "fibe_run received obsolete CLI syntax: fibe resource/resources is not a Fibe CLI command",
+		"guidance":          "Use the dedicated MCP resource tools instead: fibe_resource_list for list operations and fibe_resource_get for get/inspect operations. The raw CLI uses plural top-level commands and --output, not fibe resource ... --format.",
+	}
+	if len(userArgs) < 2 {
+		result["recommended_tool"] = "fibe_tools_catalog"
+		result["recommended_args"] = map[string]any{"name_pattern": "resource"}
+		return result
+	}
+
+	operation := strings.ToLower(strings.TrimSpace(userArgs[1]))
+	var recommendedTool string
+	switch operation {
+	case "list", "ls":
+		recommendedTool = "fibe_resource_list"
+	case "get", "show", "inspect":
+		recommendedTool = "fibe_resource_get"
+	default:
+		result["recommended_tool"] = "fibe_tools_catalog"
+		result["recommended_args"] = map[string]any{"name_pattern": "resource"}
+		return result
+	}
+	result["recommended_tool"] = recommendedTool
+
+	if len(userArgs) >= 3 {
+		if resource, ok := resourceschema.CanonicalResource(userArgs[2]); ok {
+			recommendedArgs := map[string]any{"resource": resource}
+			if recommendedTool == "fibe_resource_get" && len(userArgs) >= 4 && !strings.HasPrefix(userArgs[3], "-") {
+				recommendedArgs["id_or_name"] = userArgs[3]
+			}
+			result["recommended_args"] = recommendedArgs
+		}
+	}
+	return result
+}
+
+func containsCLIFlag(args []string, flag string) bool {
+	for _, arg := range args {
+		if arg == flag || strings.HasPrefix(arg, flag+"=") {
+			return true
+		}
+	}
+	return false
 }
 
 func fibeRunRequiresConfirm(args map[string]any) bool {
