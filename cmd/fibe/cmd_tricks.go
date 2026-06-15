@@ -376,9 +376,13 @@ EXAMPLES:
 			if follow {
 				return runLogMonitor(cmd, "trick", args[0], service, tail, maxLines, duration)
 			}
-			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("fetching logs for trick " + args[0] + "...")
+			defer progress.Stop()
+			c := newClient(fibe.WithProgress(progress.Progress("fetching logs for trick " + args[0])))
 			t := &tail
 			logs, err := c.Tricks.LogsByIdentifier(ctx(), args[0], service, t)
+			progress.Stop()
 			if err != nil {
 				return err
 			}

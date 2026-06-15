@@ -466,7 +466,11 @@ func tplSourceRefreshCmd() *cobra.Command {
 		Short: "Refresh tracked template source now",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result, err := newClient().ImportTemplates.RefreshSourceByIdentifier(ctx(), args[0])
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("refreshing template source " + args[0] + "...")
+			defer progress.Stop()
+			result, err := newClient(fibe.WithProgress(progress.Progress("refreshing template source "+args[0]))).ImportTemplates.RefreshSourceByIdentifier(ctx(), args[0])
+			progress.Stop()
 			if err != nil {
 				return err
 			}
@@ -502,7 +506,11 @@ func tplUpgradePlayspecsCmd() *cobra.Command {
 			if versionID <= 0 {
 				return fmt.Errorf("required field 'target-version-id' not set")
 			}
-			result, err := newClient().ImportTemplates.UpgradeLinkedPlayspecsByIdentifier(ctx(), args[0], versionID)
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("upgrading linked playspecs for template " + args[0] + "...")
+			defer progress.Stop()
+			result, err := newClient(fibe.WithProgress(progress.Progress("upgrading linked playspecs for template "+args[0]))).ImportTemplates.UpgradeLinkedPlayspecsByIdentifier(ctx(), args[0], versionID)
+			progress.Stop()
 			if err != nil {
 				return err
 			}

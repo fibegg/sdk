@@ -231,7 +231,7 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
 
-func newClient() *fibe.Client {
+func newClient(extra ...fibe.Option) *fibe.Client {
 	resolved := resolveCLIAuth()
 	opts := []fibe.Option{
 		fibe.WithDisableAutoConfig(),
@@ -247,6 +247,7 @@ func newClient() *fibe.Client {
 
 	opts = append(opts, fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig))
 	opts = append(opts, fibe.WithRateLimitAutoWait())
+	opts = append(opts, extra...)
 
 	return fibe.NewClient(opts...)
 }

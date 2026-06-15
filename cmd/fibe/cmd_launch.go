@@ -126,9 +126,22 @@ EXAMPLES:
 				return err
 			}
 			if wait {
-				if err := waitForCreatedPlayground(c, playgroundID, waitTimeout); err != nil {
+				waitProgress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+				if playgroundID > 0 {
+					waitProgress.Start(fmt.Sprintf("waiting for playground %d to reach running...", playgroundID))
+				}
+				pg, err := waitForCreatedPlayground(c, playgroundID, waitTimeout, func(status string) {
+					waitProgress.Update(fmt.Sprintf("status: %s", status))
+				})
+				waitProgress.Stop()
+				if err != nil {
 					return err
 				}
+				if pg != nil && effectiveOutput() == "table" {
+					printPlaygroundDetails(pg)
+					return nil
+				}
+				result = mergeWaitedPlaygroundResult(result, pg)
 			}
 			outputJSON(result)
 			return nil
@@ -159,6 +172,21 @@ EXAMPLES:
 	cmd.Flags().StringArrayVar(&subdomainFlags, "subdomain", nil, "Service subdomain override as SERVICE=SUBDOMAIN (repeatable)")
 	cmd.Flags().StringArrayVar(&serviceFlags, "service", nil, "Runtime service override as SERVICE.FIELD=VALUE (repeatable)")
 	return cmd
+}
+
+func mergeWaitedPlaygroundResult(result any, pg *fibe.Playground) any {
+	if pg == nil {
+		return result
+	}
+	switch typed := result.(type) {
+	case *fibe.Playground:
+		return pg
+	case *fibe.GreenfieldResult:
+		typed.Playground = pg
+		return typed
+	default:
+		return result
+	}
 }
 
 func runTemplateLaunch(c *fibe.Client, template, name, marquee string, version int64, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.LaunchResult, int64, error) {

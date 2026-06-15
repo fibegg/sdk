@@ -1,6 +1,7 @@
 package fibe
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -15,6 +16,21 @@ const (
 )
 
 type Option func(*clientConfig)
+
+// ProgressEvent describes a long-running SDK operation tick. It is intentionally
+// transport-neutral: CLIs can render it, MCP servers can forward it as progress
+// notifications, and library callers can ignore it.
+type ProgressEvent struct {
+	Operation  string
+	RequestID  string
+	Status     string
+	StatusURL  string
+	StatusPath string
+	Attempt    int
+}
+
+// ProgressFunc receives progress events from long-running SDK operations.
+type ProgressFunc func(context.Context, ProgressEvent)
 
 type clientConfig struct {
 	domain            string
@@ -31,6 +47,7 @@ type clientConfig struct {
 	rateLimitWait     bool
 	requestHook       func(req *http.Request) error
 	responseHook      func(res *http.Response) error
+	progressHook      ProgressFunc
 	disableAutoConfig bool
 }
 
@@ -130,6 +147,12 @@ func WithRequestHook(hook func(req *http.Request) error) Option {
 // before the body is read or parsed.
 func WithResponseHook(hook func(res *http.Response) error) Option {
 	return func(c *clientConfig) { c.responseHook = hook }
+}
+
+// WithProgress installs a callback for long-running SDK operations such as
+// async request polling and rollout waits.
+func WithProgress(hook ProgressFunc) Option {
+	return func(c *clientConfig) { c.progressHook = hook }
 }
 
 // WithDisableAutoConfig prevents NewClient from reading FIBE_API_KEY,

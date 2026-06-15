@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/fibegg/sdk/fibe"
 )
 
 func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
@@ -32,9 +36,14 @@ func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
 	t.Setenv("FIBE_API_KEY", "pk_test")
 
 	cmd := waitCmd()
+	var errOut bytes.Buffer
+	cmd.SetErr(&errOut)
 	cmd.SetArgs([]string{"playground", "next", "--status", "running", "--timeout", "1s"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
+	}
+	if errOut.String() != "status: running\n" {
+		t.Fatalf("stderr=%q want status line fallback", errOut.String())
 	}
 	if len(paths) != 2 || paths[0] != "/api/playgrounds/next/status" || paths[1] != "/api/playgrounds/next" {
 		t.Fatalf("paths=%#v", paths)
@@ -92,5 +101,49 @@ func TestWaitTrickFailsOnFailedJobResult(t *testing.T) {
 	cmd.SetArgs([]string{"trick", "nightly-build", "--status", "completed", "--timeout", "1s"})
 	if err := cmd.Execute(); err == nil {
 		t.Fatal("expected failed job result error")
+	}
+}
+
+func TestWaitPlaygroundNotFoundIncludesProfileAndIdentifier(t *testing.T) {
+	setupAuthTest(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.EscapedPath() != "/api/playgrounds/missing/status" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.EscapedPath())
+		}
+		w.Header().Set("X-Request-Id", "req-missing")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{
+				"code":    fibe.ErrCodeNotFound,
+				"message": "Resource not found",
+				"details": map[string]any{},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	if err := saveAuthProfile("staging", srv.URL, "fibe_test_profile", 42); err != nil {
+		t.Fatalf("save profile: %v", err)
+	}
+	flagProfile = "staging"
+
+	cmd := waitCmd()
+	cmd.SetErr(&bytes.Buffer{})
+	cmd.SetArgs([]string{"playground", "missing", "--status", "running", "--timeout", "1s"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected not found error")
+	}
+	msg := err.Error()
+	for _, want := range []string{`playground "missing" was not found`, `profile "staging"`, srv.URL, "fibe playgrounds list --only id,name,status"} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("error %q missing %q", msg, want)
+		}
+	}
+
+	code, status, _, requestID := structuredErrorFields(err)
+	if code != fibe.ErrCodeNotFound || status != http.StatusNotFound || requestID != "req-missing" {
+		t.Fatalf("structured error = code %q status %d requestID %q", code, status, requestID)
 	}
 }

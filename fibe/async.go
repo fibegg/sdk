@@ -43,6 +43,8 @@ type AsyncPollOptions struct {
 	Interval time.Duration
 	// Timeout after which polling gives up. Default: 5m.
 	Timeout time.Duration
+	// Progress receives every async poll status. Defaults to the client progress hook.
+	Progress ProgressFunc
 }
 
 var defaultPollOpts = AsyncPollOptions{
@@ -65,19 +67,35 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 		if opts.Timeout > 0 {
 			o.Timeout = opts.Timeout
 		}
+		if opts.Progress != nil {
+			o.Progress = opts.Progress
+		}
+	}
+	if o.Progress == nil {
+		o.Progress = c.cfg.progressHook
 	}
 
 	deadline := time.Now().Add(o.Timeout)
+	attempt := 0
 
 	for {
 		if time.Now().After(deadline) {
 			return nil, fmt.Errorf("fibe: async operation timed out after %s", o.Timeout)
 		}
 
+		attempt++
 		result, err := c.pollAsyncOnce(ctx, statusPath)
 		if err != nil {
 			return nil, fmt.Errorf("fibe: poll async status: %w", err)
 		}
+		c.reportProgress(ctx, o.Progress, ProgressEvent{
+			Operation:  "async",
+			RequestID:  result.RequestID,
+			Status:     result.Status,
+			StatusURL:  result.StatusURL,
+			StatusPath: statusPath,
+			Attempt:    attempt,
+		})
 
 		switch result.Status {
 		case "success":
@@ -265,6 +283,14 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		if pathErr != nil {
 			return pathErr
 		}
+		c.reportProgress(ctx, c.cfg.progressHook, ProgressEvent{
+			Operation:  "async",
+			RequestID:  asyncResp.RequestID,
+			Status:     asyncResp.Status,
+			StatusURL:  asyncResp.StatusURL,
+			StatusPath: statusPath,
+			Attempt:    0,
+		})
 
 		// Poll until completion
 		final, pollErr := c.PollAsync(ctx, statusPath, nil)
@@ -318,6 +344,13 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		c.breaker.recordFailure()
 	}
 	return apiErr
+}
+
+func (c *Client) reportProgress(ctx context.Context, hook ProgressFunc, event ProgressEvent) {
+	if hook == nil {
+		return
+	}
+	hook(ctx, event)
 }
 
 func stringFromMap(m map[string]any, key string) string {

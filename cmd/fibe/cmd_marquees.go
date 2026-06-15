@@ -297,8 +297,12 @@ func mqSSHKeyCmd() *cobra.Command {
 		Use: "generate-ssh-key <id-or-name>", Short: "Generate SSH key pair for marquee", Args: cobra.ExactArgs(1),
 		Long: "Generate a new SSH key pair for a marquee.\nReturns the public key that should be added to the server's authorized_keys.\n\nEXAMPLES:\n  fibe marquees generate-ssh-key 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("generating SSH key for marquee " + args[0] + "...")
+			defer progress.Stop()
+			c := newClient(fibe.WithProgress(progress.Progress("generating SSH key for marquee " + args[0])))
 			result, err := c.Marquees.GenerateSSHKeyByIdentifier(ctx(), args[0])
+			progress.Stop()
 			if err != nil {
 				return err
 			}
@@ -313,8 +317,12 @@ func mqTestCmd() *cobra.Command {
 		Use: "test-connection <id-or-name>", Short: "Test SSH connection to marquee", Args: cobra.ExactArgs(1),
 		Long: "Test the SSH connection to a marquee server.\n\nEXAMPLES:\n  fibe marquees test-connection 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("testing connection to marquee " + args[0] + "...")
+			defer progress.Stop()
+			c := newClient(fibe.WithProgress(progress.Progress("testing connection to marquee " + args[0])))
 			result, err := c.Marquees.TestConnectionByIdentifier(ctx(), args[0])
+			progress.Stop()
 			if err != nil {
 				return err
 			}

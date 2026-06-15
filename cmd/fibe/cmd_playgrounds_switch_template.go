@@ -36,7 +36,6 @@ EXAMPLES:
   fibe pg switch-template staging --template-body @template.yml --template-name billing-branch --yes`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundTemplateSwitchParams{PlaygroundIdentifier: args[0]}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -83,7 +82,19 @@ EXAMPLES:
 					return err
 				}
 			}
+			var progress *statusLine
+			c := newClient()
+			if params.Mode != "preview" {
+				action := "switching template for playground " + args[0]
+				progress = newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+				progress.Start(action + "...")
+				defer progress.Stop()
+				c = newClient(fibe.WithProgress(progress.Progress(action)))
+			}
 			result, err := c.SwitchPlaygroundTemplate(ctx(), params)
+			if progress != nil {
+				progress.Stop()
+			}
 			if err != nil {
 				return err
 			}

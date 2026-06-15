@@ -656,12 +656,11 @@ EXAMPLES:
   fibe playgrounds rollout 42`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "rolling out playground "+args[0], params)
 			if err != nil {
 				return err
 			}
@@ -687,12 +686,11 @@ EXAMPLES:
   fibe playgrounds hard-restart 42`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionHardRestart}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "hard restarting playground "+args[0], params)
 			if err != nil {
 				return err
 			}
@@ -718,12 +716,11 @@ EXAMPLES:
   fibe playgrounds stop 42`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionStop}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "stopping playground "+args[0], params)
 			if err != nil {
 				return err
 			}
@@ -749,12 +746,11 @@ EXAMPLES:
   fibe playgrounds start 42`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionStart}
 			if cmd.Flags().Changed("force") {
 				params.Force = &force
 			}
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], params)
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "starting playground "+args[0], params)
 			if err != nil {
 				return err
 			}
@@ -786,8 +782,7 @@ func pgMaintenanceEnableCmd() *cobra.Command {
 		Short: "Enable playground maintenance routing",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionEnableMaintenance})
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "enabling maintenance for playground "+args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionEnableMaintenance})
 			if err != nil {
 				return err
 			}
@@ -803,8 +798,7 @@ func pgMaintenanceDisableCmd() *cobra.Command {
 		Short: "Disable playground maintenance routing",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
-			pg, err := c.Playgrounds.ActionByIdentifier(ctx(), args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionDisableMaintenance})
+			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "disabling maintenance for playground "+args[0], &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionDisableMaintenance})
 			if err != nil {
 				return err
 			}
@@ -812,6 +806,14 @@ func pgMaintenanceDisableCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func runPlaygroundActionWithProgress(cmd *cobra.Command, identifier string, action string, params *fibe.PlaygroundActionParams) (*fibe.PlaygroundStatus, error) {
+	progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+	progress.Start(action + "...")
+	defer progress.Stop()
+	c := newClient(fibe.WithProgress(progress.Progress(action)))
+	return c.Playgrounds.ActionByIdentifier(ctx(), identifier, params)
 }
 
 func pgExtendCmd() *cobra.Command {
@@ -1007,12 +1009,16 @@ EXAMPLES:
 			if follow {
 				return runLogMonitor(cmd, "playground", args[0], service, tail, maxLines, duration)
 			}
-			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("fetching logs for playground " + args[0] + "...")
+			defer progress.Stop()
+			c := newClient(fibe.WithProgress(progress.Progress("fetching logs for playground " + args[0])))
 			var t *int
 			if all || cmd.Flags().Changed("tail") {
 				t = &tail
 			}
 			logs, err := c.Playgrounds.LogsByIdentifier(ctx(), args[0], service, t)
+			progress.Stop()
 			if err != nil {
 				return err
 			}
@@ -1071,8 +1077,12 @@ EXAMPLES:
   fibe playgrounds debug 42`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("loading debug info for playground " + args[0] + "...")
+			defer progress.Stop()
+			c := newClient(fibe.WithProgress(progress.Progress("loading debug info for playground " + args[0])))
 			debug, err := c.Playgrounds.DebugWithParamsByIdentifier(ctx(), args[0], nil)
+			progress.Stop()
 			if err != nil {
 				return err
 			}

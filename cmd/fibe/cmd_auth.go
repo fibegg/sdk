@@ -163,29 +163,45 @@ Examples:
 
 			ticker := time.NewTicker(interval)
 			defer ticker.Stop()
+			progress := newStatusLine(os.Stderr, statusLineOptions{})
+			progress.Start("waiting for browser approval")
+			defer progress.Stop()
 
 			for {
 				select {
 				case <-sigCh:
+					progress.Stop()
 					fmt.Fprintln(os.Stderr, "\n\nAborted. No credentials were saved.")
 					return nil
 				case <-ctx.Done():
+					progress.Stop()
 					fmt.Fprintln(os.Stderr)
 					return fmt.Errorf("timed out waiting for authorization — run `fibe auth login` again")
 				case <-ticker.C:
 					pollResp, httpStatus, err := pollDeviceAuth(baseURL, initResp.DeviceCode)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "  Poll error: %v (retrying...)\n", err)
+						if progress.IsInteractive() {
+							progress.Update(fmt.Sprintf("poll error: %v (retrying...)", err))
+						} else {
+							fmt.Fprintf(os.Stderr, "  Poll error: %v (retrying...)\n", err)
+						}
 						continue
 					}
 
 					switch {
 					case pollResp.Status == "authorization_pending":
-						fmt.Fprint(os.Stderr, ".")
+						if progress.IsInteractive() {
+							progress.Update("waiting for browser approval")
+						} else {
+							fmt.Fprint(os.Stderr, ".")
+						}
 						continue
 
 					case pollResp.Status == "authorized" && pollResp.APIKey != "":
-						fmt.Fprintln(os.Stderr)
+						progress.Stop()
+						if !progress.IsInteractive() {
+							fmt.Fprintln(os.Stderr)
+						}
 						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID); err != nil {
 							return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 						}
@@ -195,18 +211,22 @@ Examples:
 						return nil
 
 					case pollResp.Error == "access_denied":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("authorization denied by user")
 
 					case pollResp.Error == "already_consumed":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("API key was already retrieved — run `fibe auth login` again")
 
 					case httpStatus == http.StatusGone || pollResp.Error == "expired_token":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("device code expired — run `fibe auth login` again")
 
 					default:
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("unexpected response: %s", pollResp.Error)
 					}

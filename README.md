@@ -141,6 +141,7 @@ import (
 1. **Auto rate-limit retry**: When your workload hits HTTP `429 Too Many Requests`, the SDK will sleep the interval specified in `Retry-After`.
 2. **Circuit Breaking**: Failed requests trigger in-memory isolations ensuring that backends do not get DDos'd by your local requests.
 3. **Idempotency**: Mutating requests send the `Idempotency-Key` header. Automatically generated keys are per HTTP attempt; wrap the context with `fibe.WithIdempotencyKey(ctx, key)` when caller-level retries must reuse an identical key.
+4. **Progress hooks**: Long-running SDK operations emit `fibe.ProgressEvent` values through `fibe.WithProgress(...)`. The CLI renders these as single-line spinners in interactive terminals and keeps line-based status output for non-interactive scripts.
 
 ## MCP Server
 
@@ -196,7 +197,7 @@ Supports `parallel` blocks for concurrent independent steps and `for_each` for f
 
 ### Streaming
 
-`fibe_playgrounds_wait` and `fibe_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. CLI users can run `fibe logs follow <id-or-name>` for continuous playground or trick logs.
+`fibe_playgrounds_wait` and `fibe_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. Long-running SDK-backed operations, including async request polling and template-switch rollout waits, also forward progress notifications when the MCP client provides a progress token. CLI users can run `fibe logs follow <id-or-name>` for continuous playground or trick logs.
 
 ### Resources
 

@@ -275,12 +275,19 @@ func (c *Client) resolveTemplateSwitchTarget(ctx context.Context, pg *Playground
 func waitForTemplateSwitchRollout(ctx context.Context, c *Client, playgroundID int64, timeout time.Duration) map[string]any {
 	deadline := time.Now().Add(timeout)
 	var lastStatus string
+	attempt := 0
 	for {
+		attempt++
 		status, err := c.Playgrounds.Status(ctx, playgroundID)
 		if err != nil {
 			return map[string]any{"id": playgroundID, "success": false, "error": err.Error(), "last_status": lastStatus}
 		}
 		lastStatus = status.Status
+		c.reportProgress(ctx, c.cfg.progressHook, ProgressEvent{
+			Operation: "playground_rollout",
+			Status:    status.Status,
+			Attempt:   attempt,
+		})
 		if status.Status == "running" || status.Status == "completed" {
 			return map[string]any{"id": playgroundID, "success": true, "status": status.Status}
 		}

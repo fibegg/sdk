@@ -246,6 +246,7 @@ func (s *Server) buildBaseClient() *fibe.Client {
 		fibe.WithDisableAutoConfig(),
 		fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig),
 		fibe.WithRateLimitAutoWait(),
+		fibe.WithProgress(s.sendClientProgress),
 	}
 	if s.cfg.APIKey != "" {
 		opts = append(opts, fibe.WithAPIKey(s.cfg.APIKey))

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -36,8 +37,12 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := strings.ToLower(args[0])
 			identifier := args[1]
+			auth := resolveCLIAuth()
 
 			c := newClient()
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{FallbackUpdates: true})
+			progress.Start(fmt.Sprintf("waiting for %s %s to reach %s", resource, identifier, targetStatus))
+			defer progress.Stop()
 			deadline := time.After(timeout)
 
 			switch resource {
@@ -45,18 +50,19 @@ Examples:
 				for {
 					status, err := c.Playgrounds.StatusByIdentifier(ctx(), identifier)
 					if err != nil {
-						return err
+						return waitResourceError(resource, identifier, auth, err)
 					}
 
 					current := status.Status
 
-					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
+					progress.Update(fmt.Sprintf("status: %s", current))
 
 					if current == targetStatus {
 						pg, err := c.Playgrounds.GetByIdentifier(ctx(), identifier)
 						if err != nil {
-							return err
+							return waitResourceError(resource, identifier, auth, err)
 						}
+						progress.Stop()
 						if full {
 							output(pg)
 						} else {
@@ -80,12 +86,12 @@ Examples:
 				for {
 					status, err := c.Tricks.StatusByIdentifier(ctx(), identifier)
 					if err != nil {
-						return err
+						return waitResourceError(resource, identifier, auth, err)
 					}
 
 					current := status.Status
 
-					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
+					progress.Update(fmt.Sprintf("status: %s", current))
 
 					if current == targetStatus {
 						if fibe.TrickStatusResultFailed(status) {
@@ -94,10 +100,12 @@ Examples:
 						if full {
 							pg, err := c.Tricks.GetByIdentifier(ctx(), identifier)
 							if err != nil {
-								return err
+								return waitResourceError(resource, identifier, auth, err)
 							}
+							progress.Stop()
 							output(pg)
 						} else {
+							progress.Stop()
 							output(waitResultFromStatus(status))
 						}
 						return nil
@@ -132,6 +140,41 @@ Examples:
 	cmd.Flags().BoolVar(&full, "full", false, "Print the full resource payload after success")
 
 	return cmd
+}
+
+type waitNotFoundError struct {
+	resource   string
+	identifier string
+	profile    string
+	domain     string
+	err        error
+}
+
+func (e *waitNotFoundError) Error() string {
+	listCommand := "fibe playgrounds list --only id,name,status"
+	if e.resource == "trick" || e.resource == "tr" {
+		listCommand = "fibe tricks list --only id,name,status"
+	}
+	return fmt.Sprintf("%s %q was not found in profile %q (%s). Use --profile/--domain to select another environment, or run `%s` to find the correct name or ID",
+		e.resource, e.identifier, e.profile, effectiveBaseURL(e.domain), listCommand)
+}
+
+func (e *waitNotFoundError) Unwrap() error {
+	return e.err
+}
+
+func waitResourceError(resource string, identifier string, auth resolvedAuth, err error) error {
+	var apiErr *fibe.APIError
+	if errors.As(err, &apiErr) && apiErr.IsNotFound() {
+		return &waitNotFoundError{
+			resource:   resource,
+			identifier: identifier,
+			profile:    auth.Profile,
+			domain:     auth.Domain,
+			err:        err,
+		}
+	}
+	return err
 }
 
 func waitResultFromPlayground(pg *fibe.Playground) map[string]any {

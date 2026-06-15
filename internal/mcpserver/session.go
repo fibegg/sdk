@@ -122,6 +122,7 @@ func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 		fibe.WithDisableAutoConfig(),
 		fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig),
 		fibe.WithRateLimitAutoWait(),
+		fibe.WithProgress(s.sendClientProgress),
 	}
 	if apiKey != "" {
 		opts = append(opts, fibe.WithAPIKey(apiKey))

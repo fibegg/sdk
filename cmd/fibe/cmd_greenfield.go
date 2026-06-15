@@ -58,7 +58,10 @@ Examples:
   fibe greenfield --name my-app --template-body 'services:\n  web:\n    image: nginx'`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
+			createProgress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			createProgress.Start("creating greenfield app")
+			defer createProgress.Stop()
+			c := newClient(fibe.WithProgress(createProgress.Progress("creating greenfield app")))
 			params := &fibe.GreenfieldCreateParams{}
 			if err := applyGreenfieldFromFile(params); err != nil {
 				return err
@@ -168,6 +171,7 @@ Examples:
 			}
 
 			result, err := c.Greenfield.Create(ctx(), params)
+			createProgress.Stop()
 			if err != nil {
 				return err
 			}
@@ -175,10 +179,12 @@ Examples:
 				return fmt.Errorf("greenfield create did not return a playground id")
 			}
 
-			fmt.Fprintf(cmd.ErrOrStderr(), "waiting for playground %d to reach running...\n", result.Playground.ID)
+			waitProgress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{FallbackStart: true, FallbackUpdates: true})
+			waitProgress.Start(fmt.Sprintf("waiting for playground %d to reach running...", result.Playground.ID))
 			pg, err := waitForPlayground(ctx(), c, result.Playground.ID, "running", waitTimeout, 3*time.Second, func(status string) {
-				fmt.Fprintf(cmd.ErrOrStderr(), "status: %s\n", status)
+				waitProgress.Update(fmt.Sprintf("status: %s", status))
 			})
+			waitProgress.Stop()
 			if err != nil {
 				return err
 			}
@@ -315,16 +321,24 @@ func greenfieldLocalTarget(result *fibe.GreenfieldResult) string {
 }
 
 func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target string, timeout time.Duration, interval time.Duration, progress func(string)) (*fibe.Playground, error) {
+	if target == "" {
+		target = "running"
+	}
+	readiness, err := fibe.NormalizePlaygroundWaitReadiness("", target)
+	if err != nil {
+		return nil, err
+	}
 	deadline := time.After(timeout)
 	for {
 		status, err := c.Playgrounds.Status(ctx, id)
 		if err != nil {
 			return nil, err
 		}
+		ready, pendingReason := fibe.PlaygroundStatusMatchesWaitTarget(status, target, readiness)
 		if progress != nil {
-			progress(status.Status)
+			progress(playgroundWaitProgressText(status, target, pendingReason))
 		}
-		if status.Status == target {
+		if ready {
 			return c.Playgrounds.Get(ctx, id)
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
@@ -334,8 +348,22 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-deadline:
-			return nil, fmt.Errorf("timeout after %s — last status: %s", timeout, status.Status)
+			if pendingReason == "" {
+				pendingReason = fmt.Sprintf("last status: %s", status.Status)
+			}
+			return nil, fmt.Errorf("timeout after %s — %s", timeout, pendingReason)
 		case <-time.After(interval):
 		}
 	}
+}
+
+func playgroundWaitProgressText(status *fibe.PlaygroundStatus, target string, pendingReason string) string {
+	if status == nil {
+		return "unknown"
+	}
+	text := status.Status
+	if status.Status == target && pendingReason != "" {
+		text += " (" + pendingReason + ")"
+	}
+	return text
 }

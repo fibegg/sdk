@@ -89,10 +89,12 @@ func TestWaitForPlaygroundReachesRunning(t *testing.T) {
 		case "/api/playgrounds/7/status":
 			statusCalls++
 			status := "in_progress"
+			payload := map[string]any{"id": 7, "status": status}
 			if statusCalls >= 2 {
-				status = "running"
+				payload["status"] = "running"
+				payload["services"] = []map[string]any{{"name": "web", "status": "running", "health": "healthy", "running": true}}
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": 7, "status": status})
+			_ = json.NewEncoder(w).Encode(payload)
 		case "/api/playgrounds/7":
 			_ = json.NewEncoder(w).Encode(fibe.Playground{ID: 7, Name: "tower-defence", Status: "running"})
 		default:
@@ -111,6 +113,54 @@ func TestWaitForPlaygroundReachesRunning(t *testing.T) {
 	}
 	if statusCalls != 2 {
 		t.Fatalf("statusCalls=%d want 2", statusCalls)
+	}
+}
+
+func TestWaitForPlaygroundWaitsForServiceReadiness(t *testing.T) {
+	statusCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/playgrounds/7/status":
+			statusCalls++
+			payload := map[string]any{
+				"id":     7,
+				"status": "running",
+				"services": []map[string]any{{
+					"name":    "api",
+					"status":  "stopped",
+					"running": false,
+				}},
+			}
+			if statusCalls >= 2 {
+				payload["services"] = []map[string]any{{
+					"name":    "api",
+					"status":  "running",
+					"health":  "healthy",
+					"running": true,
+				}}
+			}
+			_ = json.NewEncoder(w).Encode(payload)
+		case "/api/playgrounds/7":
+			_ = json.NewEncoder(w).Encode(fibe.Playground{ID: 7, Name: "tower-defence", Status: "running"})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := fibe.NewClient(fibe.WithDomain(srv.URL), fibe.WithAPIKey("pk_test"), fibe.WithMaxRetries(0))
+	var progress []string
+	pg, err := waitForPlayground(context.Background(), c, 7, "running", time.Second, time.Millisecond, func(status string) {
+		progress = append(progress, status)
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if pg.ID != 7 || statusCalls != 2 {
+		t.Fatalf("pg=%#v statusCalls=%d, want final playground after second poll", pg, statusCalls)
+	}
+	if len(progress) < 2 || !strings.Contains(progress[0], "services not ready") || progress[len(progress)-1] != "running" {
+		t.Fatalf("progress=%#v", progress)
 	}
 }
 

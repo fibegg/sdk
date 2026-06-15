@@ -72,6 +72,44 @@ func TestPollAsync_PendingThenSuccess(t *testing.T) {
 	}
 }
 
+func TestPollAsync_ReportsProgress(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		status := "running"
+		if n >= 2 {
+			status = "success"
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"request_id": "req-progress",
+			"status":     status,
+		})
+	}))
+	defer srv.Close()
+
+	var events []ProgressEvent
+	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
+	_, err := c.PollAsync(context.Background(), "/status/req-progress", &AsyncPollOptions{
+		Interval: time.Millisecond,
+		Timeout:  time.Second,
+		Progress: func(ctx context.Context, event ProgressEvent) {
+			events = append(events, event)
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("progress events=%#v, want 2 events", events)
+	}
+	if events[0].Status != "running" || events[0].Attempt != 1 || events[0].StatusPath != "/status/req-progress" {
+		t.Fatalf("unexpected first progress event: %#v", events[0])
+	}
+	if events[1].Status != "success" || events[1].Attempt != 2 {
+		t.Fatalf("unexpected final progress event: %#v", events[1])
+	}
+}
+
 func TestPollAsync_Error(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
@@ -267,6 +305,54 @@ func TestPollAsync_ContextCancellation(t *testing.T) {
 	})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context canceled, got %v", err)
+	}
+}
+
+func TestDoAsync_ReportsAcceptedAndFinalProgress(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		if n == 1 {
+			w.WriteHeader(http.StatusAccepted)
+			json.NewEncoder(w).Encode(map[string]any{
+				"request_id": "req-do-async-progress",
+				"status":     "queued",
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"request_id": "req-do-async-progress",
+			"status":     "success",
+			"id":         88,
+		})
+	}))
+	defer srv.Close()
+
+	var events []ProgressEvent
+	c := NewClient(
+		WithBaseURL(srv.URL),
+		WithAPIKey("test"),
+		WithMaxRetries(0),
+		WithProgress(func(ctx context.Context, event ProgressEvent) {
+			events = append(events, event)
+		}),
+	)
+	var result PlaygroundStatus
+	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/88/operations", "/api/async_requests/%s", nil, &result)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.ID != 88 {
+		t.Fatalf("expected ID=88, got %d", result.ID)
+	}
+	if len(events) != 2 {
+		t.Fatalf("progress events=%#v, want accepted + final", events)
+	}
+	if events[0].Status != "queued" || events[0].Attempt != 0 {
+		t.Fatalf("unexpected accepted progress event: %#v", events[0])
+	}
+	if events[1].Status != "success" || events[1].Attempt != 1 {
+		t.Fatalf("unexpected final progress event: %#v", events[1])
 	}
 }
 

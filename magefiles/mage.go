@@ -59,7 +59,7 @@ func Test() error {
 	if err := ToolsDocsCheck(); err != nil {
 		return err
 	}
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s", "-short")
+	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "./cmd/fibe/...", "-count=1", "-timeout", "30s", "-short")
 }
 
 func ToolsDocs() error {
