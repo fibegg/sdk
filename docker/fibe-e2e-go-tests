@@ -134,7 +134,7 @@ if [ "${1:-}" = "--run-go-tests" ]; then
   exit "$?"
 fi
 
-args=(./integration/... -count=1 -parallel "${GO_TEST_PARALLEL:-4}" -timeout "${GO_TEST_TIMEOUT:-7200s}")
+args=(./integration/... -count=1 -parallel "${GO_TEST_PARALLEL:-1}" -timeout "${GO_TEST_TIMEOUT:-7200s}")
 [ -n "${GO_TEST_RUN:-}" ] && args+=(-run "$GO_TEST_RUN")
 
 run_go_tests "${args[@]}"
