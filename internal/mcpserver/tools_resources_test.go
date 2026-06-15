@@ -2,7 +2,10 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -81,6 +84,47 @@ func TestResourceGetDispatchesWithIDOrName(t *testing.T) {
 	getByNameAgent := getByNameRes.(*fibe.Agent)
 	if getByNameAgent.ID != m.ID {
 		t.Fatalf("expected agent ID %d, got %d", m.ID, getByNameAgent.ID)
+	}
+}
+
+func TestResourceGetPlaygroundReturnsServiceURLs(t *testing.T) {
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/playgrounds/demo" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":     42,
+			"name":   "demo",
+			"status": "running",
+			"service_urls": []map[string]any{
+				{
+					"name":          "web",
+					"type":          "static",
+					"url":           "https://demo.example.test",
+					"visibility":    "external",
+					"auth_required": false,
+					"status":        "running",
+				},
+			},
+		})
+	}))
+	defer api.Close()
+
+	srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "core"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
+		"resource":   "playground",
+		"id_or_name": "demo",
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	pg := out.(*fibe.Playground)
+	if len(pg.ServiceURLs) != 1 || pg.ServiceURLs[0].URL != "https://demo.example.test" {
+		t.Fatalf("service_urls = %#v", pg.ServiceURLs)
 	}
 }
 
@@ -345,7 +389,6 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_playspecs_switch_version",
 		"fibe_playspecs_switch_version_preview",
 		"fibe_templates_develop",
-		"fibe_playgrounds_retemplate",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); ok {
 			t.Fatalf("%s should not be registered", name)
@@ -355,11 +398,11 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 	for _, name := range []string{
 		"fibe_resource_mutate",
 		"fibe_mutter",
-		"fibe_playgrounds_transform",
+		"fibe_playgrounds_switch_template",
 		"fibe_templates_change",
 		"fibe_playgrounds_action",
 		"fibe_feedbacks_get",
-		"fibe_templates_launch",
+		"fibe_launch",
 		"fibe_feedbacks_list",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); !ok {
@@ -619,7 +662,7 @@ func TestSchemaToolAdvertisesResourceAndOperationEnums(t *testing.T) {
 			t.Fatalf("fibe_schema operation enum missing %q: %#v", want, operationEnum)
 		}
 	}
-	for _, removed := range []string{"develop", "retemplate"} {
+	for _, removed := range []string{"develop"} {
 		if containsString(operationEnum, removed) {
 			t.Fatalf("fibe_schema operation enum should not include removed alias %q: %#v", removed, operationEnum)
 		}

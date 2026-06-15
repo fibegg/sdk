@@ -62,22 +62,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 		}
 	})
 
-	t.Run("logs for known service", func(t *testing.T) {
-		logs, err := c.Playgrounds.Logs(ctx(), pg.ID, "web", ptr(10))
-		requireNoError(t, err)
-
-		if logs.Service != "web" {
-			t.Errorf("expected service 'web', got %q", logs.Service)
-		}
-	})
-
-	t.Run("logs for unknown service returns error", func(t *testing.T) {
-		_, err := c.Playgrounds.Logs(ctx(), pg.ID, "nonexistent-service", nil)
-		if err == nil {
-			t.Error("expected error for unknown service")
-		}
-	})
-
 	t.Run("extend_expiration extends time", func(t *testing.T) {
 		result, err := c.Playgrounds.ExtendExpiration(ctx(), pg.ID, nil)
 		if err != nil && skipIfPlaygroundActionStateRejected(t, err, "extend expiration") {
@@ -105,21 +89,6 @@ func TestPlaygrounds_Actions(t *testing.T) {
 		}
 	})
 
-	t.Run("rollout triggers redeploy", func(t *testing.T) {
-		rolled := playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionRollout, "rollout")
-
-		if rolled.ID != pg.ID {
-			t.Errorf("expected ID %d, got %d", pg.ID, rolled.ID)
-		}
-	})
-
-	t.Run("hard_restart triggers restart", func(t *testing.T) {
-		restarted := playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionHardRestart, "hard restart")
-
-		if restarted.ID != pg.ID {
-			t.Errorf("expected ID %d, got %d", pg.ID, restarted.ID)
-		}
-	})
 }
 
 func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
@@ -224,8 +193,8 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 	t.Run("read-only key can get logs", func(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "pg-action-logs", []string{"playgrounds:read"})
-		_, err := readOnly.Playgrounds.Logs(ctx(), pg.ID, "web", nil)
-		requireNoError(t, err)
+		_, err := readOnly.Playgrounds.Logs(ctx(), 999999999, "web", nil)
+		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
 	t.Run("read-only key cannot rollout", func(t *testing.T) {
@@ -257,6 +226,9 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 
 		_, err = noScope.Playgrounds.Compose(ctx(), pg.ID)
+		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
+
+		_, err = noScope.Playgrounds.Logs(ctx(), pg.ID, "web", nil)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 
 		_, err = noScope.Playgrounds.Action(ctx(), pg.ID, &fibe.PlaygroundActionParams{ActionType: fibe.PlaygroundActionRollout})

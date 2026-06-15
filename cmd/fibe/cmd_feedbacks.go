@@ -29,7 +29,7 @@ SUBCOMMANDS:
 }
 
 func fbListCmd() *cobra.Command {
-	var query, sourceType, sourceID, playgroundID, createdAfter, createdBefore, sort string
+	var query, sourceType, sourceID, playground, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
 		Use: "list <agent-id-or-name>", Short: "List agent feedbacks", Args: cobra.ExactArgs(1),
 		Long: `List feedbacks for an agent.
@@ -38,7 +38,7 @@ FILTERS:
   -q, --query           Search across comment, selected_text, context (substring match)
   --source-type         Filter by source type (exact match)
   --source-id           Filter by source ID (exact match)
-  --playground-id       Filter by playground ID
+  --playground       Filter by playground ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601)
@@ -53,7 +53,7 @@ SORTING:
 EXAMPLES:
   fibe feedbacks list my-agent
   fibe feedbacks list my-agent -q "bug" --source-type messages
-  fibe feedbacks list my-agent --playground-id 42 -o json`,
+  fibe feedbacks list my-agent --playground 42 -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.FeedbackListParams{}
@@ -66,8 +66,8 @@ EXAMPLES:
 			if sourceID != "" {
 				params.SourceID = sourceID
 			}
-			if playgroundID != "" {
-				params.PlaygroundID = playgroundID
+			if playground != "" {
+				params.PlaygroundID = playground
 			}
 			if createdAfter != "" {
 				params.CreatedAfter = createdAfter
@@ -95,7 +95,7 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across comment, selected_text, context")
 	cmd.Flags().StringVar(&sourceType, "source-type", "", "Filter by source type")
 	cmd.Flags().StringVar(&sourceID, "source-id", "", "Filter by source ID")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID")
+	cmd.Flags().StringVar(&playground, "playground", "", "Filter by playground ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")

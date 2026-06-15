@@ -27,15 +27,13 @@ func applyFromFile(dest any) error {
 			return fmt.Errorf("read from-file %q: %w", flagFromFile, err)
 		}
 	} else {
-		// Auto-detect stdin
-		stat, _ := os.Stdin.Stat()
-		if (stat.Mode() & os.ModeCharDevice) == 0 {
+		stat, statErr := os.Stdin.Stat()
+		if statErr == nil && stat.Mode().IsRegular() {
 			data, err = io.ReadAll(os.Stdin)
 			if err != nil {
 				return fmt.Errorf("read from stdin: %w", err)
 			}
 		} else {
-			// Nothing specified and no pipe
 			return nil
 		}
 	}

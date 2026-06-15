@@ -211,6 +211,77 @@ func TestRunCobraStringifiesScalarArgs(t *testing.T) {
 	}
 }
 
+func TestRunCobraReturnsGuidanceForLegacyResourceCommand(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(&cobra.Command{
+		Use: "resource",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			t.Fatal("legacy resource command should not execute")
+			return nil
+		},
+	})
+	srv.cfg.CobraRoot = root
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"resource", "list", "playgrounds", "--format", "json"},
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["legacy_cli_syntax"] != true {
+		t.Fatalf("legacy_cli_syntax=%v, want true", m["legacy_cli_syntax"])
+	}
+	if m["recommended_tool"] != "fibe_resource_list" {
+		t.Fatalf("recommended_tool=%v, want fibe_resource_list", m["recommended_tool"])
+	}
+	recommendedArgs, ok := m["recommended_args"].(map[string]any)
+	if !ok {
+		t.Fatalf("recommended_args type=%T", m["recommended_args"])
+	}
+	if recommendedArgs["resource"] != "playground" {
+		t.Fatalf("recommended resource=%v, want playground", recommendedArgs["resource"])
+	}
+}
+
+func TestRunCobraReturnsGuidanceForLegacyFormatFlag(t *testing.T) {
+	srv := New(Config{APIKey: "pk_test"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+
+	root := &cobra.Command{Use: "fibe"}
+	root.PersistentFlags().String("output", "", "")
+	root.AddCommand(&cobra.Command{
+		Use: "status",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			t.Fatal("command with legacy --format flag should not execute")
+			return nil
+		},
+	})
+	srv.cfg.CobraRoot = root
+
+	result, err := srv.runCobra(context.Background(), map[string]any{
+		"args": []any{"status", "--format", "json"},
+	})
+	if err != nil {
+		t.Fatalf("runCobra: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["legacy_cli_syntax"] != true {
+		t.Fatalf("legacy_cli_syntax=%v, want true", m["legacy_cli_syntax"])
+	}
+	if m["unsupported_flag"] != "--format" {
+		t.Fatalf("unsupported_flag=%v, want --format", m["unsupported_flag"])
+	}
+}
+
 func TestRunCobraRejectsNestedArgs(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test"})
 	if err := srv.RegisterAll(); err != nil {

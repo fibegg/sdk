@@ -79,7 +79,7 @@ func (s *Server) registerResourceTools() {
 
 	s.addTool(&toolImpl{
 		name:        "fibe_resource_get",
-		description: "[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Use artefact_attachment or agent_attachment to download attached runtime file content.",
+		description: "[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Playground reads include service_urls and service runtime status. Use artefact_attachment or agent_attachment to download attached runtime file content.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
@@ -103,7 +103,7 @@ func (s *Server) registerResourceTools() {
 			return rt.get(ctx, c, identifier)
 		},
 	}, mcp.NewTool("fibe_resource_get",
-		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, by name for named resources, or by key for secrets. Secret and job_env reads do not reveal plaintext values; artefact_attachment and agent_attachment return base64 file content."),
+		mcp.WithDescription("[MODE:DIALOG] Get a supported Fibe resource by ID, by name for named resources, or by key for secrets. Playground reads include service_urls and service runtime status. Secret and job_env reads do not reveal plaintext values; artefact_attachment and agent_attachment return base64 file content."),
 		mcp.WithString("resource", mcp.Required(), mcp.Enum(getResourceSelectors...), mcp.Description("Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, playspec, prop, webhook.")),
 		mcp.WithNumber("id", mcp.Description("Numeric ID of the selected resource.")),
 		mcp.WithString("id_or_name", mcp.Description("Numeric ID or name for named resources.")),

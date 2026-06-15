@@ -24,6 +24,9 @@ type Playground struct {
 
 	// Detail fields (only present on Get, not List)
 	ComposeProject           *string                 `json:"compose_project,omitempty"`
+	MarqueeName              *string                 `json:"marquee_name,omitempty"`
+	RootDomain               *string                 `json:"root_domain,omitempty"`
+	RoutingScheme            *string                 `json:"routing_scheme,omitempty"`
 	InternalPassword         *string                 `json:"internal_password,omitempty"`
 	EnvOverrides             map[string]string       `json:"env_overrides,omitempty"`
 	LastAppliedAt            *time.Time              `json:"last_applied_at,omitempty"`
@@ -35,11 +38,25 @@ type Playground struct {
 	ExpirationPercentage     *float64                `json:"expiration_percentage,omitempty"`
 	BuildWarnings            []string                `json:"build_warnings,omitempty"`
 	BuildStatuses            []PlaygroundBuildStatus `json:"build_statuses,omitempty"`
+	PersistentVolumePrefix   *string                 `json:"persistent_volume_prefix,omitempty"`
+	ServiceURLs              []PlaygroundServiceURL  `json:"service_urls,omitempty"`
 	Services                 []PlaygroundServiceInfo `json:"services,omitempty"`
 	JobResult                *JobResult              `json:"job_result,omitempty"`
 	RunOverrides             map[string]any          `json:"run_overrides,omitempty"`
 	Teardown                 map[string]any          `json:"teardown,omitempty"`
 	ServiceSources           []map[string]any        `json:"service_sources,omitempty"`
+}
+
+type PlaygroundServiceURL struct {
+	Name         string `json:"name"`
+	Type         string `json:"type,omitempty"`
+	URL          string `json:"url"`
+	Visibility   string `json:"visibility,omitempty"`
+	AuthRequired bool   `json:"auth_required"`
+	Status       string `json:"status,omitempty"`
+	Health       string `json:"health,omitempty"`
+	Running      *bool  `json:"running,omitempty"`
+	ExitCode     *int   `json:"exit_code,omitempty"`
 }
 
 type PlaygroundServiceInfo struct {

@@ -55,7 +55,7 @@ func TestServerBootstrap(t *testing.T) {
 		"fibe_agent_defaults_update",
 		"fibe_agent_defaults_reset",
 		"fibe_mutter",
-		"fibe_playgrounds_transform",
+		"fibe_playgrounds_switch_template",
 		"fibe_templates_change",
 		"fibe_playgrounds_wait",
 		"fibe_playgrounds_logs",
@@ -209,7 +209,7 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 
 	advertised := advertisedToolNames(srv)
 	for _, name := range []string{
-		"fibe_playgrounds_transform",
+		"fibe_playgrounds_switch_template",
 		"fibe_resource_mutate",
 		"fibe_playgrounds_action",
 		"fibe_playgrounds_debug",
@@ -229,7 +229,7 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 	if _, ok := srv.dispatcher.lookup("fibe_templates_change"); !ok {
 		t.Errorf("fibe_templates_change should remain registered as a hidden callable tool")
 	}
-	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
+		for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -574,13 +574,12 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		"fibe_resource_mutate",
 		"fibe_update_name",
 		"fibe_mutter",
-		"fibe_launch_create",
+		"fibe_launch",
 		"fibe_greenfield_create",
 		"fibe_gitea_repos_create",
 		"fibe_github_repos_create",
 		"fibe_templates_search",
-		"fibe_templates_launch",
-		"fibe_playgrounds_transform",
+		"fibe_playgrounds_switch_template",
 		"fibe_playgrounds_debug",
 		"fibe_playgrounds_logs",
 		"fibe_playgrounds_wait",
@@ -594,7 +593,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 	if advertised["fibe_templates_change"] {
 		t.Errorf("fibe_templates_change should not be advertised in core mode")
 	}
-	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
+		for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -629,11 +628,13 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 		}
 	}
 
-	if !advertised["fibe_playgrounds_logs_follow"] {
-		t.Errorf("fibe_playgrounds_logs_follow should be advertised in core mode")
+	if !advertised["fibe_logs_follow"] {
+		t.Errorf("fibe_logs_follow should be advertised in core mode")
 	}
-	if !advertised["fibe_monitor_logs_follow"] {
-		t.Errorf("fibe_monitor_logs_follow should be advertised in core mode")
+	for _, retired := range []string{"fibe_monitor_logs_" + "follow", "fibe_playgrounds_logs_" + "follow"} {
+		if advertised[retired] {
+			t.Errorf("%s should not be advertised in core mode", retired)
+		}
 	}
 	if advertised["fibe_auth_set"] {
 		t.Errorf("fibe_auth_set should not be advertised in core mode; it belongs to the other tier")
@@ -712,8 +713,8 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	if catalogHasTool(coreTools, "fibe_agents_runtime_status") {
 		t.Fatalf("core catalog should not include overseer tools")
 	}
-	if !catalogHasTool(coreTools, "fibe_playgrounds_transform") {
-		t.Fatalf("core catalog missing canonical playground transform tool: %#v", coreTools)
+	if !catalogHasTool(coreTools, "fibe_playgrounds_switch_template") {
+		t.Fatalf("core catalog missing canonical playground switch-template tool: %#v", coreTools)
 	}
 	tool := catalogTool(coreTools, "fibe_templates_change")
 	if tool == nil {
@@ -722,7 +723,7 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	if tool["hidden"] != true || tool["advertised"] != false {
 		t.Fatalf("hidden catalog entry fibe_templates_change should be hidden and unadvertised: %#v", tool)
 	}
-	for _, name := range []string{"fibe_templates_develop", "fibe_playgrounds_retemplate"} {
+		for _, name := range []string{"fibe_templates_develop"} {
 		if catalogHasTool(coreTools, name) {
 			t.Fatalf("core catalog should not include removed deprecated alias %s", name)
 		}

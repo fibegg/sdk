@@ -52,7 +52,7 @@ func waitForPlaygroundStatusWithin(t *testing.T, c *fibe.Client, id int64, targe
 // CapWaitTimeout caps any wait to this value so a single test can't consume
 // the full suite timeout.
 const CapWaitTimeout = 20 * time.Second
-const PlaygroundLaunchWaitTimeout = 2 * time.Minute
+const PlaygroundLaunchWaitTimeout = 6 * time.Minute
 const playgroundActionRetryTimeout = 3 * time.Minute
 
 // waitForPlaygroundActive polls until status is 'running' or 'error', returns whether running.

@@ -27,7 +27,7 @@ func TestMonitorLogsFollowStreamsPlaygroundLogs(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_monitor_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"service":    "web",
 		"max_lines":  1,
@@ -46,7 +46,7 @@ func TestMonitorLogsFollowStreamsPlaygroundLogs(t *testing.T) {
 	}
 }
 
-func TestPlaygroundsLogsFollowCompatibilityAliasStreamsAllServices(t *testing.T) {
+func TestLogsFollowDefaultsToPlaygroundAndAllServices(t *testing.T) {
 	api := logsFollowAPIServer(t, []string{
 		`{"message":{"type":"log","stream":"stdout","service":"web","line":"all ready"}}`,
 	}, 0, func(identifier map[string]any) {
@@ -64,7 +64,7 @@ func TestPlaygroundsLogsFollowCompatibilityAliasStreamsAllServices(t *testing.T)
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"max_lines":  1,
 		"duration":   "2s",
@@ -74,7 +74,7 @@ func TestPlaygroundsLogsFollowCompatibilityAliasStreamsAllServices(t *testing.T)
 	}
 	result := out.(map[string]any)
 	if result["target"] != "playground" || result["line_count"] != 1 {
-		t.Fatalf("unexpected legacy logs follow result: %#v", result)
+		t.Fatalf("unexpected logs follow result: %#v", result)
 	}
 }
 
@@ -93,7 +93,7 @@ func TestMonitorLogsFollowStreamsTrickLogs(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_monitor_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"target":     "trick",
 		"service":    "worker",
@@ -129,7 +129,7 @@ func TestMonitorLogsFollowStopsAtMaxLines(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_monitor_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"service":    "web",
 		"max_lines":  1,
@@ -158,7 +158,7 @@ func TestMonitorLogsFollowStopsAfterDuration(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_monitor_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"service":    "web",
 		"duration":   "20ms",
@@ -194,7 +194,7 @@ func TestMonitorLogsFollowEmitsProgressNotifications(t *testing.T) {
 	}
 	ctx := srv.mcp.WithContext(context.Background(), session)
 
-	out, err := srv.dispatcher.dispatch(ctx, "fibe_monitor_logs_follow", map[string]any{
+	out, err := srv.dispatcher.dispatch(ctx, "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
 		"service":    "web",
 		"max_lines":  1,
@@ -227,7 +227,7 @@ func TestMonitorLogsFollowSchemaAndCatalogExposure(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	schema := srv.toolSchemas["fibe_monitor_logs_follow"]
+	schema := srv.toolSchemas["fibe_logs_follow"]
 	props := schema["properties"].(map[string]any)
 	for _, want := range []string{"id_or_name", "target", "service", "tail", "duration", "max_lines"} {
 		if _, ok := props[want]; !ok {
@@ -238,8 +238,10 @@ func TestMonitorLogsFollowSchemaAndCatalogExposure(t *testing.T) {
 	if !containsString(targets, "playground") || !containsString(targets, "trick") {
 		t.Fatalf("target enum missing playground/trick: %#v", targets)
 	}
-	if _, ok := srv.toolSchemas["fibe_playgrounds_logs_follow"]; !ok {
-		t.Fatalf("legacy playground logs follow schema missing")
+	for _, retired := range []string{"fibe_monitor_logs_" + "follow", "fibe_playgrounds_logs_" + "follow"} {
+		if _, ok := srv.toolSchemas[retired]; ok {
+			t.Fatalf("retired logs follow schema still registered: %s", retired)
+		}
 	}
 
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_tools_catalog", map[string]any{
@@ -251,13 +253,12 @@ func TestMonitorLogsFollowSchemaAndCatalogExposure(t *testing.T) {
 		t.Fatalf("fibe_tools_catalog: %v", err)
 	}
 	tools := catalogToolsFromResult(t, out)
-	canonical := catalogTool(tools, "fibe_monitor_logs_follow")
-	legacy := catalogTool(tools, "fibe_playgrounds_logs_follow")
-	if canonical == nil || legacy == nil {
-		t.Fatalf("catalog missing logs follow tools: %#v", tools)
+	canonical := catalogTool(tools, "fibe_logs_follow")
+	if canonical == nil {
+		t.Fatalf("catalog missing logs follow tool: %#v", tools)
 	}
-	if canonical["advertised"] != true || legacy["advertised"] != true {
-		t.Fatalf("logs follow tools should be advertised in core catalog: canonical=%#v legacy=%#v", canonical, legacy)
+	if canonical["advertised"] != true {
+		t.Fatalf("logs follow tool should be advertised in core catalog: %#v", canonical)
 	}
 	inputSchema := canonical["input_schema"].(map[string]any)
 	targets = schemaPropertyEnum(t, inputSchema, "target")

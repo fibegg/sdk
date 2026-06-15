@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -49,11 +48,11 @@ The target Marquee must be funded; unpaid Marquees fail with
 MARQUEE_NOT_FUNDED before deployment starts.
 
 Examples:
-  fibe greenfield owner/repo --marquee-id 12
-  fibe greenfield owner/repo@main --file fibe.yml --marquee-id 12
-  fibe greenfield https://github.com/owner/repo --ref main --marquee-id 12
-  fibe greenfield --name my-app --template-id "Rails 8 Starter Kit"
-  fibe greenfield --name my-app --template-version-id 912
+  fibe greenfield owner/repo --marquee 12
+  fibe greenfield owner/repo@main --file fibe.yml --marquee 12
+  fibe greenfield https://github.com/owner/repo --ref main --marquee 12
+  fibe greenfield --name my-app --template "Rails 8 Starter Kit"
+  fibe greenfield --name my-app --template-version 912
   fibe greenfield --name my-app --service-subdomain app=my-app --service-subdomain admin=my-app-admin
   fibe greenfield --name my-app -f my-template.yml
   fibe greenfield --name my-app --template-body 'services:\n  web:\n    image: nginx'`,
@@ -79,19 +78,19 @@ Examples:
 			if templateIDChanged && selectedTemplateIdentifier != "" {
 				params.TemplateIdentifier = selectedTemplateIdentifier
 			}
-			if cmd.Flags().Changed("template-version-id") && templateVersionID > 0 {
+			if cmd.Flags().Changed("template-version") && templateVersionID > 0 {
 				if params.TemplateIdentifier != "" || params.Version != "" {
-					return fmt.Errorf("--template-version-id cannot be combined with --template-id or --version")
+					return fmt.Errorf("--template-version cannot be combined with --template or --version")
 				}
 				id := templateVersionID
 				params.TemplateVersionID = &id
 			}
 			if cmd.Flags().Changed("version") {
 				if params.TemplateVersionID != nil {
-					return fmt.Errorf("--version cannot be combined with --template-version-id")
+					return fmt.Errorf("--version cannot be combined with --template-version")
 				}
 				if params.TemplateIdentifier == "" {
-					return fmt.Errorf("--version requires --template-id")
+					return fmt.Errorf("--version requires --template")
 				}
 				params.Version = version
 			}
@@ -111,17 +110,17 @@ Examples:
 				id := githubInstallationID
 				params.GitHubInstallationID = &id
 			}
-			if cmd.Flags().Changed("marquee-id") && marqueeID != "" {
+			if cmd.Flags().Changed("marquee") && marqueeID != "" {
 				params.MarqueeIdentifier = marqueeID
 			} else if cmd.Flags().Changed("marque-id") && marqueeIDTypoMarque > 0 {
 				id := marqueeIDTypoMarque
 				params.MarqueeID = &id
 			} else if params.MarqueeID == nil && params.MarqueeIdentifier == "" {
-				id, err := marqueeIDFromEnv()
+				identifier, err := resolveLaunchMarqueeIdentifier(c, "")
 				if err != nil {
 					return err
 				}
-				params.MarqueeID = &id
+				params.MarqueeIdentifier = identifier
 			}
 			if cmd.Flags().Changed("var") && len(vars) > 0 {
 				parsed, err := parseGreenfieldVars(vars)
@@ -201,21 +200,21 @@ Examples:
 	cmd.Flags().StringVar(&name, "name", "", "Repository/app name (optional with github-repo; must be unique)")
 	cmd.Flags().StringVar(&gitProvider, "git-provider", "gitea", "Destination git provider: gitea or github (optional, default: gitea)")
 	cmd.Flags().BoolVar(&private, "private", false, "Create destination repository as private")
-	cmd.Flags().StringVar(&templateID, "template-id", "", "Template ID or name to use (optional, default: base template)")
-	cmd.Flags().Int64Var(&templateVersionID, "template-version-id", 0, "Exact template version ID to use (optional)")
-	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template-id is used (e.g. v1, optional, default: latest version)")
+	cmd.Flags().StringVar(&templateID, "template", "", "Template ID or name to use (optional, default: base template)")
+	cmd.Flags().Int64Var(&templateVersionID, "template-version", 0, "Exact template version ID to use (optional)")
+	cmd.Flags().StringVar(&version, "version", "", "Template version tag or number when --template is used (e.g. v1, optional, default: latest version)")
 	cmd.Flags().StringVar(&templateBody, "template-body", "", "Template YAML body to use directly (optional)")
 	cmd.Flags().StringVar(&repoFile, "file", "", "Config file path inside the GitHub repository (optional; defaults to fibe.yml, fibe.yaml, docker-compose.yml, docker-compose.yaml)")
 	cmd.Flags().StringVar(&repoRef, "ref", "", "Git branch, tag, or commit for the config file (optional)")
 	cmd.Flags().StringVar(&githubAccount, "github-account", "", "GitHub App installation account owner to use when multiple installations are connected")
 	cmd.Flags().Int64Var(&githubInstallationID, "github-installation-id", 0, "GitHub App installation ID to use when multiple installations are connected")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional, default: current Marquee)")
+	cmd.Flags().StringVar(&marqueeID, "marquee", "", "Target marquee ID or name (optional, default: current Marquee)")
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "Set template variables (e.g., --var app_name=Tower, optional)")
 	cmd.Flags().StringSliceVar(&serviceSubdomains, "service-subdomain", nil, "Set an exposed service subdomain override (repeatable, e.g., --service-subdomain app=my-app)")
 	cmd.Flags().DurationVar(&waitTimeout, "wait-timeout", 10*time.Minute, "Maximum time to wait for the playground to reach running (optional, default 10m0s)")
-	cmd.Flags().Int64Var(&templateIDTypoTempalte, "tempalte-id", 0, "Alias for --template-id")
-	cmd.Flags().Int64Var(&templateIDTypoTemlate, "temlate-id", 0, "Alias for --template-id")
-	cmd.Flags().Int64Var(&marqueeIDTypoMarque, "marque-id", 0, "Alias for --marquee-id")
+	cmd.Flags().Int64Var(&templateIDTypoTempalte, "tempalte-id", 0, "Alias for --template")
+	cmd.Flags().Int64Var(&templateIDTypoTemlate, "temlate-id", 0, "Alias for --template")
+	cmd.Flags().Int64Var(&marqueeIDTypoMarque, "marque-id", 0, "Alias for --marquee")
 	_ = cmd.Flags().MarkHidden("tempalte-id")
 	_ = cmd.Flags().MarkHidden("temlate-id")
 	_ = cmd.Flags().MarkHidden("marque-id")
@@ -251,7 +250,7 @@ func normalizeTemplateBodyValue(value string) string {
 
 func selectedGreenfieldTemplateIdentifier(cmd *cobra.Command, templateID string, tempalteID, temlateID int64) (string, bool) {
 	switch {
-	case cmd.Flags().Changed("template-id"):
+	case cmd.Flags().Changed("template"):
 		return strings.TrimSpace(templateID), true
 	case cmd.Flags().Changed("tempalte-id"):
 		if tempalteID > 0 {
@@ -266,18 +265,6 @@ func selectedGreenfieldTemplateIdentifier(cmd *cobra.Command, templateID string,
 	default:
 		return "", false
 	}
-}
-
-func marqueeIDFromEnv() (int64, error) {
-	raw := strings.TrimSpace(os.Getenv("FIBE_MARQUEE_ID"))
-	if raw == "" {
-		return 0, fmt.Errorf("--marquee-id is required when the current Marquee is not available (FIBE_MARQUEE_ID is not set)")
-	}
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || id <= 0 {
-		return 0, fmt.Errorf("FIBE_MARQUEE_ID must be a positive integer")
-	}
-	return id, nil
 }
 
 func parseGreenfieldVars(values []string) (map[string]any, error) {

@@ -32,7 +32,7 @@ SUBCOMMANDS:
 }
 
 func artListCmd() *cobra.Command {
-	var query, name, agentIDFlag, playgroundID, contentType, createdAfter, createdBefore, sort string
+	var query, name, agentIDFlag, playground, contentType, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
 		Use: "list [agent-id-or-name]", Short: "List artefacts", Args: cobra.MaximumNArgs(1),
 		Long: `List artefacts. When agent-id-or-name is provided, lists artefacts for that agent.
@@ -42,7 +42,7 @@ FILTERS:
   -q, --query           Search across name, description (substring match)
   --name                Filter by name (substring match)
   --agent-id            Filter by agent ID or name (when listing all)
-  --playground-id       Filter by playground ID or name
+  --playground       Filter by playground ID or name or name
   --content-type        Filter by content type
 
 DATE RANGE:
@@ -69,8 +69,8 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if playgroundID != "" {
-				params.PlaygroundID = playgroundID
+			if playground != "" {
+				params.PlaygroundID = playground
 			}
 			if contentType != "" {
 				params.ContentType = contentType
@@ -113,7 +113,7 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name, description")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
 	cmd.Flags().StringVar(&agentIDFlag, "agent-id", "", "Filter by agent ID or name (when listing all)")
-	cmd.Flags().StringVar(&playgroundID, "playground-id", "", "Filter by playground ID or name")
+	cmd.Flags().StringVar(&playground, "playground", "", "Filter by playground ID or name")
 	cmd.Flags().StringVar(&contentType, "content-type", "", "Filter by content type")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")

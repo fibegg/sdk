@@ -31,20 +31,20 @@ type playspecConfigFlags struct {
 func registerPlayspecConfigFlags(cmd *cobra.Command, flags *playspecConfigFlags) {
 	cmd.Flags().BoolVar(&flags.scheduleEnabled, "schedule-enabled", false, "Enable scheduled job runs")
 	cmd.Flags().StringVar(&flags.scheduleCron, "schedule-cron", "", "Cron or Fugit schedule expression")
-	cmd.Flags().StringVar(&flags.scheduleMarqueeID, "schedule-marquee-id", "", "Target Marquee ID or name for scheduled runs")
+	cmd.Flags().StringVar(&flags.scheduleMarqueeID, "schedule-marquee", "", "Target Marquee ID or name for scheduled runs")
 
 	cmd.Flags().BoolVar(&flags.triggerEnabled, "trigger-enabled", false, "Enable CI trigger runs")
 	cmd.Flags().StringVar(&flags.triggerEventType, "trigger-event-type", "", "CI trigger event type: push or pull_request")
 	cmd.Flags().StringVar(&flags.triggerBranch, "trigger-branch", "", "CI trigger branch filter")
-	cmd.Flags().StringVar(&flags.triggerPropID, "trigger-prop-id", "", "Prop ID or name whose git events trigger the Playspec")
-	cmd.Flags().StringVar(&flags.triggerMarqueeID, "trigger-marquee-id", "", "Target Marquee ID or name for CI trigger runs")
+	cmd.Flags().StringVar(&flags.triggerPropID, "trigger-prop", "", "Prop ID or name whose git events trigger the Playspec")
+	cmd.Flags().StringVar(&flags.triggerMarqueeID, "trigger-marquee", "", "Target Marquee ID or name for CI trigger runs")
 	cmd.Flags().StringVar(&flags.triggerAgentID, "trigger-agent-id", "", "Agent ID or name to notify when a CI trigger job fails")
 	cmd.Flags().IntVar(&flags.triggerMaxRetries, "trigger-max-retries", 0, "Maximum CI trigger reruns after failure")
 	cmd.Flags().StringVar(&flags.triggerPromptTemplate, "trigger-prompt-template", "", "Failure prompt template text or @file path; supports {{logs}}")
 
 	cmd.Flags().BoolVar(&flags.mutiEnabled, "muti-enabled", false, "Enable Muti mutation-cure jobs")
 	cmd.Flags().StringVar(&flags.mutiLanguage, "muti-language", "", "Muti mutation language")
-	cmd.Flags().StringVar(&flags.mutiPropID, "muti-prop-id", "", "Prop ID or name whose surviving mutations should be cured")
+	cmd.Flags().StringVar(&flags.mutiPropID, "muti-prop", "", "Prop ID or name whose surviving mutations should be cured")
 	cmd.Flags().StringVar(&flags.mutiAgentID, "muti-agent-id", "", "Agent ID or name to notify for surviving mutations")
 	cmd.Flags().StringVar(&flags.mutiPromptTemplate, "muti-prompt-template", "", "Muti prompt template text or @file path; supports {{diff}} and mutation metadata placeholders")
 }
@@ -109,7 +109,7 @@ func applyPlayspecScheduleFlags(base map[string]any, cmd *cobra.Command, flags p
 	if cmd.Flags().Changed("schedule-cron") {
 		config["cron"] = flags.scheduleCron
 	}
-	if cmd.Flags().Changed("schedule-marquee-id") {
+	if cmd.Flags().Changed("schedule-marquee") {
 		config["marquee_id"] = flags.scheduleMarqueeID
 	}
 	return config
@@ -126,10 +126,10 @@ func applyPlayspecTriggerFlags(base map[string]any, cmd *cobra.Command, flags pl
 	if cmd.Flags().Changed("trigger-branch") {
 		config["branch"] = flags.triggerBranch
 	}
-	if cmd.Flags().Changed("trigger-prop-id") {
+	if cmd.Flags().Changed("trigger-prop") {
 		config["prop_id"] = flags.triggerPropID
 	}
-	if cmd.Flags().Changed("trigger-marquee-id") {
+	if cmd.Flags().Changed("trigger-marquee") {
 		config["marquee_id"] = flags.triggerMarqueeID
 	}
 	if cmd.Flags().Changed("trigger-agent-id") {
@@ -152,7 +152,7 @@ func applyPlayspecMutiFlags(base map[string]any, cmd *cobra.Command, flags plays
 	if cmd.Flags().Changed("muti-language") {
 		config["language"] = flags.mutiLanguage
 	}
-	if cmd.Flags().Changed("muti-prop-id") {
+	if cmd.Flags().Changed("muti-prop") {
 		config["prop_id"] = flags.mutiPropID
 	}
 	if cmd.Flags().Changed("muti-agent-id") {
@@ -167,15 +167,15 @@ func applyPlayspecMutiFlags(base map[string]any, cmd *cobra.Command, flags plays
 func playspecScheduleFlagsChanged(cmd *cobra.Command) bool {
 	return cmd.Flags().Changed("schedule-enabled") ||
 		cmd.Flags().Changed("schedule-cron") ||
-		cmd.Flags().Changed("schedule-marquee-id")
+		cmd.Flags().Changed("schedule-marquee")
 }
 
 func playspecTriggerFlagsChanged(cmd *cobra.Command) bool {
 	return cmd.Flags().Changed("trigger-enabled") ||
 		cmd.Flags().Changed("trigger-event-type") ||
 		cmd.Flags().Changed("trigger-branch") ||
-		cmd.Flags().Changed("trigger-prop-id") ||
-		cmd.Flags().Changed("trigger-marquee-id") ||
+		cmd.Flags().Changed("trigger-prop") ||
+		cmd.Flags().Changed("trigger-marquee") ||
 		cmd.Flags().Changed("trigger-agent-id") ||
 		cmd.Flags().Changed("trigger-max-retries") ||
 		cmd.Flags().Changed("trigger-prompt-template")
@@ -184,7 +184,7 @@ func playspecTriggerFlagsChanged(cmd *cobra.Command) bool {
 func playspecMutiFlagsChanged(cmd *cobra.Command) bool {
 	return cmd.Flags().Changed("muti-enabled") ||
 		cmd.Flags().Changed("muti-language") ||
-		cmd.Flags().Changed("muti-prop-id") ||
+		cmd.Flags().Changed("muti-prop") ||
 		cmd.Flags().Changed("muti-agent-id") ||
 		cmd.Flags().Changed("muti-prompt-template")
 }

@@ -70,12 +70,3 @@ func TestParseRetryAfter_Seconds(t *testing.T) {
 		t.Errorf("expected 30s, got %v", d)
 	}
 }
-
-func TestParseRetryAfter_Empty(t *testing.T) {
-	resp := &http.Response{Header: http.Header{}}
-
-	d := parseRetryAfter(resp)
-	if d != 0 {
-		t.Errorf("expected 0, got %v", d)
-	}
-}

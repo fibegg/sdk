@@ -27,15 +27,6 @@ func TestCanonicalResourceNormalizesAliases(t *testing.T) {
 	}
 }
 
-func TestResourceSelectorsIncludeHyphenAliases(t *testing.T) {
-	selectors := ResourceSelectors()
-	for _, want := range []string{"api-keys", "job-env", "import-templates"} {
-		if !containsSelector(selectors, want) {
-			t.Fatalf("ResourceSelectors missing %q: %#v", want, selectors)
-		}
-	}
-}
-
 func TestSchemaOnlyResourcesDoNotEnterGenericResourceSelectors(t *testing.T) {
 	generic := ResourceSelectors()
 	for _, disallowed := range []string{"compose", "mutter", "mutters"} {
@@ -201,32 +192,28 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if _, _, _, ok := SchemaFor("template", "develop"); ok {
 		t.Fatalf("template.develop legacy schema should be removed")
 	}
-	if playgroundTransform, _, op, ok := SchemaFor("playground", "transform"); !ok || op != "transform" {
-		t.Fatalf("playground.transform schema missing")
+	if playgroundSwitchTemplate, _, op, ok := SchemaFor("playground", "switch_template"); !ok || op != "switch_template" {
+		t.Fatalf("playground.switch_template schema missing")
 	} else {
-		props := playgroundTransform.(map[string]any)["properties"].(map[string]any)
+		props := playgroundSwitchTemplate.(map[string]any)["properties"].(map[string]any)
 		for _, want := range []string{"id_or_name", "template_body", "template_body_path", "template_id_or_name", "template_version_id", "provision_missing_props"} {
 			if _, ok := props[want]; !ok {
-				t.Fatalf("playground.transform missing property %q: %#v", want, props)
+				t.Fatalf("playground.switch_template missing property %q: %#v", want, props)
 			}
 		}
 	}
-	if _, _, err := ValidatePayload("playground", "transform", map[string]any{
+	if _, _, err := ValidatePayload("playground", "switch_template", map[string]any{
 		"id_or_name": 42,
 	}); err == nil {
-		t.Fatalf("playground.transform should require a template selector")
+		t.Fatalf("playground.switch_template should require a template selector")
 	}
-	if _, _, err := ValidatePayload("playground", "transform", map[string]any{
+	if _, _, err := ValidatePayload("playground", "switch_template", map[string]any{
 		"id_or_name":          42,
 		"template_body":       "services: {}\n",
 		"template_version_id": 123,
 	}); err == nil {
-		t.Fatalf("playground.transform should reject ambiguous template selectors")
+		t.Fatalf("playground.switch_template should reject ambiguous template selectors")
 	}
-	if _, _, _, ok := SchemaFor("playground", "retemplate"); ok {
-		t.Fatalf("playground.retemplate legacy schema should be removed")
-	}
-
 	marqueeCreate, _, op, ok := SchemaFor("marquee", "create")
 	if !ok || op != "create" {
 		t.Fatalf("marquee.create schema missing")
@@ -532,7 +519,7 @@ func TestNamedResourceMutationSchemasDoNotExposeLegacyTargetAliases(t *testing.T
 		{resource: "playground", operation: "create"},
 		{resource: "playground", operation: "update"},
 		{resource: "playground", operation: "action"},
-		{resource: "playground", operation: "transform"},
+		{resource: "playground", operation: "switch_template"},
 		{resource: "playspec", operation: "update"},
 		{resource: "prop", operation: "update"},
 		{resource: "prop", operation: "sync"},

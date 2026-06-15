@@ -10,26 +10,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestPlaygroundsHelpMatchesLifecycleSurface(t *testing.T) {
-	help := commandHelp(t, playgroundsCmd())
-
-	for _, want := range []string{
-		"start <id-or-name>",
-		"stop <id-or-name>",
-		"has_changes",
-		"completed",
-		"stopping",
-		"stopped",
-		"destroying",
-		"maintenance enable <id-or-name>",
-		"maintenance disable <id-or-name>",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("playgrounds help missing %q:\n%s", want, help)
-		}
-	}
-}
-
 func TestPlaygroundActionCommandsAreRegistered(t *testing.T) {
 	cmd := playgroundsCmd()
 
@@ -110,11 +90,169 @@ func TestPlaygroundMaintenanceDisableCommandMapsActionBody(t *testing.T) {
 	}
 }
 
-func TestPlaygroundCreateAliasesAndServiceOverridesMapBody(t *testing.T) {
+func TestPlaygroundGetTableShowsServiceURLsAndHidesPassword(t *testing.T) {
+	setupAuthTest(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/playgrounds/demo" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		running := true
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":                  42,
+			"name":                "demo",
+			"status":              "running",
+			"maintenance_enabled": false,
+			"job_mode":            false,
+			"playspec_id":         7,
+			"playspec_name":       "starter",
+			"marquee_id":          9,
+			"marquee_name":        "edge",
+			"compose_project":     "starter--42",
+			"root_domain":         "example.test",
+			"routing_scheme":      "https",
+			"internal_password":   "super-secret",
+			"service_urls": []map[string]any{
+				{
+					"name":          "web",
+					"type":          "static",
+					"url":           "https://demo.example.test",
+					"visibility":    "internal",
+					"auth_required": true,
+					"status":        "running",
+					"health":        "healthy",
+					"running":       running,
+				},
+			},
+			"services": []map[string]any{
+				{
+					"name":    "web",
+					"status":  "running",
+					"health":  "healthy",
+					"running": running,
+					"image":   "nginx",
+				},
+			},
+			"service_sources": []map[string]any{
+				{
+					"service":        "web",
+					"prop_name":      "app",
+					"branch":         "main",
+					"repository_url": "https://github.com/acme/app",
+				},
+			},
+			"build_statuses": []map[string]any{
+				{
+					"service_name": "web",
+					"branch":       "main",
+					"active": map[string]any{
+						"id":               1,
+						"status":           "built",
+						"commit_sha":       "abcdef1234567890",
+						"short_commit_sha": "abcdef1",
+					},
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	out, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"pg", "get", "demo"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	for _, want := range []string{
+		"Service URLs:",
+		"https://demo.example.test",
+		"HTTP basic auth: username playground",
+		"Services:",
+		"Sources:",
+		"Builds:",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("expected %q in output:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "super-secret") {
+		t.Fatalf("table output leaked internal password:\n%s", out)
+	}
+}
+
+func TestPlaygroundGetJSONOnlyServiceURLs(t *testing.T) {
+	setupAuthTest(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/playgrounds/demo" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":     42,
+			"name":   "demo",
+			"status": "running",
+			"service_urls": []map[string]any{
+				{
+					"name":          "web",
+					"type":          "static",
+					"url":           "https://demo.example.test",
+					"visibility":    "external",
+					"auth_required": false,
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	out, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"pg", "get", "demo", "-o", "json", "--only", "service_urls"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("decode output: %v\n%s", err, out)
+	}
+	if len(got) != 1 {
+		t.Fatalf("projected output keys = %#v, want only service_urls", got)
+	}
+	urls, ok := got["service_urls"].([]any)
+	if !ok || len(urls) != 1 {
+		t.Fatalf("service_urls = %#v", got["service_urls"])
+	}
+	first := urls[0].(map[string]any)
+	if first["url"] != "https://demo.example.test" {
+		t.Fatalf("projected service URL = %#v", first)
+	}
+}
+
+func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 	setupAuthTest(t)
 
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/starter" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id":   7,
+				"name": "starter",
+				"services": []map[string]any{
+					{"name": "web"},
+				},
+			})
+			return
+		}
 		if r.Method != http.MethodPost || r.URL.Path != "/api/playgrounds" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
@@ -169,21 +307,22 @@ func TestPlaygroundCreateAliasesAndServiceOverridesMapBody(t *testing.T) {
 	}
 }
 
-func TestPlaygroundCreateRejectsConflictingAliases(t *testing.T) {
+func TestPlaygroundCreateRejectsRetiredIDFlags(t *testing.T) {
 	setupAuthTest(t)
 
+	retiredFlag := "--playspec" + "-id"
 	cmd := playgroundsCmd()
-	cmd.SetArgs([]string{"create", "--name", "demo", "--playspec-id", "one", "--playspec", "two", "--marquee", "next"})
+	cmd.SetArgs([]string{"create", "--name", "demo", retiredFlag, "one", "--marquee", "next"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
 	}
-	if got := err.Error(); got != "conflicting values for --playspec-id and --playspec" {
+	if got := err.Error(); !strings.Contains(got, "unknown flag: "+retiredFlag) {
 		t.Fatalf("error = %q", got)
 	}
 }
 
-func TestPlaygroundCreateRequiresMarqueeLocally(t *testing.T) {
+func TestPlaygroundCreateRequiresMarqueeWhenInferenceFails(t *testing.T) {
 	setupAuthTest(t)
 
 	cmd := playgroundsCmd()
@@ -192,7 +331,7 @@ func TestPlaygroundCreateRequiresMarqueeLocally(t *testing.T) {
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
 	}
-	if got := err.Error(); got != "required field 'marquee-id' not set" {
+	if got := err.Error(); !strings.Contains(got, "Authentication required") && !strings.Contains(got, "API key") {
 		t.Fatalf("error = %q", got)
 	}
 }

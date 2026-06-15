@@ -209,8 +209,8 @@ EXAMPLES:
   fibe playspecs create --name my-spec --compose @docker-compose.yml
   fibe ps create --name api --compose @docker-compose.yml --description "API server"
   fibe ps create --name ci --compose @ci.yml --job-mode
-  fibe ps create --name ci --compose @ci.yml --job-mode --trigger-enabled --trigger-prop-id api --trigger-marquee-id ci-runner --trigger-agent-id fixer --trigger-prompt-template @ci-prompt.txt
-  fibe ps create --name muti --compose @muti.yml --job-mode --muti-enabled --muti-language ruby --muti-prop-id api --muti-agent-id fixer
+  fibe ps create --name ci --compose @ci.yml --job-mode --trigger-enabled --trigger-prop api --trigger-marquee ci-runner --trigger-agent-id fixer --trigger-prompt-template @ci-prompt.txt
+  fibe ps create --name muti --compose @muti.yml --job-mode --muti-enabled --muti-language ruby --muti-prop api --muti-agent-id fixer
   fibe playspecs create -f payload.json` + generateSchemaDoc(&fibe.PlayspecCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -293,7 +293,7 @@ EXAMPLES:
   fibe ps update 42 --description "Updated description" --persist-volumes
   fibe ps update 42 --base-compose @updated-compose.yml
   fibe ps update 42 --trigger-agent-id fixer --trigger-prompt-template @ci-prompt.txt
-  fibe ps update 42 --muti-enabled --muti-language ruby --muti-prop-id api --muti-agent-id fixer
+  fibe ps update 42 --muti-enabled --muti-language ruby --muti-prop api --muti-agent-id fixer
   fibe ps update 42 -f updates.yml` + generateSchemaDoc(&fibe.PlayspecUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

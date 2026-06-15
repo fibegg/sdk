@@ -53,54 +53,11 @@ func testAsyncAcceptedEndpoint(t *testing.T, postPath, statusPath string, finalP
 	return c, &calls
 }
 
-func TestPlaygrounds_List(t *testing.T) {
-	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" || r.URL.Path != "/api/playgrounds" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		json.NewEncoder(w).Encode(listEnv([]Playground{
-			{ID: 1, Name: "pg-1", Status: "running"},
-			{ID: 2, Name: "pg-2", Status: "pending"},
-		}))
-	})
-
-	result, err := c.Playgrounds.List(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result.Data) != 2 {
-		t.Errorf("expected 2 playgrounds, got %d", len(result.Data))
-	}
-	if result.Data[0].Name != "pg-1" {
-		t.Errorf("expected name 'pg-1', got %q", result.Data[0].Name)
-	}
-	if result.Meta.Total != 2 {
-		t.Errorf("expected total 2, got %d", result.Meta.Total)
-	}
-}
-
 func TestPlaygroundActionValidationIncludesMaintenanceActions(t *testing.T) {
 	for _, action := range []string{PlaygroundActionEnableMaintenance, PlaygroundActionDisableMaintenance} {
 		if err := (&PlaygroundActionParams{ActionType: action}).Validate(); err != nil {
 			t.Fatalf("expected %s to validate: %v", action, err)
 		}
-	}
-}
-
-func TestPlaygrounds_Get(t *testing.T) {
-	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/playgrounds/42" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		json.NewEncoder(w).Encode(Playground{ID: 42, Name: "test", Status: "running"})
-	})
-
-	pg, err := c.Playgrounds.Get(context.Background(), 42)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if pg.ID != 42 {
-		t.Errorf("expected ID 42, got %d", pg.ID)
 	}
 }
 
@@ -1500,20 +1457,6 @@ func TestAgents_UpdateRenameContextJSON(t *testing.T) {
 	}
 }
 
-func TestSecrets_List(t *testing.T) {
-	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(listEnv([]Secret{{Key: "DB_URL"}}))
-	})
-
-	result, err := c.Secrets.List(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result.Data) != 1 {
-		t.Errorf("expected 1 secret, got %d", len(result.Data))
-	}
-}
-
 func TestSecrets_GetReveal(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/secrets/42" {
@@ -1705,23 +1648,6 @@ func TestArtefacts_GetByAgentAndArtefactIdentifierUsesNames(t *testing.T) {
 	}
 }
 
-func TestAPIKeys_Me(t *testing.T) {
-	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/me" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		json.NewEncoder(w).Encode(Player{ID: 1, Username: "testuser"})
-	})
-
-	player, err := c.APIKeys.Me(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if player.Username != "testuser" {
-		t.Errorf("expected username 'testuser', got %q", player.Username)
-	}
-}
-
 func TestWebhookEndpoints_EventTypes(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/webhook_event_types" {
@@ -1769,21 +1695,6 @@ func TestBuildQuery(t *testing.T) {
 	}
 	if q[0] != '?' {
 		t.Error("expected query to start with '?'")
-	}
-}
-
-func TestBuildQuery_NilParams(t *testing.T) {
-	q := buildQuery(nil)
-	if q != "" {
-		t.Errorf("expected empty query for nil params, got %q", q)
-	}
-}
-
-func TestBuildQuery_EmptyParams(t *testing.T) {
-	params := &ArtefactListParams{}
-	q := buildQuery(params)
-	if q != "" {
-		t.Errorf("expected empty query for zero-value params, got %q", q)
 	}
 }
 

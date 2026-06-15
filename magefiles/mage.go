@@ -56,7 +56,18 @@ func BuildAll() error {
 }
 
 func Test() error {
+	if err := ToolsDocsCheck(); err != nil {
+		return err
+	}
 	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s", "-short")
+}
+
+func ToolsDocs() error {
+	return sh.RunV("go", "run", "./scripts/docs")
+}
+
+func ToolsDocsCheck() error {
+	return sh.RunV("go", "run", "./scripts/docs", "--check")
 }
 
 func IntegrationTest() error {

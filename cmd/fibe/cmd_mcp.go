@@ -225,7 +225,7 @@ TOOL TIERS:
 EXAMPLES:
   fibe mcp install --client claude-code
   fibe mcp install --client claude-code --user
-  fibe mcp install --client antigravity --api-key pk_live_... --domain http://dev.local:3000
+  fibe mcp install --client antigravity --api-key fibe_live_... --domain http://dev.local:3000
   fibe mcp install --client claude-desktop --tools full --yolo
   fibe mcp install --client codex --profile staging
   fibe mcp install --client cursor --env FOO=bar --env BAZ=qux

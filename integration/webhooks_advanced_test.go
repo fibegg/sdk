@@ -52,7 +52,7 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	t.Cleanup(func() { c.WebhookEndpoints.Delete(ctx(), *ep.ID) })
 
 	t.Run("test endpoint queues delivery", func(t *testing.T) {
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		reqCtx, cancel := ctxTimeout(integrationHTTPTimeout())
 		defer cancel()
 
 		err := c.WebhookEndpoints.Test(reqCtx, *ep.ID)
@@ -61,7 +61,7 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("deliveries list returns results", func(t *testing.T) {
-		reqCtx, cancel := ctxTimeout(webhookTimeout())
+		reqCtx, cancel := ctxTimeout(integrationHTTPTimeout())
 		err := c.WebhookEndpoints.Test(reqCtx, *ep.ID)
 		cancel()
 		requireNoError(t, err)
@@ -77,7 +77,7 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("update endpoint events", func(t *testing.T) {
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		reqCtx, cancel := ctxTimeout(integrationHTTPTimeout())
 		defer cancel()
 
 		updated, err := c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
@@ -91,23 +91,26 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 
 	t.Run("disable and re-enable endpoint", func(t *testing.T) {
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
-		defer cancel()
-
+		reqCtx, cancel := ctxTimeout(integrationHTTPTimeout())
 		_, err := c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
 			Enabled: ptr(false),
 		})
+		cancel()
 		requireNoError(t, err)
 
+		reqCtx, cancel = ctxTimeout(integrationHTTPTimeout())
 		got, err := c.WebhookEndpoints.Get(reqCtx, *ep.ID)
+		cancel()
 		requireNoError(t, err)
 		if got.Enabled != nil && *got.Enabled {
 			t.Error("expected disabled")
 		}
 
+		reqCtx, cancel = ctxTimeout(integrationHTTPTimeout())
 		_, err = c.WebhookEndpoints.Update(reqCtx, *ep.ID, &fibe.WebhookEndpointUpdateParams{
 			Enabled: ptr(true),
 		})
+		cancel()
 		requireNoError(t, err)
 	})
 }

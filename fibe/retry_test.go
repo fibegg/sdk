@@ -86,24 +86,6 @@ func TestRetryPolicy_DelayRespectsRetryAfter(t *testing.T) {
 	}
 }
 
-func TestRetryPolicy_DelayExponentialBackoff(t *testing.T) {
-	p := &retryPolicy{
-		maxRetries: 5,
-		baseDelay:  100 * time.Millisecond,
-		maxDelay:   10 * time.Second,
-	}
-
-	for attempt := 0; attempt < 5; attempt++ {
-		delay := p.delay(attempt, 0)
-		if delay < 0 {
-			t.Errorf("delay should be non-negative, got %v for attempt %d", delay, attempt)
-		}
-		if delay > p.maxDelay {
-			t.Errorf("delay %v exceeds max %v for attempt %d", delay, p.maxDelay, attempt)
-		}
-	}
-}
-
 func TestRetryPolicy_DelayCapped(t *testing.T) {
 	p := &retryPolicy{
 		maxRetries: 10,

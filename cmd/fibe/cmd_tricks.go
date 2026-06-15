@@ -51,7 +51,7 @@ SUBCOMMANDS:
 
 func trListCmd() *cobra.Command {
 	var query, status, resultStatus, name, sort, createdAfter, createdBefore string
-	var playspecID string
+	var playspec string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all tricks",
@@ -62,7 +62,7 @@ FILTERS:
   --status              Filter by exact status. Values: pending, in_progress, running, completed, error
   --result-status       Filter job result. Values: succeeded, failed, unknown
   --name                Filter by name (substring match)
-  --playspec-id         Filter by playspec ID or name
+  --playspec            Filter by playspec ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601)
@@ -103,8 +103,8 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if playspecID != "" {
-				params.PlayspecIdentifier = playspecID
+			if playspec != "" {
+				params.PlayspecIdentifier = playspec
 			}
 			if createdAfter != "" {
 				params.CreatedAfter = createdAfter
@@ -146,7 +146,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&resultStatus, "result-status", "", "Filter by job result status (succeeded, failed, unknown)")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Filter by playspec ID or name")
+	cmd.Flags().StringVar(&playspec, "playspec", "", "Filter by playspec ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")
@@ -193,8 +193,8 @@ EXAMPLES:
 }
 
 func trTriggerCmd() *cobra.Command {
-	var playspecID string
-	var marqueeID string
+	var playspec string
+	var marquee string
 	var name string
 	var envOverridesJSON string
 	var onlyServices []string
@@ -211,27 +211,27 @@ The selected Marquee must be funded; unpaid Marquees fail
 with MARQUEE_NOT_FUNDED.
 
 REQUIRED FLAGS:
-  --playspec-id   ID or name of the job-mode playspec
+  --playspec      ID or name of the job-mode playspec
 
 OPTIONAL FLAGS:
-  --marquee-id    Target server ID or name
+  --marquee       Target server ID or name
   --name          Custom trick name (auto-generated if omitted)
   --env-overrides JSON object of per-run environment overrides
   --only-service  Run only these service names (repeatable)
   --except-service Exclude these service names (repeatable)
 
 EXAMPLES:
-  fibe tricks trigger --playspec-id nightly-build
-  fibe tr trigger --playspec-id nightly-build --marquee-id next
-  fibe tr trigger --playspec-id nightly-build --name "my-ci-run"
-  fibe tr trigger --playspec-id nightly-build --only-service tests --env-overrides '{"GH_TOKEN":"..."}'`,
+  fibe tricks trigger --playspec nightly-build
+  fibe tr trigger --playspec nightly-build --marquee next
+  fibe tr trigger --playspec nightly-build --name "my-ci-run"
+  fibe tr trigger --playspec nightly-build --only-service tests --env-overrides '{"GH_TOKEN":"..."}'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TrickTriggerParams{
-				PlayspecIdentifier: playspecID,
+				PlayspecIdentifier: playspec,
 			}
-			if cmd.Flags().Changed("marquee-id") {
-				params.MarqueeIdentifier = marqueeID
+			if cmd.Flags().Changed("marquee") {
+				params.MarqueeIdentifier = marquee
 			}
 			if cmd.Flags().Changed("name") {
 				params.Name = name
@@ -251,7 +251,7 @@ EXAMPLES:
 			}
 
 			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
-				return fmt.Errorf("required field 'playspec-id' not set")
+				return fmt.Errorf("required field 'playspec' not set")
 			}
 
 			tr, err := c.Tricks.Trigger(ctx(), params)
@@ -267,8 +267,8 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().StringVar(&playspecID, "playspec-id", "", "Job-mode playspec ID or name (required)")
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target marquee ID or name (optional)")
+	cmd.Flags().StringVar(&playspec, "playspec", "", "Job-mode playspec ID or name (required)")
+	cmd.Flags().StringVar(&marquee, "marquee", "", "Target marquee ID or name (optional)")
 	cmd.Flags().StringVar(&name, "name", "", "Custom trick name (auto-generated if omitted)")
 	cmd.Flags().StringVar(&envOverridesJSON, "env-overrides", "", "JSON object of per-run environment overrides")
 	cmd.Flags().StringSliceVar(&onlyServices, "only-service", nil, "Run only this service name (repeatable or comma-separated)")

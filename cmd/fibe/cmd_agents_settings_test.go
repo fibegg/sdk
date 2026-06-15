@@ -4,58 +4,11 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
-
-func TestAgentCreateHelpExposesRuntimeSettingsFlags(t *testing.T) {
-	help := commandHelp(t, agCreateCmd())
-
-	for _, want := range []string{
-		"--prompt",
-		"--mcp-json",
-		"--post-init-script",
-		"--custom-env",
-		"--cli-version",
-		"--provider-args",
-		"--skill-toggle",
-		"antigravity",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("agents create help missing %s:\n%s", want, help)
-		}
-	}
-}
-
-func TestAgentDefaultsHelpExposesPlayerOverrideFlags(t *testing.T) {
-	help := commandHelp(t, agentDefaultsUpdateCmd())
-
-	for _, want := range []string{
-		"--system-prompt",
-		"--model-options",
-		"--custom-env",
-		"--mcp-json",
-		"--post-init-script",
-		"--provider-args",
-		"--skill-toggle",
-		"--provider",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("agent-defaults update help missing %s:\n%s", want, help)
-		}
-	}
-}
-
-func TestAgentDefaultsRootHelpExposesReset(t *testing.T) {
-	help := commandHelp(t, agentDefaultsCmd())
-
-	if !strings.Contains(help, "reset") {
-		t.Fatalf("agent-defaults help missing reset:\n%s", help)
-	}
-}
 
 func TestAgentDefaultsFromFileAcceptsEnvelope(t *testing.T) {
 	oldFlag := flagFromFile
@@ -105,24 +58,6 @@ func TestParseSkillToggleFlags(t *testing.T) {
 	}
 	if toggles["fibe-hunks.md"] != false || toggles["search.md"] != true {
 		t.Fatalf("toggles=%#v", toggles)
-	}
-}
-
-func TestAgentUpdateHelpExposesRuntimeSettingsFlags(t *testing.T) {
-	help := commandHelp(t, agUpdateCmd())
-
-	for _, want := range []string{
-		"--prompt",
-		"--mcp-json",
-		"--post-init-script",
-		"--custom-env",
-		"--cli-version",
-		"--provider-args",
-		"--skill-toggle",
-	} {
-		if !strings.Contains(help, want) {
-			t.Fatalf("agents update help missing %s:\n%s", want, help)
-		}
 	}
 }
 

@@ -67,6 +67,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 		updateArgs    []string
 		missingArgErr string
 		cleanupDelete bool
+		deleteArgs    []string
 		skipGet       bool
 	}{
 		{
@@ -119,6 +120,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 			updateArgs:    []string{"--name", uniqueName("test-template-renamed")},
 			missingArgErr: "required field 'name' not set",
 			cleanupDelete: true,
+			deleteArgs:    []string{"--yes"},
 		},
 	}
 
@@ -159,7 +161,8 @@ func TestCLI_E2E_Commands(t *testing.T) {
 
 			// Happy Path: Delete
 			if tc.cleanupDelete {
-				out, err = runCompiledCLI(t, tc.resource, "delete", strconv.FormatInt(id, 10))
+				deleteCmd := append([]string{tc.resource, "delete", strconv.FormatInt(id, 10)}, tc.deleteArgs...)
+				out, err = runCompiledCLI(t, deleteCmd...)
 				require.NoError(t, err, "failed to delete: %s", out)
 			}
 		})
@@ -182,9 +185,9 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 
 		// Happy: create
 		pgName := uniqueName("cli-e2e-pg")
-		createArgs := []string{"playgrounds", "create", "--name", pgName, "--playspec-id", strconv.FormatInt(specID, 10)}
+		createArgs := []string{"playgrounds", "create", "--name", pgName, "--playspec", strconv.FormatInt(specID, 10)}
 		if marqueeID > 0 {
-			createArgs = append(createArgs, "--marquee-id", strconv.FormatInt(marqueeID, 10))
+			createArgs = append(createArgs, "--marquee", strconv.FormatInt(marqueeID, 10))
 		}
 		out, err = runCompiledCLI(t, createArgs...)
 		require.NoError(t, err, "failed to create playground: %s", out)
@@ -201,10 +204,6 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		// Playgrounds debug
 		out, err = runCompiledCLI(t, "playgrounds", "debug", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to debug playground: %s", out)
-
-		// Playgrounds logs
-		out, err = runCompiledCLI(t, "playgrounds", "logs", strconv.FormatInt(id, 10), "--service", "web")
-		require.NoError(t, err, "failed to get logs: %s", out)
 
 		// Delete
 		out, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
@@ -394,14 +393,14 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		if marqueeID == 0 {
 			t.Skip("set FIBE_TEST_MARQUEE_ID to trigger tricks")
 		}
-		out, err = runCompiledCLI(t, "tricks", "trigger", "--playspec-id", strconv.FormatInt(psID, 10), "--marquee-id", strconv.FormatInt(marqueeID, 10))
+		out, err = runCompiledCLI(t, "tricks", "trigger", "--playspec", strconv.FormatInt(psID, 10), "--marquee", strconv.FormatInt(marqueeID, 10))
 		require.NoError(t, err, "failed to trigger trick: %s", out)
 		trickID := parseResourceID(t, out)
 
 		out, err = runCompiledCLI(t, "tricks", "get", strconv.FormatInt(trickID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "tricks", "list", "--playspec-id", strconv.FormatInt(psID, 10))
+		out, err = runCompiledCLI(t, "tricks", "list", "--playspec", strconv.FormatInt(psID, 10))
 		require.NoError(t, err)
 
 		out, err = runCompiledCLI(t, "tricks", "delete", strconv.FormatInt(trickID, 10))

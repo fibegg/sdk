@@ -399,7 +399,7 @@ func TestResourceMutateListedConcreteToolsRemoved(t *testing.T) {
 	}
 
 	for _, name := range []string{
-		"fibe_templates_launch",
+		"fibe_launch",
 		"fibe_feedbacks_get",
 		"fibe_feedbacks_list",
 		"fibe_mutter",

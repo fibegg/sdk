@@ -359,8 +359,8 @@ func buildRegistry() map[string]map[string]any {
 			"force":       map[string]any{"type": "boolean", "description": "Bypass normal state guards when the server permits forced execution."},
 		},
 	}
-	playgroundTransform := playgroundTransformSchema()
-	out["playground"]["transform"] = playgroundTransform
+	playgroundSwitchTemplate := playgroundSwitchTemplateSchema()
+	out["playground"]["switch_template"] = playgroundSwitchTemplate
 	agentCreate := withPropertyEnum(renameIdentifierFields(paramsSchema[fibe.AgentCreateParams]("name", "provider"), map[string]string{"build_in_public_playground_id": "build_in_public_playground_id_or_name"}), "provider", fibe.ValidProviders)
 	agentCreate = withPropertyEnum(agentCreate, "mode", []string{"oauth", "provider-api-key", "fibe-mana"})
 	withPropertyDescription(agentCreate, "mode", "Agent provider auth mode. Creating an Agent does not inherit auth from another Agent; use fibe_agents_duplicate when inherited auth is required. Use fibe-mana only when the environment reports it configured.")
@@ -1034,7 +1034,7 @@ func composeValidateSchema() map[string]any {
 	}
 }
 
-func playgroundTransformSchema() map[string]any {
+func playgroundSwitchTemplateSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
@@ -1046,7 +1046,7 @@ func playgroundTransformSchema() map[string]any {
 			map[string]any{"required": []string{"template_version_id"}},
 		},
 		"properties": map[string]any{
-			"id_or_name":              namedIdentifierSchema("id_or_name", "Playground ID or slug-safe name of the deployed playground to transform."),
+			"id_or_name":              namedIdentifierSchema("id_or_name", "Playground ID or slug-safe name of the deployed playground to switch-template."),
 			"mode":                    map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and reports diffs/warnings/required variables without writes; apply commits the change. Defaults to apply."},
 			"template_body":           map[string]any{"type": "string", "description": "Inline template YAML. Authoring a new target shape on the fly: a new ImportTemplateVersion is created, then the playground is switched to it. Mutually exclusive with template_version_id."},
 			"template_body_path":      map[string]any{"type": "string", "description": "Absolute local path to template YAML (local MCP only)."},

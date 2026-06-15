@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// PlaygroundTransformParams configures the brownfield analog of greenfield_create:
-// take an existing deployed playground, transform it onto a (potentially fresh) template,
+// PlaygroundTemplateSwitchParams configures the brownfield analog of greenfield_create:
+// take an existing deployed playground, switch it onto a (potentially fresh) template,
 // optionally provision new private Gitea-backed Props on the fly, and roll it out.
 //
 // One of the following must be provided to identify the new template version:
@@ -18,7 +18,7 @@ import (
 //     template version on the fly. If TemplateID is omitted, a new ImportTemplate
 //     is created (auto-named for the playground) and a first version is published
 //     under it.
-type PlaygroundTransformParams struct {
+type PlaygroundTemplateSwitchParams struct {
 	PlaygroundID          int64                `json:"playground_id"`
 	PlaygroundIdentifier  string               `json:"playground_identifier,omitempty"`
 	Mode                  string               `json:"mode,omitempty"` // "preview" | "apply" (default)
@@ -41,8 +41,8 @@ type PlaygroundTransformParams struct {
 	Changelog             string               `json:"changelog,omitempty"`
 }
 
-// PlaygroundTransformResult is the composite response from a playground transform run.
-type PlaygroundTransformResult struct {
+// PlaygroundTemplateSwitchResult is the composite response from a playground template switch run.
+type PlaygroundTemplateSwitchResult struct {
 	Mode             string                               `json:"mode"`
 	Playground       *Playground                          `json:"playground,omitempty"`
 	Template         *ImportTemplate                      `json:"template,omitempty"`
@@ -53,9 +53,9 @@ type PlaygroundTransformResult struct {
 	Diagnostics      map[string]any                       `json:"diagnostics,omitempty"`
 }
 
-// Transform composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
-// + post-rollout wait into a single brownfield playground transform flow.
-func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParams) (*PlaygroundTransformResult, error) {
+// SwitchPlaygroundTemplate composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
+// + post-rollout wait into a single brownfield playground template switch flow.
+func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *PlaygroundTemplateSwitchParams) (*PlaygroundTemplateSwitchResult, error) {
 	if params == nil {
 		return nil, fmt.Errorf("params is required")
 	}
@@ -83,12 +83,12 @@ func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParam
 		return nil, fmt.Errorf("playground %d has no playspec_id", pg.ID)
 	}
 
-	out := &PlaygroundTransformResult{Mode: mode, Playground: pg}
-	if err := c.ensureTransformSourceTemplate(ctx, pg); err != nil {
+	out := &PlaygroundTemplateSwitchResult{Mode: mode, Playground: pg}
+	if err := c.ensureTemplateSwitchSource(ctx, pg); err != nil {
 		return out, err
 	}
 
-	templateID, versionID, tmpl, version, err := c.resolveTransformTarget(ctx, pg, params)
+	templateID, versionID, tmpl, version, err := c.resolveTemplateSwitchTarget(ctx, pg, params)
 	if err != nil {
 		return out, err
 	}
@@ -104,7 +104,7 @@ func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParam
 		Variables:               params.Variables,
 		RegenerateVariables:     params.RegenerateVariables,
 		ConfirmWarnings:         params.ConfirmWarnings,
-		RolloutMode:             transformRolloutMode(mode),
+		RolloutMode:             templateSwitchRolloutMode(mode),
 		TargetPlaygroundID:      &pg.ID,
 		ResponseMode:            params.ResponseMode,
 		ProvisionMissingProps:   params.ProvisionMissingProps,
@@ -146,9 +146,9 @@ func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParam
 	if timeout <= 0 {
 		timeout = 180 * time.Second
 	}
-	waitResult := waitForTransformRollout(ctx, c, pg.ID, timeout)
+	waitResult := waitForTemplateSwitchRollout(ctx, c, pg.ID, timeout)
 	out.WaitResults = []map[string]any{waitResult}
-	if diagnoseTransform(params) && waitResult["success"] != true {
+	if diagnoseSwitchPlaygroundTemplate(params) && waitResult["success"] != true {
 		refresh := true
 		debug, derr := c.Playgrounds.DebugWithParams(ctx, pg.ID, &PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
 		if derr != nil {
@@ -160,35 +160,35 @@ func (c *Client) Transform(ctx context.Context, params *PlaygroundTransformParam
 	return out, nil
 }
 
-func (c *Client) ensureTransformSourceTemplate(ctx context.Context, pg *Playground) error {
+func (c *Client) ensureTemplateSwitchSource(ctx context.Context, pg *Playground) error {
 	if pg == nil || pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
 		return fmt.Errorf("playground has no playspec_id")
 	}
 	ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
 	if err != nil {
-		return fmt.Errorf("could not load playspec %d before transform: %w", *pg.PlayspecID, err)
+		return fmt.Errorf("could not load playspec %d before switch-template: %w", *pg.PlayspecID, err)
 	}
 	if ps.SourceTemplateVersionID == nil || *ps.SourceTemplateVersionID <= 0 {
-		return fmt.Errorf("playground %d cannot be transformed because playspec %d was not launched from a template version", pg.ID, *pg.PlayspecID)
+		return fmt.Errorf("playground %d cannot be switched because playspec %d was not launched from a template version", pg.ID, *pg.PlayspecID)
 	}
 	return nil
 }
 
-func transformRolloutMode(mode string) string {
+func templateSwitchRolloutMode(mode string) string {
 	if mode == "apply" {
 		return "target"
 	}
 	return "none"
 }
 
-func diagnoseTransform(params *PlaygroundTransformParams) bool {
+func diagnoseSwitchPlaygroundTemplate(params *PlaygroundTemplateSwitchParams) bool {
 	if params == nil || params.DiagnoseOnFailure == nil {
 		return true
 	}
 	return *params.DiagnoseOnFailure
 }
 
-func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, params *PlaygroundTransformParams) (int64, int64, *ImportTemplate, *ImportTemplateVersion, error) {
+func (c *Client) resolveTemplateSwitchTarget(ctx context.Context, pg *Playground, params *PlaygroundTemplateSwitchParams) (int64, int64, *ImportTemplate, *ImportTemplateVersion, error) {
 	body := params.TemplateBody
 
 	switch {
@@ -202,7 +202,7 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 		if templateID <= 0 && templateIdentifier == "" {
 			name := params.TemplateName
 			if name == "" {
-				name = fmt.Sprintf("playground-%d-transform-%d", pg.ID, time.Now().UnixNano())
+				name = fmt.Sprintf("playground-%d-switch-template-%d", pg.ID, time.Now().UnixNano())
 			}
 			created, err := c.ImportTemplates.Create(ctx, &ImportTemplateCreateParams{
 				Name:         name,
@@ -272,7 +272,7 @@ func (c *Client) resolveTransformTarget(ctx context.Context, pg *Playground, par
 	}
 }
 
-func waitForTransformRollout(ctx context.Context, c *Client, playgroundID int64, timeout time.Duration) map[string]any {
+func waitForTemplateSwitchRollout(ctx context.Context, c *Client, playgroundID int64, timeout time.Duration) map[string]any {
 	deadline := time.Now().Add(timeout)
 	var lastStatus string
 	for {

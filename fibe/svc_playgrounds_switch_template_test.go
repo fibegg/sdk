@@ -26,7 +26,7 @@ func TestTransformRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 		}
 	})
 
-	result, err := c.Transform(context.Background(), &PlaygroundTransformParams{
+	result, err := c.SwitchPlaygroundTemplate(context.Background(), &PlaygroundTemplateSwitchParams{
 		PlaygroundID: 7,
 		TemplateBody: "services: {}\n",
 	})
@@ -89,7 +89,7 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	})
 
 	provisionPrivate := false
-	result, err := c.Transform(context.Background(), &PlaygroundTransformParams{
+	result, err := c.SwitchPlaygroundTemplate(context.Background(), &PlaygroundTemplateSwitchParams{
 		PlaygroundID:          7,
 		TemplateBody:          "services:\n  web:\n    image: nginx\n",
 		TemplateName:          "pg-transform",

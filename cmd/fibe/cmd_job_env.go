@@ -68,7 +68,7 @@ func jobEnvListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop-id", "", "Filter by Prop ID or name")
+	cmd.Flags().StringVar(&propID, "prop", "", "Filter by Prop ID or name")
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search key/description")
 	return cmd
 }
@@ -139,7 +139,7 @@ func jobEnvSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop-id", "", "Scope to a Prop ID or name instead of global")
+	cmd.Flags().StringVar(&propID, "prop", "", "Scope to a Prop ID or name instead of global")
 	cmd.Flags().BoolVar(&secret, "secret", false, "Store as secret and mask in list responses")
 	cmd.Flags().StringVar(&desc, "description", "", "Optional description")
 	return cmd

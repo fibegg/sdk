@@ -11,9 +11,10 @@ import (
 
 func TestLaunchArgsAcceptComposeYAML(t *testing.T) {
 	params, err := launchArgs(context.Background(), nil, map[string]any{
-		"name":            "todo",
-		"compose_yaml":    "services:\n  web:\n    image: nginx\n",
-		"persist_volumes": true,
+		"name":              "todo",
+		"compose_yaml":      "services:\n  web:\n    image: nginx\n",
+		"create_playground": false,
+		"persist_volumes":   true,
 	})
 	if err != nil {
 		t.Fatalf("launchArgs: %v", err)
@@ -29,8 +30,9 @@ func TestLaunchArgsAcceptComposeYAML(t *testing.T) {
 func TestLaunchArgsAcceptGitHubRepository(t *testing.T) {
 	client := githubInstallationTestClient(t)
 	params, err := launchArgs(context.Background(), client, map[string]any{
-		"repository_url": "owner/repo@feature/foo",
-		"config_path":    "deploy/fibe.yml",
+		"repository_url":    "owner/repo@feature/foo",
+		"config_path":       "deploy/fibe.yml",
+		"create_playground": false,
 	})
 	if err != nil {
 		t.Fatalf("launchArgs: %v", err)
@@ -43,20 +45,6 @@ func TestLaunchArgsAcceptGitHubRepository(t *testing.T) {
 	}
 	if params.GitHubInstallationID == nil || *params.GitHubInstallationID != 123 {
 		t.Fatalf("unexpected github installation: %#v", params.GitHubInstallationID)
-	}
-}
-
-func TestLaunchToolRegisteredAsGreenfield(t *testing.T) {
-	srv := New(Config{APIKey: "pk_test", ToolSet: "core"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
-	tool, ok := srv.dispatcher.lookup("fibe_launch_create")
-	if !ok {
-		t.Fatal("fibe_launch_create not registered")
-	}
-	if tool.tier != tierGreenfield {
-		t.Fatalf("tier=%v want greenfield", tool.tier)
 	}
 }
 

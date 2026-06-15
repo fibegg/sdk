@@ -435,7 +435,7 @@ OPTIONAL FLAGS:
   --cli-version                   Fibe CLI version pin for this agent
   --provider-args                 Provider CLI flags, for example "--bare --max-tokens 4096"
   --skill-toggle                  Skill toggle as filename=true|false (repeatable)
-  --build-in-public-playground-id Playground ID or name for public builds
+  --build-in-public-playground Playground ID or name for public builds
 
 EXAMPLES:
   fibe agents update builder --name new-name
@@ -465,7 +465,7 @@ EXAMPLES:
 			if cmd.Flags().Changed("cpu-limit") {
 				params.CpuLimit = &cpuLimit
 			}
-			if cmd.Flags().Changed("build-in-public-playground-id") {
+			if cmd.Flags().Changed("build-in-public-playground") {
 				params.BuildInPublicPlaygroundIdentifier = buildInPublicPlaygroundID
 			}
 			if cmd.Flags().Changed("prompt") {
@@ -531,7 +531,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&cliVersion, "cli-version", "", "Fibe CLI version pin")
 	cmd.Flags().StringVar(&providerArgs, "provider-args", "", "Provider CLI flags, for example \"--bare --max-tokens 4096\"")
 	cmd.Flags().StringArrayVar(&skillToggleFlags, "skill-toggle", nil, "Skill toggle as filename=true|false (repeatable)")
-	cmd.Flags().StringVar(&buildInPublicPlaygroundID, "build-in-public-playground-id", "", "Playground ID or name for public builds")
+	cmd.Flags().StringVar(&buildInPublicPlaygroundID, "build-in-public-playground", "", "Playground ID or name for public builds")
 	return cmd
 }
 
@@ -643,7 +643,7 @@ EXAMPLES:
 }
 
 func agStartChatCmd() *cobra.Command {
-	var marqueeID string
+	var marquee string
 	cmd := &cobra.Command{
 		Use:   "start-chat <id-or-name>",
 		Short: "Start an interactive chat session for an agent",
@@ -653,17 +653,17 @@ The target Marquee must be funded. The server returns
 MARQUEE_NOT_FUNDED when billing is expired or missing.
 
 REQUIRED FLAGS:
-  --marquee-id   Target Marquee ID or name
+  --marquee      Target Marquee ID or name
 
 EXAMPLES:
-  fibe agents start-chat builder --marquee-id next
-  fibe ag start-chat my-agent --marquee-id my-marquee`,
+  fibe agents start-chat builder --marquee next
+  fibe ag start-chat my-agent --marquee my-marquee`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if marqueeID == "" {
-				return fmt.Errorf("required field 'marquee-id' not set")
+			if marquee == "" {
+				return fmt.Errorf("required field 'marquee' not set")
 			}
-			session, err := newClient().Agents.StartChatByAgentIdentifier(ctx(), args[0], marqueeID)
+			session, err := newClient().Agents.StartChatByAgentIdentifier(ctx(), args[0], marquee)
 			if err != nil {
 				return err
 			}
@@ -671,7 +671,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&marqueeID, "marquee-id", "", "Target Marquee ID or name (required)")
+	cmd.Flags().StringVar(&marquee, "marquee", "", "Target Marquee ID or name (required)")
 	return cmd
 }
 

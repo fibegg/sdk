@@ -61,8 +61,8 @@ func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (
 
 func validateOperationPayloadCombination(resource, operation string, payload map[string]any) error {
 	switch resource + "." + operation {
-	case "playground.transform":
-		return validatePlaygroundTransformPayloadCombination(resource, operation, payload)
+	case "playground.switch_template":
+		return validatePlaygroundSwitchTemplatePayloadCombination(resource, operation, payload)
 	case "template.change":
 		return validateTemplateChangePayloadCombination(resource, operation, payload)
 	default:
@@ -70,7 +70,7 @@ func validateOperationPayloadCombination(resource, operation string, payload map
 	}
 }
 
-func validatePlaygroundTransformPayloadCombination(resource, operation string, payload map[string]any) error {
+func validatePlaygroundSwitchTemplatePayloadCombination(resource, operation string, payload map[string]any) error {
 	path := resource + "." + operation + ".payload"
 	hasBody := hasNonEmptyPayloadField(payload, "template_body")
 	hasBodyPath := hasNonEmptyPayloadField(payload, "template_body_path")

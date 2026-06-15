@@ -55,7 +55,7 @@ The CLI acts as a human-readable entrypoint or an automated integration for LLM 
 # General details
 fibe doctor
 fibe status
-fibe me
+fibe auth status
 fibe server-info   # server UTC clock + build identity (unauthenticated)
 
 # View JSON schemas for commands (useful for LLM Agents)
@@ -76,11 +76,17 @@ fibe agents list --include-runtime-status --per-page 100 -o json
 fibe agents upload-attachment my-agent --file ./context.zip
 fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
 
-# Watch agent resource events through AnyCable
+# Watch agent resource events
 fibe agents watch --max-events 5 --duration 1m
 
 # Create a playground from an existing Playspec and override one service field
 fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
+cat payload.yml | fibe pg create -f -   # explicit stdin
+fibe pg create < payload.yml           # file redirection
+
+# Inspect service URLs and runtime service status
+fibe pg get demo
+fibe pg get demo -o json --only service_urls
 
 # Block until a playground starts running by name or ID
 fibe wait playground next --status running --timeout 5m
@@ -111,14 +117,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fibegg/sdk/fibe"
-)
-
-func main() {
-	client := fibe.NewClient(
-		fibe.WithAPIKey("pk_live_yourkeyhere"),
-		fibe.WithRateLimitAutoWait(),
+		"github.com/fibegg/sdk/fibe"
 	)
+
+	func main() {
+		client := fibe.NewClient(
+			fibe.WithAPIKey("fibe_live_yourkeyhere"),
+			fibe.WithRateLimitAutoWait(),
+		)
 
 	// Fetch account status
 	status, err := client.Status.Get(context.Background())
@@ -134,7 +140,7 @@ func main() {
 
 1. **Auto rate-limit retry**: When your workload hits HTTP `429 Too Many Requests`, the SDK will sleep the interval specified in `Retry-After`.
 2. **Circuit Breaking**: Failed requests trigger in-memory isolations ensuring that backends do not get DDos'd by your local requests.
-3. **Idempotency**: Retries send identical keys to the server (`X-Idempotent-Key`) mitigating unintended double writes.
+3. **Idempotency**: Mutating requests send the `Idempotency-Key` header. Automatically generated keys are per HTTP attempt; wrap the context with `fibe.WithIdempotencyKey(ctx, key)` when caller-level retries must reuse an identical key.
 
 ## MCP Server
 
@@ -143,7 +149,7 @@ The same `fibe` binary also runs as a local [Model Context Protocol](https://mod
 ```bash
 # Register Fibe with your MCP client (claude-code | claude-desktop | cursor | vscode | antigravity | codex)
 fibe mcp install --client claude-code
-fibe mcp install --client claude-code --project . # project-root .mcp.json
+fibe mcp install --client claude-code --user # user-level ~/.claude.json instead of project .mcp.json
 fibe mcp install --client codex --profile staging
 
 # Run the server manually (stdio, single-tenant, profile-backed)
@@ -160,7 +166,14 @@ Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments
 
 ### Tool surface
 
-The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_templates_launch`. Agent list/runtime, attachment, and scheduled poke flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, download runtime files through `fibe_resource_get` using `agent_attachment`, and manage scheduled pokes through the `agent_poke` resource aliases `agent_pokes` and `pokes`. Playspec job automation uses `fibe_resource_mutate` with `playspec.create` or `playspec.update`; inspect `fibe_schema(resource:"playspec", operation:"create")` for `schedule_config`, `trigger_config`, and `muti_config` payload fields. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls. `FIBE_MCP_TOOLS=full` exposes the full registered catalog; set `FIBE_MCP_TOOLS=core` for a smaller curated subset plus always-visible meta tools.
+The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_launch`. Agent list/runtime, attachment, and scheduled poke flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, download runtime files through `fibe_resource_get` using `agent_attachment`, and manage scheduled pokes through the `agent_poke` resource aliases `agent_pokes` and `pokes`. Inspect Playground URLs and services through `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; the detailed response includes `service_urls` and `services`, while `fibe_playgrounds_debug` remains the deeper diagnostics surface for raw compose/routes/log context. Playspec job automation uses `fibe_resource_mutate` with `playspec.create` or `playspec.update`; inspect `fibe_schema(resource:"playspec", operation:"create")` for `schedule_config`, `trigger_config`, and `muti_config` payload fields. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls.
+
+The generated registry docs currently list 60 registered dispatcher tools. By default, `fibe mcp serve` uses the `full` tool surface and advertises the 59 non-hidden tools. Use `--tools core` or `FIBE_MCP_TOOLS=core` to narrow the native surface to the 39 meta/base/greenfield/brownfield tools, or pass a comma-separated tier list such as `--tools other,meta`. Hidden tools are not advertised natively even in `full`, but remain dispatcher-reachable through `fibe_call` and `fibe_pipeline` when the caller already knows the tool name. Use `fibe_tools_catalog` to inspect `advertised` and `hidden` flags for a running server. Regenerate `fibe_mcp_tools_catalog.md` and `fibe_tools_table.md` deterministically from the Go MCP registry with:
+
+```bash
+go run ./scripts/docs
+go run ./scripts/docs --check
+```
 
 Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` on delete/rollout/hard-restart. Destructive tools require `confirm:true` in their args unless the server is launched with `--yolo` (or `FIBE_MCP_YOLO=1`) for non-interactive environments.
 
@@ -172,8 +185,8 @@ Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` o
 {
   "steps": [
     {"id": "pg",   "tool": "fibe_resource_mutate", "args": {"resource": "playground", "operation": "create", "payload": {"name": "ci", "playspec_id": 5}}},
-    {"id": "wait", "tool": "fibe_playgrounds_wait",   "args": {"id": "$.pg.id", "status": "running"}},
-    {"id": "logs", "tool": "fibe_playgrounds_logs",   "args": {"id": "$.pg.id", "service": "web", "tail": 100}}
+    {"id": "wait", "tool": "fibe_playgrounds_wait",   "args": {"id_or_name": "$.pg.id", "status": "running"}},
+    {"id": "logs", "tool": "fibe_playgrounds_logs",   "args": {"id_or_name": "$.pg.id", "service": "web", "tail": 100}}
   ],
   "return": "$.logs.lines"
 }
@@ -183,7 +196,7 @@ Supports `parallel` blocks for concurrent independent steps and `for_each` for f
 
 ### Streaming
 
-`fibe_playgrounds_wait`, `fibe_monitor_logs_follow`, and the compatibility `fibe_playgrounds_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. CLI users can run `fibe monitor logs <id-or-name>` for continuous playground or trick logs.
+`fibe_playgrounds_wait` and `fibe_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. CLI users can run `fibe logs follow <id-or-name>` for continuous playground or trick logs.
 
 ### Resources
 
@@ -213,11 +226,11 @@ runtime with:
 For HTTP/SSE deployments serving multiple tenants, the server resolves
 credentials per request in this order:
 
-1. `Authorization: Bearer <fibe-api-key>` header
-2. A prior `fibe_auth_set` tool call in the same session
+1. A prior `fibe_auth_use` or `fibe_auth_set` tool call in the same session
+2. `Authorization: Bearer <fibe-api-key>` header, falling back to `X-Fibe-API-Key`
 3. The server-wide profile/API-key fallback (disabled with `--require-auth`)
 
-Each session gets its own `*fibe.Client` instance with isolated circuit-breaker and rate-limit state — one tenant's errors can't open another tenant's breaker.
+`X-Fibe-Domain` can provide a per-request domain override. Each session gets its own cached `*fibe.Client` instance with isolated circuit-breaker and rate-limit state; after the first client is resolved for a session, later header changes on the same session do not rebuild it. Use a new HTTP/SSE session or call `fibe_auth_use` / `fibe_auth_set` to switch credentials deliberately.
 
 ### Audit Log
 
