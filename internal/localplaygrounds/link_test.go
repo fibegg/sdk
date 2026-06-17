@@ -143,12 +143,14 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 	}
 }
 
-func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
+func TestNamesExcludeJobModeAndStaticOnlyPlaygrounds(t *testing.T) {
 	root := t.TempDir()
 	normalDir := filepath.Join(root, "normal-app--1")
+	staticDir := filepath.Join(root, "static-app--4")
 	jobMapDir := filepath.Join(root, "ci-map--2")
 	jobArrayDir := filepath.Join(root, "ci-array--3")
-	for _, dir := range []string{normalDir, jobMapDir, jobArrayDir} {
+	jobMetadataDir := filepath.Join(root, "ci-metadata--5")
+	for _, dir := range []string{normalDir, staticDir, jobMapDir, jobArrayDir, jobMetadataDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -158,6 +160,14 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
     image: nginx
     labels:
       fibe.gg/playspec: normal-app
+    volumes:
+      - "/opt/fibe/playgrounds/normal-app--1/props/fibegg--normal-app--77/main:/app"
+`
+	staticCompose := `services:
+  web:
+    image: nginx
+    labels:
+      fibe.gg/playspec: static-app
 `
 	jobMapCompose := `services:
   test:
@@ -165,6 +175,8 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
     labels:
       fibe.gg/playspec: ci-map
       fibe.gg/job_watch: "true"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-map--2/props/fibegg--ci-map--78/main:/app"
 `
 	jobArrayCompose := `services:
   test:
@@ -172,14 +184,34 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
     labels:
       - "fibe.gg/playspec=ci-array"
       - "fibe.gg/job_watch=true"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-array--3/props/fibegg--ci-array--79/main:/app"
+`
+	jobMetadataCompose := `x-fibe.gg:
+  metadata:
+    job_mode: true
+services:
+  test:
+    image: alpine
+    labels:
+      fibe.gg/playspec: ci-metadata
+      fibe.gg/job_watch: "false"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-metadata--5/props/fibegg--ci-metadata--80/main:/app"
 `
 	if err := os.WriteFile(filepath.Join(normalDir, "compose.yml"), []byte(normalCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staticDir, "compose.yml"), []byte(staticCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(jobMapDir, "compose.yml"), []byte(jobMapCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(jobArrayDir, "compose.yml"), []byte(jobArrayCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(jobMetadataDir, "compose.yml"), []byte(jobMetadataCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -205,6 +237,13 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
 	}
 	if !arrayJob.JobMode || !arrayJob.Services["test"].JobWatch {
 		t.Fatalf("array job metadata not set: %#v", arrayJob)
+	}
+	metadataJob, err := Find(playgrounds, "ci-metadata")
+	if err != nil {
+		t.Fatalf("Find ci-metadata: %v", err)
+	}
+	if !metadataJob.JobMode || metadataJob.Services["test"].JobWatch {
+		t.Fatalf("compose metadata job mode not set independently from service job_watch: %#v", metadataJob)
 	}
 }
 

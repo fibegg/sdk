@@ -195,7 +195,7 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 func Names(playgrounds []Playground) []NameEntry {
 	items := make([]NameEntry, 0, len(playgrounds))
 	for _, pg := range playgrounds {
-		if pg.JobMode {
+		if pg.JobMode || !hasMountableService(pg) {
 			continue
 		}
 		items = append(items, NameEntry{
@@ -206,6 +206,15 @@ func Names(playgrounds []Playground) []NameEntry {
 		})
 	}
 	return items
+}
+
+func hasMountableService(pg Playground) bool {
+	for _, svc := range pg.Services {
+		if svc.HostMount != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func URLs(pg *Playground, rootDomain string) []URLEntry {
@@ -401,6 +410,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		return pg
 	}
 
+	pg.JobMode = composeJobMode(doc)
 	services := asMap(doc["services"])
 	for _, svcName := range sortedMapKeys(services) {
 		svcMap := asMap(services[svcName])
@@ -439,6 +449,12 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		pg.ID = id
 	}
 	return pg
+}
+
+func composeJobMode(doc map[string]any) bool {
+	namespace := asMap(doc["x-fibe.gg"])
+	metadata := asMap(namespace["metadata"])
+	return truthy(scalarString(metadata["job_mode"])) || truthy(scalarString(namespace["job_mode"]))
 }
 
 func asMap(value any) map[string]any {

@@ -49,7 +49,7 @@ func lpInfoCmd() *cobra.Command {
 		Long: `Show local playground information.
 
 Views:
-  names    List selector-visible local playground names, playspecs, IDs, and paths.
+  names    List selector-visible mountable local playground names, playspecs, IDs, and paths.
   urls     List exposed service URLs for one playground.
   mounts   List source-code mount locations for one playground.
   details  Show full local metadata for one playground.`,
