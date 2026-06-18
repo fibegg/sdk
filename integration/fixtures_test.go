@@ -124,6 +124,69 @@ func seedSecret(t *testing.T, c *fibe.Client, keySuffix string) *fibe.Secret {
 	return s
 }
 
+// seedWritableGiteaProp creates a real writable repo through the e2e player's
+// connected Gitea account and returns the Prop surfaced by that flow.
+func seedWritableGiteaProp(t *testing.T, c *fibe.Client, prefix string) *fibe.Prop {
+	t.Helper()
+	prop := createWritableGiteaProp(t, c, prefix)
+	t.Cleanup(func() { _ = c.Props.Delete(ctx(), prop.ID) })
+	return prop
+}
+
+func createWritableGiteaProp(t *testing.T, c *fibe.Client, prefix string) *fibe.Prop {
+	t.Helper()
+	repo := seedWritableGiteaRepo(t, c, prefix)
+	var prop *fibe.Prop
+	if repo.Prop != nil {
+		prop = repo.Prop
+	} else if repo.PropID > 0 {
+		var err error
+		prop, err = c.Props.Get(ctx(), repo.PropID)
+		requireNoError(t, err, "get writable gitea prop")
+	} else {
+		t.Fatalf("gitea repo create did not return prop metadata: %#v", repo)
+	}
+	return prop
+}
+
+// seedWritableGiteaRepoURL creates a real Gitea repo and removes the auto-created
+// Prop so callers can exercise the generic props create path against a writable URL.
+func seedWritableGiteaRepoURL(t *testing.T, c *fibe.Client, prefix string) string {
+	t.Helper()
+	repo := seedWritableGiteaRepo(t, c, prefix)
+	if repo.PropID > 0 {
+		_ = c.Props.Delete(ctx(), repo.PropID)
+	}
+	if repo.HTMLURL != "" {
+		return repo.HTMLURL
+	}
+	if repo.CloneURL != "" {
+		return repo.CloneURL
+	}
+	t.Fatalf("gitea repo create did not return a usable URL: %#v", repo)
+	return ""
+}
+
+func seedWritableGiteaRepo(t *testing.T, c *fibe.Client, prefix string) *fibe.GiteaRepo {
+	t.Helper()
+	private := true
+	autoInit := true
+	description := "SDK integration writable repo fixture"
+	repo, err := c.GiteaRepos.Create(ctx(), &fibe.GiteaRepoCreateParams{
+		Name:        uniqueName(prefix),
+		Private:     &private,
+		AutoInit:    &autoInit,
+		Description: &description,
+	})
+	if err != nil {
+		if apiErr, ok := err.(*fibe.APIError); ok && apiErr.Code == "GITEA_CONNECTION_REQUIRED" {
+			t.Skip("Gitea account is not connected for this integration environment")
+		}
+		requireNoError(t, err, "create writable gitea repo")
+	}
+	return repo
+}
+
 // skipIfFeatureDisabled returns true (and skips) if the error is FEATURE_DISABLED.
 func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	t.Helper()

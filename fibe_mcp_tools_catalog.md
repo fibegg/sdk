@@ -32,7 +32,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "agent_defaults": {
-      "description": "Player agent defaults object, including provider_overrides when needed.",
+      "description": "Canonical player agent defaults object; use provider_overrides.\u003cprovider\u003e.cli_version for per-provider CLI pins and default_mounted_files for runtime files.",
       "properties": {},
       "type": "object"
     },
@@ -2565,7 +2565,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs.
+[MODE:DIALOG] Verify GitHub repository readiness, including runtime writeability and fork/mirror guidance.
 
 ### Input Schema
 ```json
@@ -3646,4 +3646,3 @@ Generated from the MCP registry.
   "type": "object"
 }
 ```
-

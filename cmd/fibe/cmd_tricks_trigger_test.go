@@ -38,7 +38,7 @@ func TestTricksTriggerSendsRunOverrides(t *testing.T) {
 		"--playspec", "nightly-build",
 		"--marquee", "lyke",
 		"--name", "run",
-		"--env-overrides", `{"GH_TOKEN":"secret"}`,
+		"--env-overrides", `{"GITHUB_PAT":"secret"}`,
 		"--only-service", "tests",
 		"--except-service", "lint",
 	})
@@ -51,7 +51,7 @@ func TestTricksTriggerSendsRunOverrides(t *testing.T) {
 		t.Fatalf("unexpected identifiers: %#v", playground)
 	}
 	env := playground["env_overrides"].(map[string]any)
-	if env["GH_TOKEN"] != "secret" {
+	if env["GITHUB_PAT"] != "secret" {
 		t.Fatalf("env override missing: %#v", env)
 	}
 	if got := playground["only_services"].([]any)[0]; got != "tests" {

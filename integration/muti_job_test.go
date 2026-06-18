@@ -11,12 +11,7 @@ func TestMutiJob_PlayspecConfig(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-		RepositoryURL: "https://github.com/octocat/" + uniqueName("Hello-World"),
-		Name:          ptr(uniqueName("muti-prop")),
-	})
-	requireNoError(t, err)
-	t.Cleanup(func() { c.Props.Delete(ctx(), prop.ID) })
+	prop := seedWritableGiteaProp(t, c, "muti-prop")
 
 	t.Run("create playspec with muti config", func(t *testing.T) {
 		t.Parallel()

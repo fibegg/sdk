@@ -83,10 +83,16 @@ func TestPropValidation(t *testing.T) {
 
 	t.Run("duplicate repo_url handled gracefully", func(t *testing.T) {
 		t.Parallel()
-		url := "https://github.com/octocat/" + uniqueName("Hello-World")
+		url := seedWritableGiteaRepoURL(t, c, "dup-repo")
+		provider := "gitea"
+		private := true
+		branch := "main"
 		prop1, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test")),
+			Provider:      &provider,
+			Private:       &private,
+			DefaultBranch: &branch,
 		})
 		requireNoError(t, err)
 		t.Cleanup(func() { c.Props.Delete(ctx(), prop1.ID) })
@@ -94,6 +100,9 @@ func TestPropValidation(t *testing.T) {
 		prop2, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test-2")),
+			Provider:      &provider,
+			Private:       &private,
+			DefaultBranch: &branch,
 		})
 		if err != nil {
 			return

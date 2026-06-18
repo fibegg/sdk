@@ -254,7 +254,8 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		assert.True(t, strings.Contains(out, "required field 'url' not set") || strings.Contains(out, "required"), "expected repo url error: %s", out)
 
 		// Happy: create
-		out, err = runCompiledCLI(t, "props", "create", "--url", "https://github.com/fibegg/e2e-tests", "--name", uniqueName("cli-e2e-prop"))
+		repoURL := seedWritableGiteaRepoURL(t, userClient(t), "cli-e2e-prop")
+		out, err = runCompiledCLI(t, "props", "create", "--url", repoURL, "--provider", "gitea", "--private", "--default-branch", "main", "--name", uniqueName("cli-e2e-prop"))
 		require.NoError(t, err, "failed to create prop: %s", out)
 		id := parseResourceID(t, out)
 

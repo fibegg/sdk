@@ -1,6 +1,7 @@
 package localplaygrounds
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +15,10 @@ import (
 
 const defaultBaseDir = "/opt/fibe/playgrounds"
 const defaultRootDomain = "phoenix.test"
+const defaultLinkDir = "/app/playground"
+const currentStateFilename = ".current_playground.json"
 
-var Views = []string{"names", "urls", "mounts", "details"}
+var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
 type Service struct {
 	Name      string `json:"name" yaml:"name"`
@@ -56,6 +59,32 @@ type MountEntry struct {
 	Mount   string `json:"mount" yaml:"mount"`
 	Prop    string `json:"prop,omitempty" yaml:"prop,omitempty"`
 	Branch  string `json:"branch,omitempty" yaml:"branch,omitempty"`
+}
+
+type RepoEntry struct {
+	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
+	Service  string `json:"service" yaml:"service"`
+	Prop     string `json:"prop,omitempty" yaml:"prop,omitempty"`
+	Branch   string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	LinkPath string `json:"link_path" yaml:"link_path"`
+	Target   string `json:"target" yaml:"target"`
+	RepoRoot string `json:"repo_root" yaml:"repo_root"`
+}
+
+type CurrentState struct {
+	ID         string              `json:"id,omitempty" yaml:"id,omitempty"`
+	Name       string              `json:"name" yaml:"name"`
+	DirName    string              `json:"dir_name" yaml:"dir_name"`
+	Path       string              `json:"path" yaml:"path"`
+	Playspec   string              `json:"playspec" yaml:"playspec"`
+	LinkDir    string              `json:"link_dir" yaml:"link_dir"`
+	StateFile  string              `json:"state_file" yaml:"state_file"`
+	JobMode    bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
+	Services   map[string]*Service `json:"services" yaml:"services"`
+	URLs       []URLEntry          `json:"urls" yaml:"urls"`
+	Mounts     []MountEntry        `json:"mounts" yaml:"mounts"`
+	Repos      []RepoEntry         `json:"repos" yaml:"repos"`
+	RootDomain string              `json:"root_domain" yaml:"root_domain"`
 }
 
 type BaseDirMissingError struct {
@@ -221,12 +250,13 @@ func URLs(pg *Playground, rootDomain string) []URLEntry {
 	if rootDomain == "" {
 		rootDomain = defaultRootDomain
 	}
+	scheme := URLScheme()
 	seen := make(map[string]bool)
 	var entries []URLEntry
 	for _, name := range serviceNames(pg.Services) {
 		svc := pg.Services[name]
 		if svc.Traefik && svc.Subdomain != "" {
-			fullURL := svc.Subdomain + "." + rootDomain
+			fullURL := scheme + "://" + svc.Subdomain + "." + rootDomain
 			if !seen[fullURL] {
 				seen[fullURL] = true
 				entries = append(entries, URLEntry{Service: name, URL: fullURL})
@@ -253,13 +283,54 @@ func Mounts(pg *Playground) []MountEntry {
 	return entries
 }
 
-func View(playgrounds []Playground, view, selector, rootDomain string) (any, error) {
+func URLScheme() string {
+	if v := strings.TrimSpace(os.Getenv("MARQUEE_URL_SCHEME")); v != "" {
+		return strings.TrimSuffix(strings.ToLower(v), "://")
+	}
+	return "https"
+}
+
+func CurrentStatePath(linkDir string) string {
+	if linkDir == "" {
+		linkDir = defaultLinkDir
+	}
+	return filepath.Join(linkDir, currentStateFilename)
+}
+
+func LoadCurrentState(linkDir string) (*CurrentState, error) {
+	path := CurrentStatePath(linkDir)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var state CurrentState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
+func View(playgrounds []Playground, view, selector, rootDomain, linkDir string) (any, error) {
 	switch view {
 	case "names":
 		if strings.TrimSpace(selector) != "" {
 			return nil, fmt.Errorf("view 'names' does not accept a playground selector")
 		}
 		return Names(playgrounds), nil
+	case "current":
+		if strings.TrimSpace(selector) != "" {
+			return nil, fmt.Errorf("view 'current' does not accept a playground selector")
+		}
+		return LoadCurrentState(linkDir)
+	case "repos":
+		if strings.TrimSpace(selector) != "" {
+			return nil, fmt.Errorf("view 'repos' does not accept a playground selector")
+		}
+		state, err := LoadCurrentState(linkDir)
+		if err != nil {
+			return nil, err
+		}
+		return state.Repos, nil
 	case "urls":
 		pg, err := Find(playgrounds, selector)
 		if err != nil {
@@ -285,7 +356,7 @@ func View(playgrounds []Playground, view, selector, rootDomain string) (any, err
 
 func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if linkDir == "" {
-		linkDir = "/app/playground"
+		linkDir = defaultLinkDir
 	}
 	playgrounds, err := Scan(BaseDir())
 	if err != nil {
@@ -300,7 +371,7 @@ func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 
 func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if linkDir == "" {
-		linkDir = "/app/playground"
+		linkDir = defaultLinkDir
 	}
 	if pg.JobMode {
 		return nil, fmt.Errorf("cannot link job-mode playground %s", pg.DirName)
@@ -325,7 +396,7 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	result := &fibe.GreenfieldLinkResult{
 		LinkDir:    linkDir,
 		Playground: pg.DirName,
-		StateFile:  filepath.Join(linkDir, ".current_playground"),
+		StateFile:  CurrentStatePath(linkDir),
 	}
 	created := make(map[string]bool)
 	for _, svc := range mountable {
@@ -359,10 +430,63 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		})
 	}
 
-	if err := os.WriteFile(result.StateFile, []byte(pg.DirName), 0o644); err != nil {
+	state := currentStateFromLinks(pg, linkDir, result.StateFile, result.Links)
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize state file: %w", err)
+	}
+	if err := os.WriteFile(result.StateFile, append(data, '\n'), 0o644); err != nil {
 		return nil, fmt.Errorf("failed to write state file: %w", err)
 	}
 	return result, nil
+}
+
+func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fibe.GreenfieldLinkedPath) CurrentState {
+	repos := make([]RepoEntry, 0, len(links))
+	for _, link := range links {
+		repoRoot := findGitRoot(link.Target)
+		if repoRoot == "" {
+			repoRoot = link.Target
+		}
+		repos = append(repos, RepoEntry{
+			ID:       link.Name,
+			Service:  link.Service,
+			Prop:     link.Prop,
+			Branch:   link.Branch,
+			LinkPath: link.Path,
+			Target:   link.Target,
+			RepoRoot: repoRoot,
+		})
+	}
+	return CurrentState{
+		ID:         pg.ID,
+		Name:       pg.DirName,
+		DirName:    pg.DirName,
+		Path:       pg.Path,
+		Playspec:   pg.Playspec,
+		LinkDir:    linkDir,
+		StateFile:  stateFile,
+		JobMode:    pg.JobMode,
+		Services:   pg.Services,
+		URLs:       URLs(pg, RootDomain()),
+		Mounts:     Mounts(pg),
+		Repos:      repos,
+		RootDomain: RootDomain(),
+	}
+}
+
+func findGitRoot(start string) string {
+	current := filepath.Clean(start)
+	for {
+		if _, err := os.Stat(filepath.Join(current, ".git")); err == nil {
+			return current
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return ""
+		}
+		current = parent
+	}
 }
 
 func prepareLinkDir(linkDir string) error {

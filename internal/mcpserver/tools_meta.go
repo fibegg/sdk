@@ -241,7 +241,7 @@ selected profile with /api/me before keeping the new session client.`),
 
 	// ---------- local playground helpers ----------
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierBrownfield,
+		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))
@@ -256,20 +256,23 @@ selected profile with /api/me before keeping the new session client.`),
 			if err != nil {
 				return nil, err
 			}
-			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain())
+			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain(), argString(args, "link_dir"))
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_info",
 		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
 
 Views:
   names    list selector-visible mountable local playground names, playspecs, IDs, and paths; omit id_or_name
+  current  currently linked playground JSON state; omit id_or_name
+  repos    git repository roots for the currently linked playground; omit id_or_name
   urls     exposed service URLs for one playground
   mounts   source-code mount locations for one playground
   details  full local metadata for one playground
 
 Selectors accept local numeric playground ID, compose project/name, playspec, or unique playspec prefix.`),
-		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, urls, mounts, or details.")),
+		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, current, repos, urls, mounts, or details.")),
 		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
+		mcp.WithString("link_dir", mcp.Description("Current-link directory for view=current or view=repos (default: /app/playground).")),
 	))
 
 	s.addTool(&toolImpl{
@@ -689,9 +692,9 @@ func localPlaygroundSelectorFromArgs(args map[string]any, view string) (string, 
 	if err != nil {
 		return "", err
 	}
-	if view == "names" {
+	if view == "names" || view == "current" || view == "repos" {
 		if selector != "" {
-			return "", fmt.Errorf("view 'names' does not accept id_or_name")
+			return "", fmt.Errorf("view '%s' does not accept id_or_name", view)
 		}
 		return "", nil
 	}

@@ -17,6 +17,7 @@ Examples:
 	cmd.AddCommand(
 		localPlaygroundsCmd(),
 		localConversationsCmd(),
+		localPathsCmd(),
 	)
 
 	return cmd

@@ -224,7 +224,7 @@ EXAMPLES:
   fibe tricks trigger --playspec nightly-build
   fibe tr trigger --playspec nightly-build --marquee next
   fibe tr trigger --playspec nightly-build --name "my-ci-run"
-  fibe tr trigger --playspec nightly-build --only-service tests --env-overrides '{"GH_TOKEN":"..."}'`,
+  fibe tr trigger --playspec nightly-build --only-service tests --env-overrides '{"GITHUB_PAT":"..."}'`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.TrickTriggerParams{

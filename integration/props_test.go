@@ -14,11 +14,7 @@ func TestProps_CRUD(t *testing.T) {
 
 	t.Run("create prop", func(t *testing.T) {
 		// Parallel disabled: dependent sequence
-		prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-			RepositoryURL: "https://github.com/fibegg/sdk",
-			Name:          ptr(uniqueName("test-prop")),
-		})
-		requireNoError(t, err)
+		prop := createWritableGiteaProp(t, c, "test-prop")
 
 		propID = prop.ID
 		if prop.RepositoryURL == "" {
@@ -101,13 +97,9 @@ func TestProps_CRUD(t *testing.T) {
 
 	t.Run("delete prop", func(t *testing.T) {
 		t.Parallel()
-		prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-			RepositoryURL: "https://github.com/fibegg/nonexistent-repo-delete-test",
-			Name:          ptr(uniqueName("delete-prop")),
-		})
-		requireNoError(t, err)
+		prop := createWritableGiteaProp(t, c, "delete-prop")
 
-		err = c.Props.Delete(ctx(), prop.ID)
+		err := c.Props.Delete(ctx(), prop.ID)
 		requireNoError(t, err)
 
 		_, err = c.Props.Get(ctx(), prop.ID)

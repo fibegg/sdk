@@ -16,12 +16,7 @@ func TestPlayspec_WithTriggerConfig(t *testing.T) {
 	t.Cleanup(func() { c.Marquees.Delete(ctx(), marquee.ID) })
 	marqueeID := marquee.ID
 
-	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-		RepositoryURL: "https://github.com/octocat/" + uniqueName("Hello-World"),
-		Name:          ptr(uniqueName("trigger-prop")),
-	})
-	requireNoError(t, err)
-	t.Cleanup(func() { c.Props.Delete(ctx(), prop.ID) })
+	prop := seedWritableGiteaProp(t, c, "trigger-prop")
 
 	jm := true
 	spec := seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) {

@@ -1,6 +1,7 @@
 package localplaygrounds
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -50,8 +51,15 @@ func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state: %v", err)
 	}
-	if string(state) != "pg-123" {
-		t.Fatalf("state=%q want pg-123", state)
+	var current CurrentState
+	if err := json.Unmarshal(state, &current); err != nil {
+		t.Fatalf("state json: %v", err)
+	}
+	if current.Name != "pg-123" || current.Playspec != "tower-defence" || len(current.Repos) != 1 {
+		t.Fatalf("state=%q want pg-123 json with one repo", state)
+	}
+	if current.Repos[0].Service != "web" || current.Repos[0].RepoRoot != result.Links[0].Target {
+		t.Fatalf("unexpected repo state: %#v", current.Repos[0])
 	}
 }
 
@@ -134,7 +142,7 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 		t.Fatalf("unexpected names: %#v", names)
 	}
 	urls := URLs(pg, "example.test")
-	if len(urls) != 1 || urls[0].Service != "api" || urls[0].URL != "api.example.test" {
+	if len(urls) != 1 || urls[0].Service != "api" || urls[0].URL != "https://api.example.test" {
 		t.Fatalf("unexpected urls: %#v", urls)
 	}
 	mounts := Mounts(pg)
@@ -348,6 +356,16 @@ func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	if target != hostMount {
 		t.Fatalf("target=%s want %s", target, hostMount)
 	}
+	state, err := LoadCurrentState(linkDir)
+	if err != nil {
+		t.Fatalf("LoadCurrentState: %v", err)
+	}
+	if state.Name != "pg-dynamic" || len(state.Repos) != 1 {
+		t.Fatalf("unexpected state: %#v", state)
+	}
+	if state.Repos[0].LinkPath != filepath.Join(linkDir, "dynamic-app") || state.Repos[0].RepoRoot != hostMount {
+		t.Fatalf("unexpected repo state: %#v", state.Repos[0])
+	}
 }
 
 func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
@@ -386,16 +404,20 @@ func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state: %v", err)
 	}
-	if string(state) != "bagg-app--24" {
-		t.Fatalf("state=%q want bagg-app--24", state)
+	var current CurrentState
+	if err := json.Unmarshal(state, &current); err != nil {
+		t.Fatalf("state json: %v", err)
+	}
+	if current.Name != "bagg-app--24" || current.Playspec != "bagg-app" {
+		t.Fatalf("state=%q want bagg-app--24 json", state)
 	}
 
 	entries, err := os.ReadDir(linkDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name() != ".current_playground" {
-		t.Fatalf("entries=%v want only .current_playground", entries)
+	if len(entries) != 1 || entries[0].Name() != ".current_playground.json" {
+		t.Fatalf("entries=%v want only .current_playground.json", entries)
 	}
 }
 

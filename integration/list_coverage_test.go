@@ -157,20 +157,12 @@ func TestListCoverage_Sorting(t *testing.T) {
 	_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) { p.Name = playspecTag + "bravo" })
 
 	propTag := tag("sortprop")
-	propA, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-		RepositoryURL: "https://github.com/octocat/" + uniqueName("sort-prop-alpha"),
-		Name:          ptr(propTag + "alpha"),
-	})
-	requireNoError(t, err, "seed sort prop alpha")
-	propB, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
-		RepositoryURL: "https://github.com/octocat/" + uniqueName("sort-prop-bravo"),
-		Name:          ptr(propTag + "bravo"),
-	})
-	requireNoError(t, err, "seed sort prop bravo")
-	t.Cleanup(func() {
-		c.Props.Delete(ctx(), propA.ID)
-		c.Props.Delete(ctx(), propB.ID)
-	})
+	propA := seedWritableGiteaProp(t, c, "sort-prop-alpha")
+	_, err = c.Props.Update(ctx(), propA.ID, &fibe.PropUpdateParams{Name: ptr(propTag + "alpha")})
+	requireNoError(t, err, "name sort prop alpha")
+	propB := seedWritableGiteaProp(t, c, "sort-prop-bravo")
+	_, err = c.Props.Update(ctx(), propB.ID, &fibe.PropUpdateParams{Name: ptr(propTag + "bravo")})
+	requireNoError(t, err, "name sort prop bravo")
 
 	marqueeTag := tag("sortmarquee")
 	marqueeParamsA := testMarqueeParams("sort-marquee-alpha")

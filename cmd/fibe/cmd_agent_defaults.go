@@ -17,7 +17,7 @@ func agentDefaultsCmd() *cobra.Command {
 
 These are the same defaults exposed in the profile UI: prompts, model options,
 runtime limits, custom environment, MCP JSON, post-init scripts, provider args,
-skill toggles, default mounts, and per-provider overrides.`,
+skill toggles, default runtime files, and per-provider overrides.`,
 	}
 	cmd.AddCommand(agentDefaultsGetCmd(), agentDefaultsUpdateCmd(), agentDefaultsResetCmd())
 	return cmd
@@ -56,7 +56,7 @@ func agentDefaultsResetCmd() *cobra.Command {
 
 func agentDefaultsUpdateCmd() *cobra.Command {
 	var provider string
-	var systemPrompt, modelOptions, memoryLimit, cpuLimit, cliVersion, providerCLIVersion string
+	var systemPrompt, modelOptions, memoryLimit, cpuLimit, cliVersion string
 	var customEnv, mcpJSON, postInitScript, providerArgs string
 	var syscheckEnabled bool
 	var skillToggleFlags []string
@@ -95,7 +95,6 @@ EXAMPLES:
 			setStringDefault(cmd, scope, "memory-limit", "memory_limit", memoryLimit, &changed)
 			setStringDefault(cmd, scope, "cpu-limit", "cpu_limit", cpuLimit, &changed)
 			setStringDefault(cmd, scope, "cli-version", "cli_version", cliVersion, &changed)
-			setStringDefault(cmd, scope, "provider-cli-version", "provider_cli_version", providerCLIVersion, &changed)
 			setStringDefault(cmd, scope, "custom-env", "custom_env", customEnv, &changed)
 			setStringDefault(cmd, scope, "mcp-json", "mcp_json", mcpJSON, &changed)
 			setStringDefault(cmd, scope, "post-init-script", "post_init_script", postInitScript, &changed)
@@ -131,7 +130,6 @@ EXAMPLES:
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Default memory limit, for example 2G")
 	cmd.Flags().StringVar(&cpuLimit, "cpu-limit", "", "Default CPU limit, for example 1.5")
 	cmd.Flags().StringVar(&cliVersion, "cli-version", "", "Default Fibe CLI version pin")
-	cmd.Flags().StringVar(&providerCLIVersion, "provider-cli-version", "", "Default provider CLI version pin")
 	cmd.Flags().StringVar(&customEnv, "custom-env", "", "Default KEY=VALUE lines injected into the agent runtime")
 	cmd.Flags().StringVar(&mcpJSON, "mcp-json", "", "Default MCP configuration JSON")
 	cmd.Flags().StringVar(&postInitScript, "post-init-script", "", "Default post-init shell script")

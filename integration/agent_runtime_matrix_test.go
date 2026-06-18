@@ -27,7 +27,6 @@ type agentRuntimeMatrixCase struct {
 	providerAPIKeyMode bool
 	modelOptions       string
 	credentialEnv      string
-	credentialAliases  []string
 	opencodeProvider   string
 	baseURL            string
 }
@@ -41,63 +40,55 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			provider:           fibe.ProviderGemini,
 			providerAPIKeyMode: false,
 			modelOptions:       "gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_GEMINI_OAUTH_JSON",
-			credentialAliases:  []string{"GEMINI_OAUTH_JSON"},
+			credentialEnv:      "GEMINI_OAUTH_JSON",
 		},
 		{
 			name:               "Gemini API key",
 			provider:           fibe.ProviderGemini,
 			providerAPIKeyMode: true,
 			modelOptions:       "gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_GEMINI_API_KEY",
-			credentialAliases:  []string{"GEMINI_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"},
+			credentialEnv:      "GEMINI_API_KEY",
 		},
 		{
 			name:               "Claude manual",
 			provider:           fibe.ProviderClaudeCode,
 			providerAPIKeyMode: false,
 			modelOptions:       "haiku",
-			credentialEnv:      "FIBE_TEST_AGENT_CLAUDE_CODE_OAUTH_TOKEN",
-			credentialAliases:  []string{"CLAUDE_CODE_OAUTH_TOKEN"},
+			credentialEnv:      "CLAUDE_CODE_OAUTH_TOKEN",
 		},
 		{
 			name:               "Claude API key",
 			provider:           fibe.ProviderClaudeCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "haiku",
-			credentialEnv:      "FIBE_TEST_AGENT_ANTHROPIC_API_KEY",
-			credentialAliases:  []string{"ANTHROPIC_KEY"},
+			credentialEnv:      "ANTHROPIC_API_KEY",
 		},
 		{
 			name:               "Codex auth JSON",
 			provider:           fibe.ProviderOpenAICodex,
 			providerAPIKeyMode: false,
 			modelOptions:       "gpt-5.4-mini",
-			credentialEnv:      "FIBE_TEST_AGENT_CODEX_AUTH_JSON",
-			credentialAliases:  []string{"CODEX_AUTH_JSON"},
+			credentialEnv:      "CODEX_AUTH_JSON",
 		},
 		{
 			name:               "Codex API key",
 			provider:           fibe.ProviderOpenAICodex,
 			providerAPIKeyMode: true,
 			modelOptions:       "gpt-5.4-mini",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENAI_API_KEY",
-			credentialAliases:  []string{"OPENAI_KEY"},
+			credentialEnv:      "OPENAI_API_KEY",
 		},
 		{
 			name:               "Cursor API key",
 			provider:           fibe.ProviderCursor,
 			providerAPIKeyMode: true,
-			credentialEnv:      "FIBE_TEST_AGENT_CURSOR_API_KEY",
-			credentialAliases:  []string{"CURSOR_KEY"},
+			credentialEnv:      "CURSOR_API_KEY",
 		},
 		{
 			name:               "OpenCode OpenRouter",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "google/gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY",
-			credentialAliases:  []string{"OPENCODE_OPENROUTER_KEY"},
+			credentialEnv:      "OPENROUTER_API_KEY",
 			opencodeProvider:   "openrouter",
 		},
 		{
@@ -105,8 +96,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "anthropic/claude-haiku-4-5",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
-			credentialAliases:  []string{"OPENCODE_ANTHROPIC_KEY"},
+			credentialEnv:      "ANTHROPIC_API_KEY",
 			opencodeProvider:   "anthropic",
 		},
 		{
@@ -114,8 +104,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "openai/gpt-5-mini",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY",
-			credentialAliases:  []string{"OPENCODE_OPENAI_KEY"},
+			credentialEnv:      "OPENAI_API_KEY",
 			opencodeProvider:   "openai",
 		},
 		{
@@ -123,8 +112,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "google/gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
-			credentialAliases:  []string{"OPENCODE_GEMINI_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"},
+			credentialEnv:      "GEMINI_API_KEY",
 			opencodeProvider:   "gemini",
 		},
 	}
@@ -146,7 +134,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 		t.Fatalf("no agent runtime matrix rows selected by CHAT_E2E_CASE=%q CHAT_E2E_CASE_EXCEPT=%q", os.Getenv("CHAT_E2E_CASE"), os.Getenv("CHAT_E2E_CASE_EXCEPT"))
 	}
 	if configuredRows == 0 {
-		t.Log("no FIBE_TEST_AGENT_* credential env vars configured for selected rows; each selected row will skip for missing credentials")
+		t.Log("no provider credential env vars configured for selected rows; each selected row will skip for missing credentials")
 	}
 
 	for _, tc := range selectedCases {
@@ -256,9 +244,7 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 }
 
 func agentRuntimeCredentialEnvNames(tc agentRuntimeMatrixCase) []string {
-	names := []string{tc.credentialEnv}
-	names = append(names, tc.credentialAliases...)
-	return names
+	return []string{tc.credentialEnv}
 }
 
 func lookupAgentRuntimeCredential(tc agentRuntimeMatrixCase) (string, string) {
@@ -308,7 +294,6 @@ func agentRuntimeCaseMatches(tc agentRuntimeMatrixCase, filter string) bool {
 		tc.provider,
 		tc.modelOptions,
 		tc.credentialEnv,
-		strings.Join(tc.credentialAliases, " "),
 	}, " "))
 	return strings.Contains(haystack, normalizedFilter)
 }

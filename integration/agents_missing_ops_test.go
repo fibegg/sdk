@@ -199,8 +199,7 @@ func opencodeChatCases() []agentRuntimeMatrixCase {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "google/gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY",
-			credentialAliases:  []string{"OPENCODE_OPENROUTER_KEY"},
+			credentialEnv:      "OPENROUTER_API_KEY",
 			opencodeProvider:   "openrouter",
 		},
 		{
@@ -208,8 +207,7 @@ func opencodeChatCases() []agentRuntimeMatrixCase {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "anthropic/claude-haiku-4-5",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY",
-			credentialAliases:  []string{"OPENCODE_ANTHROPIC_KEY"},
+			credentialEnv:      "ANTHROPIC_API_KEY",
 			opencodeProvider:   "anthropic",
 		},
 		{
@@ -217,8 +215,7 @@ func opencodeChatCases() []agentRuntimeMatrixCase {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "openai/gpt-5-mini",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY",
-			credentialAliases:  []string{"OPENCODE_OPENAI_KEY"},
+			credentialEnv:      "OPENAI_API_KEY",
 			opencodeProvider:   "openai",
 		},
 		{
@@ -226,8 +223,7 @@ func opencodeChatCases() []agentRuntimeMatrixCase {
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
 			modelOptions:       "google/gemini-2.5-flash-lite",
-			credentialEnv:      "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY",
-			credentialAliases:  []string{"OPENCODE_GEMINI_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"},
+			credentialEnv:      "GEMINI_API_KEY",
 			opencodeProvider:   "gemini",
 		},
 	}
@@ -259,8 +255,8 @@ func TestOpencodeChatCredentialIgnoresExcludedCredentials(t *testing.T) {
 	clearOpencodeChatCredentialEnv(t)
 	t.Setenv("CHAT_E2E_CASE", "")
 	t.Setenv("CHAT_E2E_CASE_EXCEPT", "OpenCode Anthropic")
-	t.Setenv("FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY", "anthropic-secret")
-	t.Setenv("FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", "openai-secret")
+	t.Setenv("ANTHROPIC_API_KEY", "anthropic-secret")
+	t.Setenv("OPENAI_API_KEY", "openai-secret")
 
 	secret, modelOptions, opencodeProvider, credentialSource := opencodeChatCredential(t)
 	if secret != "openai-secret" {
@@ -272,8 +268,8 @@ func TestOpencodeChatCredentialIgnoresExcludedCredentials(t *testing.T) {
 	if opencodeProvider != "openai" {
 		t.Fatalf("OpenCode provider = %q, want openai", opencodeProvider)
 	}
-	if credentialSource != "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY" {
-		t.Fatalf("credential source = %q, want FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", credentialSource)
+	if credentialSource != "OPENAI_API_KEY" {
+		t.Fatalf("credential source = %q, want OPENAI_API_KEY", credentialSource)
 	}
 }
 

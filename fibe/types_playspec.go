@@ -267,11 +267,15 @@ type PropResolutionPreview struct {
 
 // PropResolutionEntry is one row inside PropResolutionPreview.
 type PropResolutionEntry struct {
-	URL               string `json:"url"`
-	NormalizedURL     string `json:"normalized_url,omitempty"`
-	ServiceName       string `json:"service_name,omitempty"`
-	PropID            int64  `json:"prop_id,omitempty"`
-	ProvisionProvider string `json:"provision_provider,omitempty"`
+	URL                  string `json:"url"`
+	NormalizedURL        string `json:"normalized_url,omitempty"`
+	ServiceName          string `json:"service_name,omitempty"`
+	PropID               int64  `json:"prop_id,omitempty"`
+	ProvisionProvider    string `json:"provision_provider,omitempty"`
+	RuntimeWritable      *bool  `json:"runtime_writable,omitempty"`
+	RuntimeAccessSource  string `json:"runtime_access_source,omitempty"`
+	RuntimeAccessMessage string `json:"runtime_access_message,omitempty"`
+	RequiresFork         bool   `json:"requires_fork,omitempty"`
 }
 
 type PlayspecTemplateVersionSwitchPreview = PlayspecTemplateVersionSwitchResult
