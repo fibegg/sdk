@@ -38,6 +38,19 @@ func TestGenerateToolDocsUsesCanonicalLifecycleTools(t *testing.T) {
 	}
 }
 
+func TestGenerateToolDocsIncludesLaunchTemplateVersionSelector(t *testing.T) {
+	srv := New(DefaultConfig())
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("register tools: %v", err)
+	}
+
+	docs := GenerateToolDocs(srv.AllTools())
+	section := toolDocsSection(docs.CatalogMarkdown, "fibe_launch")
+	if !strings.Contains(section, `"version": {`) {
+		t.Fatalf("fibe_launch docs missing template version selector:\n%s", section)
+	}
+}
+
 func TestGenerateToolDocsSortsByToolName(t *testing.T) {
 	docs := GenerateToolDocs([]ToolInfo{
 		{Name: "fibe_z", Tier: "meta", Description: "z"},
@@ -49,4 +62,17 @@ func TestGenerateToolDocsSortsByToolName(t *testing.T) {
 	if first < 0 || second < 0 || first > second {
 		t.Fatalf("table docs are not sorted by tool name:\n%s", docs.TableMarkdown)
 	}
+}
+
+func toolDocsSection(markdown string, name string) string {
+	start := strings.Index(markdown, "## `"+name+"`")
+	if start < 0 {
+		return ""
+	}
+	rest := markdown[start+1:]
+	next := strings.Index(rest, "\n## `")
+	if next < 0 {
+		return markdown[start:]
+	}
+	return markdown[start : start+1+next]
 }

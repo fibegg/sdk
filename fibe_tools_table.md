@@ -43,7 +43,7 @@ Generated from the MCP registry.
 | `fibe_local_conversations_get` | local | yes | [MODE:DIALOG] View one local Codex or Claude conversation by UUID or UUID prefix. |
 | `fibe_local_conversations_get_message` | local | yes | [MODE:DIALOG] View one full local conversation message by conversation UUID and message ID. |
 | `fibe_local_conversations_list` | local | yes | [MODE:DIALOG] List local Codex, Claude Code, and Claude Desktop conversations from this machine. |
-| `fibe_local_playgrounds_info` | brownfield | yes | [MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT. |
+| `fibe_local_playgrounds_info` | brownfield | yes | [MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT. |
 | `fibe_local_playgrounds_link` | brownfield | yes | [MODE:BROWNFIELD] Link local playground mounts into a working directory. |
 | `fibe_logs_follow` | brownfield | yes | [MODE:BROWNFIELD] Stream live playground or trick logs as progress notifications. Omitting service streams all services. |
 | `fibe_memorize` | base | yes | [MODE:SIDEEFFECTS] Create or update agent-generated memories grounded in one local source conversation. |

@@ -21,6 +21,7 @@ func (s *Server) registerLaunchTools() {
 	}, mcp.NewTool("fibe_launch",
 		mcp.WithDescription("Launch from exactly one source: template, template version, playspec, compose YAML, or repository config. Template source without version uses the latest template version. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED."),
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name. Mutually exclusive with other source fields; without version/template_version_id, latest version is used.")),
+		mcp.WithNumber("version", mcp.Description("Template version number for template_id_or_name. Optional; defaults to latest available version.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID. Mutually exclusive with other source fields.")),
 		mcp.WithString("playspec_id_or_name", mcp.Description("Existing playspec ID or name. Mutually exclusive with other source fields.")),
 		mcp.WithString("name", mcp.Description("Launch name. Optional when repository_url is provided; inferred from repo name.")),

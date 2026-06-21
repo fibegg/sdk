@@ -1305,6 +1305,10 @@ Generated from the MCP registry.
       "properties": {},
       "type": "object"
     },
+    "version": {
+      "description": "Template version number for template_id_or_name. Optional; defaults to latest available version.",
+      "type": "number"
+    },
     "wait": {
       "description": "Wait for created playground to reach running where supported.",
       "type": "boolean"
@@ -1448,7 +1452,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.
+[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.
 
 ### Input Schema
 ```json
@@ -1456,6 +1460,10 @@ Generated from the MCP registry.
   "properties": {
     "id_or_name": {
       "description": "Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.",
+      "type": "string"
+    },
+    "link_dir": {
+      "description": "Current-link directory for view=current or view=repos (default: /app/playground).",
       "type": "string"
     },
     "only": {
@@ -1470,9 +1478,11 @@ Generated from the MCP registry.
       "type": "string"
     },
     "view": {
-      "description": "Output view: names, urls, mounts, or details.",
+      "description": "Output view: names, current, repos, urls, mounts, or details.",
       "enum": [
         "names",
+        "current",
+        "repos",
         "urls",
         "mounts",
         "details"
