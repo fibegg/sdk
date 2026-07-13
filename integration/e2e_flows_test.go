@@ -56,7 +56,7 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 
 	// Step 4: compose YAML must contain our service names (web/db/cache), poll for render
 	var lastComposeErr error
-	cmp, found := pollUntil(120, time.Second, func() (*fibe.PlaygroundCompose, bool) {
+	cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
 		c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
 		if err != nil {
 			lastComposeErr = err
@@ -67,9 +67,9 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 	})
 	if !found {
 		if lastComposeErr != nil {
-			t.Skipf("compose YAML not rendered in time; last compose error: %v", lastComposeErr)
+			t.Fatalf("compose YAML not rendered within %s; last compose error: %v", PlaygroundLaunchWaitTimeout, lastComposeErr)
 		}
-		t.Skip("compose YAML not rendered in time")
+		t.Fatalf("compose YAML not rendered within %s", PlaygroundLaunchWaitTimeout)
 	}
 	for _, svc := range []string{"web", "db", "cache"} {
 		if !strings.Contains(cmp.ComposeYAML, svc+":") {

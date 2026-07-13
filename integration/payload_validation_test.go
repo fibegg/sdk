@@ -43,7 +43,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 	})
 
 	t.Run("Compose returns yaml + project (poll until ready)", func(t *testing.T) {
-		cmp, found := pollUntil(120, time.Second, func() (*fibe.PlaygroundCompose, bool) {
+		cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
 			c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
 			if err != nil {
 				return nil, false
@@ -51,7 +51,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 			return c2, c2.ComposeYAML != ""
 		})
 		if !found {
-			t.Skip("ComposeYAML not ready within timeout")
+			t.Fatalf("ComposeYAML not ready within %s", PlaygroundLaunchWaitTimeout)
 		}
 		if cmp.ComposeYAML == "" {
 			t.Error("expected non-empty ComposeYAML")
