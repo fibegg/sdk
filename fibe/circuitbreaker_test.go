@@ -115,3 +115,25 @@ func TestCircuitBreaker_SuccessResetsFailures(t *testing.T) {
 		t.Error("should still allow — success reset the counter")
 	}
 }
+
+func TestCircuitBreaker_BoundsHalfOpenProbes(t *testing.T) {
+	cb := newCircuitBreaker(CircuitBreakerConfig{
+		FailureThreshold: 1,
+		ResetTimeout:     time.Millisecond,
+		HalfOpenRequests: 2,
+	})
+	cb.recordFailure()
+	time.Sleep(2 * time.Millisecond)
+	firstProbe := cb.allow()
+	secondProbe := cb.allow()
+	if !firstProbe || !secondProbe {
+		t.Fatal("expected two half-open probes")
+	}
+	if cb.allow() {
+		t.Fatal("third half-open probe must be blocked")
+	}
+	cb.recordSuccess()
+	if !cb.allow() {
+		t.Fatal("released half-open slot should admit another probe")
+	}
+}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -18,12 +17,18 @@ import (
 
 var uuidPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
 
+const (
+	maxConversationScanFiles = 100_000
+	maxConversationScanBytes = int64(4 << 30)
+)
+
 type fileCandidate struct {
 	Path    string
 	ModTime time.Time
 }
 
 func readJSONL(path string, handle func(map[string]any) error) error {
+	// #nosec G304 -- path is selected by a strategy and accepted only after regular-file/symlink validation.
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -62,36 +67,14 @@ func discoverFileCandidates(ctx context.Context, homeDir string, roots []string,
 }
 
 func discoverQueryFileCandidates(ctx context.Context, homeDir string, roots []string, accept func(string) bool, query string) ([]fileCandidate, error) {
-	byPath := map[string]fileCandidate{}
-	addCandidate := func(candidate fileCandidate) {
-		if _, ok := byPath[candidate.Path]; !ok {
-			byPath[candidate.Path] = candidate
-		}
-	}
-
-	pathMatches, err := walkFileCandidates(ctx, homeDir, roots, accept, query)
-	if err != nil {
-		return nil, err
-	}
-	for _, candidate := range pathMatches {
-		addCandidate(candidate)
-	}
-
-	if rgMatches, ok, err := ripgrepFileCandidates(ctx, homeDir, roots, accept, query); err != nil {
-		return nil, err
-	} else if ok {
-		for _, candidate := range rgMatches {
-			addCandidate(candidate)
-		}
-		return sortedCandidateMap(byPath), nil
-	}
-
 	allCandidates, err := walkFileCandidates(ctx, homeDir, roots, accept, "")
 	if err != nil {
 		return nil, err
 	}
+	byPath := map[string]fileCandidate{}
 	for _, candidate := range allCandidates {
-		if _, ok := byPath[candidate.Path]; ok {
+		if candidatePathMatchesQuery(candidate.Path, query) {
+			byPath[candidate.Path] = candidate
 			continue
 		}
 		matches, err := fileContainsQuery(ctx, candidate.Path, query)
@@ -102,7 +85,7 @@ func discoverQueryFileCandidates(ctx context.Context, homeDir string, roots []st
 			return nil, err
 		}
 		if matches {
-			addCandidate(candidate)
+			byPath[candidate.Path] = candidate
 		}
 	}
 	return sortedCandidateMap(byPath), nil
@@ -111,6 +94,22 @@ func discoverQueryFileCandidates(ctx context.Context, homeDir string, roots []st
 func walkFileCandidates(ctx context.Context, homeDir string, roots []string, accept func(string) bool, pathQuery string) ([]fileCandidate, error) {
 	seen := make(map[string]bool)
 	var files []fileCandidate
+	var scannedFiles int
+	var scannedBytes int64
+	observe := func(path string, info fs.FileInfo) error {
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+		scannedFiles++
+		if info.Size() > 0 && scannedBytes > maxConversationScanBytes-info.Size() {
+			return fmt.Errorf("local conversation scan exceeded the %d GiB aggregate budget at %s; narrow --path or provider selection", maxConversationScanBytes>>30, path)
+		}
+		scannedBytes += info.Size()
+		if scannedFiles > maxConversationScanFiles {
+			return fmt.Errorf("local conversation scan exceeded the %d-file budget at %s; narrow --path or provider selection", maxConversationScanFiles, path)
+		}
+		return nil
+	}
 	for _, root := range roots {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -120,7 +119,7 @@ func walkFileCandidates(ctx context.Context, homeDir string, roots []string, acc
 			continue
 		}
 		root = expandPath(root, homeDir)
-		info, err := os.Stat(root)
+		info, err := os.Lstat(root)
 		if err != nil {
 			if shouldSkipPathError(err) {
 				continue
@@ -128,7 +127,16 @@ func walkFileCandidates(ctx context.Context, homeDir string, roots []string, acc
 			return nil, err
 		}
 
+		if info.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
 		if !info.IsDir() {
+			if err := observe(root, info); err != nil {
+				return nil, err
+			}
+			if !info.Mode().IsRegular() {
+				continue
+			}
 			path, err := filepath.Abs(root)
 			if err != nil {
 				return nil, err
@@ -153,8 +161,17 @@ func walkFileCandidates(ctx context.Context, homeDir string, roots []string, acc
 			if d.IsDir() {
 				return nil
 			}
+			if d.Type()&os.ModeSymlink != 0 {
+				return nil
+			}
 			info, err := d.Info()
 			if err != nil {
+				return nil
+			}
+			if err := observe(path, info); err != nil {
+				return err
+			}
+			if !info.Mode().IsRegular() {
 				return nil
 			}
 			abs, err := filepath.Abs(path)
@@ -179,115 +196,8 @@ func candidatePathMatchesQuery(path, query string) bool {
 	return query == "" || strings.Contains(strings.ToLower(path), query)
 }
 
-func ripgrepFileCandidates(ctx context.Context, homeDir string, roots []string, accept func(string) bool, query string) ([]fileCandidate, bool, error) {
-	if _, err := exec.LookPath("rg"); err != nil {
-		return nil, false, nil
-	}
-
-	searchRoots, err := existingSearchRoots(homeDir, roots)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(searchRoots) == 0 {
-		return nil, true, nil
-	}
-
-	args := []string{
-		"--files-with-matches",
-		"--ignore-case",
-		"--fixed-strings",
-		"--hidden",
-		"--no-ignore",
-		"--no-messages",
-		"--glob", "*.jsonl",
-		"--glob", "*.json",
-		"--", query,
-	}
-	args = append(args, searchRoots...)
-	cmd := exec.CommandContext(ctx, "rg", args...)
-	output, err := cmd.Output()
-	if err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, false, ctxErr
-		}
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
-			return nil, true, nil
-		}
-		return nil, false, nil
-	}
-
-	seen := make(map[string]bool)
-	var files []fileCandidate
-	for _, raw := range strings.Split(string(output), "\n") {
-		path := strings.TrimSpace(raw)
-		if path == "" {
-			continue
-		}
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			return nil, false, err
-		}
-		if !accept(abs) || seen[abs] {
-			continue
-		}
-		info, err := os.Stat(abs)
-		if err != nil {
-			if shouldSkipPathError(err) {
-				continue
-			}
-			return nil, false, err
-		}
-		if info.IsDir() {
-			continue
-		}
-		seen[abs] = true
-		files = append(files, fileCandidate{Path: abs, ModTime: info.ModTime()})
-	}
-	sortFileCandidates(files)
-	return files, true, nil
-}
-
-func existingSearchRoots(homeDir string, roots []string) ([]string, error) {
-	seen := make(map[string]bool)
-	out := make([]string, 0, len(roots))
-	for _, root := range roots {
-		root = strings.TrimSpace(root)
-		if root == "" {
-			continue
-		}
-		root = expandPath(root, homeDir)
-		info, err := os.Stat(root)
-		if err != nil {
-			if shouldSkipPathError(err) {
-				continue
-			}
-			return nil, err
-		}
-		if info.IsDir() {
-			abs, err := filepath.Abs(root)
-			if err != nil {
-				return nil, err
-			}
-			if !seen[abs] {
-				seen[abs] = true
-				out = append(out, abs)
-			}
-			continue
-		}
-		abs, err := filepath.Abs(root)
-		if err != nil {
-			return nil, err
-		}
-		if !seen[abs] {
-			seen[abs] = true
-			out = append(out, abs)
-		}
-	}
-	return out, nil
-}
-
 func fileContainsQuery(ctx context.Context, path, query string) (bool, error) {
+	// #nosec G304 -- path is a budgeted, validated conversation file selected by the local scanner.
 	f, err := os.Open(path)
 	if err != nil {
 		return false, err
@@ -603,10 +513,6 @@ func tokenUsageTotal(usage map[string]any) int64 {
 		total += int64Value(usage[key])
 	}
 	return total
-}
-
-func matchesConversationID(id, query string) bool {
-	return conversationIDMatchScore(id, query) > 0
 }
 
 func conversationIDMatchScore(id, query string) int {

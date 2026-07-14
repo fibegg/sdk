@@ -3,11 +3,13 @@ package mcpserver
 import (
 	"encoding/base64"
 	"fmt"
-	"io/fs"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+const maxLocalFile = int64(64 * 1024 * 1024)
 
 // readLocalFile reads a file from the local filesystem. Used by tools that
 // accept content_path as a convenience for the local-MCP-only mode. The
@@ -18,12 +20,28 @@ func readLocalFile(path string) ([]byte, error) {
 	if !filepath.IsAbs(path) {
 		return nil, fmt.Errorf("content_path must be absolute, got %q", path)
 	}
-	data, err := os.ReadFile(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		if ok := isNotExist(err); ok {
 			return nil, fmt.Errorf("content_path does not exist: %s", path)
 		}
+		return nil, fmt.Errorf("inspect content_path %s: %w", path, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("content_path must be a regular non-symlink file: %s", path)
+	}
+	// #nosec G304 -- HTTP policy gates local access and the path passed regular-file/symlink checks above.
+	file, err := os.Open(path)
+	if err != nil {
 		return nil, fmt.Errorf("read content_path %s: %w", path, err)
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maxLocalFile+1))
+	if err != nil {
+		return nil, fmt.Errorf("read content_path %s: %w", path, err)
+	}
+	if int64(len(data)) > maxLocalFile {
+		return nil, fmt.Errorf("content_path exceeds %d bytes: %s", maxLocalFile, path)
 	}
 	return data, nil
 }
@@ -70,6 +88,3 @@ func filenameFromContentPath(path string, fallback string) string {
 func isNotExist(err error) bool {
 	return err != nil && os.IsNotExist(err)
 }
-
-// Force import of fs for future use when we add directory-level support.
-var _ fs.FS

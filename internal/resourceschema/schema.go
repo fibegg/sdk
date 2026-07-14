@@ -439,10 +439,6 @@ func paramsSchema[P any](required ...string) map[string]any {
 	return structSchema(reflect.TypeOf(p), required...)
 }
 
-func updateParamsSchema[P any]() map[string]any {
-	return updateParamsSchemaFor[P]("id")
-}
-
 func updateParamsSchemaFor[P any](idField string) map[string]any {
 	if idField == "" {
 		idField = "id"
@@ -970,29 +966,6 @@ func templateVersionCreateSchema() map[string]any {
 			"public":              map[string]any{"type": "boolean", "description": "Make this version public."},
 			"changelog":           map[string]any{"type": "string", "description": "Human-readable changelog for the created template version."},
 			"response_mode":       map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "Response detail mode."},
-		},
-	}
-}
-
-func templateVersionPatchCreateSchema() map[string]any {
-	return map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []string{"template_id_or_name", "base_version_id"},
-		"properties": map[string]any{
-			"template_id_or_name":          namedIdentifierSchema("template_id_or_name", "Template ID or name."),
-			"base_version_id":              map[string]any{"type": "integer", "description": "Exact template version ID to patch.", "minimum": 1},
-			"patches":                      map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Patch entries: YAML path set/remove or exact search/replace. YAML path entries support expect, create_missing, and allow_missing."},
-			"edits":                        map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Alias for patches."},
-			"public":                       map[string]any{"type": "boolean", "description": "Make the created version public."},
-			"changelog":                    map[string]any{"type": "string", "description": "Human-readable changelog for the created template version."},
-			"target_playspec_id_or_name":   namedIdentifierSchema("target_playspec_id_or_name", "Target playspec ID or slug-safe name for optional auto-switch."),
-			"target_playground_id_or_name": namedIdentifierSchema("target_playground_id_or_name", "Target playground ID or slug-safe name for optional rollout."),
-			"switch_variables":             map[string]any{"type": "object", "description": "Variables to pass to version switch."},
-			"regenerate_variables":         map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Template variable names to regenerate during switch."},
-			"confirm_warnings":             map[string]any{"type": "boolean", "description": "Set true to continue when preview warnings are present."},
-			"auto_switch":                  map[string]any{"type": "boolean", "description": "Switch target_playspec_id to the created version."},
-			"response_mode":                map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "Response detail mode."},
 		},
 	}
 }
@@ -1577,6 +1550,7 @@ func schemaIDDescription(name string) string {
 	}
 }
 
+// #nosec G101 -- these are public schema descriptions, not embedded credentials.
 var schemaFieldDescriptions = map[string]string{
 	"agent_accessible":       "Whether the API key is accessible to agents.",
 	"auto_switch":            "Switch the target playspec to the created version after patch creation.",

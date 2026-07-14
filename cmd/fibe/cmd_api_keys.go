@@ -168,7 +168,7 @@ EXAMPLES:
 				for _, gs := range granularScopes {
 					eq := strings.Index(gs, "=")
 					if eq < 1 || eq == len(gs)-1 {
-						return fmt.Errorf("invalid --granular-scope %q: expected scope=id1,id2,...", gs)
+						return fmt.Errorf("invalid --granular-scope %q: expected scope=id1,id2", gs)
 					}
 					name := gs[:eq]
 					ids := []int64{}

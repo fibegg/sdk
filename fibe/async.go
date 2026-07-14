@@ -1,10 +1,10 @@
 package fibe
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -75,11 +75,11 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 		o.Progress = c.cfg.progressHook
 	}
 
-	deadline := time.Now().Add(o.Timeout)
+	deadline := c.now().Add(o.Timeout)
 	attempt := 0
 
 	for {
-		if time.Now().After(deadline) {
+		if c.now().After(deadline) {
 			return nil, fmt.Errorf("fibe: async operation timed out after %s", o.Timeout)
 		}
 
@@ -115,27 +115,24 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 			return result, nil
 		}
 
-		timer := time.NewTimer(o.Interval)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return nil, ctx.Err()
-		case <-timer.C:
+		if err := c.sleep(ctx, o.Interval); err != nil {
+			return nil, err
 		}
 	}
 }
 
 func (c *Client) pollAsyncOnce(ctx context.Context, statusPath string) (*AsyncResult, error) {
-	resp, err := c.doOnce(ctx, http.MethodGet, statusPath, nil)
+	resp, err := c.doResponse(ctx, http.MethodGet, statusPath, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	c.rateLimit.update(resp)
-	c.storeRequestID(resp)
 
-	body, readErr := io.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	body, readErr := readLimited(resp.Body, maxResponseBody, "async response body")
 	if readErr != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
 		return nil, readErr
 	}
 
@@ -150,10 +147,16 @@ func (c *Client) pollAsyncOnce(ctx context.Context, statusPath string) (*AsyncRe
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
 		return &AsyncResult{Status: "missing", Payload: raw}, nil
 	}
 
 	if resp.StatusCode == http.StatusUnprocessableEntity {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
 		if result, ok := asyncResultFromRaw(raw); ok {
 			if result.Status == "" {
 				result.Status = "error"
@@ -164,6 +167,9 @@ func (c *Client) pollAsyncOnce(ctx context.Context, statusPath string) (*AsyncRe
 	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if c.breaker != nil {
+			c.breaker.recordSuccess()
+		}
 		result, ok := asyncResultFromRaw(raw)
 		if !ok {
 			result = &AsyncResult{Status: "success", Payload: raw}
@@ -171,6 +177,11 @@ func (c *Client) pollAsyncOnce(ctx context.Context, statusPath string) (*AsyncRe
 		return result, nil
 	}
 
+	if c.breaker != nil && resp.StatusCode >= 500 {
+		c.breaker.recordFailure()
+	} else if c.breaker != nil {
+		c.breaker.releaseProbe()
+	}
 	return nil, apiErrorFromRaw(resp.StatusCode, raw, resp.Header.Get("X-Request-Id"))
 }
 
@@ -264,22 +275,24 @@ func apiErrorFromRaw(statusCode int, raw map[string]any, requestID string) *APIE
 // doAsync sends a request and if the API returns 202 Accepted,
 // automatically polls for the final result. Otherwise behaves like do().
 func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string, body any, result any) error {
-	resp, err := c.doOnce(ctx, method, path, body)
+	resp, err := c.doResponse(ctx, method, path, body)
 	if err != nil {
 		return err
 	}
-	c.rateLimit.update(resp)
 
 	if resp.StatusCode == http.StatusAccepted {
+		if c.breaker != nil {
+			c.breaker.recordSuccess()
+		}
 		// Parse the 202 response to get the request_id
 		var asyncResp AsyncResult
-		decErr := json.NewDecoder(resp.Body).Decode(&asyncResp)
-		resp.Body.Close()
+		decErr := decodeJSONLimited(resp.Body, maxResponseBody, "async accepted response body", &asyncResp)
+		drainAndClose(resp.Body)
 		if decErr != nil {
 			return fmt.Errorf("fibe: decode async response: %w", decErr)
 		}
 
-		statusPath, pathErr := asyncStatusPath(asyncResp, statusPathFmt)
+		statusPath, pathErr := c.asyncStatusPath(asyncResp, statusPathFmt)
 		if pathErr != nil {
 			return pathErr
 		}
@@ -317,8 +330,11 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 
 		// Decode the final payload into the caller's result type
 		if result != nil && final.Payload != nil {
-			data, _ := json.Marshal(final.Payload)
-			return json.Unmarshal(data, result)
+			data, err := json.Marshal(final.Payload)
+			if err != nil {
+				return fmt.Errorf("fibe: marshal async result: %w", err)
+			}
+			return decodeJSONLimitedProjected(ctx, bytes.NewReader(data), maxResponseBody, "async final response body", result)
 		}
 		return nil
 	}
@@ -330,18 +346,20 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		}
 		c.storeRequestID(resp)
 		if resp.StatusCode == 204 || result == nil {
-			resp.Body.Close()
+			drainAndClose(resp.Body)
 			return nil
 		}
-		err := json.NewDecoder(resp.Body).Decode(result)
-		resp.Body.Close()
+		err := decodeJSONLimitedProjected(ctx, resp.Body, maxResponseBody, "async response body", result)
+		drainAndClose(resp.Body)
 		return err
 	}
 
 	apiErr := c.parseError(resp)
-	resp.Body.Close()
+	drainAndClose(resp.Body)
 	if c.breaker != nil && resp.StatusCode >= 500 {
 		c.breaker.recordFailure()
+	} else if c.breaker != nil {
+		c.breaker.releaseProbe()
 	}
 	return apiErr
 }
@@ -379,9 +397,9 @@ func intFromMap(m map[string]any, key string) int {
 	}
 }
 
-func asyncStatusPath(result AsyncResult, statusPathFmt string) (string, error) {
+func (c *Client) asyncStatusPath(result AsyncResult, statusPathFmt string) (string, error) {
 	if result.StatusURL != "" {
-		return normalizeStatusPath(result.StatusURL)
+		return normalizeStatusPath(result.StatusURL, c.cfg.baseURL())
 	}
 	if result.RequestID == "" {
 		return "", fmt.Errorf("fibe: async response missing request_id")
@@ -389,20 +407,32 @@ func asyncStatusPath(result AsyncResult, statusPathFmt string) (string, error) {
 	return fmt.Sprintf(statusPathFmt, result.RequestID), nil
 }
 
-func normalizeStatusPath(statusURL string) (string, error) {
-	if strings.HasPrefix(statusURL, "http://") || strings.HasPrefix(statusURL, "https://") {
-		u, err := url.Parse(statusURL)
-		if err != nil {
-			return "", fmt.Errorf("fibe: invalid async status_url: %w", err)
-		}
-		path := u.EscapedPath()
-		if u.RawQuery != "" {
-			path += "?" + u.RawQuery
-		}
-		if path == "" {
-			return "", fmt.Errorf("fibe: async status_url has no path")
-		}
-		return path, nil
+func normalizeStatusPath(statusURL, baseURL string) (string, error) {
+	u, err := url.Parse(statusURL)
+	if err != nil {
+		return "", fmt.Errorf("fibe: invalid async status_url: %w", err)
 	}
-	return statusURL, nil
+	if u.IsAbs() {
+		base, err := url.Parse(baseURL)
+		if err != nil {
+			return "", fmt.Errorf("fibe: invalid base URL for async status: %w", err)
+		}
+		if !strings.EqualFold(u.Scheme, base.Scheme) || !strings.EqualFold(u.Host, base.Host) {
+			return "", fmt.Errorf("fibe: async status_url must use the configured API origin")
+		}
+	}
+	if u.Fragment != "" {
+		return "", fmt.Errorf("fibe: async status_url must not include a fragment")
+	}
+	path := u.EscapedPath()
+	if u.RawQuery != "" {
+		path += "?" + u.RawQuery
+	}
+	if path == "" {
+		return "", fmt.Errorf("fibe: async status_url has no path")
+	}
+	if !strings.HasPrefix(path, "/") {
+		return "", fmt.Errorf("fibe: async status_url must be an absolute API path")
+	}
+	return path, nil
 }

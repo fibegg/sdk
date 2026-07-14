@@ -198,7 +198,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to update playground: %s", out)
 
 		// Happy: get
-		out, err = runCompiledCLI(t, "playgrounds", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "playgrounds", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
 		// Playgrounds debug
@@ -206,7 +206,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to debug playground: %s", out)
 
 		// Delete
-		out, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
@@ -237,11 +237,11 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		id := parseResourceID(t, out)
 
 		// Update
-		out, err = runCompiledCLI(t, "playspecs", "update", strconv.FormatInt(id, 10), "--name", psName+"-renamed")
+		_, err = runCompiledCLI(t, "playspecs", "update", strconv.FormatInt(id, 10), "--name", psName+"-renamed")
 		require.NoError(t, err)
 
 		// Delete
-		out, err = runCompiledCLI(t, "playspecs", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "playspecs", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
@@ -260,11 +260,11 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		id := parseResourceID(t, out)
 
 		// Get
-		out, err = runCompiledCLI(t, "props", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "props", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
 		// Delete
-		out, err = runCompiledCLI(t, "props", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "props", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
@@ -287,11 +287,11 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to update agent: %s", out)
 
 		// Happy: get
-		out, err = runCompiledCLI(t, "agents", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
 		// Happy: list
-		out, err = runCompiledCLI(t, "agents", "list")
+		_, err = runCompiledCLI(t, "agents", "list")
 		require.NoError(t, err)
 
 		// Mutters Negative: no type
@@ -311,7 +311,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		out, err = runCompiledCLI(t, "agents", "duplicate", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to duplicate agent: %s", out)
 		dupID := parseResourceID(t, out)
-		out, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(dupID, 10))
+		_, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(dupID, 10))
 		require.NoError(t, err)
 
 		// Agents runtime-status
@@ -319,7 +319,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to get agent runtime-status: %s", out)
 
 		// Agents send-message
-		out, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10))
 		require.Error(t, err) // missing text
 
 		out, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10), "--text", "hello")
@@ -327,7 +327,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		assert.Contains(t, out, "AGENT_COMMUNICATION_FAILED")
 
 		// Delete
-		out, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
@@ -346,10 +346,10 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to create artefact: %s", out)
 		artID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(agentID, 10), strconv.FormatInt(artID, 10))
+		_, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(agentID, 10), strconv.FormatInt(artID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "artefacts", "list", strconv.FormatInt(agentID, 10))
+		_, err = runCompiledCLI(t, "artefacts", "list", strconv.FormatInt(agentID, 10))
 		require.NoError(t, err)
 
 		runCompiledCLI(t, "agents", "delete", strconv.FormatInt(agentID, 10))
@@ -368,7 +368,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		out, err = runCompiledCLI(t, "templates", "versions", "create", strconv.FormatInt(tmplID, 10), "--body", "@"+tmpFile)
 		require.NoError(t, err, "failed to create template version: %s", out)
 
-		out, err = runCompiledCLI(t, "templates", "versions", "list", strconv.FormatInt(tmplID, 10))
+		_, err = runCompiledCLI(t, "templates", "versions", "list", strconv.FormatInt(tmplID, 10))
 		require.NoError(t, err)
 
 		runCompiledCLI(t, "templates", "delete", strconv.FormatInt(tmplID, 10))
@@ -398,13 +398,13 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to trigger trick: %s", out)
 		trickID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "tricks", "get", strconv.FormatInt(trickID, 10))
+		_, err = runCompiledCLI(t, "tricks", "get", strconv.FormatInt(trickID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "tricks", "list", "--playspec", strconv.FormatInt(psID, 10))
+		_, err = runCompiledCLI(t, "tricks", "list", "--playspec", strconv.FormatInt(psID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "tricks", "delete", strconv.FormatInt(trickID, 10))
+		_, err = runCompiledCLI(t, "tricks", "delete", strconv.FormatInt(trickID, 10))
 		require.NoError(t, err)
 
 		runCompiledCLI(t, "playspecs", "delete", strconv.FormatInt(psID, 10))

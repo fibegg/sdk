@@ -113,7 +113,7 @@ func TestProps_EnvDefaults(t *testing.T) {
 			return // Error for empty branch is expected behavior
 		}
 		// If no error, verify we got empty defaults (not arbitrary data)
-		if result.Defaults != nil && len(result.Defaults) > 0 {
+		if len(result.Defaults) > 0 {
 			t.Error("expected empty defaults for missing branch param")
 		}
 	})

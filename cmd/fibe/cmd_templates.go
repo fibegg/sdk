@@ -287,7 +287,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (required)")
 	cmd.Flags().BoolVar(&regex, "regex", false, "Treat query as PostgreSQL regex; requires a 3+ character literal token")
-	cmd.MarkFlagRequired("query")
+	mustMarkFlagRequired(cmd, "query")
 	return cmd
 }
 
@@ -636,6 +636,7 @@ EXAMPLES:
 			if file == "" {
 				return fmt.Errorf("required field 'file' not set")
 			}
+			// #nosec G304 -- file is an explicit local input requested by the CLI user.
 			data, err := os.ReadFile(file)
 			if err != nil {
 				return fmt.Errorf("read image file: %w", err)

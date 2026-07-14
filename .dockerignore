@@ -5,6 +5,7 @@
 .env.*
 bin/
 dist/
+graphify-out/
 coverage/
 tmp/
 *.test

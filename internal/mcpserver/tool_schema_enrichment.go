@@ -257,6 +257,7 @@ func idDescription(name string) string {
 	}
 }
 
+// #nosec G101 -- these are public tool descriptions, not embedded credentials.
 var knownPropertyDescriptions = map[string]string{
 	"args":                   "Argument object or command tokens for the target operation.",
 	"action_type":            "Lifecycle action to perform.",

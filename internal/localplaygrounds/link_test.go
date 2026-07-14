@@ -299,25 +299,18 @@ func TestFindRejectsAmbiguousPlayspecPrefix(t *testing.T) {
 	}
 }
 
-func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
+func TestLinkAdoptsLegacyDirectoryAndReplacesContents(t *testing.T) {
 	parent := t.TempDir()
 	linkDir := filepath.Join(parent, "playground")
 	if err := os.MkdirAll(linkDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(linkDir, "stale.txt"), []byte("old"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(linkDir, currentStateFilename), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(linkDir, "stale-dir"), 0o755); err != nil {
+	if err := os.Symlink("/tmp/old-target", filepath.Join(linkDir, "old-link")); err != nil {
 		t.Fatal(err)
 	}
-
-	if err := os.Chmod(parent, 0o555); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.Chmod(parent, 0o755)
-	})
 
 	hostMount := filepath.Join(t.TempDir(), "main")
 	pg := &Playground{
@@ -343,11 +336,8 @@ func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	if _, err := os.Stat(linkDir); err != nil {
 		t.Fatalf("link dir was not preserved: %v", err)
 	}
-	if _, err := os.Lstat(filepath.Join(linkDir, "stale.txt")); !os.IsNotExist(err) {
-		t.Fatalf("stale file still exists, err=%v", err)
-	}
-	if _, err := os.Lstat(filepath.Join(linkDir, "stale-dir")); !os.IsNotExist(err) {
-		t.Fatalf("stale directory still exists, err=%v", err)
+	if _, err := os.Lstat(filepath.Join(linkDir, "old-link")); !os.IsNotExist(err) {
+		t.Fatalf("old link still exists, err=%v", err)
 	}
 	target, err := os.Readlink(filepath.Join(linkDir, "dynamic-app"))
 	if err != nil {
@@ -368,12 +358,12 @@ func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	}
 }
 
-func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
+func TestLinkStaticPlaygroundReplacesLegacyContentsAndWritesState(t *testing.T) {
 	linkDir := filepath.Join(t.TempDir(), "playground")
 	if err := os.MkdirAll(linkDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(linkDir, "stale.txt"), []byte("old"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(linkDir, currentStateFilename), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink("/tmp/old-target", filepath.Join(linkDir, "old-link")); err != nil {
@@ -416,8 +406,88 @@ func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name() != ".current_playground.json" {
-		t.Fatalf("entries=%v want only .current_playground.json", entries)
+	if len(entries) != 2 || entries[0].Name() != currentStateFilename || entries[1].Name() != linkOwnerFilename {
+		t.Fatalf("entries=%v want state and ownership marker", entries)
+	}
+}
+
+func TestLinkRejectsUnownedDirectoryWithoutChangingIt(t *testing.T) {
+	linkDir := filepath.Join(t.TempDir(), "playground")
+	if err := os.MkdirAll(linkDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	keep := filepath.Join(linkDir, "keep.txt")
+	if err := os.WriteFile(keep, []byte("important"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	pg := &Playground{DirName: "pg", Playspec: "pg", Services: map[string]*Service{}}
+	_, err := LinkPlayground(pg, linkDir)
+	if err == nil || !strings.Contains(err.Error(), "non-empty unowned directory") {
+		t.Fatalf("error=%v want unowned directory rejection", err)
+	}
+	if data, readErr := os.ReadFile(keep); readErr != nil || string(data) != "important" {
+		t.Fatalf("existing data changed: data=%q err=%v", data, readErr)
+	}
+}
+
+func TestLinkRejectsUnsafeComponents(t *testing.T) {
+	for _, field := range []struct {
+		name   string
+		prop   string
+		branch string
+	}{
+		{name: "prop traversal", prop: "../escape"},
+		{name: "branch separator", prop: "app", branch: "feature/x"},
+		{name: "dot", prop: "."},
+	} {
+		t.Run(field.name, func(t *testing.T) {
+			linkDir := filepath.Join(t.TempDir(), "playground")
+			pg := &Playground{DirName: "pg", Services: map[string]*Service{
+				"app": {Name: "app", HostMount: t.TempDir(), Prop: field.prop, Branch: field.branch},
+			}}
+			if _, err := LinkPlayground(pg, linkDir); err == nil {
+				t.Fatal("LinkPlayground succeeded, want component error")
+			}
+			if _, err := os.Lstat(linkDir); !os.IsNotExist(err) {
+				t.Fatalf("link directory created on validation failure: %v", err)
+			}
+		})
+	}
+}
+
+func TestLinkRejectsDangerousDirectories(t *testing.T) {
+	pg := &Playground{DirName: "pg", Services: map[string]*Service{}}
+	if _, err := LinkPlayground(pg, string(filepath.Separator)); err == nil {
+		t.Fatal("filesystem root accepted")
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if _, err := LinkPlayground(pg, home); err == nil {
+		t.Fatal("home directory accepted")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LinkPlayground(pg, cwd); err == nil {
+		t.Fatal("current directory accepted")
+	}
+}
+
+func TestLinkRejectsSymlinkedAncestor(t *testing.T) {
+	parent := t.TempDir()
+	realDir := filepath.Join(parent, "real")
+	if err := os.Mkdir(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(parent, "alias")
+	if err := os.Symlink(realDir, alias); err != nil {
+		t.Fatal(err)
+	}
+	pg := &Playground{DirName: "pg", Services: map[string]*Service{}}
+	if _, err := LinkPlayground(pg, filepath.Join(alias, "playground")); err == nil {
+		t.Fatal("symlinked ancestor accepted")
 	}
 }
 

@@ -43,8 +43,8 @@ import (
 // package under a distinct alias.
 var _ = mcpserver.NewMCPServer
 
-// Version is stamped at build time via ldflags; defaults to "dev".
-var Version = "dev"
+// Version is stamped at build time via ldflags; defaults to "devel".
+var Version = "devel"
 
 // Config bundles runtime configuration for the MCP server.
 type Config struct {
@@ -82,6 +82,14 @@ type Config struct {
 	// multi-tenant HTTP/SSE deployments.
 	RequireAuth bool
 
+	// AllowedDomains contains additional exact API origins accepted from
+	// X-Fibe-Domain in HTTP mode. The configured Domain is always allowed.
+	AllowedDomains []string
+
+	// AllowLocalAccess enables local filesystem/profile/process tools for an
+	// HTTP server. ServeHTTP accepts this only on a loopback listener.
+	AllowLocalAccess bool
+
 	// PipelineCacheSize caps the per-server LRU. 0 disables pipeline caching.
 	PipelineCacheSize int
 
@@ -89,9 +97,11 @@ type Config struct {
 	// in bytes. Larger results get truncated with a truncated:true marker.
 	PipelineCacheEntryMax int
 
-	// PipelineMaxSteps and PipelineMaxIterations bound pipeline execution.
-	PipelineMaxSteps      int
-	PipelineMaxIterations int
+	// Pipeline execution bounds apply recursively across nested blocks.
+	PipelineMaxSteps       int
+	PipelineMaxIterations  int
+	PipelineMaxDepth       int
+	PipelineMaxConcurrency int
 
 	// CobraRoot is the root of the fibe cobra command tree. Used by the
 	// fibe_help tool to surface cobra Long help text and, when no executable
@@ -107,11 +117,13 @@ type Config struct {
 // DefaultConfig returns a Config populated with sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		ToolSet:               "full",
-		PipelineCacheSize:     256,
-		PipelineCacheEntryMax: 1 << 20, // 1 MiB
-		PipelineMaxSteps:      25,
-		PipelineMaxIterations: 50,
+		ToolSet:                "full",
+		PipelineCacheSize:      256,
+		PipelineCacheEntryMax:  1 << 20, // 1 MiB
+		PipelineMaxSteps:       25,
+		PipelineMaxIterations:  50,
+		PipelineMaxDepth:       8,
+		PipelineMaxConcurrency: 8,
 	}
 }
 
@@ -150,6 +162,10 @@ type Server struct {
 	// needs to restore the real stdout for a child cobra command and then
 	// re-hijack it without affecting the MCP pipe.
 	realStdout *os.File
+
+	// httpMode is set before HTTP serving starts and controls transport-only
+	// security policy. Stdio intentionally retains local capabilities.
+	httpMode bool
 }
 
 // New constructs a Server with the given configuration. The returned server
@@ -167,6 +183,12 @@ func New(cfg Config) *Server {
 		mcpserver.WithToolCapabilities(true),
 		mcpserver.WithResourceCapabilities(false, true),
 	}
+	hooks := &mcpserver.Hooks{}
+	hooks.AddOnUnregisterSession(func(_ context.Context, session mcpserver.ClientSession) {
+		s.sessions.drop(session.SessionID())
+		s.cache.DeleteSession(session.SessionID())
+	})
+	opts = append(opts, mcpserver.WithHooks(hooks))
 	if cfg.Debug {
 		opts = append(opts, mcpserver.WithLogging())
 	}
@@ -213,6 +235,9 @@ func (s *Server) RegisterAll() error {
 //     would target os.Stdout post-redirect).
 func (s *Server) ServeStdio(ctx context.Context) error {
 	s.baseCli = s.buildBaseClient()
+	if s.audit != nil {
+		defer s.audit.Close()
+	}
 
 	// Capture & redirect. If anything later in this function calls
 	// fmt.Println or similar it will now go to stderr, which mcp-go and

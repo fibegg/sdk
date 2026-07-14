@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coder/websocket"
 	"github.com/fibegg/sdk/fibe"
-	"nhooyr.io/websocket"
 )
 
 func TestAgentSendMessageToolUploadsAttachmentsAndPassesConversationControls(t *testing.T) {

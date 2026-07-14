@@ -229,7 +229,7 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 	if _, ok := srv.dispatcher.lookup("fibe_templates_change"); !ok {
 		t.Errorf("fibe_templates_change should remain registered as a hidden callable tool")
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -593,7 +593,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 	if advertised["fibe_templates_change"] {
 		t.Errorf("fibe_templates_change should not be advertised in core mode")
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -723,7 +723,7 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	if tool["hidden"] != true || tool["advertised"] != false {
 		t.Fatalf("hidden catalog entry fibe_templates_change should be hidden and unadvertised: %#v", tool)
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if catalogHasTool(coreTools, name) {
 			t.Fatalf("core catalog should not include removed deprecated alias %s", name)
 		}
@@ -789,10 +789,8 @@ func TestYoloSkipsConfirm(t *testing.T) {
 	})
 	// Should NOT fail with confirm-required. Will likely fail trying to hit
 	// the network, which is fine — we just care that the confirm gate was skipped.
-	if err != nil {
-		if _, ok := err.(*confirmRequiredError); ok {
-			t.Fatalf("yolo mode should bypass confirm gate, but got confirm-required error")
-		}
+	if _, ok := err.(*confirmRequiredError); ok {
+		t.Fatalf("yolo mode should bypass confirm gate, but got confirm-required error")
 	}
 }
 

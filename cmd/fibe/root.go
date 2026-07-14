@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -19,7 +20,7 @@ import (
 var (
 	// Injected at build time via ldflags:
 	//   -ldflags "-X main.version=v1.0.0 -X main.commit=abc123 -X main.date=2024-01-01"
-	version = "dev"
+	version = "devel"
 	commit  = "none"
 	date    = "unknown"
 
@@ -98,7 +99,7 @@ DOCUMENTATION:
 			setCommandContext(cmd.Context())
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			setCommandContext(nil)
+			setCommandContext(context.Background())
 		},
 		Version: version,
 	}
@@ -200,6 +201,7 @@ DOCUMENTATION:
 	})
 
 	cmd.SetUsageTemplate(usageTemplateWithAliases)
+	annotateCommandSafety(cmd)
 
 	return cmd
 }
@@ -353,7 +355,9 @@ func output(v any) {
 	default:
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(v)
+		if err := enc.Encode(v); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: encode output: %v\n", err)
+		}
 	}
 }
 
@@ -388,7 +392,9 @@ func outputError(err error) {
 		default:
 			enc := json.NewEncoder(os.Stderr)
 			enc.SetIndent("", "  ")
-			enc.Encode(errMap)
+			if encodeErr := enc.Encode(errMap); encodeErr != nil {
+				fmt.Fprintf(os.Stderr, "Error: encode structured error: %v\n", encodeErr)
+			}
 		}
 		return
 	}
@@ -448,7 +454,9 @@ func outputTable(headers []string, rows [][]string) {
 		}
 		fmt.Fprintln(w)
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: flush table output: %v\n", err)
+	}
 }
 
 func fmtTime(t *time.Time) string {
@@ -531,19 +539,63 @@ func currentCommandContext() context.Context {
 	return context.Background()
 }
 
-func saveDownload(body io.ReadCloser, filename string) error {
-	defer body.Close()
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
+func mustMarkFlagRequired(cmd *cobra.Command, name string) {
+	if err := cmd.MarkFlagRequired(name); err != nil {
+		panic(fmt.Sprintf("mark required flag %q: %v", name, err))
 	}
-	defer f.Close()
-	_, err = io.Copy(f, body)
-	if err != nil {
-		return err
+}
+
+func writeDownload(body io.Reader, destination string) (int64, error) {
+	if destination == "-" {
+		return io.Copy(os.Stdout, body)
 	}
-	fmt.Printf("Downloaded: %s\n", filename)
-	return nil
+	dir := filepath.Dir(destination)
+	if info, err := os.Lstat(destination); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return 0, fmt.Errorf("destination must be a regular non-symlink file: %s", destination)
+		}
+	} else if !os.IsNotExist(err) {
+		return 0, err
+	}
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(destination)+"-*")
+	if err != nil {
+		return 0, err
+	}
+	tmpName := tmp.Name()
+	keep := false
+	defer func() {
+		_ = tmp.Close()
+		if !keep {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if err := tmp.Chmod(0o644); err != nil {
+		return 0, err
+	}
+	n, err := io.Copy(tmp, body)
+	if err != nil {
+		return n, err
+	}
+	if err := tmp.Sync(); err != nil {
+		return n, err
+	}
+	if err := tmp.Close(); err != nil {
+		return n, err
+	}
+	if err := os.Rename(tmpName, destination); err != nil {
+		return n, err
+	}
+	keep = true
+	// #nosec G304 -- dir is the validated parent of the explicit download destination.
+	dirFile, err := os.Open(dir)
+	if err != nil {
+		return n, err
+	}
+	defer dirFile.Close()
+	if err := dirFile.Sync(); err != nil {
+		return n, err
+	}
+	return n, nil
 }
 
 func listParams() *fibe.ListParams {

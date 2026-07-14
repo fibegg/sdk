@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/fibegg/sdk/internal/mcpserver"
 	"github.com/spf13/cobra"
@@ -36,6 +36,8 @@ ENV VARS:
   FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
   FIBE_MCP_TOOLS            Tool surface: full, core, or comma tiers (e.g. other,meta)
   FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
+  FIBE_MCP_ALLOWED_DOMAINS  Comma-separated exact origins allowed for X-Fibe-Domain
+  FIBE_MCP_ALLOW_LOCAL_ACCESS=1  Allow local tools on loopback HTTP only
 
 EXAMPLES:
   fibe mcp serve                                      # stdio, full toolset
@@ -66,6 +68,8 @@ func mcpServeCmd() *cobra.Command {
 		toolSet        string
 		yolo           bool
 		requireAuth    bool
+		allowedDomains []string
+		allowLocal     bool
 		cacheSize      int
 		cacheEntryMax  int
 		maxSteps       int
@@ -103,6 +107,9 @@ EXAMPLES:
   fibe mcp serve --tools full --yolo
   fibe mcp serve --http :8080 --require-auth`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if streamableHTTP && httpAddr == "" {
+				return fmt.Errorf("--streamable requires --http")
+			}
 			cfg := mcpserver.DefaultConfig()
 			auth := resolveCLIAuth()
 			cfg.APIKey = auth.APIKey
@@ -115,6 +122,15 @@ EXAMPLES:
 			cfg.ToolSet = resolveEnv("FIBE_MCP_TOOLS", toolSet, cfg.ToolSet)
 			cfg.Yolo = yolo || envBool("FIBE_MCP_YOLO")
 			cfg.RequireAuth = requireAuth || envBool("FIBE_MCP_REQUIRE_AUTH")
+			cfg.AllowLocalAccess = allowLocal || envBool("FIBE_MCP_ALLOW_LOCAL_ACCESS")
+			cfg.AllowedDomains = append(cfg.AllowedDomains, allowedDomains...)
+			if raw := os.Getenv("FIBE_MCP_ALLOWED_DOMAINS"); raw != "" {
+				for _, domain := range strings.Split(raw, ",") {
+					if domain = strings.TrimSpace(domain); domain != "" {
+						cfg.AllowedDomains = append(cfg.AllowedDomains, domain)
+					}
+				}
+			}
 			if cacheSize > 0 {
 				cfg.PipelineCacheSize = cacheSize
 			} else if v := envInt("FIBE_MCP_PIPELINE_CACHE_SIZE"); v > 0 {
@@ -151,7 +167,7 @@ EXAMPLES:
 				return fmt.Errorf("register: %w", err)
 			}
 
-			ctx := context.Background()
+			ctx := cmd.Context()
 			if httpAddr != "" {
 				return srv.ServeHTTP(ctx, httpAddr, streamableHTTP)
 			}
@@ -163,6 +179,8 @@ EXAMPLES:
 	cmd.Flags().StringVar(&toolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta (env: FIBE_MCP_TOOLS, default: full)")
 	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip confirm:true gate on destructive tools (env: FIBE_MCP_YOLO)")
 	cmd.Flags().BoolVar(&requireAuth, "require-auth", false, "Reject requests with no resolved API key (multi-tenant)")
+	cmd.Flags().StringSliceVar(&allowedDomains, "allowed-domain", nil, "Additional exact API origin allowed for X-Fibe-Domain (repeatable; env: FIBE_MCP_ALLOWED_DOMAINS)")
+	cmd.Flags().BoolVar(&allowLocal, "allow-local-access", false, "Allow local filesystem/profile/process tools on loopback HTTP only (env: FIBE_MCP_ALLOW_LOCAL_ACCESS)")
 	cmd.Flags().IntVar(&cacheSize, "pipeline-cache-size", 0, "Max cached pipeline results (env: FIBE_MCP_PIPELINE_CACHE_SIZE)")
 	cmd.Flags().IntVar(&cacheEntryMax, "pipeline-cache-entry-max", 0, "Max bytes per cached entry (env: FIBE_MCP_PIPELINE_CACHE_ENTRY_MAX)")
 	cmd.Flags().IntVar(&maxSteps, "pipeline-max-steps", 0, "Max steps per pipeline (env: FIBE_MCP_PIPELINE_MAX_STEPS)")

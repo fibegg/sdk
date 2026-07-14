@@ -19,7 +19,7 @@ func main() {
 	fmt.Printf("Mock Fibe API server running at: %s\n", mockServer.URL())
 
 	// 2. Point the standard Fibe Client to your Mock Domain
-	// Provide any string for the API key since authorization is bypassed locally 
+	// Provide any string for the API key since authorization is bypassed locally
 	client := fibe.NewClient(
 		fibe.WithAPIKey("pk_test_mocked_env"),
 		fibe.WithDomain(mockServer.Domain()),

@@ -56,6 +56,7 @@ EXAMPLES:
 			if filePath == "" {
 				return fmt.Errorf("required flag --file not set")
 			}
+			// #nosec G304 -- filePath is an explicit local input requested by the CLI user.
 			data, err := os.ReadFile(filePath)
 			if err != nil {
 				return fmt.Errorf("read %s: %w", filePath, err)

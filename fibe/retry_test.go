@@ -91,6 +91,7 @@ func TestRetryPolicy_DelayCapped(t *testing.T) {
 		maxRetries: 10,
 		baseDelay:  1 * time.Second,
 		maxDelay:   5 * time.Second,
+		jitter:     func() float64 { return 1 },
 	}
 
 	for attempt := 0; attempt < 10; attempt++ {
@@ -98,5 +99,12 @@ func TestRetryPolicy_DelayCapped(t *testing.T) {
 		if delay > p.maxDelay {
 			t.Errorf("delay %v exceeds maxDelay %v at attempt %d", delay, p.maxDelay, attempt)
 		}
+	}
+}
+
+func TestRetryPolicy_DelayUsesInjectedJitter(t *testing.T) {
+	p := &retryPolicy{baseDelay: time.Second, maxDelay: 10 * time.Second, jitter: func() float64 { return 0.25 }}
+	if got := p.delay(2, 0); got != time.Second {
+		t.Fatalf("delay = %s, want 1s", got)
 	}
 }

@@ -26,6 +26,11 @@ var (
 func userClient(t *testing.T) *fibe.Client {
 	t.Helper()
 	setupOnce.Do(func() {
+		if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
+			setupErr = fmt.Errorf("FIBE_INTEGRATION=1 is required for live integration tests")
+			setupSkip = true
+			return
+		}
 		key := os.Getenv("FIBE_API_KEY")
 		if key == "" {
 			setupErr = fmt.Errorf("FIBE_API_KEY is required for integration tests")

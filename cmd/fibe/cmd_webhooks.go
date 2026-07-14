@@ -182,7 +182,7 @@ EXAMPLES:
 				for _, ef := range eventFilters {
 					eq := strings.Index(ef, "=")
 					if eq < 1 || eq == len(ef)-1 {
-						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2,...", ef)
+						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2", ef)
 					}
 					name := ef[:eq]
 					ids := []int64{}
@@ -203,7 +203,7 @@ EXAMPLES:
 				for _, tf := range toolFilters {
 					eq := strings.Index(tf, "=")
 					if eq < 1 || eq == len(tf)-1 {
-						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2,...", tf)
+						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2", tf)
 					}
 					name := tf[:eq]
 					tools := []string{}
@@ -300,7 +300,7 @@ EXAMPLES:
 				for _, ef := range eventFilters {
 					eq := strings.Index(ef, "=")
 					if eq < 1 || eq == len(ef)-1 {
-						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2,...", ef)
+						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2", ef)
 					}
 					name := ef[:eq]
 					ids := []int64{}
@@ -321,7 +321,7 @@ EXAMPLES:
 				for _, tf := range toolFilters {
 					eq := strings.Index(tf, "=")
 					if eq < 1 || eq == len(tf)-1 {
-						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2,...", tf)
+						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2", tf)
 					}
 					name := tf[:eq]
 					tools := []string{}

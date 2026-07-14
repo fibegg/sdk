@@ -39,7 +39,11 @@ func NewAuthProfileStore(path string) *AuthProfileStore {
 }
 
 func (s *AuthProfileStore) Load() (*AuthProfileConfig, error) {
-	data, err := os.ReadFile(s.path)
+	return withStoreLock(s.path, s.loadUnlocked)
+}
+
+func (s *AuthProfileStore) loadUnlocked() (*AuthProfileConfig, error) {
+	data, err := readStoreFile(s.path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return &AuthProfileConfig{Profiles: map[string]AuthProfile{}}, nil
@@ -57,47 +61,52 @@ func (s *AuthProfileStore) Load() (*AuthProfileConfig, error) {
 }
 
 func (s *AuthProfileStore) Save(cfg *AuthProfileConfig) error {
-	if cfg.Profiles == nil {
-		cfg.Profiles = map[string]AuthProfile{}
-	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	return withStoreLockError(s.path, func() error { return s.saveUnlocked(cfg) })
+}
+
+func (s *AuthProfileStore) saveUnlocked(cfg *AuthProfileConfig) error {
+	cloned := cloneAuthProfileConfig(cfg)
+	data, err := json.MarshalIndent(cloned, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.path, append(data, '\n'), 0o644)
+	return atomicWriteFile(s.path, append(data, '\n'), 0o600)
 }
 
 func (s *AuthProfileStore) SetProfile(profile, domain string) error {
-	cfg, err := s.Load()
-	if err != nil {
-		return err
-	}
-	cfg.Profiles[profile] = AuthProfile{Domain: domain}
-	return s.Save(cfg)
+	return withStoreLockError(s.path, func() error {
+		cfg, err := s.loadUnlocked()
+		if err != nil {
+			return err
+		}
+		cfg.Profiles[profile] = AuthProfile{Domain: domain}
+		return s.saveUnlocked(cfg)
+	})
 }
 
 func (s *AuthProfileStore) SetActive(profile string) error {
-	cfg, err := s.Load()
-	if err != nil {
-		return err
-	}
-	cfg.ActiveProfile = profile
-	return s.Save(cfg)
+	return withStoreLockError(s.path, func() error {
+		cfg, err := s.loadUnlocked()
+		if err != nil {
+			return err
+		}
+		cfg.ActiveProfile = profile
+		return s.saveUnlocked(cfg)
+	})
 }
 
 func (s *AuthProfileStore) DeleteProfile(profile string) error {
-	cfg, err := s.Load()
-	if err != nil {
-		return err
-	}
-	delete(cfg.Profiles, profile)
-	if cfg.ActiveProfile == profile {
-		cfg.ActiveProfile = ""
-	}
-	return s.Save(cfg)
+	return withStoreLockError(s.path, func() error {
+		cfg, err := s.loadUnlocked()
+		if err != nil {
+			return err
+		}
+		delete(cfg.Profiles, profile)
+		if cfg.ActiveProfile == profile {
+			cfg.ActiveProfile = ""
+		}
+		return s.saveUnlocked(cfg)
+	})
 }
 
 func (s *AuthProfileStore) ActiveProfile() string {
@@ -137,4 +146,16 @@ func (s *AuthProfileStore) ProfileNames() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+func cloneAuthProfileConfig(cfg *AuthProfileConfig) *AuthProfileConfig {
+	cloned := &AuthProfileConfig{Profiles: make(map[string]AuthProfile)}
+	if cfg == nil {
+		return cloned
+	}
+	cloned.ActiveProfile = cfg.ActiveProfile
+	for name, profile := range cfg.Profiles {
+		cloned.Profiles[name] = profile
+	}
+	return cloned
 }

@@ -33,7 +33,7 @@ func resolveMCPGitHubRepoRequest(ctx context.Context, c *fibe.Client, args map[s
 		return nil, nil
 	}
 	if c == nil {
-		return nil, fmt.Errorf("Fibe client is required to resolve GitHub App installations")
+		return nil, fmt.Errorf("fibe client is required to resolve GitHub App installations")
 	}
 
 	source, err := fibe.ParseGitHubRepoSource(repository)

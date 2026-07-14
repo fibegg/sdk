@@ -1,10 +1,10 @@
 package main
 
 import (
-
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func auditLogsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "audit-logs",
@@ -61,21 +61,46 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AuditLogListParams{}
-			if query != "" { params.Q = query }
-			if resType != "" { params.ResourceType = resType }
-			if channel != "" { params.Channel = channel }
-			if prefix != "" { params.ActionPrefix = prefix }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if resType != "" {
+				params.ResourceType = resType
+			}
+			if channel != "" {
+				params.Channel = channel
+			}
+			if prefix != "" {
+				params.ActionPrefix = prefix
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			logs, err := c.AuditLogs.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(logs); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(logs)
+				return nil
+			}
 			headers := []string{"ID", "ACTION", "RESOURCE", "CHANNEL", "CREATED"}
 			rows := make([][]string, len(logs.Data))
-			for i, l := range logs.Data { rows[i] = []string{fmtInt64(l.ID), l.Action, l.ResourceType, l.Channel, fmtTimeVal(l.CreatedAt)} }
+			for i, l := range logs.Data {
+				rows[i] = []string{fmtInt64(l.ID), l.Action, l.ResourceType, l.Channel, fmtTimeVal(l.CreatedAt)}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -89,4 +114,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")
 	return cmd
 }
-

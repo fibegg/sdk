@@ -39,10 +39,8 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 		"tool": "fibe_resource_delete",
 		"args": map[string]any{"resource": "audit_log", "id": 42, "confirm": true},
 	})
-	if err != nil {
-		if _, ok := err.(*confirmRequiredError); ok {
-			t.Fatalf("nested args.confirm:true on fibe_call should NOT trigger confirm-required gate, got: %v", err)
-		}
+	if _, ok := err.(*confirmRequiredError); ok {
+		t.Fatalf("nested args.confirm:true on fibe_call should NOT trigger confirm-required gate, got: %v", err)
 	}
 
 	// Without confirm anywhere, gate must trip.
@@ -80,8 +78,6 @@ func TestRun2_TemplatesVersionsHelpResolvesCreate(t *testing.T) {
 		t.Errorf("expected create-version short, got %q", cmd.Short)
 	}
 }
-
-
 
 func buildRootForHelpTest(t *testing.T) *cobra.Command {
 	t.Helper()

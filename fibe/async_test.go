@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -498,6 +499,86 @@ func TestDoAsync_EmptyRequestIDWithoutStatusURL(t *testing.T) {
 	err := c.doAsync(context.Background(), http.MethodPost, "/api/playgrounds/1/operations", "/status/%s", nil, nil)
 	if err == nil {
 		t.Fatal("expected missing request_id error")
+	}
+}
+
+func TestDoAsync_RejectsCrossOriginStatusURL(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/start" {
+			t.Fatalf("unexpected request to %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(AsyncResult{RequestID: "req-1", Status: "queued", StatusURL: "https://attacker.example/status/req-1"})
+	})
+	var result map[string]any
+	err := c.doAsync(context.Background(), http.MethodPost, "/start", "/status/%s", map[string]any{"name": "test"}, &result)
+	if err == nil || !strings.Contains(err.Error(), "configured API origin") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestDoAsync_RetriesInitialMutationWithStableIdempotencyKey(t *testing.T) {
+	var server *httptest.Server
+	var startAttempts int
+	var keys []string
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/start":
+			startAttempts++
+			keys = append(keys, r.Header.Get("Idempotency-Key"))
+			if startAttempts == 1 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"error":{"message":"retry"}}`))
+				return
+			}
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(AsyncResult{RequestID: "req-1", Status: "queued", StatusURL: server.URL + "/status/req-1"})
+		case "/status/req-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "value": "done"})
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	c := NewClient(WithBaseURL(server.URL), WithMaxRetries(1), WithRetryDelay(time.Millisecond, time.Millisecond), WithDisableAutoConfig())
+	var result map[string]any
+	if err := c.doAsync(context.Background(), http.MethodPost, "/start", "/status/%s", map[string]any{"name": "test"}, &result); err != nil {
+		t.Fatalf("doAsync: %v", err)
+	}
+	if len(keys) != 2 || keys[0] == "" || keys[0] != keys[1] {
+		t.Fatalf("idempotency keys = %#v", keys)
+	}
+}
+
+func TestDoAsync_AppliesProjectionToImmediateResponse(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(Playground{ID: 7, Name: "hidden", Status: "running"})
+	})
+	var result Playground
+	ctx := WithFields(context.Background(), "id")
+	if err := c.doAsync(ctx, http.MethodPost, "/api/fixture", "/api/async/%s", nil, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != 7 || result.Name != "" || result.Status != "" {
+		t.Fatalf("projection result = %#v", result)
+	}
+}
+
+func TestDoAsync_AppliesProjectionToPolledResponse(t *testing.T) {
+	c, _ := testAsyncAcceptedEndpoint(t, "/api/fixture", "/api/async/req-async", map[string]any{
+		"id": 7, "name": "hidden", "playground_status": "running",
+	})
+	var result struct {
+		ID               int64  `json:"id"`
+		Name             string `json:"name"`
+		PlaygroundStatus string `json:"playground_status"`
+	}
+	ctx := WithFields(context.Background(), "id")
+	if err := c.doAsync(ctx, http.MethodPost, "/api/fixture", "/api/async/%s", nil, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != 7 || result.Name != "" || result.PlaygroundStatus != "" {
+		t.Fatalf("projection result = %#v", result)
 	}
 }
 

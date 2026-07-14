@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -26,6 +27,8 @@ type Client struct {
 	rateLimit     *rateLimitTracker
 	breaker       *circuitBreaker
 	retry         *retryPolicy
+	now           func() time.Time
+	sleep         func(context.Context, time.Duration) error
 	lastRequestID atomic.Value // stores string
 
 	Playgrounds            *PlaygroundService
@@ -88,6 +91,12 @@ func NewClient(opts ...Option) *Client {
 
 	if cfg.httpClient == nil {
 		cfg.httpClient = &http.Client{Timeout: cfg.timeout}
+	} else {
+		client := *cfg.httpClient
+		if cfg.timeoutSet {
+			client.Timeout = cfg.timeout
+		}
+		cfg.httpClient = &client
 	}
 
 	if cfg.logger == nil {
@@ -101,6 +110,18 @@ func NewClient(opts ...Option) *Client {
 }
 
 func newClientFromConfig(cfg *clientConfig) *Client {
+	if cfg.maxRetries < 0 {
+		cfg.maxRetries = 0
+	}
+	if cfg.retryBaseDelay < 0 {
+		cfg.retryBaseDelay = 0
+	}
+	if cfg.retryMaxDelay < 0 {
+		cfg.retryMaxDelay = 0
+	}
+	if cfg.retryMaxDelay > 0 && cfg.retryMaxDelay < cfg.retryBaseDelay {
+		cfg.retryMaxDelay = cfg.retryBaseDelay
+	}
 	c := &Client{
 		cfg:       cfg,
 		http:      cfg.httpClient,
@@ -110,6 +131,8 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 			baseDelay:  cfg.retryBaseDelay,
 			maxDelay:   cfg.retryMaxDelay,
 		},
+		now:   time.Now,
+		sleep: waitForRetry,
 	}
 
 	if cfg.breaker != nil {
@@ -194,18 +217,15 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 	if c.breaker != nil && !c.breaker.allow() {
 		return &CircuitOpenError{Resource: path}
 	}
+	if isMutationMethod(method) && idempotencyKeyFromCtx(ctx) == "" {
+		ctx = WithIdempotencyKey(ctx, NewIdempotencyKey())
+	}
 
-	if c.cfg.rateLimitWait {
-		if wait := c.rateLimit.waitTime(); wait > 0 {
-			c.cfg.logger.Debug("rate limit wait", "duration", wait)
-			timer := time.NewTimer(wait)
-			defer timer.Stop()
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-timer.C:
-			}
+	if err := c.waitForRateLimit(ctx); err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
 		}
+		return err
 	}
 
 	var lastErr error
@@ -217,88 +237,145 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 		resp, err := c.doOnce(ctx, method, path, body)
 		if err != nil {
 			lastErr = err
+			if c.breaker != nil {
+				if c.retry.isTransientError(err) {
+					c.breaker.recordFailure()
+				} else {
+					c.breaker.releaseProbe()
+				}
+			}
 			if c.retry.shouldRetryError(attempt, err) {
 				delay := c.retry.delay(attempt, 0)
-				timer := time.NewTimer(delay)
-				select {
-				case <-ctx.Done():
-					timer.Stop()
-					return ctx.Err()
-				case <-timer.C:
+				if err := c.sleep(ctx, delay); err != nil {
+					return err
 				}
 				continue
 			}
 			break
 		}
-		c.rateLimit.update(resp)
-
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			if c.breaker != nil {
 				c.breaker.recordSuccess()
 			}
 			c.storeRequestID(resp)
 			if resp.StatusCode == 204 || result == nil {
-				_, _ = io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
+				drainAndClose(resp.Body)
 				return nil
 			}
-			err := json.NewDecoder(io.LimitReader(resp.Body, 10*1024*1024)).Decode(result)
-			_, _ = io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			err := decodeJSONLimitedProjected(ctx, resp.Body, maxResponseBody, "response body", result)
+			drainAndClose(resp.Body)
 			if err != nil {
 				return err
 			}
-			applyProjection(ctx, result)
 			return nil
 		}
 
 		apiErr := c.parseError(resp)
-		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		drainAndClose(resp.Body)
 
 		if c.retry.shouldRetry(attempt, resp.StatusCode) {
-			if c.breaker != nil {
+			if c.breaker != nil && resp.StatusCode >= 500 {
 				c.breaker.recordFailure()
+			} else if c.breaker != nil {
+				c.breaker.releaseProbe()
 			}
-			retryAfter := parseRetryAfter(resp)
+			retryAfter := parseRetryAfterAt(resp, c.now())
 			delay := c.retry.delay(attempt, retryAfter)
 			lastErr = apiErr
-			timer := time.NewTimer(delay)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				return ctx.Err()
-			case <-timer.C:
+			if err := c.sleep(ctx, delay); err != nil {
+				return err
 			}
 			continue
 		}
 
 		if c.breaker != nil && resp.StatusCode >= 500 {
 			c.breaker.recordFailure()
+		} else if c.breaker != nil {
+			c.breaker.releaseProbe()
 		}
 		return apiErr
 	}
 	return lastErr
 }
 
+// doResponse executes a request through the shared reliability policy while
+// leaving the final response body to the caller. It is used by protocols such
+// as async polling that must interpret multiple non-error HTTP statuses.
+func (c *Client) doResponse(ctx context.Context, method, path string, body any) (*http.Response, error) {
+	if c.breaker != nil && !c.breaker.allow() {
+		return nil, &CircuitOpenError{Resource: path}
+	}
+	if isMutationMethod(method) && idempotencyKeyFromCtx(ctx) == "" {
+		ctx = WithIdempotencyKey(ctx, NewIdempotencyKey())
+	}
+	if err := c.waitForRateLimit(ctx); err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
+		return nil, err
+	}
+
+	for attempt := 0; attempt <= c.retry.maxRetries; attempt++ {
+		resp, err := c.doOnce(ctx, method, path, body)
+		if err != nil {
+			if c.retry.shouldRetryError(attempt, err) {
+				if c.breaker != nil {
+					c.breaker.recordFailure()
+				}
+				if err := c.sleep(ctx, c.retry.delay(attempt, 0)); err != nil {
+					return nil, err
+				}
+				continue
+			}
+			if c.breaker != nil {
+				if c.retry.isTransientError(err) {
+					c.breaker.recordFailure()
+				} else {
+					c.breaker.releaseProbe()
+				}
+			}
+			return nil, err
+		}
+		if c.retry.shouldRetry(attempt, resp.StatusCode) {
+			retryAfter := parseRetryAfterAt(resp, c.now())
+			drainAndClose(resp.Body)
+			if c.breaker != nil && resp.StatusCode >= 500 {
+				c.breaker.recordFailure()
+			}
+			if err := c.sleep(ctx, c.retry.delay(attempt, retryAfter)); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return resp, nil
+	}
+	return nil, fmt.Errorf("fibe: request failed without a response")
+}
+
 func (c *Client) doOnce(ctx context.Context, method, path string, body any) (*http.Response, error) {
-	u := c.cfg.baseURL() + path
+	baseURL, err := resolveBaseURL(c.cfg.domain)
+	if err != nil {
+		return nil, &permanentRequestError{err: err}
+	}
+	u := baseURL + path
 
 	var bodyReader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return nil, fmt.Errorf("fibe: marshal request body: %w", err)
+			return nil, &permanentRequestError{err: fmt.Errorf("fibe: marshal request body: %w", err)}
 		}
 		bodyReader = bytes.NewReader(data)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, u, bodyReader)
 	if err != nil {
-		return nil, fmt.Errorf("fibe: create request: %w", err)
+		return nil, &permanentRequestError{err: fmt.Errorf("fibe: create request: %w", err)}
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+	if c.cfg.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+	}
 	req.Header.Set("User-Agent", c.cfg.userAgent)
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
@@ -306,7 +383,7 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body any) (*ht
 	}
 	if key := idempotencyKeyFromCtx(ctx); key != "" {
 		req.Header.Set("Idempotency-Key", key)
-	} else if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch || method == http.MethodDelete {
+	} else if isMutationMethod(method) {
 		req.Header.Set("Idempotency-Key", NewIdempotencyKey())
 	}
 
@@ -316,7 +393,7 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body any) (*ht
 
 	if c.cfg.requestHook != nil {
 		if err := c.cfg.requestHook(req); err != nil {
-			return nil, fmt.Errorf("fibe: request hook: %w", err)
+			return nil, &permanentRequestError{err: fmt.Errorf("fibe: request hook: %w", err)}
 		}
 	}
 
@@ -324,101 +401,219 @@ func (c *Client) doOnce(ctx context.Context, method, path string, body any) (*ht
 	if err != nil {
 		return nil, err
 	}
+	c.rateLimit.update(resp)
+	c.storeRequestID(resp)
 
 	if c.cfg.responseHook != nil {
 		if err := c.cfg.responseHook(resp); err != nil {
-			resp.Body.Close()
-			return nil, fmt.Errorf("fibe: response hook: %w", err)
+			drainAndClose(resp.Body)
+			return nil, &permanentRequestError{err: fmt.Errorf("fibe: response hook: %w", err)}
 		}
 	}
 
 	return resp, nil
 }
 
+func isMutationMethod(method string) bool {
+	switch method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		return true
+	default:
+		return false
+	}
+}
+
 func (c *Client) doMultipart(ctx context.Context, method, path string, fields map[string]string, fileField, fileName string, fileReader io.Reader, result any) error {
 	if c.breaker != nil && !c.breaker.allow() {
 		return &CircuitOpenError{Resource: path}
 	}
-
-	u := c.cfg.baseURL() + path
-
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	for k, v := range fields {
-		if err := writer.WriteField(k, v); err != nil {
-			return fmt.Errorf("fibe: write field %s: %w", k, err)
-		}
-	}
-
-	if fileReader != nil {
-		part, err := createMultipartFilePart(writer, fileField, fileName)
-		if err != nil {
-			return fmt.Errorf("fibe: create form file: %w", err)
-		}
-		if _, err := io.Copy(part, fileReader); err != nil {
-			return fmt.Errorf("fibe: copy file: %w", err)
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		return fmt.Errorf("fibe: close multipart: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, u, &buf)
+	baseURL, err := resolveBaseURL(c.cfg.domain)
 	if err != nil {
-		return fmt.Errorf("fibe: create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
-	req.Header.Set("User-Agent", c.cfg.userAgent)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Accept", "application/json")
-	if key := idempotencyKeyFromCtx(ctx); key != "" {
-		req.Header.Set("Idempotency-Key", key)
-	} else if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch || method == http.MethodDelete {
-		req.Header.Set("Idempotency-Key", NewIdempotencyKey())
-	}
-
-	if c.cfg.requestHook != nil {
-		if err := c.cfg.requestHook(req); err != nil {
-			return fmt.Errorf("fibe: request hook: %w", err)
-		}
-	}
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("fibe: execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if c.cfg.responseHook != nil {
-		if err := c.cfg.responseHook(resp); err != nil {
-			return fmt.Errorf("fibe: response hook: %w", err)
-		}
-	}
-
-	c.rateLimit.update(resp)
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		if c.breaker != nil {
-			c.breaker.recordSuccess()
+			c.breaker.releaseProbe()
 		}
+		return err
+	}
+	if isMutationMethod(method) && idempotencyKeyFromCtx(ctx) == "" {
+		ctx = WithIdempotencyKey(ctx, NewIdempotencyKey())
+	}
+	if err := c.waitForRateLimit(ctx); err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
+		return err
+	}
+
+	seeker, replayable := fileReader.(io.ReadSeeker)
+	var startOffset int64
+	if replayable {
+		startOffset, err = seeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			replayable = false
+		}
+	}
+	if fileReader == nil {
+		replayable = true
+	}
+
+	var lastErr error
+	for attempt := 0; attempt <= c.retry.maxRetries; attempt++ {
+		if attempt > 0 {
+			if !replayable {
+				break
+			}
+			if seeker != nil {
+				if _, err := seeker.Seek(startOffset, io.SeekStart); err != nil {
+					return fmt.Errorf("fibe: rewind multipart file: %w", err)
+				}
+			}
+		}
+
+		body, contentType := streamMultipartBody(fields, fileField, fileName, fileReader)
+		req, err := http.NewRequestWithContext(ctx, method, baseURL+path, body)
+		if err != nil {
+			_ = body.Close()
+			return fmt.Errorf("fibe: create request: %w", err)
+		}
+		if c.cfg.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+		}
+		req.Header.Set("User-Agent", c.cfg.userAgent)
+		req.Header.Set("Content-Type", contentType)
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Idempotency-Key", idempotencyKeyFromCtx(ctx))
+
+		if c.cfg.requestHook != nil {
+			if err := c.cfg.requestHook(req); err != nil {
+				_ = body.Close()
+				if c.breaker != nil {
+					c.breaker.releaseProbe()
+				}
+				return fmt.Errorf("fibe: request hook: %w", err)
+			}
+		}
+
+		resp, err := c.http.Do(req)
+		if err != nil {
+			_ = body.Close()
+			lastErr = fmt.Errorf("fibe: execute request: %w", err)
+			if c.breaker != nil {
+				if c.retry.isTransientError(err) {
+					c.breaker.recordFailure()
+				} else {
+					c.breaker.releaseProbe()
+				}
+			}
+			if !replayable || !c.retry.shouldRetryError(attempt, err) {
+				return lastErr
+			}
+			if err := c.sleep(ctx, c.retry.delay(attempt, 0)); err != nil {
+				return err
+			}
+			continue
+		}
+		c.rateLimit.update(resp)
 		c.storeRequestID(resp)
-		if resp.StatusCode == 204 || result == nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
+		if c.cfg.responseHook != nil {
+			if err := c.cfg.responseHook(resp); err != nil {
+				drainAndClose(resp.Body)
+				if c.breaker != nil {
+					c.breaker.releaseProbe()
+				}
+				return fmt.Errorf("fibe: response hook: %w", err)
+			}
+		}
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			if c.breaker != nil {
+				c.breaker.recordSuccess()
+			}
+			if resp.StatusCode == http.StatusNoContent || result == nil {
+				drainAndClose(resp.Body)
+				return nil
+			}
+			err := decodeJSONLimitedProjected(ctx, resp.Body, maxResponseBody, "multipart response body", result)
+			drainAndClose(resp.Body)
+			if err != nil {
+				return fmt.Errorf("fibe: decode multipart response: %w", err)
+			}
 			return nil
 		}
-		if err := json.NewDecoder(io.LimitReader(resp.Body, 10*1024*1024)).Decode(result); err != nil {
-			return fmt.Errorf("fibe: decode multipart response: %w", err)
+
+		apiErr := c.parseError(resp)
+		drainAndClose(resp.Body)
+		lastErr = apiErr
+		if replayable && c.retry.shouldRetry(attempt, resp.StatusCode) {
+			if c.breaker != nil && resp.StatusCode >= 500 {
+				c.breaker.recordFailure()
+			}
+			if err := c.sleep(ctx, c.retry.delay(attempt, parseRetryAfterAt(resp, c.now()))); err != nil {
+				return err
+			}
+			continue
 		}
+		if c.breaker != nil && resp.StatusCode >= 500 {
+			c.breaker.recordFailure()
+		} else if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
+		return apiErr
+	}
+	return lastErr
+}
+
+func streamMultipartBody(fields map[string]string, fileField, fileName string, fileReader io.Reader) (io.ReadCloser, string) {
+	reader, writer := io.Pipe()
+	multipartWriter := multipart.NewWriter(writer)
+	contentType := multipartWriter.FormDataContentType()
+	go func() {
+		var writeErr error
+		keys := make([]string, 0, len(fields))
+		for key := range fields {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			if writeErr = multipartWriter.WriteField(key, fields[key]); writeErr != nil {
+				break
+			}
+		}
+		if writeErr == nil && fileReader != nil {
+			var part io.Writer
+			part, writeErr = createMultipartFilePart(multipartWriter, fileField, fileName)
+			if writeErr == nil {
+				_, writeErr = io.Copy(part, fileReader)
+			}
+		}
+		if closeErr := multipartWriter.Close(); writeErr == nil {
+			writeErr = closeErr
+		}
+		_ = writer.CloseWithError(writeErr)
+	}()
+	return reader, contentType
+}
+
+func waitForRetry(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
 		return nil
 	}
+}
 
-	if c.breaker != nil && resp.StatusCode >= 500 {
-		c.breaker.recordFailure()
+func (c *Client) waitForRateLimit(ctx context.Context) error {
+	if !c.cfg.rateLimitWait {
+		return nil
 	}
-	return c.parseError(resp)
+	wait := c.rateLimit.waitTimeAt(c.now())
+	if wait <= 0 {
+		return nil
+	}
+	c.cfg.logger.Debug("rate limit wait", "duration", wait)
+	return c.sleep(ctx, wait)
 }
 
 func createMultipartFilePart(writer *multipart.Writer, fileField, fileName string) (io.Writer, error) {
@@ -440,77 +635,133 @@ func multipartQuote(value string) string {
 	return value
 }
 
-func (c *Client) doStream(ctx context.Context, method, path string, body any) (io.ReadCloser, error) {
-	if c.breaker != nil && !c.breaker.allow() {
-		return nil, &CircuitOpenError{Resource: path}
-	}
-
-	resp, err := c.doOnce(ctx, method, path, body)
-	if err != nil {
-		return nil, err
-	}
-
-	c.rateLimit.update(resp)
-
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		if c.breaker != nil {
-			c.breaker.recordSuccess()
-		}
-		return resp.Body, nil
-	}
-
-	defer resp.Body.Close()
-	if c.breaker != nil && resp.StatusCode >= 500 {
-		c.breaker.recordFailure()
-	}
-	return nil, c.parseError(resp)
-}
-
 func (c *Client) doDownload(ctx context.Context, path string) (io.ReadCloser, string, string, error) {
 	if c.breaker != nil && !c.breaker.allow() {
 		return nil, "", "", &CircuitOpenError{Resource: path}
 	}
-
-	noRedirectClient := &http.Client{
-		Timeout:   c.cfg.timeout,
-		Transport: c.http.Transport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-
-	u := c.cfg.baseURL() + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
+	if err := c.waitForRateLimit(ctx); err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
 		return nil, "", "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+
+	baseURL, err := resolveBaseURL(c.cfg.domain)
+	if err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
+		return nil, "", "", err
+	}
+	noRedirectClient := *c.http
+	noRedirectClient.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+
+	u := baseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
+		return nil, "", "", err
+	}
+	if c.cfg.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+	}
 	req.Header.Set("User-Agent", c.cfg.userAgent)
 	req.Header.Set("Accept", "application/octet-stream, */*")
+	if c.cfg.requestHook != nil {
+		if err := c.cfg.requestHook(req); err != nil {
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
+			return nil, "", "", fmt.Errorf("fibe: request hook: %w", err)
+		}
+	}
 
 	resp, err := noRedirectClient.Do(req)
 	if err != nil {
+		if c.breaker != nil {
+			if c.retry.isTransientError(err) {
+				c.breaker.recordFailure()
+			} else {
+				c.breaker.releaseProbe()
+			}
+		}
 		return nil, "", "", err
 	}
-
 	c.rateLimit.update(resp)
+	c.storeRequestID(resp)
+	if c.cfg.responseHook != nil {
+		if err := c.cfg.responseHook(resp); err != nil {
+			drainAndClose(resp.Body)
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
+			return nil, "", "", fmt.Errorf("fibe: response hook: %w", err)
+		}
+	}
 
 	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 		loc := resp.Header.Get("Location")
 		filename := filenameFromContentDisposition(resp.Header.Get("Content-Disposition"))
-		resp.Body.Close()
+		drainAndClose(resp.Body)
 		if loc == "" {
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
 			return nil, "", "", &APIError{StatusCode: resp.StatusCode, Code: ErrCodeInternalError, Message: "redirect without Location"}
 		}
-		redirReq, err := http.NewRequestWithContext(ctx, http.MethodGet, loc, nil)
+		redirectURL, err := url.Parse(loc)
+		if err != nil || !redirectURL.IsAbs() || (redirectURL.Scheme != "http" && redirectURL.Scheme != "https") || redirectURL.User != nil {
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
+			return nil, "", "", fmt.Errorf("fibe: invalid download redirect URL")
+		}
+		redirReq, err := http.NewRequestWithContext(ctx, http.MethodGet, redirectURL.String(), nil)
 		if err != nil {
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
 			return nil, "", "", err
 		}
-		redirResp, err := http.DefaultClient.Do(redirReq)
+		apiURL, _ := url.Parse(baseURL)
+		if sameHTTPOrigin(apiURL, redirectURL) && c.cfg.apiKey != "" {
+			redirReq.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+		}
+		redirReq.Header.Set("User-Agent", c.cfg.userAgent)
+		redirReq.Header.Set("Accept", "application/octet-stream, */*")
+		redirectClient := *c.http
+		callerCheckRedirect := redirectClient.CheckRedirect
+		redirectClient.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+			if len(via) > 3 {
+				return fmt.Errorf("fibe: download redirect limit exceeded")
+			}
+			if next.URL.Scheme != "http" && next.URL.Scheme != "https" {
+				return fmt.Errorf("fibe: download redirect must use http or https")
+			}
+			if sameHTTPOrigin(apiURL, next.URL) && c.cfg.apiKey != "" {
+				// #nosec G119 -- credentials are restored only for the normalized configured API origin; cross-origin redirects delete them below.
+				next.Header.Set("Authorization", "Bearer "+c.cfg.apiKey)
+			} else {
+				next.Header.Del("Authorization")
+			}
+			if callerCheckRedirect != nil {
+				return callerCheckRedirect(next, via)
+			}
+			return nil
+		}
+		redirResp, err := redirectClient.Do(redirReq)
 		if err != nil {
+			if c.breaker != nil {
+				c.breaker.releaseProbe()
+			}
 			return nil, "", "", err
 		}
 		if redirResp.StatusCode >= 200 && redirResp.StatusCode < 300 {
+			if c.breaker != nil {
+				c.breaker.recordSuccess()
+			}
 			if filename == "" {
 				filename = filenameFromContentDisposition(redirResp.Header.Get("Content-Disposition"))
 			}
@@ -519,7 +770,10 @@ func (c *Client) doDownload(ctx context.Context, path string) (io.ReadCloser, st
 			}
 			return redirResp.Body, filename, redirResp.Header.Get("Content-Type"), nil
 		}
-		defer redirResp.Body.Close()
+		drainAndClose(redirResp.Body)
+		if c.breaker != nil {
+			c.breaker.releaseProbe()
+		}
 		return nil, "", "", &APIError{StatusCode: redirResp.StatusCode, Code: ErrCodeInternalError, Message: fmt.Sprintf("download from redirect failed: %d", redirResp.StatusCode)}
 	}
 
@@ -531,8 +785,30 @@ func (c *Client) doDownload(ctx context.Context, path string) (io.ReadCloser, st
 		return resp.Body, filename, resp.Header.Get("Content-Type"), nil
 	}
 
-	defer resp.Body.Close()
-	return nil, "", "", c.parseError(resp)
+	apiErr := c.parseError(resp)
+	drainAndClose(resp.Body)
+	if c.breaker != nil && resp.StatusCode >= 500 {
+		c.breaker.recordFailure()
+	} else if c.breaker != nil {
+		c.breaker.releaseProbe()
+	}
+	return nil, "", "", apiErr
+}
+
+func sameHTTPOrigin(a, b *url.URL) bool {
+	if a == nil || b == nil || !strings.EqualFold(a.Scheme, b.Scheme) || !strings.EqualFold(a.Hostname(), b.Hostname()) {
+		return false
+	}
+	port := func(u *url.URL) string {
+		if value := u.Port(); value != "" {
+			return value
+		}
+		if strings.EqualFold(u.Scheme, "https") {
+			return "443"
+		}
+		return "80"
+	}
+	return port(a) == port(b)
 }
 
 func filenameFromContentDisposition(header string) string {
@@ -570,9 +846,12 @@ func filenameFromURL(raw string) string {
 	return base
 }
 
-func (c *Client) parseError(resp *http.Response) *APIError {
+func (c *Client) parseError(resp *http.Response) error {
 	var errResp apiErrorResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1*1024*1024)).Decode(&errResp); err != nil {
+	if err := decodeJSONLimited(resp.Body, maxErrorBody, "error response body", &errResp); err != nil {
+		if strings.Contains(err.Error(), "exceeds") {
+			return err
+		}
 		return &APIError{
 			StatusCode: resp.StatusCode,
 			Code:       ErrCodeInternalError,
@@ -592,7 +871,7 @@ func (c *Client) parseError(resp *http.Response) *APIError {
 
 	if resp.StatusCode == 429 {
 		apiErr.Code = ErrCodeRateLimited
-		apiErr.RetryAfter = parseRetryAfter(resp)
+		apiErr.RetryAfter = parseRetryAfterAt(resp, c.now())
 	}
 
 	c.storeRequestID(resp)
@@ -612,20 +891,20 @@ func (c *Client) LastRequestID() string {
 	return v
 }
 
-func applyProjection(ctx context.Context, result any) {
+func applyProjection(ctx context.Context, result any) error {
 	fields := fieldsFromCtx(ctx)
 	if len(fields) == 0 {
-		return
+		return nil
 	}
 
 	data, err := json.Marshal(result)
 	if err != nil {
-		return
+		return fmt.Errorf("fibe: marshal projected response: %w", err)
 	}
 
 	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return
+		return fmt.Errorf("fibe: decode projected response: %w", err)
 	}
 
 	if dataSlice, ok := raw["data"].([]any); ok {
@@ -641,14 +920,17 @@ func applyProjection(ctx context.Context, result any) {
 
 	filtered, err := json.Marshal(raw)
 	if err != nil {
-		return
+		return fmt.Errorf("fibe: marshal projected fields: %w", err)
 	}
 
 	rv := reflect.ValueOf(result)
 	if rv.Kind() == reflect.Ptr && rv.Elem().Kind() == reflect.Struct {
 		rv.Elem().Set(reflect.Zero(rv.Elem().Type()))
 	}
-	json.Unmarshal(filtered, result)
+	if err := json.Unmarshal(filtered, result); err != nil {
+		return fmt.Errorf("fibe: apply projected fields: %w", err)
+	}
+	return nil
 }
 
 func filterMap(m map[string]any, fields map[string]bool) map[string]any {

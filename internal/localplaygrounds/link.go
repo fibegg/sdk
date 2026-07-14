@@ -17,6 +17,7 @@ const defaultBaseDir = "/opt/fibe/playgrounds"
 const defaultRootDomain = "phoenix.test"
 const defaultLinkDir = "/app/playground"
 const currentStateFilename = ".current_playground.json"
+const linkOwnerFilename = ".fibe-playground-links"
 
 var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
@@ -141,6 +142,7 @@ func Scan(baseDir string) ([]Playground, error) {
 			continue
 		}
 		ymlPath := filepath.Join(baseDir, entry.Name(), "compose.yml")
+		// #nosec G304 -- ymlPath is derived from a validated regular entry beneath the configured base directory.
 		data, err := os.ReadFile(ymlPath)
 		if err != nil {
 			continue
@@ -299,6 +301,7 @@ func CurrentStatePath(linkDir string) string {
 
 func LoadCurrentState(linkDir string) (*CurrentState, error) {
 	path := CurrentStatePath(linkDir)
+	// #nosec G304 -- path is the fixed state filename beneath the validated link directory.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -376,13 +379,21 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	if pg.JobMode {
 		return nil, fmt.Errorf("cannot link job-mode playground %s", pg.DirName)
 	}
-	if err := prepareLinkDir(linkDir); err != nil {
+	existed, err := prepareLinkDir(linkDir)
+	if err != nil {
 		return nil, err
 	}
 
 	var mountable []*Service
-	for _, svc := range pg.Services {
+	for _, name := range serviceNames(pg.Services) {
+		svc := pg.Services[name]
 		if svc.HostMount != "" {
+			if err := validateLinkComponent("prop", svc.Prop); err != nil {
+				return nil, err
+			}
+			if err := validateLinkComponent("branch", svc.Branch); err != nil {
+				return nil, err
+			}
 			mountable = append(mountable, svc)
 		}
 	}
@@ -398,13 +409,9 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		Playground: pg.DirName,
 		StateFile:  CurrentStatePath(linkDir),
 	}
-	created := make(map[string]bool)
+	created := make(map[string]string)
+	linkNames := make([]string, 0, len(mountable))
 	for _, svc := range mountable {
-		if created[svc.HostMount] {
-			continue
-		}
-		created[svc.HostMount] = true
-
 		symlinkName := svc.Prop
 		if symlinkName == "" {
 			symlinkName = "default"
@@ -412,14 +419,15 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		if appendBranch && svc.Branch != "" {
 			symlinkName = symlinkName + "-" + svc.Branch
 		}
+		if target, ok := created[symlinkName]; ok {
+			if target == svc.HostMount {
+				continue
+			}
+			return nil, fmt.Errorf("link name %q resolves to multiple mount targets", symlinkName)
+		}
+		created[symlinkName] = svc.HostMount
+		linkNames = append(linkNames, symlinkName)
 		symlinkPath := filepath.Join(linkDir, symlinkName)
-
-		if err := os.RemoveAll(symlinkPath); err != nil {
-			return nil, fmt.Errorf("failed to remove existing symlink %s: %w", symlinkPath, err)
-		}
-		if err := os.Symlink(svc.HostMount, symlinkPath); err != nil {
-			return nil, fmt.Errorf("failed to create symlink %s -> %s: %w", symlinkPath, svc.HostMount, err)
-		}
 		result.Links = append(result.Links, fibe.GreenfieldLinkedPath{
 			Name:    symlinkName,
 			Path:    symlinkPath,
@@ -435,9 +443,40 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize state file: %w", err)
 	}
-	if err := os.WriteFile(result.StateFile, append(data, '\n'), 0o644); err != nil {
+
+	parent := filepath.Dir(linkDir)
+	staged, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".staged-")
+	if err != nil {
+		return nil, fmt.Errorf("failed to stage target directory: %w", err)
+	}
+	keepStaged := false
+	defer func() {
+		if !keepStaged {
+			_ = os.RemoveAll(staged)
+		}
+	}()
+	// #nosec G302 -- staged is a directory and 0700 is deliberately restrictive.
+	if err := os.Chmod(staged, 0o700); err != nil {
+		return nil, fmt.Errorf("failed to set staged directory permissions: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(staged, linkOwnerFilename), []byte("managed by fibe local playground linking\n"), 0o600); err != nil {
+		return nil, fmt.Errorf("failed to write ownership marker: %w", err)
+	}
+	for i, link := range result.Links {
+		if err := os.Symlink(link.Target, filepath.Join(staged, linkNames[i])); err != nil {
+			return nil, fmt.Errorf("failed to create symlink %s -> %s: %w", link.Path, link.Target, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(staged, currentStateFilename), append(data, '\n'), 0o600); err != nil {
 		return nil, fmt.Errorf("failed to write state file: %w", err)
 	}
+	if err := syncDirectory(staged); err != nil {
+		return nil, fmt.Errorf("failed to sync staged directory: %w", err)
+	}
+	if err := replaceLinkDir(linkDir, staged, existed); err != nil {
+		return nil, err
+	}
+	keepStaged = true
 	return result, nil
 }
 
@@ -489,36 +528,157 @@ func findGitRoot(start string) string {
 	}
 }
 
-func prepareLinkDir(linkDir string) error {
+func prepareLinkDir(linkDir string) (bool, error) {
+	abs, err := filepath.Abs(linkDir)
+	if err != nil {
+		return false, fmt.Errorf("failed to resolve target directory %s: %w", linkDir, err)
+	}
+	linkDir = filepath.Clean(abs)
+	if filepath.Dir(linkDir) == linkDir {
+		return false, fmt.Errorf("refusing to use filesystem root %s as a link directory", linkDir)
+	}
+	if home, err := os.UserHomeDir(); err == nil && sameCleanPath(linkDir, home) {
+		return false, fmt.Errorf("refusing to use home directory %s as a link directory", linkDir)
+	}
+	if cwd, err := os.Getwd(); err == nil && sameCleanPath(linkDir, cwd) {
+		return false, fmt.Errorf("refusing to use current working directory %s as a link directory", linkDir)
+	}
+	if err := rejectSymlinkedAncestors(linkDir); err != nil {
+		return false, err
+	}
+	if err := os.MkdirAll(filepath.Dir(linkDir), 0o700); err != nil {
+		return false, fmt.Errorf("failed to create target parent %s: %w", filepath.Dir(linkDir), err)
+	}
+	if err := rejectSymlinkedAncestors(filepath.Dir(linkDir)); err != nil {
+		return false, err
+	}
+
 	info, err := os.Lstat(linkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(linkDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create target directory %s: %w", linkDir, err)
-			}
-			return nil
+			return false, nil
 		}
-		return fmt.Errorf("failed to inspect target directory %s: %w", linkDir, err)
+		return false, fmt.Errorf("failed to inspect target directory %s: %w", linkDir, err)
 	}
 
 	if info.Mode()&os.ModeSymlink != 0 {
-		return fmt.Errorf("target path %s must be a directory, got symlink", linkDir)
+		return false, fmt.Errorf("target path %s must be a directory, got symlink", linkDir)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("target path %s must be a directory", linkDir)
+		return false, fmt.Errorf("target path %s must be a directory", linkDir)
 	}
 
 	entries, err := os.ReadDir(linkDir)
 	if err != nil {
-		return fmt.Errorf("failed to read target directory %s: %w", linkDir, err)
+		return false, fmt.Errorf("failed to read target directory %s: %w", linkDir, err)
+	}
+	if len(entries) == 0 {
+		return true, nil
+	}
+	if marker, err := os.Lstat(filepath.Join(linkDir, linkOwnerFilename)); err == nil && marker.Mode().IsRegular() {
+		return true, nil
 	}
 	for _, entry := range entries {
-		path := filepath.Join(linkDir, entry.Name())
-		if err := os.RemoveAll(path); err != nil {
-			return fmt.Errorf("failed to remove existing target entry %s: %w", path, err)
+		if entry.Name() == currentStateFilename && entry.Type().IsRegular() {
+			continue
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		return false, fmt.Errorf("refusing to replace non-empty unowned directory %s (unexpected entry %s)", linkDir, entry.Name())
+	}
+	return true, nil
+}
+
+func validateLinkComponent(label, value string) error {
+	if value == "" {
+		return nil
+	}
+	if value == "." || value == ".." || filepath.IsAbs(value) || filepath.Base(value) != value || strings.ContainsAny(value, `/\\`) {
+		return fmt.Errorf("invalid %s link component %q", label, value)
+	}
+	return nil
+}
+
+func rejectSymlinkedAncestors(path string) error {
+	path = filepath.Clean(path)
+	var paths []string
+	for current := path; ; current = filepath.Dir(current) {
+		paths = append(paths, current)
+		if filepath.Dir(current) == current {
+			break
+		}
+	}
+	for i := len(paths) - 1; i >= 0; i-- {
+		info, err := os.Lstat(paths[i])
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to inspect target ancestor %s: %w", paths[i], err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			// macOS exposes standard temporary paths such as /var and /tmp as
+			// root-level aliases. They are controlled by the operating system;
+			// reject symlinks at every user-controlled depth below them.
+			parent := filepath.Dir(paths[i])
+			if filepath.Dir(parent) == parent {
+				continue
+			}
+			return fmt.Errorf("target directory has symlinked ancestor %s", paths[i])
+		}
+		if i > 0 && !info.IsDir() {
+			return fmt.Errorf("target ancestor %s is not a directory", paths[i])
 		}
 	}
 	return nil
+}
+
+func replaceLinkDir(linkDir, staged string, existed bool) error {
+	parent := filepath.Dir(linkDir)
+	if !existed {
+		if err := os.Rename(staged, linkDir); err != nil {
+			return fmt.Errorf("failed to install link directory: %w", err)
+		}
+		return syncDirectory(parent)
+	}
+	backup, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".backup-")
+	if err != nil {
+		return fmt.Errorf("failed to reserve link directory backup: %w", err)
+	}
+	if err := os.Remove(backup); err != nil {
+		return fmt.Errorf("failed to prepare link directory backup: %w", err)
+	}
+	if err := os.Rename(linkDir, backup); err != nil {
+		return fmt.Errorf("failed to preserve previous link directory: %w", err)
+	}
+	if err := os.Rename(staged, linkDir); err != nil {
+		_ = os.Rename(backup, linkDir)
+		return fmt.Errorf("failed to install link directory: %w", err)
+	}
+	if err := syncDirectory(parent); err != nil {
+		return fmt.Errorf("failed to sync installed link directory: %w", err)
+	}
+	if err := os.RemoveAll(backup); err != nil {
+		return fmt.Errorf("failed to remove previous link directory: %w", err)
+	}
+	return syncDirectory(parent)
+}
+
+func syncDirectory(path string) error {
+	// #nosec G304 -- path is the validated parent directory being fsynced after an atomic swap.
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
+}
+
+func sameCleanPath(left, right string) bool {
+	leftAbs, leftErr := filepath.Abs(left)
+	rightAbs, rightErr := filepath.Abs(right)
+	return leftErr == nil && rightErr == nil && filepath.Clean(leftAbs) == filepath.Clean(rightAbs)
 }
 
 func parseCompose(dirName, dirPath string, data []byte) Playground {

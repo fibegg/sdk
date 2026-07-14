@@ -2,8 +2,11 @@ package fibe
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -12,7 +15,11 @@ const (
 	defaultDomain     = "fibe.gg"
 	defaultTimeout    = 30 * time.Second
 	defaultMaxRetries = 3
-	defaultUserAgent  = "fibe-go/0.1.0"
+)
+
+var (
+	sdkVersion       = "devel"
+	defaultUserAgent = "fibe-go/" + sdkVersion
 )
 
 type Option func(*clientConfig)
@@ -37,6 +44,7 @@ type clientConfig struct {
 	apiKey            string
 	httpClient        *http.Client
 	timeout           time.Duration
+	timeoutSet        bool
 	userAgent         string
 	maxRetries        int
 	retryBaseDelay    time.Duration
@@ -63,26 +71,65 @@ func defaultConfig() *clientConfig {
 }
 
 func (c *clientConfig) baseURL() string {
-	d := c.domain
-	if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
-		return strings.TrimRight(d, "/")
+	baseURL, err := resolveBaseURL(c.domain)
+	if err == nil {
+		return baseURL
 	}
-	if isLocalDomain(d) {
-		return "http://" + d
-	}
-	return "https://" + d
+	// BaseURL cannot report an error without changing its public signature.
+	// Request construction uses resolveBaseURL directly and returns the error.
+	return strings.TrimRight(c.domain, "/")
 }
 
 func isLocalDomain(d string) bool {
-	host := d
-	if i := strings.IndexByte(host, ':'); i != -1 {
-		host = host[:i]
+	u, err := url.Parse("//" + strings.TrimSpace(d))
+	if err != nil {
+		return false
 	}
+	host := strings.ToLower(u.Hostname())
+	ip := net.ParseIP(host)
 	return host == "localhost" ||
-		strings.HasPrefix(host, "127.") ||
+		(ip != nil && ip.IsLoopback()) ||
 		strings.HasSuffix(host, ".local") ||
 		strings.HasSuffix(host, ".test") ||
 		strings.HasSuffix(host, ".internal")
+}
+
+func resolveBaseURL(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", fmt.Errorf("fibe: base URL is empty")
+	}
+
+	candidate := raw
+	if !strings.Contains(candidate, "://") {
+		scheme := "https://"
+		if isLocalDomain(candidate) {
+			scheme = "http://"
+		}
+		candidate = scheme + candidate
+	}
+
+	u, err := url.Parse(candidate)
+	if err != nil {
+		return "", fmt.Errorf("fibe: invalid base URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("fibe: base URL must use http or https")
+	}
+	if u.Host == "" || u.Hostname() == "" {
+		return "", fmt.Errorf("fibe: base URL must include a host")
+	}
+	if u.User != nil {
+		return "", fmt.Errorf("fibe: base URL must not include credentials")
+	}
+	if u.Fragment != "" {
+		return "", fmt.Errorf("fibe: base URL must not include a fragment")
+	}
+	if u.RawQuery != "" {
+		return "", fmt.Errorf("fibe: base URL must not include a query")
+	}
+	u.Path = strings.TrimRight(u.Path, "/")
+	return strings.TrimRight(u.String(), "/"), nil
 }
 
 func WithAPIKey(key string) Option {
@@ -104,7 +151,10 @@ func WithHTTPClient(client *http.Client) Option {
 }
 
 func WithTimeout(d time.Duration) Option {
-	return func(c *clientConfig) { c.timeout = d }
+	return func(c *clientConfig) {
+		c.timeout = d
+		c.timeoutSet = true
+	}
 }
 
 func WithUserAgent(ua string) Option {

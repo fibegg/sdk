@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 
 	"github.com/fibegg/sdk/fibe"
 )
@@ -17,6 +18,9 @@ import (
 type MockServer struct {
 	server *httptest.Server
 	Mux    *http.ServeMux
+	mu     sync.Mutex
+	close  sync.Once
+	seen   []string
 
 	// Interceptors allow you to override specific routes
 	Interceptors map[string]http.HandlerFunc
@@ -42,7 +46,7 @@ func NewMockServer() *MockServer {
 
 // Close shuts down the mock server.
 func (m *MockServer) Close() {
-	m.server.Close()
+	m.close.Do(m.server.Close)
 }
 
 // URL returns the full mock server HTTP URL.
@@ -58,7 +62,11 @@ func (m *MockServer) Domain() string {
 // handleDefault provides basic success responses for standard endpoints if no
 // interceptor is configured.
 func (m *MockServer) handleDefault(w http.ResponseWriter, r *http.Request) {
-	if interceptor, ok := m.Interceptors[r.URL.Path]; ok {
+	m.mu.Lock()
+	m.seen = append(m.seen, r.Method+" "+r.URL.RequestURI())
+	interceptor, intercepted := m.Interceptors[r.URL.Path]
+	m.mu.Unlock()
+	if intercepted {
 		interceptor(w, r)
 		return
 	}
@@ -69,23 +77,23 @@ func (m *MockServer) handleDefault(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.URL.Path == "/api/status" || r.URL.Path == "/api/me":
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{"id": 1, "username": "mock_user", "email": "mock@example.com"})
+		writeMockJSON(w, map[string]any{"id": 1, "username": "mock_user", "email": "mock@example.com"})
 
 	case strings.HasSuffix(r.URL.Path, "/playgrounds") && r.Method == "GET":
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{
+		writeMockJSON(w, map[string]any{
 			"data": []fibe.Playground{{ID: 42, Name: "mock-pg", Status: "running"}},
 			"meta": map[string]int{"page": 1, "per_page": 25, "total": 1},
 		})
 
 	case strings.HasPrefix(r.URL.Path, "/api/playgrounds/") && r.Method == "GET":
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(fibe.Playground{ID: 42, Name: "mock-pg", Status: "running"})
+		writeMockJSON(w, fibe.Playground{ID: 42, Name: "mock-pg", Status: "running"})
 
 	default:
 		if !m.Permissive {
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]any{
+			writeMockJSON(w, map[string]any{
 				"error": map[string]any{
 					"code":    "MOCK_ROUTE_NOT_FOUND",
 					"message": "No fibetest mock route or interceptor matched this request",
@@ -95,6 +103,12 @@ func (m *MockServer) handleDefault(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		writeMockJSON(w, map[string]string{"status": "ok"})
+	}
+}
+
+func writeMockJSON(w http.ResponseWriter, value any) {
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		http.Error(w, "encode mock response", http.StatusInternalServerError)
 	}
 }

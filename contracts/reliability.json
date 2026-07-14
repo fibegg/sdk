@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "success_body_limit_bytes": 10485760,
+  "api_error_body_limit_bytes": 1048576,
+  "webhook_body_limit_bytes": 1048576,
+  "websocket_frame_limit_bytes": 10485760,
+  "local_upload_limit_bytes": 67108864,
+  "automatic_idempotency": {
+    "format": "32 lowercase hexadecimal characters",
+    "scope": "one key per logical mutation",
+    "retry_behavior": "reuse the same key",
+    "explicit_key_precedence": true
+  },
+  "retry": {
+    "negative_max_retries": 0,
+    "retry_after": ["delta-seconds", "IMF-fixdate", "RFC850", "asctime"],
+    "caller_cancellation_is_retryable": false,
+    "non_replayable_body_is_retryable_after_send": false
+  },
+  "download": {
+    "schemes": ["http", "https"],
+    "maximum_redirects": 3,
+    "forward_credentials_cross_origin": false
+  },
+  "async_status_url": {
+    "relative": true,
+    "same_origin_absolute": true,
+    "cross_origin_absolute": false
+  },
+  "pipeline": {
+    "maximum_steps": 25,
+    "maximum_for_each_iterations": 50,
+    "maximum_depth": 8,
+    "maximum_concurrency": 8
+  }
+}

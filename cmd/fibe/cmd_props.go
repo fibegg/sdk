@@ -350,7 +350,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&repo, "repo", "", "GitHub repo full name (required)")
-	cmd.MarkFlagRequired("repo")
+	mustMarkFlagRequired(cmd, "repo")
 	return cmd
 }
 
@@ -384,7 +384,7 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&sourceURL, "url", "", "Source GitHub URL (required)")
 	cmd.Flags().String("name", "", "Name for the mirrored repository (optional)")
-	cmd.MarkFlagRequired("url")
+	mustMarkFlagRequired(cmd, "url")
 	return cmd
 }
 
@@ -494,6 +494,6 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&branch, "branch", "", "Branch name (required)")
 	cmd.Flags().StringVar(&envFile, "env-file", ".env", "Env file path")
-	cmd.MarkFlagRequired("branch")
+	mustMarkFlagRequired(cmd, "branch")
 	return cmd
 }

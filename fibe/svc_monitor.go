@@ -36,11 +36,12 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 	events := make(chan MonitorEvent, 64)
 	errs := make(chan error, 1)
 
-	if opts == nil {
-		opts = &MonitorFollowOptions{}
+	effectiveOpts := MonitorFollowOptions{}
+	if opts != nil {
+		effectiveOpts = *opts
 	}
-	if opts.PollInterval <= 0 {
-		opts.PollInterval = 2 * time.Second
+	if effectiveOpts.PollInterval <= 0 {
+		effectiveOpts.PollInterval = 2 * time.Second
 	}
 
 	req := MonitorListParams{}
@@ -55,8 +56,8 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 
 	streamCtx := ctx
 	var cancel context.CancelFunc
-	if opts.Duration > 0 {
-		streamCtx, cancel = context.WithTimeout(ctx, opts.Duration)
+	if effectiveOpts.Duration > 0 {
+		streamCtx, cancel = context.WithTimeout(ctx, effectiveOpts.Duration)
 	}
 
 	go func() {
@@ -69,6 +70,26 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 		emitted := 0
 		seen := newBoundedSet(monitorSeenCap)
 		failures := 0
+		timer := time.NewTimer(time.Hour)
+		if !timer.Stop() {
+			<-timer.C
+		}
+		defer timer.Stop()
+		wait := func(delay time.Duration) bool {
+			timer.Reset(delay)
+			select {
+			case <-streamCtx.Done():
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				return false
+			case <-timer.C:
+				return true
+			}
+		}
 
 		for {
 			if streamCtx.Err() != nil {
@@ -78,12 +99,10 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 			batch, err := s.List(streamCtx, &req)
 			if err != nil {
 				failures++
-				select {
-				case <-streamCtx.Done():
+				if !wait(backoff(effectiveOpts.PollInterval, failures)) {
 					return
-				case <-time.After(backoff(opts.PollInterval, failures)):
-					continue
 				}
+				continue
 			}
 			failures = 0
 
@@ -111,7 +130,7 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 				case <-streamCtx.Done():
 					return
 				}
-				if opts.MaxEvents > 0 && emitted >= opts.MaxEvents {
+				if effectiveOpts.MaxEvents > 0 && emitted >= effectiveOpts.MaxEvents {
 					return
 				}
 			}
@@ -120,10 +139,8 @@ func (s *MonitorService) Follow(ctx context.Context, params *MonitorListParams, 
 				req.Since = latestOccurredAt
 			}
 
-			select {
-			case <-streamCtx.Done():
+			if !wait(effectiveOpts.PollInterval) {
 				return
-			case <-time.After(opts.PollInterval):
 			}
 		}
 	}()
@@ -137,6 +154,10 @@ func backoff(base time.Duration, failures int) time.Duration {
 	}
 	step := base
 	for i := 1; i < failures && step < monitorBackoffMaxStep; i++ {
+		if step >= monitorBackoffMaxStep/2 {
+			step = monitorBackoffMaxStep
+			break
+		}
 		step *= 2
 	}
 	if step > monitorBackoffMaxStep {

@@ -411,6 +411,6 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML (required)")
-	cmd.MarkFlagRequired("compose")
+	mustMarkFlagRequired(cmd, "compose")
 	return cmd
 }

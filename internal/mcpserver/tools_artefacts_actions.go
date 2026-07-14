@@ -1,14 +1,11 @@
 package mcpserver
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -41,25 +38,14 @@ func (s *Server) registerArtefactActionTools() {
 				filename = "artefact.md"
 			}
 
-			var payloadReader io.Reader = reader
-
+			payloadReader := reader
+			var mirror *workspaceMirror
 			if workspacePath := os.Getenv("FIBE_WORKSPACE_PATH"); workspacePath != "" && hasFile {
-				content, err := io.ReadAll(reader)
+				payloadReader, mirror, err = newWorkspaceMirror(workspacePath, filename, reader)
 				if err != nil {
-					return nil, fmt.Errorf("failed to read artefact content for workspace: %w", err)
+					return nil, err
 				}
-				cleanFilename := filepath.Clean(filename)
-				if strings.HasPrefix(cleanFilename, "..") || filepath.IsAbs(cleanFilename) {
-					return nil, fmt.Errorf("invalid filename for workspace: must be relative path without traversal")
-				}
-				targetPath := filepath.Join(workspacePath, cleanFilename)
-				if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-					return nil, fmt.Errorf("failed to create directory for artefact: %w", err)
-				}
-				if err := os.WriteFile(targetPath, content, 0644); err != nil {
-					return nil, fmt.Errorf("failed to write artefact to workspace: %w", err)
-				}
-				payloadReader = bytes.NewReader(content)
+				defer mirror.Abort()
 			}
 
 			backendArgs := resourceMutationBackendPayload("artefact", "create", args)
@@ -71,15 +57,27 @@ func (s *Server) registerArtefactActionTools() {
 				p.Body = body
 			}
 
+			var result *fibe.Artefact
 			if agentIdentifier := argString(args, "agent_id_or_name"); agentIdentifier != "" {
-				return c.Artefacts.CreateByAgentIdentifier(ctx, agentIdentifier, &p, payloadReader, filename)
+				result, err = c.Artefacts.CreateByAgentIdentifier(ctx, agentIdentifier, &p, payloadReader, filename)
+			} else if envAgentID := os.Getenv("FIBE_AGENT_ID"); envAgentID != "" {
+				if _, parseErr := strconv.ParseInt(envAgentID, 10, 64); parseErr == nil {
+					result, err = c.Artefacts.CreateByAgentIdentifier(ctx, envAgentID, &p, payloadReader, filename)
+				} else {
+					result, err = c.Artefacts.CreateOwned(ctx, &p, payloadReader, filename)
+				}
+			} else {
+				result, err = c.Artefacts.CreateOwned(ctx, &p, payloadReader, filename)
 			}
-			if envAgentID := os.Getenv("FIBE_AGENT_ID"); envAgentID != "" {
-				if _, err := strconv.ParseInt(envAgentID, 10, 64); err == nil {
-					return c.Artefacts.CreateByAgentIdentifier(ctx, envAgentID, &p, payloadReader, filename)
+			if mirror != nil {
+				if commitErr := mirror.Commit(); commitErr != nil {
+					if err != nil {
+						return nil, fmt.Errorf("upload failed (%v) and workspace commit failed: %w", err, commitErr)
+					}
+					return nil, fmt.Errorf("commit artefact to workspace: %w", commitErr)
 				}
 			}
-			return c.Artefacts.CreateOwned(ctx, &p, payloadReader, filename)
+			return result, err
 		},
 	}, mcp.NewTool("fibe_artefact_upload",
 		mcp.WithDescription("[MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly"),

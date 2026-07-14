@@ -315,11 +315,11 @@ func validateOneOfValue(path string, value any, schema map[string]any) (error, b
 		if !ok {
 			continue
 		}
-		if err := validateValue(path, value, branch); err == nil {
+		err := validateValue(path, value, branch)
+		if err == nil {
 			return nil, true
-		} else {
-			messages = append(messages, err.Error())
 		}
+		messages = append(messages, err.Error())
 	}
 	if len(messages) == 0 {
 		return fmt.Errorf("%s does not match any allowed schema", path), true

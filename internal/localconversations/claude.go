@@ -244,6 +244,7 @@ func parseClaudeDesktopMetadata(path string) (Conversation, bool, error) {
 }
 
 func parseClaudeDesktopMetadataDetail(path string) (ConversationDetail, bool, error) {
+	// #nosec G304 -- path is a validated local conversation metadata file selected by discovery.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return ConversationDetail{}, false, err

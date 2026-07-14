@@ -138,6 +138,7 @@ func (s *Server) registerResourceTools() {
 			if err != nil {
 				return nil, err
 			}
+			// #nosec G104 -- the returned error is checked and propagated immediately.
 			if rt.delete(ctx, c, identifier); err != nil {
 				return nil, err
 			}

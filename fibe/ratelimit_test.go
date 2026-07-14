@@ -70,3 +70,35 @@ func TestParseRetryAfter_Seconds(t *testing.T) {
 		t.Errorf("expected 30s, got %v", d)
 	}
 }
+
+func TestParseRetryAfter_HTTPDateFormats(t *testing.T) {
+	now := time.Date(2026, time.July, 13, 12, 0, 0, 0, time.UTC)
+	for _, value := range []string{
+		now.Add(30 * time.Second).Format(http.TimeFormat),
+		now.Add(30 * time.Second).Format(time.RFC850),
+		now.Add(30 * time.Second).Format(time.ANSIC),
+	} {
+		resp := &http.Response{Header: http.Header{"Retry-After": []string{value}}}
+		if got := parseRetryAfterAt(resp, now); got != 30*time.Second {
+			t.Errorf("Retry-After %q = %v, want 30s", value, got)
+		}
+	}
+}
+
+func TestRateLimitTracker_IgnoresNegativeAndStaleHeaders(t *testing.T) {
+	tracker := &rateLimitTracker{}
+	valid := http.Header{}
+	valid.Set("X-RateLimit-Limit", "100")
+	valid.Set("X-RateLimit-Remaining", "50")
+	valid.Set("X-RateLimit-Reset", "200")
+	tracker.update(&http.Response{Header: valid})
+	invalid := http.Header{}
+	invalid.Set("X-RateLimit-Limit", "-1")
+	invalid.Set("X-RateLimit-Remaining", "-2")
+	invalid.Set("X-RateLimit-Reset", "100")
+	tracker.update(&http.Response{Header: invalid})
+	got := tracker.current()
+	if got.Limit != 100 || got.Remaining != 50 || got.Reset.Unix() != 200 {
+		t.Fatalf("invalid headers overwrote state: %#v", got)
+	}
+}

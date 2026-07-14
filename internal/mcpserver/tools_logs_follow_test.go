@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/mark3labs/mcp-go/mcp"
-	"nhooyr.io/websocket"
 )
 
 func TestMonitorLogsFollowStreamsPlaygroundLogs(t *testing.T) {

@@ -78,13 +78,9 @@ func (s *Server) registerStaticResources() {
 //	fibe://help/{path}                 (e.g., fibe://help/playgrounds/create)
 //	fibe://pipelines/{pipeline_id}     (cached pipeline result)
 func (s *Server) registerResourceTemplates() {
-	// Schema per resource.
-	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
-		"fibe://schema/{resource}",
-		"Fibe schema per resource",
-		mcp.WithTemplateDescription("JSON Schema for operations of a specific Fibe resource. Use fibe://schema/list for the generic resource catalog."),
-		mcp.WithTemplateMIMEType("application/json"),
-	), func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	// Schema per resource and operation. Register the two-segment form
+	// explicitly because RFC 6570 path variables do not consume '/'.
+	schemaHandler := func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		resource, _ := parseURIPath(req.Params.URI, "fibe://schema/")
 		if resource == "" {
 			return nil, fmt.Errorf("missing resource in URI %q", req.Params.URI)
@@ -110,7 +106,19 @@ func (s *Server) registerResourceTemplates() {
 			return jsonResource(req.Params.URI, entry), nil
 		}
 		return jsonResource(req.Params.URI, schemas), nil
-	})
+	}
+	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
+		"fibe://schema/{resource}",
+		"Fibe schema per resource",
+		mcp.WithTemplateDescription("JSON Schema for operations of a specific Fibe resource. Use fibe://schema/list for the generic resource catalog."),
+		mcp.WithTemplateMIMEType("application/json"),
+	), schemaHandler)
+	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
+		"fibe://schema/{resource}/{op}",
+		"Fibe schema per resource operation",
+		mcp.WithTemplateDescription("JSON Schema for one operation of a specific Fibe resource."),
+		mcp.WithTemplateMIMEType("application/json"),
+	), schemaHandler)
 
 	// Help per command path.
 	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(

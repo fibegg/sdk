@@ -3,9 +3,18 @@ package fibe
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"testing"
+	"time"
 )
+
+type failingRandomReader struct{}
+
+func (failingRandomReader) Read([]byte) (int, error) { return 0, errors.New("entropy unavailable") }
+
+var _ io.Reader = failingRandomReader{}
 
 func TestIdempotencyKey_SentInHeader(t *testing.T) {
 	var gotKey string
@@ -71,5 +80,17 @@ func TestNewIdempotencyKey_Unique(t *testing.T) {
 	}
 	if len(k1) != 32 {
 		t.Errorf("expected 32 hex chars, got %d", len(k1))
+	}
+}
+
+func TestNewIdempotencyKey_FallsBackWhenEntropyFails(t *testing.T) {
+	now := time.Unix(1_700_000_000, 123)
+	k1 := newIdempotencyKey(failingRandomReader{}, now)
+	k2 := newIdempotencyKey(failingRandomReader{}, now)
+	if len(k1) != 32 || len(k2) != 32 {
+		t.Fatalf("fallback keys must be 32 hex characters: %q %q", k1, k2)
+	}
+	if k1 == k2 {
+		t.Fatal("fallback keys must remain unique")
 	}
 }

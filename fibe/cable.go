@@ -9,11 +9,12 @@ import (
 	"net/url"
 	"time"
 
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 const (
-	actionCableProtocol  = "actioncable-v1-json"
+	actionCableProtocol = "actioncable-v1-json"
+	// #nosec G101 -- this is a WebSocket subprotocol prefix, not a credential.
 	apiKeyProtocolPrefix = "fibe-api-key."
 )
 
@@ -127,6 +128,7 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 	}
 
 	conn, _, err := websocket.Dial(ctx, s.client.cableURL(), &websocket.DialOptions{
+		HTTPClient: s.client.http,
 		HTTPHeader: http.Header{
 			"Authorization": []string{"Bearer " + s.client.cfg.apiKey},
 		},
@@ -139,6 +141,7 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 		return err
 	}
 	defer conn.Close(websocket.StatusNormalClosure, "closing")
+	conn.SetReadLimit(maxResponseBody)
 
 	identifierJSON, err := json.Marshal(identifier)
 	if err != nil {
@@ -154,15 +157,26 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 	if err := conn.Write(ctx, websocket.MessageText, subscribeBody); err != nil {
 		return err
 	}
+	heartbeatCtx, stopHeartbeat := context.WithCancel(ctx)
+	defer stopHeartbeat()
+	heartbeatErr := make(chan error, 1)
 	if heartbeatInterval > 0 {
-		done := make(chan struct{})
-		defer close(done)
-		go sendCableHeartbeats(ctx, conn, string(identifierJSON), heartbeatInterval, done)
+		go func() {
+			if err := sendCableHeartbeats(heartbeatCtx, conn, string(identifierJSON), heartbeatInterval); err != nil {
+				heartbeatErr <- err
+				_ = conn.CloseNow()
+			}
+		}()
 	}
 
 	for {
 		typ, data, err := conn.Read(ctx)
 		if err != nil {
+			select {
+			case heartbeatFailure := <-heartbeatErr:
+				return heartbeatFailure
+			default:
+			}
 			if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
 				return nil
 			}
@@ -186,19 +200,17 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 	}
 }
 
-func sendCableHeartbeats(ctx context.Context, conn *websocket.Conn, identifier string, interval time.Duration, done <-chan struct{}) {
+func sendCableHeartbeats(ctx context.Context, conn *websocket.Conn, identifier string, interval time.Duration) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-done:
-			return
+			return nil
 		case <-ticker.C:
 			data, err := json.Marshal(map[string]string{"action": "heartbeat"})
 			if err != nil {
-				return
+				return err
 			}
 			body, err := json.Marshal(map[string]string{
 				"command":    "message",
@@ -206,10 +218,10 @@ func sendCableHeartbeats(ctx context.Context, conn *websocket.Conn, identifier s
 				"data":       string(data),
 			})
 			if err != nil {
-				return
+				return err
 			}
 			if err := conn.Write(ctx, websocket.MessageText, body); err != nil {
-				return
+				return fmt.Errorf("cable heartbeat: %w", err)
 			}
 		}
 	}

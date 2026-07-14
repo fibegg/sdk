@@ -3128,7 +3128,7 @@ Generated from the MCP registry.
       "type": "array"
     },
     "confirm": {
-      "description": "Required for delete/destroy/remove CLI paths unless server runs with --yolo.",
+      "description": "Required for destructive CLI commands unless server runs with --yolo.",
       "type": "boolean"
     },
     "only": {

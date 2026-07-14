@@ -166,6 +166,7 @@ func artCreateCmd() *cobra.Command {
 					fileReader = os.Stdin
 					fileName = "stdin"
 				} else {
+					// #nosec G304 -- file is an explicit upload source requested by the CLI user.
 					f, err := os.Open(file)
 					if err != nil {
 						return err
@@ -275,19 +276,7 @@ EXAMPLES:
 			}
 			defer body.Close()
 
-			var dst io.Writer
-			if to == "-" {
-				dst = os.Stdout
-			} else {
-				f, err := os.Create(to)
-				if err != nil {
-					return fmt.Errorf("create output file: %w", err)
-				}
-				defer f.Close()
-				dst = f
-			}
-
-			n, err := io.Copy(dst, body)
+			n, err := writeDownload(body, to)
 			if err != nil {
 				return fmt.Errorf("write content: %w", err)
 			}

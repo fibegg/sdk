@@ -97,7 +97,7 @@ func (s *Server) registerMetaTools() {
 			// Snapshot prior state so we can roll back on validation failure.
 			prev := s.sessionFor(ctx)
 			prev.mu.RLock()
-			prevKey, prevDomain := prev.apiKey, prev.domain
+			prevProfile, prevKey, prevDomain := prev.profile, prev.apiKey, prev.domain
 			prev.mu.RUnlock()
 
 			s.setSessionAuth(ctx, apiKey, domain)
@@ -106,12 +106,13 @@ func (s *Server) registerMetaTools() {
 				// Force a rebuild of the cached client so the ping uses the
 				// new creds.
 				newClient, err := s.resolveClient(ctx)
-				if err == nil && newClient != nil {
-					if pingErr := newClient.Ping(ctx); pingErr != nil {
-						// Roll back — leave the session in its prior state.
-						s.setSessionAuth(ctx, prevKey, prevDomain)
-						return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", pingErr)
-					}
+				if err != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", err)
+				}
+				if pingErr := newClient.Ping(ctx); pingErr != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", pingErr)
 				}
 			}
 
@@ -213,11 +214,13 @@ one-off credentials supplied explicitly by the user.`),
 			s.setSessionProfile(ctx, profile, apiKey, domain)
 			if validate {
 				newClient, err := s.resolveClient(ctx)
-				if err == nil && newClient != nil {
-					if pingErr := newClient.Ping(ctx); pingErr != nil {
-						s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
-						return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
-					}
+				if err != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", err)
+				}
+				if pingErr := newClient.Ping(ctx); pingErr != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
 				}
 			}
 			return map[string]any{
@@ -330,7 +333,11 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 		name: "fibe_run", description: "[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if fibeRunRequiresConfirm(args) && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
+			requiresConfirm, err := s.fibeRunRequiresConfirm(args)
+			if err != nil && !s.cfg.Yolo && !yoloFromContext(ctx) {
+				return nil, err
+			}
+			if requiresConfirm && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
 				return nil, &confirmRequiredError{tool: "fibe_run"}
 			}
 			return s.runCobra(ctx, args)
@@ -344,7 +351,7 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 		mcp.WithArray("args", mcp.Required(), mcp.WithStringItems(),
 			mcp.Description("Command args as if typed after `fibe`. Scalar items (string, number, boolean) are accepted and stringified into CLI tokens in-order.")),
 		mcp.WithNumber("timeout_ms", mcp.Description("Optional per-call timeout in milliseconds. Recommended for risky escape-hatch calls.")),
-		mcp.WithBoolean("confirm", mcp.Description("Required for delete/destroy/remove CLI paths unless server runs with --yolo.")),
+		mcp.WithBoolean("confirm", mcp.Description("Required for destructive CLI commands unless server runs with --yolo.")),
 	))
 
 	// ---------- fibe_schema ----------
@@ -546,23 +553,38 @@ func containsCLIFlag(args []string, flag string) bool {
 	return false
 }
 
-func fibeRunRequiresConfirm(args map[string]any) bool {
+func (s *Server) fibeRunRequiresConfirm(args map[string]any) (bool, error) {
 	rawSlice, ok := args["args"].([]any)
 	if !ok {
-		return false
+		return false, fmt.Errorf("field 'args' must be a JSON array")
 	}
+	strs := make([]string, 0, len(rawSlice))
 	for _, raw := range rawSlice {
 		token, err := stringifyCLIArg(raw)
 		if err != nil {
-			continue
+			return false, err
 		}
-		token = strings.ToLower(strings.TrimSpace(token))
-		switch token {
-		case "delete", "destroy", "destroy-version", "remove", "remove-mounted-file", "remove-registry-credential":
-			return true
-		}
+		strs = append(strs, token)
 	}
-	return false
+	if s.cfg.CobraRoot == nil {
+		return false, fmt.Errorf("fibe_run command safety cannot be classified without Cobra command metadata")
+	}
+	command, _, err := s.cfg.CobraRoot.Find(strs)
+	if err != nil {
+		return false, fmt.Errorf("fibe_run command safety classification failed: %w", err)
+	}
+	classification := ""
+	if command.Annotations != nil {
+		classification = command.Annotations["fibe.gg/safety"]
+	}
+	switch classification {
+	case "destructive":
+		return true, nil
+	case "read-only", "mutating", "local-only":
+		return false, nil
+	default:
+		return false, fmt.Errorf("fibe_run command %q has no safety classification; refusing to execute without --yolo", command.CommandPath())
+	}
 }
 
 func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs []string, timeoutMs int64) (any, error) {
@@ -575,6 +597,7 @@ func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs
 	var stderrBuf truncatingBuffer
 	stderrBuf.limit = limit
 
+	// #nosec G204 -- the configured binary is invoked with an argv slice and never through a shell.
 	cmd := exec.CommandContext(ctx, s.cfg.CobraExecutable, strs...)
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -677,14 +700,6 @@ func fibeRunCaptureLimit() int {
 		return 1 << 20
 	}
 	return limit
-}
-
-func (s *Server) runCobraArgs(ctx context.Context, args ...string) (any, error) {
-	raw := make([]any, len(args))
-	for i, arg := range args {
-		raw[i] = arg
-	}
-	return s.runCobra(ctx, map[string]any{"args": raw})
 }
 
 func localPlaygroundSelectorFromArgs(args map[string]any, view string) (string, error) {

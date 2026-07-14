@@ -395,10 +395,13 @@ func maskKey(key string) string {
 func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "darwin":
+		// #nosec G204 -- fixed executable, validated device-flow URL, argv execution without a shell.
 		return exec.Command("open", url).Start()
 	case "linux":
+		// #nosec G204 -- fixed executable, validated device-flow URL, argv execution without a shell.
 		return exec.Command("xdg-open", url).Start()
 	case "windows":
+		// #nosec G204 -- fixed system launcher and argv execution; no user shell string is constructed.
 		return exec.Command("cmd", "/c", "start", url).Start()
 	}
 	return fmt.Errorf("unsupported platform %s", runtime.GOOS)

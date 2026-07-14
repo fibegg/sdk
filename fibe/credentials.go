@@ -49,143 +49,159 @@ func NewCredentialStore(path string) *CredentialStore {
 
 // Get returns the stored credential for the given domain, or nil.
 func (s *CredentialStore) Get(domain string) (*CredentialEntry, error) {
-	f, err := s.load()
-	if err != nil {
-		return nil, err
-	}
-	return f.Domains[domain], nil
+	return withStoreLock(s.path, func() (*CredentialEntry, error) {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			return nil, err
+		}
+		return cloneCredential(f.Domains[domain]), nil
+	})
 }
 
 // GetProfile returns the stored credential for a named profile.
 // If the credential file only has legacy domain-keyed entries, it imports the
 // best available legacy entry in memory without rewriting the file.
 func (s *CredentialStore) GetProfile(profile string) (*CredentialEntry, error) {
-	f, err := s.load()
-	if err != nil {
-		return nil, err
-	}
-	if entry := f.Profiles[profile]; entry != nil {
-		out := *entry
-		out.Profile = profile
-		return &out, nil
-	}
-	if entry := legacyProfileEntry(f, profile); entry != nil {
-		return entry, nil
-	}
-	return nil, nil
+	return withStoreLock(s.path, func() (*CredentialEntry, error) {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			return nil, err
+		}
+		if entry := f.Profiles[profile]; entry != nil {
+			out := *entry
+			out.Profile = profile
+			return &out, nil
+		}
+		if entry := legacyProfileEntry(f, profile); entry != nil {
+			return entry, nil
+		}
+		return nil, nil
+	})
 }
 
 // Set stores a credential for the given domain, creating the file if needed.
 func (s *CredentialStore) Set(entry *CredentialEntry) error {
-	f, err := s.load()
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	if f == nil {
-		f = &credentialFile{Domains: make(map[string]*CredentialEntry)}
-	}
-	f.Domains[entry.Domain] = entry
-	return s.save(f)
+	return withStoreLockError(s.path, func() error {
+		f, err := s.loadUnlocked()
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if f == nil {
+			f = &credentialFile{Domains: make(map[string]*CredentialEntry)}
+		}
+		f.Domains[entry.Domain] = cloneCredential(entry)
+		return s.saveUnlocked(f)
+	})
 }
 
 // SetProfile stores a credential for a named profile and mirrors it by domain
 // for older SDK/CLI callers that still resolve credentials by domain.
 func (s *CredentialStore) SetProfile(profile string, entry *CredentialEntry) error {
-	f, err := s.load()
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	if f == nil {
-		f = &credentialFile{}
-	}
-	ensureCredentialMaps(f)
-	copy := *entry
-	copy.Profile = profile
-	f.Profiles[profile] = &copy
-	if copy.Domain != "" {
-		f.Domains[copy.Domain] = &copy
-	}
-	return s.save(f)
+	return withStoreLockError(s.path, func() error {
+		f, err := s.loadUnlocked()
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if f == nil {
+			f = &credentialFile{}
+		}
+		ensureCredentialMaps(f)
+		cloned := *entry
+		cloned.Profile = profile
+		f.Profiles[profile] = &cloned
+		if cloned.Domain != "" {
+			f.Domains[cloned.Domain] = &cloned
+		}
+		return s.saveUnlocked(f)
+	})
 }
 
 // Delete removes the credential for the given domain.
 func (s *CredentialStore) Delete(domain string) error {
-	f, err := s.load()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
+	return withStoreLockError(s.path, func() error {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil
+			}
+			return err
 		}
-		return err
-	}
-	delete(f.Domains, domain)
-	return s.save(f)
+		delete(f.Domains, domain)
+		return s.saveUnlocked(f)
+	})
 }
 
 // DeleteProfile removes the credential for a named profile. It removes the
 // mirrored domain entry only when it points at the same API key.
 func (s *CredentialStore) DeleteProfile(profile string) error {
-	f, err := s.load()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
+	return withStoreLockError(s.path, func() error {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil
+			}
+			return err
 		}
-		return err
-	}
-	entry := f.Profiles[profile]
-	if entry == nil {
+		entry := f.Profiles[profile]
+		if entry == nil {
+			delete(f.Profiles, profile)
+			return s.saveUnlocked(f)
+		}
 		delete(f.Profiles, profile)
-		return s.save(f)
-	}
-	delete(f.Profiles, profile)
-	if domainEntry := f.Domains[entry.Domain]; domainEntry != nil && domainEntry.APIKey == entry.APIKey {
-		delete(f.Domains, entry.Domain)
-	}
-	return s.save(f)
+		if domainEntry := f.Domains[entry.Domain]; domainEntry != nil && domainEntry.APIKey == entry.APIKey {
+			delete(f.Domains, entry.Domain)
+		}
+		return s.saveUnlocked(f)
+	})
 }
 
 // List returns all stored credentials.
 func (s *CredentialStore) List() (map[string]*CredentialEntry, error) {
-	f, err := s.load()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
+	return withStoreLock(s.path, func() (map[string]*CredentialEntry, error) {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, nil
+			}
+			return nil, err
 		}
-		return nil, err
-	}
-	return f.Domains, nil
+		return cloneCredentialMap(f.Domains), nil
+	})
 }
 
 // ListProfiles returns profile-keyed credentials, importing legacy
 // domain-keyed entries in memory when no explicit profile exists.
 func (s *CredentialStore) ListProfiles() (map[string]*CredentialEntry, error) {
-	f, err := s.load()
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
+	return withStoreLock(s.path, func() (map[string]*CredentialEntry, error) {
+		f, err := s.loadUnlocked()
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, nil
+			}
+			return nil, err
 		}
-		return nil, err
-	}
-	out := make(map[string]*CredentialEntry, len(f.Profiles)+len(f.Domains))
-	for profile, entry := range f.Profiles {
-		copy := *entry
-		copy.Profile = profile
-		out[profile] = &copy
-	}
-	for domain, entry := range f.Domains {
-		profile := legacyProfileName(domain)
-		if _, exists := out[profile]; exists {
-			continue
+		out := make(map[string]*CredentialEntry, len(f.Profiles)+len(f.Domains))
+		for profile, entry := range f.Profiles {
+			cloned := *entry
+			cloned.Profile = profile
+			out[profile] = &cloned
 		}
-		copy := *entry
-		copy.Domain = domain
-		copy.Profile = profile
-		out[profile] = &copy
-	}
-	return out, nil
+		for domain, entry := range f.Domains {
+			profile := legacyProfileName(domain)
+			if _, exists := out[profile]; exists {
+				continue
+			}
+			cloned := *entry
+			cloned.Domain = domain
+			cloned.Profile = profile
+			out[profile] = &cloned
+		}
+		return out, nil
+	})
 }
 
-func (s *CredentialStore) load() (*credentialFile, error) {
-	data, err := os.ReadFile(s.path)
+func (s *CredentialStore) loadUnlocked() (*credentialFile, error) {
+	data, err := readStoreFile(s.path)
 	if err != nil {
 		return nil, err
 	}
@@ -197,16 +213,28 @@ func (s *CredentialStore) load() (*credentialFile, error) {
 	return &f, nil
 }
 
-func (s *CredentialStore) save(f *credentialFile) error {
-	dir := filepath.Dir(s.path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return err
-	}
+func (s *CredentialStore) saveUnlocked(f *credentialFile) error {
 	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.path, data, 0600)
+	return atomicWriteFile(s.path, append(data, '\n'), 0o600)
+}
+
+func cloneCredential(entry *CredentialEntry) *CredentialEntry {
+	if entry == nil {
+		return nil
+	}
+	cloned := *entry
+	return &cloned
+}
+
+func cloneCredentialMap(entries map[string]*CredentialEntry) map[string]*CredentialEntry {
+	out := make(map[string]*CredentialEntry, len(entries))
+	for key, entry := range entries {
+		out[key] = cloneCredential(entry)
+	}
+	return out
 }
 
 func ensureCredentialMaps(f *credentialFile) {
@@ -221,17 +249,17 @@ func ensureCredentialMaps(f *credentialFile) {
 func legacyProfileEntry(f *credentialFile, profile string) *CredentialEntry {
 	if profile == "default" {
 		if entry := f.Domains["fibe.gg"]; entry != nil {
-			copy := *entry
-			copy.Domain = "fibe.gg"
-			copy.Profile = profile
-			return &copy
+			cloned := *entry
+			cloned.Domain = "fibe.gg"
+			cloned.Profile = profile
+			return &cloned
 		}
 	}
 	if entry := f.Domains[profile]; entry != nil {
-		copy := *entry
-		copy.Domain = profile
-		copy.Profile = profile
-		return &copy
+		cloned := *entry
+		cloned.Domain = profile
+		cloned.Profile = profile
+		return &cloned
 	}
 	return nil
 }

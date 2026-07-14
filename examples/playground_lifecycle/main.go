@@ -21,7 +21,7 @@ func main() {
 
 	// 1. Create a new Playground
 	fmt.Println("Launching robust Python playground...")
-	
+
 	// Optional: You can enforce reliable network guarantees with an Idempotency-Key
 	ctxWithIdemp := fibe.WithIdempotencyKey(ctx, fibe.NewIdempotencyKey())
 
@@ -41,7 +41,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to fetch playground: %v", err)
 		}
-		
+
 		fmt.Printf("Current status: %s\n", fetched.Status)
 		if fetched.Status == "running" {
 			fmt.Println("Playground is fully available!")
@@ -57,7 +57,7 @@ func main() {
 	fmt.Println("\nCreating an interactive agent...")
 	ag, err := client.Agents.Create(ctx, &fibe.AgentCreateParams{
 		Name:     "sys-operator",
-		Provider: "gemini", 
+		Provider: "gemini",
 	})
 	if err != nil {
 		log.Fatalf("Failed to create agent: %v", err)

@@ -438,17 +438,6 @@ func trickResult(pg fibe.Playground) string {
 	}
 }
 
-// trickResultFromJobResult returns a result indicator from a JobResult.
-func trickResultFromJobResult(jr *fibe.JobResult) string {
-	if jr == nil || jr.Success == nil {
-		return "⏳"
-	}
-	if *jr.Success {
-		return "✓ success"
-	}
-	return "✗ failed"
-}
-
 func trickOutcomeLabel(outcome string) string {
 	switch outcome {
 	case fibe.TrickResultSucceeded:

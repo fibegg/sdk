@@ -188,6 +188,28 @@ func TestMonitor_FollowStopsOnOverflow(t *testing.T) {
 	}
 }
 
+func TestMonitor_FollowDoesNotMutateOptions(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	opts := &MonitorFollowOptions{}
+	client := NewClient(WithDisableAutoConfig())
+	events, errs := client.Monitor.Follow(ctx, nil, opts)
+	for range events {
+	}
+	for range errs {
+	}
+	if opts.PollInterval != 0 || opts.Duration != 0 || opts.MaxEvents != 0 {
+		t.Fatalf("caller options mutated: %#v", opts)
+	}
+}
+
+func TestMonitorBackoffSaturates(t *testing.T) {
+	maxInt := int(^uint(0) >> 1)
+	if got := backoff(29*time.Second, maxInt); got != monitorBackoffMaxStep {
+		t.Fatalf("backoff=%s want %s", got, monitorBackoffMaxStep)
+	}
+}
+
 func collectMonitorFollow(events <-chan MonitorEvent, errs <-chan error) ([]MonitorEvent, error) {
 	var out []MonitorEvent
 	for events != nil || errs != nil {

@@ -7,7 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes documented yet._
+### Added
+
+- Language-neutral public API, CLI, MCP, and reliability contracts for the
+  future TypeScript implementation.
+- Security, governance, contribution, support, compatibility, architecture,
+  release, SBOM, provenance, and pinned quality-gate infrastructure.
+
+### Changed
+
+- Hardened request execution, retry/idempotency, rate limiting, circuit
+  breaking, async polling, multipart upload, downloads, WebSockets, webhooks,
+  local stores, MCP authentication, pipelines, audit logging, and filesystem
+  operations without changing supported public contracts.
+- Updated the minimum toolchain to Go 1.26.5 and upgraded pinned dependencies.
+
+### Fixed
+
+- Stable automatic idempotency across retries, negative retry handling,
+  bounded body decoding, response draining, same-origin async polling, MCP
+  tenant isolation, destructive-command classification, and unsafe local path
+  edge cases.
+
+## [0.2.45] - 2026-06-18
+
+### Added
+
+- Local path discovery commands and expanded Git-backed launch integration
+  coverage.
+
+### Changed
+
+- Improved local playground linking, repository fixtures, agent defaults, and
+  E2E orchestration.
+
+## [0.2.44] - 2026-06-17
+
+### Fixed
+
+- Corrected local playground link discovery and related MCP behavior.
+
+## [0.2.43] - 2026-06-16
+
+### Added
+
+- Progress events and interactive CLI spinners for async operations, waits,
+  greenfield creation, launches, and template/playground actions.
+- MCP forwarding for SDK progress notifications.
+
+## [0.2.42] - 2026-06-15
+
+### Changed
+
+- Improved `fibe_run` guidance when agents use stale resource syntax.
+
+### Added
+
+- Pipe-hygiene coverage for the MCP stdio transport.
+
+## [0.2.41] - 2026-06-14
+
+### Changed
+
+- Refreshed generated MCP tool documentation and made regeneration
+  deterministic.
 
 ## [0.2.40] - 2026-06-13
 

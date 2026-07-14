@@ -204,30 +204,6 @@ func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	return false
 }
 
-// requireSortedByString asserts slice is sorted ascending or descending.
-// Uses Go's byte-wise comparison, which differs from PostgreSQL's default locale-aware
-// collation (which ignores punctuation). Callers that sort against PG should use
-// requireSortedByStringLocaleAware which normalizes punctuation out.
-func requireSortedByString(t *testing.T, label string, values []string, ascending bool) {
-	t.Helper()
-	if len(values) < 2 {
-		return
-	}
-	check := sort.SliceIsSorted(values, func(i, j int) bool {
-		if ascending {
-			return values[i] < values[j]
-		}
-		return values[i] > values[j]
-	})
-	if !check {
-		dir := "descending"
-		if ascending {
-			dir = "ascending"
-		}
-		t.Errorf("%s: expected %s order, got %v", label, dir, values)
-	}
-}
-
 // localeNormalize strips punctuation & casefolds — approximates PostgreSQL's
 // default collation treatment of punctuation.
 func localeNormalize(s string) string {

@@ -25,6 +25,13 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
+		// Merely having ambient credentials must never turn `go test ./...`
+		// into a live or localhost-mutating test run.
+		for _, key := range []string{"FIBE_API_KEY", "FIBE_ADMIN_API_KEY", "USER_B_API_KEY", "RATE_LIMIT_TEST_KEY"} {
+			_ = os.Unsetenv(key)
+		}
+	}
 	cleanup, err := bootstrapDockerE2E()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "SDK docker e2e bootstrap failed: %v\n", err)

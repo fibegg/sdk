@@ -55,11 +55,16 @@ func (e *APIError) IsRetryable() bool {
 	}
 }
 
-func (e *APIError) IsNotFound() bool         { return e.Code == ErrCodeNotFound }
-func (e *APIError) IsForbidden() bool        { return e.Code == ErrCodeForbidden }
-func (e *APIError) IsUnauthorized() bool     { return e.Code == ErrCodeUnauthorized }
-func (e *APIError) IsRateLimited() bool      { return e.StatusCode == 429 }
-func (e *APIError) IsValidation() bool       { return e.Code == ErrCodeValidationFailed }
+func (e *APIError) IsNotFound() bool { return e.Code == ErrCodeNotFound }
+
+func (e *APIError) IsForbidden() bool { return e.Code == ErrCodeForbidden }
+
+func (e *APIError) IsUnauthorized() bool { return e.Code == ErrCodeUnauthorized }
+
+func (e *APIError) IsRateLimited() bool { return e.StatusCode == 429 }
+
+func (e *APIError) IsValidation() bool { return e.Code == ErrCodeValidationFailed }
+
 func (e *APIError) IsMarqueeNotFunded() bool { return e.Code == ErrCodeMarqueeNotFunded }
 
 type CircuitOpenError struct {

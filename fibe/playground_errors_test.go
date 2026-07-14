@@ -20,7 +20,7 @@ func TestPlaygroundTerminalErrorPreservesStatusDetails(t *testing.T) {
 		ErrorDetails:       map[string]any{"compose_failure": map[string]any{"category": "service_exit"}},
 		BuildStatuses: []PlaygroundBuildStatus{{
 			ServiceName: "web",
-			Latest:     &PlaygroundBuildRecordSnapshot{Status: "failed", CommitSHA: "abcdef1234567890", ShortCommitSHA: "abcdef1"},
+			Latest:      &PlaygroundBuildRecordSnapshot{Status: "failed", CommitSHA: "abcdef1234567890", ShortCommitSHA: "abcdef1"},
 		}},
 	})
 

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -88,8 +87,4 @@ func TestIdempotencyKey(t *testing.T) {
 	if resp2.StatusCode != 201 {
 		t.Errorf("replayed request: expected same 201 status, got %d", resp2.StatusCode)
 	}
-}
-
-func jsonBody(s string) io.Reader {
-	return bytes.NewBufferString(s)
 }

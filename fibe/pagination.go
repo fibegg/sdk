@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // ListMeta contains pagination metadata returned by all list endpoints.
@@ -77,7 +78,16 @@ func (it *Iterator[T]) Next() bool {
 		return false
 	}
 
-	path := fmt.Sprintf("%s?page=%d&per_page=%d", it.path, it.page, it.perPage)
+	parsed, err := url.Parse(it.path)
+	if err != nil {
+		it.err = fmt.Errorf("fibe: invalid iterator path: %w", err)
+		return false
+	}
+	query := parsed.Query()
+	query.Set("page", fmt.Sprintf("%d", it.page))
+	query.Set("per_page", fmt.Sprintf("%d", it.perPage))
+	parsed.RawQuery = query.Encode()
+	path := parsed.String()
 
 	var env listEnvelope[T]
 	if err := it.client.do(it.ctx, http.MethodGet, path, nil, &env); err != nil {
@@ -100,6 +110,13 @@ func (it *Iterator[T]) Next() bool {
 }
 
 func (it *Iterator[T]) Current() T {
+	if it.index < 0 || it.index >= len(it.items) {
+		if it.err == nil {
+			it.err = fmt.Errorf("fibe: iterator Current called without a current item")
+		}
+		var zero T
+		return zero
+	}
 	item := it.items[it.index]
 	it.index++
 	return item

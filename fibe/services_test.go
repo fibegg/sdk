@@ -260,7 +260,7 @@ func TestGreenfield_Create(t *testing.T) {
 
 	marqueeID := int64(12)
 	templateVersionID := int64(912)
-	result, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
 		Name:              "tower-defence",
 		TemplateBody:      "services:\n  web:\n    image: nginx\n",
 		GitProvider:       "github",
@@ -272,7 +272,7 @@ func TestGreenfield_Create(t *testing.T) {
 		t.Fatal("expected template_body/template_version_id validation error")
 	}
 
-	result, err = c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
+	result, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
 		Name:              "tower-defence",
 		TemplateVersionID: &templateVersionID,
 		GitProvider:       "github",

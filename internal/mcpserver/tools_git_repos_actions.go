@@ -38,13 +38,8 @@ func anyInt64Slice(raw any) []int64 {
 	case []any:
 		out := make([]int64, 0, len(v))
 		for _, item := range v {
-			switch x := item.(type) {
-			case float64:
-				out = append(out, int64(x))
-			case int:
-				out = append(out, int64(x))
-			case int64:
-				out = append(out, x)
+			if id, ok := coerceInt64(item); ok && id > 0 {
+				out = append(out, id)
 			}
 		}
 		return out
@@ -116,6 +111,9 @@ func decodeFileSource(args map[string]any) (io.Reader, error) {
 		data, err := base64.StdEncoding.DecodeString(b)
 		if err != nil {
 			return nil, fmt.Errorf("invalid content_base64: %w", err)
+		}
+		if int64(len(data)) > maxLocalFile {
+			return nil, fmt.Errorf("content_base64 exceeds %d decoded bytes", maxLocalFile)
 		}
 		return bytes.NewReader(data), nil
 	}

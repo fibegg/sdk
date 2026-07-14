@@ -30,7 +30,6 @@ type SecretUpdateParams struct {
 	Description *string `json:"description,omitempty"`
 }
 
-
 type SecretListParams struct {
 	Q             string `url:"q,omitempty"`
 	Key           string `url:"key,omitempty"`

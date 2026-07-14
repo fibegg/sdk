@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/fibegg/sdk/fibe"
@@ -13,12 +14,14 @@ import (
 // state instance so credentials and pipeline results never leak across
 // tenants.
 type sessionState struct {
-	mu        sync.RWMutex
-	apiKey    string
-	domain    string
-	profile   string
-	client    *fibe.Client // lazily built, reused across calls
-	sessionID string
+	mu              sync.RWMutex
+	apiKey          string
+	domain          string
+	profile         string
+	client          *fibe.Client // lazily built, reused across calls
+	sessionID       string
+	effectiveAPIKey string
+	effectiveDomain string
 }
 
 // sessions maps mcp-go session ID -> sessionState.
@@ -64,11 +67,18 @@ func (r *sessionRegistry) drop(id string) {
 // isolated per tenant.
 func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 	st := s.sessionFor(ctx)
+	requestKey := apiKeyFromContext(ctx)
+	requestDomain := domainFromContext(ctx)
 
 	st.mu.RLock()
 	if st.client != nil {
 		c := st.client
+		effectiveKey := st.effectiveAPIKey
+		effectiveDomain := st.effectiveDomain
 		st.mu.RUnlock()
+		if err := validatePinnedRequest(effectiveKey, effectiveDomain, requestKey, requestDomain); err != nil {
+			return nil, err
+		}
 		return c, nil
 	}
 	st.mu.RUnlock()
@@ -76,45 +86,56 @@ func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
 	if st.client != nil {
+		if err := validatePinnedRequest(st.effectiveAPIKey, st.effectiveDomain, requestKey, requestDomain); err != nil {
+			return nil, err
+		}
 		return st.client, nil
+	}
+	if st.apiKey != "" && requestKey != "" && st.apiKey != requestKey {
+		return nil, errors.New("authentication headers do not match the credentials pinned to this MCP session")
+	}
+	if st.domain != "" && requestDomain != "" {
+		if err := validatePinnedRequest(st.apiKey, st.domain, requestKey, requestDomain); err != nil {
+			return nil, err
+		}
 	}
 
 	// Resolution order: fibe_auth_set > HTTP bearer > server default.
 	apiKey := st.apiKey
 	if apiKey == "" {
-		if v := apiKeyFromContext(ctx); v != "" {
-			apiKey = v
-		}
+		apiKey = requestKey
+	}
+	explicitKey := apiKey != ""
+	if s.cfg.RequireAuth && !explicitKey {
+		return nil, errors.New("no API key resolved; set Authorization bearer or call fibe_auth_set")
 	}
 	if apiKey == "" {
 		apiKey = s.cfg.APIKey
 	}
-	if apiKey == "" && s.cfg.RequireAuth {
-		return nil, errors.New("no API key resolved; set Authorization bearer or call fibe_auth_set")
-	}
 
 	domain := st.domain
 	if domain == "" {
-		if v := domainFromContext(ctx); v != "" {
-			domain = v
-		}
+		domain = requestDomain
 	}
 	if domain == "" {
 		domain = s.cfg.Domain
 	}
 
-	// Fast path: if no per-session overrides, fork from the server base
-	// client so we share HTTP transport + logger.
-	if apiKey == s.cfg.APIKey && domain == s.cfg.Domain && s.baseCli != nil {
-		st.client = s.baseCli
-		return st.client, nil
+	if s.httpMode {
+		if !s.domainAllowed(domain) {
+			return nil, fmt.Errorf("domain %q is not allowed for this MCP server", domain)
+		}
+		if requestDomain != "" && !explicitKey {
+			return nil, errors.New("X-Fibe-Domain requires request or session credentials")
+		}
 	}
 
-	// Build a fresh client with the resolved creds. WithKey reuses the base
-	// client's transport config but gives us a separate circuit breaker +
-	// rate-limit state. If domain is changed, we must rebuild from options below.
-	if s.baseCli != nil && apiKey != "" && domain == s.cfg.Domain {
+	// Always fork, even for the default credentials, so rate-limit and circuit
+	// breaker state remain isolated between MCP sessions.
+	if s.baseCli != nil && sameMCPOrigin(domain, s.cfg.Domain) {
 		st.client = s.baseCli.WithKey(apiKey)
+		st.effectiveAPIKey = apiKey
+		st.effectiveDomain = domain
 		return st.client, nil
 	}
 
@@ -134,7 +155,27 @@ func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 		opts = append(opts, fibe.WithDebug())
 	}
 	st.client = fibe.NewClient(opts...)
+	st.effectiveAPIKey = apiKey
+	st.effectiveDomain = domain
 	return st.client, nil
+}
+
+func validatePinnedRequest(effectiveKey, effectiveDomain, requestKey, requestDomain string) error {
+	if requestKey != "" && requestKey != effectiveKey {
+		return errors.New("authentication headers do not match the credentials pinned to this MCP session")
+	}
+	if requestDomain == "" {
+		return nil
+	}
+	requestOrigin, err := normalizeMCPOrigin(requestDomain)
+	if err != nil {
+		return err
+	}
+	effectiveOrigin, err := normalizeMCPOrigin(effectiveDomain)
+	if err != nil || requestOrigin != effectiveOrigin {
+		return errors.New("domain header does not match the domain pinned to this MCP session")
+	}
+	return nil
 }
 
 // sessionFor returns the sessionState associated with the current MCP call.
@@ -158,6 +199,8 @@ func (s *Server) setSessionAuth(ctx context.Context, apiKey, domain string) {
 	st.domain = domain
 	st.profile = ""
 	st.client = nil
+	st.effectiveAPIKey = ""
+	st.effectiveDomain = ""
 	st.mu.Unlock()
 }
 
@@ -168,5 +211,7 @@ func (s *Server) setSessionProfile(ctx context.Context, profile, apiKey, domain 
 	st.apiKey = apiKey
 	st.domain = domain
 	st.client = nil
+	st.effectiveAPIKey = ""
+	st.effectiveDomain = ""
 	st.mu.Unlock()
 }

@@ -125,3 +125,37 @@ func TestIterator_TracksTotal(t *testing.T) {
 		t.Errorf("expected total 100, got %d", iter.Total())
 	}
 }
+
+func TestIterator_PreservesExistingQuery(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("status"); got != "running" {
+			t.Fatalf("status=%q", got)
+		}
+		if got := r.URL.Query().Get("page"); got != "1" {
+			t.Fatalf("page=%q", got)
+		}
+		if got := r.URL.Query().Get("per_page"); got != "7" {
+			t.Fatalf("per_page=%q", got)
+		}
+		_ = json.NewEncoder(w).Encode(listEnv([]Playground{}))
+	}))
+	defer srv.Close()
+	c := NewClient(WithAPIKey("test"), WithBaseURL(srv.URL), WithMaxRetries(0))
+	iter := newIterator[Playground](context.Background(), c, "/api/playgrounds?status=running", 7)
+	if iter.Next() {
+		t.Fatal("empty iterator returned an item")
+	}
+	if err := iter.Err(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestIterator_CurrentWithoutNextReturnsZeroAndError(t *testing.T) {
+	iter := newIterator[Playground](context.Background(), NewClient(WithDisableAutoConfig()), "/api/playgrounds", 1)
+	if got := iter.Current(); got.ID != 0 {
+		t.Fatalf("Current=%#v want zero", got)
+	}
+	if iter.Err() == nil {
+		t.Fatal("Current without Next did not record an error")
+	}
+}

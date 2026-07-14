@@ -2,6 +2,10 @@
 
 The official Go SDK and command-line interface for the Fibe platform.
 
+Requires Go 1.26.5 or newer when building from source. See
+[`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
+[`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
+
 ## Install the CLI
 
 ### Homebrew
@@ -117,14 +121,14 @@ import (
 	"context"
 	"fmt"
 
-		"github.com/fibegg/sdk/fibe"
-	)
+	"github.com/fibegg/sdk/fibe"
+)
 
-	func main() {
-		client := fibe.NewClient(
-			fibe.WithAPIKey("fibe_live_yourkeyhere"),
-			fibe.WithRateLimitAutoWait(),
-		)
+func main() {
+	client := fibe.NewClient(
+		fibe.WithAPIKey("fibe_live_yourkeyhere"),
+		fibe.WithRateLimitAutoWait(),
+	)
 
 	// Fetch account status
 	status, err := client.Status.Get(context.Background())
@@ -140,8 +144,14 @@ import (
 
 1. **Auto rate-limit retry**: When your workload hits HTTP `429 Too Many Requests`, the SDK will sleep the interval specified in `Retry-After`.
 2. **Circuit Breaking**: Failed requests trigger in-memory isolations ensuring that backends do not get DDos'd by your local requests.
-3. **Idempotency**: Mutating requests send the `Idempotency-Key` header. Automatically generated keys are per HTTP attempt; wrap the context with `fibe.WithIdempotencyKey(ctx, key)` when caller-level retries must reuse an identical key.
+3. **Idempotency**: Mutating requests send an `Idempotency-Key` header. One automatic key is generated per logical operation and reused across all SDK retries. `fibe.WithIdempotencyKey(ctx, key)` overrides it when a caller needs a stable key across separate calls.
 4. **Progress hooks**: Long-running SDK operations emit `fibe.ProgressEvent` values through `fibe.WithProgress(...)`. The CLI renders these as single-line spinners in interactive terminals and keeps line-based status output for non-interactive scripts.
+
+Retryable reads and idempotency-protected mutations handle transient transport
+failures and retryable server responses. Cancellation, expired deadlines,
+validation errors, and non-replayable request bodies are not retried after
+transmission begins. Rate-limit and circuit-breaker state belong to one logical
+client/session.
 
 ## MCP Server
 
@@ -163,7 +173,13 @@ fibe mcp serve --http :8080 --require-auth
 fibe mcp install --client antigravity --transport streamable-http --url https://fibe.example.com/mcp
 ```
 
-Warning: `fibe mcp serve --http` is intended for trusted local/admin deployments. Do not expose it to untrusted remote callers.
+HTTP MCP requires authentication on non-loopback binds. Alternate API origins
+must be explicitly allowlisted with repeatable `--allowed-domain` flags and use
+request/session credentials. Browser origins must match the request host or an
+exact `--allowed-domain` origin. Local filesystem, profile, conversation,
+playground, and process capabilities are denied over HTTP by default. A
+loopback-only deployment may opt in with `--allow-local-access`; stdio retains
+the existing local tools.
 
 ### Tool surface
 
@@ -199,6 +215,11 @@ Supports `parallel` blocks for concurrent independent steps and `for_each` for f
 
 `fibe_playgrounds_wait` and `fibe_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. Long-running SDK-backed operations, including async request polling and template-switch rollout waits, also forward progress notifications when the MCP client provides a progress token. CLI users can run `fibe logs follow <id-or-name>` for continuous playground or trick logs.
 
+SDK WebSocket streams use the configured HTTP transport, enforce a 10 MiB
+frame limit, and close their channels on cancellation or terminal failure.
+They do not reconnect transparently because replay could duplicate messages;
+callers should reconnect explicitly according to their own delivery semantics.
+
 ### Resources
 
 The server also exposes read-only MCP resources agents can load once at session start:
@@ -229,9 +250,13 @@ credentials per request in this order:
 
 1. A prior `fibe_auth_use` or `fibe_auth_set` tool call in the same session
 2. `Authorization: Bearer <fibe-api-key>` header, falling back to `X-Fibe-API-Key`
-3. The server-wide profile/API-key fallback (disabled with `--require-auth`)
+3. The server-wide profile/API-key fallback, only when `--require-auth` is not set
 
-`X-Fibe-Domain` can provide a per-request domain override. Each session gets its own cached `*fibe.Client` instance with isolated circuit-breaker and rate-limit state; after the first client is resolved for a session, later header changes on the same session do not rebuild it. Use a new HTTP/SSE session or call `fibe_auth_use` / `fibe_auth_set` to switch credentials deliberately.
+`X-Fibe-Domain` can provide an allowlisted per-request origin only alongside
+request/session credentials. Each session gets an isolated client. Credentials
+are pinned to the session; conflicting later headers fail authentication. Use a
+new session or the transactional `fibe_auth_use` / `fibe_auth_set` tools to
+switch deliberately.
 
 ### Audit Log
 
