@@ -15,6 +15,6 @@ The repository has three supported entry points:
 `internal/localconversations/` and `internal/localplaygrounds/` isolate local
 filesystem behavior. `fibetest/` supplies a hermetic mock server.
 
-Compatibility artifacts in `contracts/` are the translation boundary for a
-future TypeScript implementation. Generated MCP docs are derived from the
-runtime registry; the Docker Compose schema remains separate.
+Compatibility artifacts in `contracts/` are the language-neutral boundary for
+other SDK implementations. Generated MCP docs are derived from the runtime
+registry; the Docker Compose schema remains separate.

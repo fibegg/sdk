@@ -1,7 +1,7 @@
 # Compatibility contracts
 
 This directory is the language-neutral compatibility boundary for the Go SDK
-and a future TypeScript implementation.
+and any additional SDK implementation.
 
 - `go-public-api.json` freezes every exported Go type, field order, JSON tag,
   constant, function, method, and public `Unwrap` signature at the hardening

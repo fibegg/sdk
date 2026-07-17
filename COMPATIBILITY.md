@@ -14,5 +14,5 @@ credential exposure, malformed-input acceptance, and plainly erroneous retry
 behavior may be corrected. Such fixes are documented and covered by contract
 tests.
 
-The Go SDK and future TypeScript SDK must execute the same language-neutral
+Any additional SDK implementation must execute the same language-neutral
 fixtures. Docker Compose schemas are a separate product contract.

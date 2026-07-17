@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Language-neutral public API, CLI, MCP, and reliability contracts for the
-  future TypeScript implementation.
+- Language-neutral public API, CLI, MCP, and reliability contracts for
+  additional SDK implementations.
 - Security, governance, contribution, support, compatibility, architecture,
   release, SBOM, provenance, and pinned quality-gate infrastructure.
 

@@ -142,8 +142,8 @@ func main() {
 
 ### Reliable Features Included
 
-1. **Auto rate-limit retry**: When your workload hits HTTP `429 Too Many Requests`, the SDK will sleep the interval specified in `Retry-After`.
-2. **Circuit Breaking**: Failed requests trigger in-memory isolations ensuring that backends do not get DDos'd by your local requests.
+1. **Bounded retries and rate-limit waiting**: Retryable responses, including HTTP `429 Too Many Requests`, use bounded `Retry-After` or exponential-backoff delays. `fibe.WithRateLimitAutoWait()` also waits before a request when the client's last response showed that its known quota was exhausted.
+2. **Optional circuit breaking**: Enable `fibe.WithCircuitBreaker(...)` to stop sending requests after the configured number of transient failures and probe again after its reset interval.
 3. **Idempotency**: Mutating requests send an `Idempotency-Key` header. One automatic key is generated per logical operation and reused across all SDK retries. `fibe.WithIdempotencyKey(ctx, key)` overrides it when a caller needs a stable key across separate calls.
 4. **Progress hooks**: Long-running SDK operations emit `fibe.ProgressEvent` values through `fibe.WithProgress(...)`. The CLI renders these as single-line spinners in interactive terminals and keeps line-based status output for non-interactive scripts.
 
