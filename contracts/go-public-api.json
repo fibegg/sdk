@@ -1218,31 +1218,6 @@
       "signature": "func (p *GreenfieldCreateParams) Validate() error"
     },
     {
-      "id": "method.GreenfieldLinkedPath.CheckoutRepository",
-      "kind": "method",
-      "signature": "func (p GreenfieldLinkedPath) CheckoutRepository() string"
-    },
-    {
-      "id": "method.GreenfieldLinkedPath.CheckoutServices",
-      "kind": "method",
-      "signature": "func (p GreenfieldLinkedPath) CheckoutServices() []string"
-    },
-    {
-      "id": "method.GreenfieldLinkedPath.MarshalJSON",
-      "kind": "method",
-      "signature": "func (p GreenfieldLinkedPath) MarshalJSON() ([]byte, error)"
-    },
-    {
-      "id": "method.GreenfieldLinkedPath.UnmarshalJSON",
-      "kind": "method",
-      "signature": "func (p *GreenfieldLinkedPath) UnmarshalJSON(data []byte) error"
-    },
-    {
-      "id": "method.GreenfieldLinkedPath.WithCheckoutMetadata",
-      "kind": "method",
-      "signature": "func (p GreenfieldLinkedPath) WithCheckoutMetadata(repository string, services []string) GreenfieldLinkedPath"
-    },
-    {
       "id": "method.GreenfieldService.Create",
       "kind": "method",
       "signature": "func (s *GreenfieldService) Create(ctx context.Context, params *GreenfieldCreateParams) (*GreenfieldResult, error)"
