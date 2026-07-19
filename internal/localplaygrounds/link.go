@@ -1,6 +1,7 @@
 package localplaygrounds
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,16 +23,19 @@ const linkOwnerFilename = ".fibe-playground-links"
 var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
 type Service struct {
-	Name      string `json:"name" yaml:"name"`
-	Image     string `json:"image,omitempty" yaml:"image,omitempty"`
-	Traefik   bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
-	Expose    bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
-	Subdomain string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
-	StartCmd  string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
-	HostMount string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
-	Prop      string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch    string `json:"branch,omitempty" yaml:"branch,omitempty"`
-	JobWatch  bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
+	Name             string   `json:"name" yaml:"name"`
+	Image            string   `json:"image,omitempty" yaml:"image,omitempty"`
+	Traefik          bool     `json:"traefik,omitempty" yaml:"traefik,omitempty"`
+	Expose           bool     `json:"expose,omitempty" yaml:"expose,omitempty"`
+	Subdomain        string   `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+	StartCmd         string   `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
+	HostMount        string   `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
+	Prop             string   `json:"prop,omitempty" yaml:"prop,omitempty"`
+	Branch           string   `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Repository       string   `json:"normalized_repository,omitempty" yaml:"normalized_repository,omitempty"`
+	Owner            string   `json:"-" yaml:"-"`
+	CheckoutServices []string `json:"checkout_services,omitempty" yaml:"checkout_services,omitempty"`
+	JobWatch         bool     `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
 }
 
 type Playground struct {
@@ -63,13 +67,15 @@ type MountEntry struct {
 }
 
 type RepoEntry struct {
-	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
-	Service  string `json:"service" yaml:"service"`
-	Prop     string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch   string `json:"branch,omitempty" yaml:"branch,omitempty"`
-	LinkPath string `json:"link_path" yaml:"link_path"`
-	Target   string `json:"target" yaml:"target"`
-	RepoRoot string `json:"repo_root" yaml:"repo_root"`
+	ID                   string   `json:"id,omitempty" yaml:"id,omitempty"`
+	Service              string   `json:"service" yaml:"service"`
+	Prop                 string   `json:"prop,omitempty" yaml:"prop,omitempty"`
+	Branch               string   `json:"branch,omitempty" yaml:"branch,omitempty"`
+	LinkPath             string   `json:"link_path" yaml:"link_path"`
+	Target               string   `json:"target" yaml:"target"`
+	RepoRoot             string   `json:"repo_root" yaml:"repo_root"`
+	NormalizedRepository string   `json:"normalized_repository,omitempty" yaml:"normalized_repository,omitempty"`
+	Services             []string `json:"services,omitempty" yaml:"services,omitempty"`
 }
 
 type CurrentState struct {
@@ -147,7 +153,25 @@ func Scan(baseDir string) ([]Playground, error) {
 		if err != nil {
 			continue
 		}
-		pg := parseCompose(entry.Name(), filepath.Join(baseDir, entry.Name()), data)
+		playgroundPath := filepath.Join(baseDir, entry.Name())
+		manifestPath := filepath.Join(playgroundPath, sourcePlanFilename)
+		// #nosec G304 -- manifestPath is the fixed source-plan filename beneath a scanned Playground directory.
+		manifest, manifestErr := os.ReadFile(manifestPath)
+		if manifestErr != nil && !os.IsNotExist(manifestErr) {
+			return nil, fmt.Errorf("read playground %s source plan: %w", entry.Name(), manifestErr)
+		}
+		if len(manifest) > maxSourcePlanBytes {
+			return nil, fmt.Errorf("parse playground %s: source-plan manifest exceeds 1 MiB", entry.Name())
+		}
+		pg, err := parseCompose(entry.Name(), playgroundPath, data, manifestErr != nil)
+		if err != nil {
+			return nil, fmt.Errorf("parse playground %s: %w", entry.Name(), err)
+		}
+		if manifestErr == nil {
+			if err := applySourcePlan(&pg, manifest); err != nil {
+				return nil, fmt.Errorf("parse playground %s: %w", entry.Name(), err)
+			}
+		}
 		playgrounds = append(playgrounds, pg)
 	}
 	sort.Slice(playgrounds, func(i, j int) bool {
@@ -384,58 +408,35 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		return nil, err
 	}
 
-	var mountable []*Service
-	for _, name := range serviceNames(pg.Services) {
-		svc := pg.Services[name]
-		if svc.HostMount != "" {
-			if err := validateLinkComponent("prop", svc.Prop); err != nil {
-				return nil, err
-			}
-			if err := validateLinkComponent("branch", svc.Branch); err != nil {
-				return nil, err
-			}
-			mountable = append(mountable, svc)
-		}
+	mountable, err := checkoutCandidates(pg)
+	if err != nil {
+		return nil, err
 	}
 
 	branches := make(map[string]bool)
-	for _, svc := range mountable {
-		branches[svc.Branch] = true
+	for _, checkout := range mountable {
+		branches[checkout.Branch] = true
 	}
 	appendBranch := len(branches) > 1
+	linkNames := checkoutLinkNames(mountable, appendBranch)
 
 	result := &fibe.GreenfieldLinkResult{
 		LinkDir:    linkDir,
 		Playground: pg.DirName,
 		StateFile:  CurrentStatePath(linkDir),
 	}
-	created := make(map[string]string)
-	linkNames := make([]string, 0, len(mountable))
-	for _, svc := range mountable {
-		symlinkName := svc.Prop
-		if symlinkName == "" {
-			symlinkName = "default"
-		}
-		if appendBranch && svc.Branch != "" {
-			symlinkName = symlinkName + "-" + svc.Branch
-		}
-		if target, ok := created[symlinkName]; ok {
-			if target == svc.HostMount {
-				continue
-			}
-			return nil, fmt.Errorf("link name %q resolves to multiple mount targets", symlinkName)
-		}
-		created[symlinkName] = svc.HostMount
-		linkNames = append(linkNames, symlinkName)
+	for index, checkout := range mountable {
+		symlinkName := linkNames[index]
 		symlinkPath := filepath.Join(linkDir, symlinkName)
-		result.Links = append(result.Links, fibe.GreenfieldLinkedPath{
+		link := fibe.GreenfieldLinkedPath{
 			Name:    symlinkName,
 			Path:    symlinkPath,
-			Target:  svc.HostMount,
-			Service: svc.Name,
-			Prop:    svc.Prop,
-			Branch:  svc.Branch,
-		})
+			Target:  checkout.HostMount,
+			Service: checkout.Services[0],
+			Prop:    checkout.Prop,
+			Branch:  checkout.Branch,
+		}.WithCheckoutMetadata(checkout.Repository, checkout.Services)
+		result.Links = append(result.Links, link)
 	}
 
 	state := currentStateFromLinks(pg, linkDir, result.StateFile, result.Links)
@@ -462,8 +463,8 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	if err := os.WriteFile(filepath.Join(staged, linkOwnerFilename), []byte("managed by fibe local playground linking\n"), 0o600); err != nil {
 		return nil, fmt.Errorf("failed to write ownership marker: %w", err)
 	}
-	for i, link := range result.Links {
-		if err := os.Symlink(link.Target, filepath.Join(staged, linkNames[i])); err != nil {
+	for _, link := range result.Links {
+		if err := os.Symlink(link.Target, filepath.Join(staged, link.Name)); err != nil {
 			return nil, fmt.Errorf("failed to create symlink %s -> %s: %w", link.Path, link.Target, err)
 		}
 	}
@@ -480,6 +481,196 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	return result, nil
 }
 
+type checkoutCandidate struct {
+	HostMount  string
+	Prop       string
+	Owner      string
+	Branch     string
+	Repository string
+	Services   []string
+}
+
+func checkoutCandidates(pg *Playground) ([]checkoutCandidate, error) {
+	byPath := make(map[string]*checkoutCandidate)
+	for _, name := range serviceNames(pg.Services) {
+		service := pg.Services[name]
+		if service.HostMount == "" {
+			continue
+		}
+		if err := validateLinkComponent("prop", service.Prop); err != nil {
+			return nil, err
+		}
+		hostMount := filepath.Clean(service.HostMount)
+		candidate, exists := byPath[hostMount]
+		if !exists {
+			candidate = &checkoutCandidate{
+				HostMount:  hostMount,
+				Prop:       service.Prop,
+				Owner:      service.Owner,
+				Branch:     service.Branch,
+				Repository: service.Repository,
+			}
+			byPath[hostMount] = candidate
+		} else if conflictingCheckoutMetadata(candidate, service) {
+			return nil, fmt.Errorf("physical checkout %q has conflicting repository or branch metadata", hostMount)
+		}
+		members := service.CheckoutServices
+		if len(members) == 0 {
+			members = []string{name}
+		}
+		candidate.Services = append(candidate.Services, members...)
+	}
+
+	candidates := make([]checkoutCandidate, 0, len(byPath))
+	logicalPaths := make(map[string]string)
+	for _, candidate := range byPath {
+		candidate.Services = sortedUnique(candidate.Services)
+		logical := checkoutLogicalKey(*candidate)
+		if previous, exists := logicalPaths[logical]; exists && previous != candidate.HostMount {
+			return nil, fmt.Errorf("repository and branch %q resolve to multiple physical checkouts (%s and %s)", logical, previous, candidate.HostMount)
+		}
+		logicalPaths[logical] = candidate.HostMount
+		candidates = append(candidates, *candidate)
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Services[0] < candidates[j].Services[0]
+	})
+	return candidates, nil
+}
+
+func conflictingCheckoutMetadata(candidate *checkoutCandidate, service *Service) bool {
+	if candidate.Repository != "" && service.Repository != "" && candidate.Repository != service.Repository {
+		return true
+	}
+	if candidate.Branch != "" && service.Branch != "" && candidate.Branch != service.Branch {
+		return true
+	}
+	if candidate.Prop == "" {
+		candidate.Prop = service.Prop
+	}
+	if candidate.Owner == "" {
+		candidate.Owner = service.Owner
+	}
+	if candidate.Repository == "" {
+		candidate.Repository = service.Repository
+	}
+	if candidate.Branch == "" {
+		candidate.Branch = service.Branch
+	}
+	return false
+}
+
+func checkoutLogicalKey(candidate checkoutCandidate) string {
+	identity := candidate.Repository
+	if identity == "" {
+		identity = candidate.Owner + "/" + candidate.Prop
+	}
+	if identity == "/" {
+		identity = candidate.HostMount
+	}
+	return identity + "\x00" + candidate.Branch
+}
+
+func sortedUnique(values []string) []string {
+	seen := make(map[string]bool, len(values))
+	unique := make([]string, 0, len(values))
+	for _, value := range values {
+		if !seen[value] {
+			seen[value] = true
+			unique = append(unique, value)
+		}
+	}
+	sort.Strings(unique)
+	return unique
+}
+
+func checkoutLinkNames(candidates []checkoutCandidate, appendBranch bool) []string {
+	qualified := make([]bool, len(candidates))
+	digested := make([]bool, len(candidates))
+	names := renderCheckoutNames(candidates, appendBranch, qualified, digested)
+	for _, indexes := range duplicateNameIndexes(names) {
+		for _, index := range indexes {
+			qualified[index] = true
+		}
+	}
+	names = renderCheckoutNames(candidates, appendBranch, qualified, digested)
+	for _, indexes := range duplicateNameIndexes(names) {
+		for _, index := range indexes {
+			digested[index] = true
+		}
+	}
+	return renderCheckoutNames(candidates, appendBranch, qualified, digested)
+}
+
+func renderCheckoutNames(candidates []checkoutCandidate, appendBranch bool, qualified, digested []bool) []string {
+	names := make([]string, len(candidates))
+	for index, candidate := range candidates {
+		name := candidate.Prop
+		if name == "" {
+			name = "default"
+		}
+		if qualified[index] {
+			owner := candidate.Owner
+			if owner == "" {
+				_, owner = repositoryNameAndOwner(candidate.Repository)
+			}
+			if owner != "" {
+				name += "-" + safeLinkSuffix(owner)
+			}
+		}
+		if digested[index] {
+			identity := candidate.Repository
+			if identity == "" {
+				identity = candidate.HostMount
+			}
+			name += "-" + fmt.Sprintf("%x", sha256.Sum256([]byte(identity)))[:8]
+		}
+		if appendBranch && candidate.Branch != "" {
+			name += "-" + safeLinkSuffix(candidate.Branch)
+		}
+		names[index] = name
+	}
+	return names
+}
+
+func duplicateNameIndexes(names []string) [][]int {
+	grouped := make(map[string][]int)
+	for index, name := range names {
+		grouped[name] = append(grouped[name], index)
+	}
+	var duplicates [][]int
+	for _, indexes := range grouped {
+		if len(indexes) > 1 {
+			duplicates = append(duplicates, indexes)
+		}
+	}
+	return duplicates
+}
+
+func safeLinkSuffix(value string) string {
+	if validateLinkComponent("suffix", value) == nil {
+		return value
+	}
+	var builder strings.Builder
+	lastDash := false
+	for _, character := range value {
+		valid := character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || character >= '0' && character <= '9' || character == '.' || character == '_'
+		if valid {
+			builder.WriteRune(character)
+			lastDash = false
+		} else if !lastDash {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+	slug := strings.Trim(builder.String(), "-.")
+	if slug == "" {
+		slug = "value"
+	}
+	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(value)))[:8]
+	return slug + "-" + digest
+}
+
 func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fibe.GreenfieldLinkedPath) CurrentState {
 	repos := make([]RepoEntry, 0, len(links))
 	for _, link := range links {
@@ -488,13 +679,15 @@ func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fi
 			repoRoot = link.Target
 		}
 		repos = append(repos, RepoEntry{
-			ID:       link.Name,
-			Service:  link.Service,
-			Prop:     link.Prop,
-			Branch:   link.Branch,
-			LinkPath: link.Path,
-			Target:   link.Target,
-			RepoRoot: repoRoot,
+			ID:                   link.Name,
+			Service:              link.Service,
+			Prop:                 link.Prop,
+			Branch:               link.Branch,
+			LinkPath:             link.Path,
+			Target:               link.Target,
+			RepoRoot:             repoRoot,
+			NormalizedRepository: link.CheckoutRepository(),
+			Services:             link.CheckoutServices(),
 		})
 	}
 	return CurrentState{
@@ -681,7 +874,7 @@ func sameCleanPath(left, right string) bool {
 	return leftErr == nil && rightErr == nil && filepath.Clean(leftAbs) == filepath.Clean(rightAbs)
 }
 
-func parseCompose(dirName, dirPath string, data []byte) Playground {
+func parseCompose(dirName, dirPath string, data []byte, discoverLegacyMounts bool) (Playground, error) {
 	pg := Playground{
 		DirName:  dirName,
 		Path:     dirPath,
@@ -691,7 +884,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 
 	var doc map[string]any
 	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return pg
+		return pg, err
 	}
 
 	pg.JobMode = composeJobMode(doc)
@@ -707,7 +900,10 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 			Subdomain: labels["fibe.gg/subdomain"],
 			StartCmd:  trimCommand(labels["fibe.gg/start_command"]),
 			JobWatch:  truthy(labels["fibe.gg/job_watch"]),
+			Branch:    labels["fibe.gg/branch"],
 		}
+		service.Repository = normalizeLegacyRepository(labels["fibe.gg/repo_url"])
+		service.Prop, service.Owner = repositoryNameAndOwner(service.Repository)
 		if service.JobWatch {
 			pg.JobMode = true
 		}
@@ -721,10 +917,9 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 				pg.ID = trailingID(playgroundName)
 			}
 		}
-		for _, volume := range volumeSources(svcMap["volumes"]) {
-			setMount(service, volume)
-			if service.HostMount != "" {
-				break
+		if discoverLegacyMounts {
+			if err := discoverLegacyServiceMount(service, labels["fibe.gg/source_mount"], legacyComposeVolumes(svcMap["volumes"]), dirPath); err != nil {
+				return pg, fmt.Errorf("service %s legacy source discovery: %w", svcName, err)
 			}
 		}
 		pg.Services[svcName] = service
@@ -732,7 +927,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 	if id := trailingID(dirName); id != "" {
 		pg.ID = id
 	}
-	return pg
+	return pg, nil
 }
 
 func composeJobMode(doc map[string]any) bool {
@@ -793,36 +988,12 @@ func normalizeLabels(value any) map[string]string {
 	return labels
 }
 
-func volumeSources(value any) []string {
-	var out []string
-	switch typed := value.(type) {
-	case []any:
-		for _, item := range typed {
-			if source := volumeSource(item); source != "" {
-				out = append(out, source)
-			}
-		}
-	case []string:
-		for _, item := range typed {
-			if source := volumeSource(item); source != "" {
-				out = append(out, source)
-			}
-		}
+func repositoryNameAndOwner(repository string) (string, string) {
+	parts := strings.Split(repository, "/")
+	if len(parts) < 3 {
+		return "", ""
 	}
-	return out
-}
-
-func volumeSource(value any) string {
-	switch typed := value.(type) {
-	case string:
-		source, _, _ := strings.Cut(strings.TrimSpace(typed), ":")
-		return strings.Trim(source, `"'`)
-	case map[string]any:
-		return scalarString(typed["source"])
-	case map[any]any:
-		return scalarString(typed["source"])
-	}
-	return ""
+	return parts[len(parts)-1], parts[len(parts)-2]
 }
 
 func scalarString(value any) string {
@@ -865,27 +1036,6 @@ func truthy(value string) bool {
 func labelExists(labels map[string]string, key string) bool {
 	value, ok := labels[key]
 	return ok && strings.TrimSpace(value) != "false"
-}
-
-func setMount(service *Service, hostPath string) {
-	propsIdx := strings.Index(hostPath, "/props/")
-	if propsIdx == -1 {
-		return
-	}
-	relative := hostPath[propsIdx+7:]
-	parts := strings.SplitN(relative, "/", 3)
-	if len(parts) < 2 {
-		return
-	}
-	service.HostMount = hostPath
-	rawProp := parts[0]
-	propParts := strings.Split(rawProp, "--")
-	if len(propParts) >= 3 {
-		service.Prop = strings.Join(propParts[1:len(propParts)-1], "--")
-	} else {
-		service.Prop = rawProp
-	}
-	service.Branch = parts[1]
 }
 
 func trailingID(name string) string {
