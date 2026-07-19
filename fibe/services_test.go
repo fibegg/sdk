@@ -1748,20 +1748,22 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 	if status.RateLimits.API.Limit != 5000 || status.RateLimits.API.Remaining != 4987 {
 		t.Errorf("unexpected rate limit values: %+v", status.RateLimits.API)
 	}
+	if status.Subscription.Plan != "single" {
+		t.Errorf("expected Enterprise subscription, got %+v", status.Subscription)
+	}
 }
 
 func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"playgrounds":  map[string]any{"total": 0, "active": 0, "stopped": 0},
-			"agents":       map[string]any{"total": 0, "authenticated": 0},
-			"props":        0,
-			"playspecs":    0,
-			"marquees":     0,
-			"secrets":      0,
-			"api_keys":     0,
-			"subscription": map[string]any{"plan": "free", "playground_limit": 1000},
+			"playgrounds": map[string]any{"total": 0, "active": 0, "stopped": 0},
+			"agents":      map[string]any{"total": 0, "authenticated": 0},
+			"props":       0,
+			"playspecs":   0,
+			"marquees":    0,
+			"secrets":     0,
+			"api_keys":    0,
 		})
 	})
 
@@ -1777,5 +1779,8 @@ func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
 	}
 	if status.RateLimits != nil {
 		t.Errorf("expected nil rate_limits when omitted, got %+v", status.RateLimits)
+	}
+	if status.Subscription.Plan != "" {
+		t.Errorf("expected empty subscription when omitted by Core, got %+v", status.Subscription)
 	}
 }

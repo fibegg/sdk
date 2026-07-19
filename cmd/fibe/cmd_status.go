@@ -13,7 +13,8 @@ func statusCmd() *cobra.Command {
 		Long: `Show a summary of all your resources in a single request.
 
 Returns counts for playgrounds (total/active/stopped), agents,
-props, playspecs, marquees, secrets, API keys, and subscription info.
+props, playspecs, marquees, secrets, and API keys. Enterprise servers also
+include subscription information.
 
 Designed for LLM agents to gather full context efficiently:
   fibe status -o yaml --only playgrounds,agents`,
@@ -36,8 +37,10 @@ Designed for LLM agents to gather full context efficiently:
 				fmt.Printf("Marquees:     %d\n", status.Marquees)
 				fmt.Printf("Secrets:      %d\n", status.Secrets)
 				fmt.Printf("API Keys:     %d\n", status.APIKeys)
-				fmt.Printf("Plan:         %s (playground limit: %d)\n",
-					status.Subscription.Plan, status.Subscription.PlaygroundLimit)
+				if status.Subscription.Plan != "" {
+					fmt.Printf("Plan:         %s (playground limit: %d)\n",
+						status.Subscription.Plan, status.Subscription.PlaygroundLimit)
+				}
 			default:
 				output(status)
 			}
