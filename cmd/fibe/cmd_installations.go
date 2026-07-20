@@ -24,7 +24,7 @@ This is the canonical way to interact with GitHub App installations.
 SUBCOMMANDS:
   list                List your installations
   find-repos          Search repos across ALL installations
-  get-token           Get a GitHub token for a repo (auto-resolves installation)
+  get-token           Get the server-provided GitHub credential for a repo
   repos <id>          List repositories for a specific installation
   token <id>          Get an installation access token (explicit ID)`,
 	}
