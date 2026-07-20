@@ -244,11 +244,12 @@ EXAMPLES:
 func instGetTokenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get-token <repo>",
-		Short: "Get a GitHub token for a repo (auto-resolves installation)",
-		Long: `Get a fresh GitHub access token for a repository.
+		Short: "Get the server-provided GitHub credential for a repo",
+		Long: `Get the server-provided GitHub access credential for a repository.
 
-Automatically resolves the correct GitHub App installation that has
-access to the specified repository. No installation ID needed.
+Enterprise resolves the GitHub App installation that has access to the
+repository. Standalone Core returns its configured stable credential. No
+installation ID is needed in either case.
 
 EXAMPLES:
   fibe installations get-token myorg/myrepo

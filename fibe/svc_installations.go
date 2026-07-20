@@ -76,8 +76,9 @@ func (s *InstallationService) Token(ctx context.Context, id int64, repo string) 
 	return &result, err
 }
 
-// GetGitHubToken returns a fresh GitHub token by auto-resolving the correct
-// installation for the given repo. No installation ID needed.
+// GetGitHubToken returns the server-provided GitHub credential for the given
+// repository. Enterprise resolves a GitHub App installation; standalone Core
+// returns its configured process credential. No installation ID is needed.
 func (s *InstallationService) GetGitHubToken(ctx context.Context, repo string) (*GitHubToken, error) {
 	values := url.Values{}
 	values.Set("repo", repo)

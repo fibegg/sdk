@@ -39,7 +39,7 @@ func (s *Server) registerCustomTools() {
 
 	// ---------- fibe_repo_status ----------
 	s.addTool(&toolImpl{
-		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify GitHub repository readiness, including runtime writeability and fork/mirror guidance.", tier: tierOther,
+		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			type input struct {
@@ -55,7 +55,7 @@ func (s *Server) registerCustomTools() {
 			return c.RepoStatus.Check(ctx, in.GithubURLs)
 		},
 	}, mcp.NewTool("fibe_repo_status_check",
-		mcp.WithDescription("[MODE:DIALOG] Verify GitHub repository readiness, including runtime writeability and fork/mirror guidance."),
+		mcp.WithDescription("[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access."),
 		mcp.WithArray("github_urls", mcp.Required(),
 			mcp.Description("GitHub repository URLs to check."),
 			mcp.WithStringItems()),
@@ -63,7 +63,7 @@ func (s *Server) registerCustomTools() {
 
 	// ---------- fibe_get_github_token ----------
 	s.addTool(&toolImpl{
-		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct installation.", tier: tierOther,
+		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.", tier: tierOther,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			repo := argString(args, "repo")
@@ -73,7 +73,7 @@ func (s *Server) registerCustomTools() {
 			return c.Installations.GetGitHubToken(ctx, repo)
 		},
 	}, mcp.NewTool("fibe_get_github_token",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct GitHub App installation. No installation ID needed."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves a GitHub App installation; standalone Core returns its configured credential. No installation ID needed."),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("Full repo name, e.g. owner/repo")),
 	))
 }
