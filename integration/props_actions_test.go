@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -9,6 +10,9 @@ import (
 
 func propWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 	t.Helper()
+	if os.Getenv("GITEA_HOST") != "" && os.Getenv("GITEA_ADMIN_TOKEN_FILE") != "" {
+		return ownedEnvDefaultsFixture(t, c)
+	}
 
 	usable := func(prop fibe.Prop, branch string) bool {
 		if branch == "" {
@@ -81,9 +85,6 @@ func TestProps_EnvDefaults(t *testing.T) {
 	t.Run("returns defaults for valid branch", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Props.EnvDefaults(ctx(), prop.ID, branch, seededPropEnvFile)
-		if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 404 {
-			t.Skipf("env defaults fixture prop became unavailable: %s", apiErr.Message)
-		}
 		requireNoError(t, err)
 
 		if result.Defaults == nil {

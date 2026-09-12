@@ -68,6 +68,8 @@ export FIBE_TEST_GATEWAY_HOST="${FIBE_TEST_GATEWAY_HOST:-$TEST_MARQUEE_HOST}"
 export FIBE_TEST_GATEWAY_URL="${FIBE_TEST_GATEWAY_URL:-http://${FIBE_TEST_GATEWAY_HOST}:80}"
 fibe-e2e-use-dns
 export FIBE_DOMAIN="${FIBE_PACKED_RAILS_URL:-http://fibe-app:3000}"
+export GITEA_HOST="${FIBE_PACKED_GITEA_URL:-http://fibe-app:3001}"
+export GITEA_ADMIN_TOKEN_FILE=/fibe-data/gitea/gitea-admin-token
 wait_for_http "${FIBE_DOMAIN}/up" "packed Fibe Rails"
 wait_for_tcp "$TEST_MARQUEE_HOST" 22 "DinD SSH"
 
