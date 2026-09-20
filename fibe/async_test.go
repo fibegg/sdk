@@ -382,7 +382,6 @@ func TestDoAsync_202ThenPollSuccess(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := calls.Add(1)
 		if n == 1 {
-			// First call: return 202 Accepted
 			w.WriteHeader(http.StatusAccepted)
 			json.NewEncoder(w).Encode(map[string]any{
 				"request_id": "req-async",
@@ -390,7 +389,6 @@ func TestDoAsync_202ThenPollSuccess(t *testing.T) {
 			})
 			return
 		}
-		// Poll calls: return success
 		json.NewEncoder(w).Encode(map[string]any{
 			"request_id": "req-async",
 			"status":     "success",

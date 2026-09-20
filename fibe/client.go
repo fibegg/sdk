@@ -173,19 +173,8 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	return c
 }
 
-// WithKey returns a new Client that uses a different API key but shares
-// the same base URL, HTTP transport, logger, and all other configuration.
-// The new client gets its own rate limit tracker and circuit breaker state.
-//
-// This is the primary mechanism for multi-key e2e testing:
-//
-//	admin := fibe.NewClient(fibe.WithAPIKey(adminKey))
-//	reader := admin.WithKey(readerKey)
-//	other := admin.WithKey(otherPlayerKey)
-//
-//	admin.Playgrounds.Create(ctx, params)   // creates as admin
-//	_, err := other.Playgrounds.Get(ctx, id) // should 404
-//	pg, _ := reader.Playgrounds.Get(ctx, id) // should succeed
+// WithKey clones the client configuration with another API key. Transport and
+// logging are shared, while rate limits and circuit-breaker state start fresh.
 func (c *Client) WithKey(apiKey string) *Client {
 	forked := *c.cfg
 	forked.apiKey = apiKey

@@ -57,14 +57,8 @@ func (r *sessionRegistry) drop(id string) {
 	r.mu.Unlock()
 }
 
-// resolveClient returns the effective *fibe.Client for this call, honoring:
-//  1. session override set via fibe_auth_use/fibe_auth_set
-//  2. HTTP bearer/domain headers
-//  3. server-level default profile/API key
-//
-// If RequireAuth is set and neither source produced a key, returns an error.
-// A per-session client is cached so circuit-breaker + rate-limit state stays
-// isolated per tenant.
+// resolveClient applies session overrides, request headers, then server defaults.
+// RequireAuth rejects missing keys; cached clients isolate rate and breaker state per tenant.
 func (s *Server) resolveClient(ctx context.Context) (*fibe.Client, error) {
 	st := s.sessionFor(ctx)
 	requestKey := apiKeyFromContext(ctx)

@@ -67,7 +67,7 @@ func TestRepoStatus_ScopeEnforcement(t *testing.T) {
 		noScope := createScopedKey(t, c, "repo-noscope", []string{"agents:read"})
 		_, err := noScope.RepoStatus.Check(ctx(), []string{"https://github.com/nginx/nginx"})
 		if err == nil {
-			t.Error("repo_status should enforce scopes — request without repo scope should be rejected")
+			t.Error("repo_status should enforce scopes: request without repo scope should be rejected")
 			return
 		}
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)

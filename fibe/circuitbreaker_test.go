@@ -112,7 +112,7 @@ func TestCircuitBreaker_SuccessResetsFailures(t *testing.T) {
 	cb.recordFailure()
 
 	if !cb.allow() {
-		t.Error("should still allow — success reset the counter")
+		t.Error("should still allow: success reset the counter")
 	}
 }
 

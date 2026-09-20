@@ -17,7 +17,7 @@ func templatesCmd() *cobra.Command {
 		Use:     "templates",
 		Aliases: []string{"tpl"},
 		Short:   "Manage import templates (Pantry)",
-		Long: `Manage Fibe import templates — reusable playspec configurations.
+		Long: `Manage Fibe import templates: reusable playspec configurations.
 
 Templates can be published publicly or kept private. Each template
 can have multiple versions.
@@ -658,6 +658,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&file, "file", "", "Path to image file (required)")
 	return cmd
 }
-
-// =============================================================================
-// =============================================================================

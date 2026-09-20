@@ -14,7 +14,7 @@ func webhooksCmd() *cobra.Command {
 		Use:     "webhooks",
 		Aliases: []string{"wh"},
 		Short:   "Manage webhook endpoints",
-		Long: `Manage Fibe webhook endpoints — HTTP callbacks for platform events.
+		Long: `Manage Fibe webhook endpoints: HTTP callbacks for platform events.
 
 Webhooks deliver real-time event notifications to your URL.
 Each endpoint can subscribe to specific event types and optionally

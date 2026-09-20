@@ -6,7 +6,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 34-playspec-muti-job.spec.js
 func TestMutiJob_PlayspecConfig(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

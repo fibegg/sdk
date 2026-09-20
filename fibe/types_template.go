@@ -22,7 +22,6 @@ type ImportTemplate struct {
 	CreatedAt        *time.Time            `json:"created_at"`
 	UpdatedAt        *time.Time            `json:"updated_at"`
 
-	// Detail fields
 	Versions []ImportTemplateVersion `json:"versions,omitempty"`
 }
 

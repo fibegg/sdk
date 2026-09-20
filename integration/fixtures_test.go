@@ -204,7 +204,7 @@ func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	return false
 }
 
-// localeNormalize strips punctuation & casefolds — approximates PostgreSQL's
+// localeNormalize strips punctuation & casefolds: approximates PostgreSQL's
 // default collation treatment of punctuation.
 func localeNormalize(s string) string {
 	var b strings.Builder

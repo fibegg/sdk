@@ -350,7 +350,6 @@ func TestAgents_RevokeGitHubToken(t *testing.T) {
 
 	t.Run("revoke on fresh agent returns graceful response or error", func(t *testing.T) {
 		_, err := c.Agents.RevokeGitHubToken(ctx(), ag.ID)
-		// Either success (no token to revoke is fine) or structured 4xx
 		if err != nil {
 			if apiErr, ok := err.(*fibe.APIError); ok {
 				if apiErr.StatusCode >= 500 {

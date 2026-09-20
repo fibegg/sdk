@@ -7,16 +7,15 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// 1x1 transparent PNG for image upload tests
 const tinyPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
-// seedTemplateCategory returns an existing category ID (creates one if none exist — but admin only).
+// seedTemplateCategory returns an existing category ID (creates one if none exist: but admin only).
 func seedTemplateCategory(t *testing.T, c *fibe.Client) int64 {
 	t.Helper()
 	cats, err := c.TemplateCategories.List(ctx(), nil)
 	requireNoError(t, err)
 	if len(cats.Data) == 0 {
-		t.Skip("no template categories available — admin must seed one")
+		t.Skip("no template categories available: admin must seed one")
 	}
 	return cats.Data[0].ID
 }
@@ -47,7 +46,6 @@ func TestTemplates_FullLifecycle(t *testing.T) {
 	}
 	tplID := *tpl.ID
 
-	// Step 1: CreateVersion
 	var versionID int64
 	t.Run("create new version", func(t *testing.T) {
 		pub := false
@@ -167,8 +165,6 @@ func TestTemplates_SearchAndFilters(t *testing.T) {
 	t.Run("list filter by category_id returns only that category", func(t *testing.T) {
 		r, err := c.ImportTemplates.List(ctx(), &fibe.ImportTemplateListParams{CategoryID: catID, PerPage: 50})
 		requireNoError(t, err)
-		// All returned templates should be in that category (Category field is the name, not ID —
-		// so just ensure we have results and one of them is our template)
 		found := false
 		for _, item := range r.Data {
 			if item.ID != nil && tpl.ID != nil && *item.ID == *tpl.ID {

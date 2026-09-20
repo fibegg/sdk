@@ -7,14 +7,11 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// TestDateFilters_CoverageMatrix exercises created_after/created_before on every
-// list endpoint that supports them.
+// TestDateFilters_CoverageMatrix exercises date filters across list endpoints.
 func TestDateFilters_CoverageMatrix(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Use "way in the past" as after-bound (should include all results) and
-	// "way in the future" as before-bound (should exclude all).
 	past := "2000-01-01T00:00:00Z"
 	future := time.Now().Add(100 * 365 * 24 * time.Hour).Format(time.RFC3339)
 
@@ -32,7 +29,6 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 				if r2.Meta.Total > r1.Meta.Total {
 					t.Errorf("before=%s should return <= after=%s (%d > %d)", past, past, r2.Meta.Total, r1.Meta.Total)
 				}
-				// Future-after should return nothing created after far future
 				r3, err := c.Agents.List(ctx(), &fibe.AgentListParams{CreatedAfter: future, PerPage: 100})
 				requireNoError(t, err)
 				if r3.Meta.Total != 0 {
@@ -116,10 +112,9 @@ func TestDateFilters_RangeBehavior(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Seed a secret so we have at least one entry in the window
 	s := seedSecret(t, c, "date-range")
 
-	// Window: 1 hour before now to 1 hour after now — should include our secret
+	// Window: 1 hour before now to 1 hour after now: should include our secret
 	after := time.Now().Add(-1 * time.Hour).Format(time.RFC3339)
 	before := time.Now().Add(1 * time.Hour).Format(time.RFC3339)
 

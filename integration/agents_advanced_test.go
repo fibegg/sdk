@@ -22,7 +22,6 @@ func registryCredentialID(raw any) (string, bool) {
 	}
 }
 
-// Migrated from: 21-agents-crud.spec.js (full lifecycle)
 func TestAgents_FullLifecycle(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -99,7 +98,7 @@ func TestAgents_FullLifecycle(t *testing.T) {
 	})
 }
 
-// Migrated from: 22-artefacts.spec.js (listing only — upload requires multipart)
+// Migrated from: 22-artefacts.spec.js (listing only: upload requires multipart)
 func TestArtefacts_List(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -132,7 +131,6 @@ func TestArtefacts_List(t *testing.T) {
 	})
 }
 
-// Migrated from: 27-playspec-registry-credentials.spec.js
 func TestPlayspecRegistryCredentials(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

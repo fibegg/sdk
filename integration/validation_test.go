@@ -7,7 +7,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 11-marquee-validation.spec.js
 func TestMarqueeValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -68,7 +67,6 @@ func TestMarqueeValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 12-prop-validation.spec.js
 func TestPropValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -113,7 +111,6 @@ func TestPropValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 13-playspec-validation.spec.js
 func TestPlayspecValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -187,7 +184,6 @@ func TestPlayspecValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 43-secrets-crud.spec.js (validation parts)
 func TestSecretValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -215,7 +211,6 @@ func TestSecretValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 21-agents-crud.spec.js (validation parts)
 func TestAgentValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -262,7 +257,6 @@ func TestAgentValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 29-webhooks.spec.js (validation parts)
 func TestWebhookValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -305,7 +299,6 @@ func TestWebhookValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 06-launch.spec.js
 func TestLaunchValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -346,7 +339,7 @@ func TestLaunchValidation(t *testing.T) {
 		if result == nil {
 			t.Fatal("expected launch result to be non-nil")
 		}
-		// Launch endpoint returns a playspec — the result struct may have zero values
+		// Launch endpoint returns a playspec: the result struct may have zero values
 		// if the API response shape doesn't match LaunchResult exactly.
 		// The key assertion is that the call succeeded (no error above).
 	})

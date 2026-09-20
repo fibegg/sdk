@@ -84,7 +84,7 @@ func (s *Server) registerArtefactActionTools() {
 		mcp.WithString("name", mcp.Required(), mcp.Description("Artefact display name (alias: 'title'). Also used as filename fallback.")),
 		mcp.WithString("agent_id_or_name", mcp.Description("Optional agent id or name; defaults to FIBE_AGENT_ID when available, otherwise creates a player-owned artefact")),
 		mcp.WithString("playground_id_or_name", mcp.Description("Optional playground ID or name to associate with the artefact")),
-		mcp.WithString("filename", mcp.Description("Target filename — defaults to 'name' when omitted")),
+		mcp.WithString("filename", mcp.Description("Target filename: defaults to 'name' when omitted")),
 		mcp.WithString("description", mcp.Description("Optional human-readable description")),
 		mcp.WithString("content_base64", mcp.Description("Base64-encoded file content (alias: 'content')")),
 		mcp.WithString("content_path", mcp.Description("Absolute local file path to read (local MCP only)")),

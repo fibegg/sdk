@@ -12,7 +12,7 @@ func secretsCmd() *cobra.Command {
 		Use:     "secrets",
 		Aliases: []string{"sec"},
 		Short:   "Manage encrypted secrets",
-		Long: `Manage Fibe secrets — encrypted key-value pairs for environment variables.
+		Long: `Manage Fibe secrets: encrypted key-value pairs for environment variables.
 
 Secrets are injected into playgrounds as environment variables.
 Values are encrypted at rest and only revealed with an explicit --reveal flag.
@@ -32,7 +32,7 @@ func secListCmd() *cobra.Command {
 	var query, key, sort, createdAfter, createdBefore string
 	cmd := &cobra.Command{
 		Use: "list", Short: "List all secrets",
-		Long: `List all secrets. Values are NOT shown — use 'get --reveal' to reveal.
+		Long: `List all secrets. Values are NOT shown: use 'get --reveal' to reveal.
 
 FILTERS:
   -q, --query           Search across key, description (substring match)

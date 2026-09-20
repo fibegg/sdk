@@ -13,7 +13,6 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 	t.Parallel()
 	c := contractClient(t)
 
-	// Seed fresh resources so we have data with known ordering
 	_ = seedAgent(t, c, fibe.ProviderGemini)
 	_ = seedAgent(t, c, fibe.ProviderClaudeCode)
 	_ = seedSecret(t, c, "sortA")

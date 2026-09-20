@@ -31,16 +31,14 @@ func TestSecurity_SQLInjection(t *testing.T) {
 				Provider: fibe.ProviderGemini,
 			})
 			if err != nil {
-				continue // API rejected payload — acceptable
+				continue // API rejected payload: acceptable
 			}
 			t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
 
-			// Verify payload was stored literally (parameterized), not interpreted
 			if agent.Name != payload {
 				t.Errorf("SQL injection payload was modified: sent %q, got %q", payload, agent.Name)
 			}
 
-			// Verify agent can be retrieved intact (injection didn't corrupt DB)
 			fetched, err := c.Agents.Get(ctx(), agent.ID)
 			if err != nil {
 				t.Errorf("failed to re-fetch agent after SQL injection payload: %v", err)
@@ -58,11 +56,10 @@ func TestSecurity_SQLInjection(t *testing.T) {
 				Value: payload,
 			})
 			if err != nil {
-				continue // API rejected payload — acceptable
+				continue // API rejected payload: acceptable
 			}
 			t.Cleanup(func() { c.Secrets.Delete(ctx(), *s.ID) })
 
-			// Verify secret can be retrieved intact
 			fetched, err := c.Secrets.Get(ctx(), *s.ID, true)
 			if err != nil {
 				t.Errorf("failed to re-fetch secret after SQL injection payload: %v", err)
@@ -76,9 +73,8 @@ func TestSecurity_SQLInjection(t *testing.T) {
 		t.Parallel()
 		result, err := c.Monitor.List(ctx(), &fibe.MonitorListParams{Q: "' OR '1'='1"})
 		if err != nil {
-			return // API rejected — acceptable
+			return // API rejected: acceptable
 		}
-		// Injection should not return all records
 		if len(result.Data) > 100 {
 			t.Errorf("SQL injection in search may have bypassed filtering: got %d results", len(result.Data))
 		}
@@ -104,16 +100,14 @@ func TestSecurity_XSS(t *testing.T) {
 				Provider: fibe.ProviderGemini,
 			})
 			if err != nil {
-				continue // API rejected payload — acceptable
+				continue // API rejected payload: acceptable
 			}
 			t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
 
-			// Verify payload is stored literally (not interpreted)
 			if agent.Name != payload {
 				t.Errorf("XSS payload was modified: sent %q, got %q", payload, agent.Name)
 			}
 
-			// Verify re-fetch returns it literally (not executed/transformed)
 			fetched, err := c.Agents.Get(ctx(), agent.ID)
 			if err != nil {
 				t.Errorf("failed to re-fetch agent after XSS payload: %v", err)
@@ -205,7 +199,6 @@ func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
 	})
 }
 
-// Migrated from: 47-auth-hardening.spec.js
 func TestSecurity_AuthHardening(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -265,7 +258,6 @@ func TestSecurity_AuthHardening(t *testing.T) {
 	})
 }
 
-// Migrated from: 26-rate-limit-headers.spec.js
 func TestSecurity_RateLimitHeaders(t *testing.T) {
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")

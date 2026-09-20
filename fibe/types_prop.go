@@ -14,7 +14,6 @@ type Prop struct {
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 
-	// Detail fields
 	Branches              []string `json:"branches,omitempty"`
 	OriginalRepositoryURL *string  `json:"original_repository_url,omitempty"`
 	HasCredentials        *bool    `json:"has_credentials,omitempty"`
@@ -52,7 +51,7 @@ type PropBranches struct {
 // PropBranch is one entry in a PropBranches response. The API returns
 // metadata (default marker, ahead/behind counts, last-commit details) in
 // addition to the branch name, so PropBranch intentionally captures only
-// the stable fields — anything the server adds later surfaces via the
+// the stable fields: anything the server adds later surfaces via the
 // Extra map without breaking existing callers.
 type PropBranch struct {
 	Name    string         `json:"name"`

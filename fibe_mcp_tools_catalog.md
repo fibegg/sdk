@@ -37,7 +37,7 @@ Generated from the MCP registry.
       "type": "object"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -84,7 +84,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -131,7 +131,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -183,7 +183,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -227,7 +227,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -274,7 +274,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -321,7 +321,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -368,7 +368,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -411,7 +411,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -483,7 +483,7 @@ Generated from the MCP registry.
       "type": "array"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -532,7 +532,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -585,7 +585,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "filename": {
-      "description": "Target filename — defaults to 'name' when omitted",
+      "description": "Target filename: defaults to 'name' when omitted",
       "type": "string"
     },
     "name": {
@@ -593,7 +593,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -633,7 +633,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations
+[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.
 
 ### Input Schema
 ```json
@@ -648,7 +648,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -685,7 +685,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -731,7 +731,7 @@ Generated from the MCP registry.
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -775,7 +775,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -813,7 +813,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -878,7 +878,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -919,7 +919,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -971,7 +971,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1026,7 +1026,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1095,7 +1095,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1165,7 +1165,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1246,7 +1246,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1339,7 +1339,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1390,7 +1390,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1428,7 +1428,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1467,7 +1467,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1516,7 +1516,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1556,7 +1556,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1692,7 +1692,7 @@ Generated from the MCP registry.
       "type": "object"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1743,7 +1743,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1795,7 +1795,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1849,7 +1849,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1910,7 +1910,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1967,7 +1967,7 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.
+[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.
 
 ### Input Schema
 ```json
@@ -1986,7 +1986,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2162,14 +2162,14 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution
+[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.
 
 ### Input Schema
 ```json
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2231,7 +2231,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2254,7 +2254,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment.
+[MODE:DIALOG] Retrieve Playground service, container, port, path, label, status, URL, and recent-log diagnostics.
 
 ### Input Schema
 ```json
@@ -2278,7 +2278,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2319,7 +2319,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2395,7 +2395,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2540,7 +2540,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2589,7 +2589,7 @@ Generated from the MCP registry.
       "type": "array"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2639,7 +2639,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2756,7 +2756,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2846,7 +2846,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2960,7 +2960,7 @@ Generated from the MCP registry.
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3084,7 +3084,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3132,7 +3132,7 @@ Generated from the MCP registry.
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3166,7 +3166,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3319,7 +3319,7 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.
+[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.
 
 ## `fibe_templates_change`
 **Tier:** brownfield | **Hidden:** true | **Destructive:** false | **Idempotent:** false | **Read-only:** false
@@ -3378,7 +3378,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3492,7 +3492,7 @@ Generated from the MCP registry.
       ]
     },
     "target_template_version_id": {
-      "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template — the server reconciles the prop set and regenerates services.",
+      "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template: the server reconciles the prop set and regenerates services.",
       "minimum": 1,
       "type": "integer"
     },
@@ -3545,7 +3545,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3577,7 +3577,7 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds
+[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.
 
 ### Input Schema
 ```json
@@ -3592,7 +3592,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3639,7 +3639,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },

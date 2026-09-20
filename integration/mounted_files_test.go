@@ -7,7 +7,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 38-agent-mounted-files.spec.js
 func TestAgentMountedFiles(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -49,7 +48,6 @@ func TestAgentMountedFiles(t *testing.T) {
 	})
 }
 
-// Migrated from: 39-playspec-mounted-files.spec.js
 func TestPlayspecMountedFiles(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

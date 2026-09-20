@@ -23,7 +23,7 @@ func waitCmd() *cobra.Command {
 		Short: "Wait for a resource to reach a target status",
 		Long: `Poll a resource until it reaches the desired status.
 
-Eliminates retry loops in LLM agent code — delegates
+Eliminates retry loops in LLM agent code: delegates
 polling to the CLI with built-in timeout and interval.
 
 Supported resources: playground, trick
@@ -71,14 +71,13 @@ Examples:
 						return nil
 					}
 
-					// Terminal failure states
 					if current == "error" || current == "failed" || current == "destroyed" {
 						return fibe.NewPlaygroundTerminalStateError(status)
 					}
 
 					select {
 					case <-deadline:
-						return fmt.Errorf("timeout after %s — last status: %s", timeout, current)
+						return fmt.Errorf("timeout after %s: last status: %s", timeout, current)
 					case <-time.After(interval):
 					}
 				}
@@ -111,7 +110,6 @@ Examples:
 						return nil
 					}
 
-					// Terminal states for tricks
 					if current == "completed" && targetStatus != "completed" {
 						return fmt.Errorf("trick reached terminal state: %s", current)
 					}
@@ -124,12 +122,12 @@ Examples:
 
 					select {
 					case <-deadline:
-						return fmt.Errorf("timeout after %s — last status: %s", timeout, current)
+						return fmt.Errorf("timeout after %s: last status: %s", timeout, current)
 					case <-time.After(interval):
 					}
 				}
 			default:
-				return fmt.Errorf("unsupported resource %q — supported: playground, trick", resource)
+				return fmt.Errorf("unsupported resource %q: supported: playground, trick", resource)
 			}
 		},
 	}

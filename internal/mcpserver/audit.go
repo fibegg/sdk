@@ -21,8 +21,7 @@ import (
 // agent journeys and for compliance in multi-tenant deployments.
 //
 // Enable by setting FIBE_MCP_AUDIT_LOG=<path> (or "stderr") before starting
-// the server. The file is opened in append mode and never rotated by us —
-// callers are expected to wire logrotate if they care.
+// the server. The file is opened in append mode and never rotated by us: // callers are expected to wire logrotate if they care.
 type AuditLog struct {
 	mu      sync.Mutex
 	w       io.Writer

@@ -6,7 +6,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Marquees require real VMs for full testing — per user guidance, we don't
+// Marquees require real VMs for full testing: per user guidance, we don't
 // thoroughly test connectivity. But we DO test the CRUD surface with params
 // so that create/update payload shapes are validated end-to-end.
 
@@ -34,7 +34,6 @@ func TestMarquee_CreateWithDockerhubAuth(t *testing.T) {
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Marquees.Delete(ctx(), mq.ID) })
 
-	// Re-read to ensure persistence
 	got, err := c.Marquees.Get(ctx(), mq.ID)
 	requireNoError(t, err)
 	if got.DockerhubAuthEnabled == nil || !*got.DockerhubAuthEnabled {

@@ -12,7 +12,6 @@ import (
 )
 
 func (s *Server) registerAgentActionTools() {
-	// chat
 	s.addTool(&toolImpl{
 		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid.", tier: tierOverseer,
 		annotations: toolAnnotations{},
@@ -300,5 +299,3 @@ func argStringList(args map[string]any, key string) []string {
 		return nil
 	}
 }
-
-// ---------- Artefacts ----------

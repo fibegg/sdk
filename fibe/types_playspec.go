@@ -25,7 +25,6 @@ type Playspec struct {
 	TemplateVersionSwitchable *bool               `json:"template_version_switchable"`
 	SuggestedTemplateVersion  *TemplateVersionRef `json:"suggested_template_version"`
 
-	// Detail fields
 	Services       []any             `json:"services,omitempty"`
 	MountedFiles   []MountedFileInfo `json:"mounted_files,omitempty"`
 	Credentials    any               `json:"credentials,omitempty"`

@@ -14,10 +14,8 @@ func TestAuditTrail_SecretCreationLogged(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Create a secret
 	s := seedSecret(t, c, "audit")
 
-	// Poll audit logs for a recent secret-related entry
 	entry, found := pollUntil(8, time.Second, func() (*fibe.AuditLog, bool) {
 		list, err := c.AuditLogs.List(ctx(), &fibe.AuditLogListParams{
 			ResourceType: "Secret",
@@ -52,7 +50,6 @@ func TestAuditTrail_ActionPrefixFilter(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Generate an action by creating a secret
 	_ = seedSecret(t, c, "audit-prefix")
 
 	time.Sleep(2 * time.Second)
@@ -74,13 +71,11 @@ func TestAuditTrail_ResourceTypeFilterIsolation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Create an agent and secret to generate events
 	_ = seedAgent(t, c, fibe.ProviderGemini)
 	_ = seedSecret(t, c, "audit-iso")
 
 	time.Sleep(2 * time.Second)
 
-	// Filter by agent only — must not include Secret resource types
 	r, err := c.AuditLogs.List(ctx(), &fibe.AuditLogListParams{ResourceType: "Agent", PerPage: 25})
 	requireNoError(t, err)
 	for _, l := range r.Data {

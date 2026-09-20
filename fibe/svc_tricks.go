@@ -40,7 +40,6 @@ func (s *TrickService) GetByIdentifier(ctx context.Context, identifier string) (
 func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) (*Playground, error) {
 	name := params.Name
 	if name == "" {
-		// Fetch playspec name for auto-generation
 		spec, err := s.client.Playspecs.GetByIdentifier(ctx, params.playspecIdentifier())
 		if err != nil {
 			return nil, fmt.Errorf("fibe: fetch playspec for trick name: %w", err)
@@ -80,7 +79,6 @@ func (s *TrickService) RerunByIdentifier(ctx context.Context, sourceIdentifier s
 		return nil, fmt.Errorf("fibe: source trick %s has no playspec", sourceIdentifier)
 	}
 
-	// Fetch playspec to get the name for auto-generation
 	spec, err := s.client.Playspecs.Get(ctx, *source.PlayspecID)
 	if err != nil {
 		return nil, fmt.Errorf("fibe: fetch playspec for rerun name: %w", err)

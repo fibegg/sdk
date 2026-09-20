@@ -72,7 +72,7 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 				t.Error("expected validation error, got nil")
 				return
 			}
-			// Either SDK-side validation or API-side — both are acceptable, but it must be an error.
+			// Either SDK-side validation or API-side: both are acceptable, but it must be an error.
 			if apiErr, ok := err.(*fibe.APIError); ok {
 				if apiErr.StatusCode >= 500 {
 					t.Errorf("expected 4xx, got 5xx: %v", err)
@@ -125,7 +125,7 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 				return
 			}
 			if apiErr.StatusCode != 404 && apiErr.StatusCode != 403 {
-				// Some resources return 403 for not-owned to prevent ID enumeration — also acceptable
+				// Some resources return 403 for not-owned to prevent ID enumeration: also acceptable
 				t.Errorf("expected 404/403, got %d (code=%s)", apiErr.StatusCode, apiErr.Code)
 			}
 		})

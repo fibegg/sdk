@@ -16,7 +16,6 @@ func TestListCoverage_Pagination(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Seed 2 of each core resource to ensure Meta.Total >= 2
 	_ = seedSecret(t, c, "pg1")
 	_ = seedSecret(t, c, "pg2")
 	_ = seedAgent(t, c, fibe.ProviderGemini)
@@ -251,12 +250,10 @@ func TestListCoverage_Sorting(t *testing.T) {
 	})
 }
 
-// TestListCoverage_Filtering verifies filter parameters actually affect results.
 func TestListCoverage_Filtering(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Seed agents with distinct names so we can test Q and Name filters
 	seedName := uniqueName("filt-needle")
 	_, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 		Name:     seedName,
@@ -266,7 +263,6 @@ func TestListCoverage_Filtering(t *testing.T) {
 
 	t.Run("agents filter by Q matches name substring", func(t *testing.T) {
 		t.Parallel()
-		// Use part of the seedName as the query
 		q := "filt-needle"
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Q: q, PerPage: 50})
 		requireNoError(t, err)

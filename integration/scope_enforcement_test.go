@@ -116,7 +116,6 @@ func TestScopeEnforcement_InvalidScopes(t *testing.T) {
 	})
 }
 
-// Migrated from: 25-agent-scopes.spec.js
 func TestScopeEnforcement_AgentSubResources(t *testing.T) {
 	c := userClient(t)
 
@@ -140,7 +139,6 @@ func TestScopeEnforcement_AgentSubResources(t *testing.T) {
 	})
 }
 
-// Migrated from: 28-granular-scopes.spec.js
 func TestScopeEnforcement_GranularScopes(t *testing.T) {
 	c := userClient(t)
 

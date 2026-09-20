@@ -7,8 +7,6 @@ import (
 )
 
 // TestTricks_FullLifecycle exercises:
-//
-//	Trigger (job-mode playspec) → Status (terminal) → Logs → Rerun → Delete
 func TestTricks_FullLifecycle(t *testing.T) {
 	c := userClient(t)
 
@@ -31,7 +29,6 @@ func TestTricks_FullLifecycle(t *testing.T) {
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Tricks.Delete(ctx(), trick.ID) })
 
-	// Trigger response must have ID, Name, Status, and job_mode=true
 	if trick.ID == 0 || trick.Name == "" || trick.Status == "" {
 		t.Errorf("trigger missing core fields: id=%d name=%q status=%q", trick.ID, trick.Name, trick.Status)
 	}
@@ -54,7 +51,6 @@ func TestTricks_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// Trick should go through states and reach terminal
 	t.Run("status reaches terminal state", func(t *testing.T) {
 		final := waitForTrickTerminal(t, c, trick.ID, CapWaitTimeout)
 		if final == "" {
@@ -73,7 +69,6 @@ func TestTricks_FullLifecycle(t *testing.T) {
 			t.Error("expected non-empty Status")
 		}
 		if s.Status == "completed" && s.JobResult != nil {
-			// Verify JobResult structure
 			if s.JobResult.CompletedAt == nil {
 				t.Error("expected CompletedAt on completed JobResult")
 			}
@@ -127,7 +122,6 @@ func TestTricks_TriggerAutoName(t *testing.T) {
 		p.Services = []fibe.PlayspecServiceDef{jobWatchedService("worker")}
 	})
 
-	// Trigger without explicit name — should auto-generate from playspec name
 	trick, err := c.Tricks.Trigger(ctx(), &fibe.TrickTriggerParams{
 		PlayspecID: *spec.ID,
 		MarqueeID:  &marqueeID,

@@ -49,8 +49,6 @@ func generateSchemaStr(t reflect.Type, indent string) string {
 		return fmt.Sprintf("[\n%s  %s\n%s]", indent, fieldType, indent)
 	} else if t.Kind() == reflect.Interface {
 		return "\"any\""
-	} else if t.String() == "fibe.PlaygroundServiceInfo" {
-		// Just a hardcoded generic override for nested complex structures if needed, not usually needed
 	}
 	tstr := t.Kind().String()
 	if t.String() == "time.Time" {

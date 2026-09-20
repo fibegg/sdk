@@ -26,7 +26,7 @@ Generated from the MCP registry.
 | `fibe_agents_start_chat` | overseer | yes | [MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED. |
 | `fibe_artefact_upload` | base | yes | [MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly |
 | `fibe_auth_list` | meta | yes | [MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys. |
-| `fibe_auth_set` | other | yes | [MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations |
+| `fibe_auth_set` | other | yes | [MODE:SIDEEFFECTS] Set the API key and domain for this MCP session. |
 | `fibe_auth_status` | meta | yes | [MODE:DIALOG] Show the current MCP session auth target and selected profile, if any. |
 | `fibe_auth_use` | meta | yes | [MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately. |
 | `fibe_call` | meta | yes | [MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear. |
@@ -51,10 +51,10 @@ Generated from the MCP registry.
 | `fibe_monitor_list` | overseer | yes | [MODE:OVERSEER] List agent-produced monitor events |
 | `fibe_mutter` | base | yes | [MODE:SIDEEFFECTS] Create one short mutter for an agent: a visible internal note used for progress, proof, blocker, or problem updates. |
 | `fibe_mutters_get` | overseer | yes | [MODE:OVERSEER] Retrieve an agent's mutter stream by id_or_name, with optional query/status/severity/playground filters. |
-| `fibe_pipeline` | meta | yes | [MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs. |
-| `fibe_pipeline_result` | meta | yes | [MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution |
+| `fibe_pipeline` | meta | yes | [MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs. |
+| `fibe_pipeline_result` | meta | yes | [MODE:DIALOG] Look up a cached result from an earlier pipeline execution. |
 | `fibe_playgrounds_action` | brownfield | yes | [MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Marquee fail with MARQUEE_NOT_FUNDED when unpaid; stop cleanup remains allowed. |
-| `fibe_playgrounds_debug` | brownfield | yes | [MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment. |
+| `fibe_playgrounds_debug` | brownfield | yes | [MODE:DIALOG] Retrieve Playground service, container, port, path, label, status, URL, and recent-log diagnostics. |
 | `fibe_playgrounds_logs` | brownfield | yes | [MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid. |
 | `fibe_playgrounds_switch_template` | brownfield | yes | [MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Marquee and fails with MARQUEE_NOT_FUNDED when unpaid. |
 | `fibe_playgrounds_wait` | brownfield | yes | [MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready. |
@@ -66,8 +66,8 @@ Generated from the MCP registry.
 | `fibe_resource_watch` | base | yes | [MODE:DIALOG] Watch supported Fibe resource events. |
 | `fibe_run` | meta | yes | [MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly. |
 | `fibe_schema` | meta | yes | [MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog. |
-| `fibe_status` | meta | yes | [MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account. |
+| `fibe_status` | meta | yes | [MODE:DIALOG] Show resource counts, quotas, and rate limits for the account. |
 | `fibe_templates_change` | brownfield | no | [MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run. Rollout/trigger actions require a funded Marquee and fail with MARQUEE_NOT_FUNDED when unpaid. |
 | `fibe_templates_search` | greenfield | yes | [MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering. |
-| `fibe_tools_catalog` | meta | yes | [MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds |
+| `fibe_tools_catalog` | meta | yes | [MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly. |
 | `fibe_update_name` | base | yes | [MODE:DIALOG] Update your own agent name. |

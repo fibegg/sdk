@@ -14,17 +14,8 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 )
 
-// ServeHTTP runs the MCP server over SSE (default) or streamable-HTTP.
-//
-// Per-request credentials are extracted from these headers (checked in order):
-//
-//	Authorization: Bearer <api_key>
-//	X-Fibe-API-Key: <api_key>
-//	X-Fibe-Domain:  <domain override>
-//
-// The credentials are injected into the request context; resolveClient()
-// picks them up when the tool handler asks for an SDK client, giving us
-// per-request auth isolation across tenants.
+// ServeHTTP runs SSE or streamable HTTP. Bearer or X-Fibe-API-Key credentials
+// and X-Fibe-Domain overrides are isolated in each request context.
 func (s *Server) ServeHTTP(ctx context.Context, addr string, streamable bool) error {
 	if addr == "" {
 		return errors.New("HTTP listen address is required")
@@ -188,14 +179,8 @@ func (s *Server) domainAllowed(domain string) bool {
 	return false
 }
 
-// injectAuthFromRequest reads per-request headers and stores them on the
-// session state keyed by the MCP session ID. Because mcp-go assigns a
-// stable session ID per HTTP connection, the state carries across all calls
-// made on that connection.
-//
-// Note: the session ID isn't available in this function yet (the session is
-// created *after* the context func runs). We stash the raw values on the
-// context itself using unexported keys; resolveClient reads them later.
+// injectAuthFromRequest stores headers on the context because mcp-go creates
+// the stable connection session only after this hook runs.
 func (s *Server) injectAuthFromRequest(ctx context.Context, r *http.Request) context.Context {
 	apiKey := bearerFromRequest(r)
 	if apiKey == "" {

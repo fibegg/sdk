@@ -16,12 +16,8 @@ type CredentialEntry struct {
 	Profile  string `json:"profile,omitempty"`
 }
 
-// CredentialStore manages persistent CLI credentials.
-// File layout:
-// {"profiles": {"default": {...}}, "domains": {"fibe.gg": {...}}}
-//
-// The domains map is kept for backward compatibility with older CLIs and SDK
-// ambient credential lookup. New CLI auth should prefer profile methods.
+// CredentialStore persists named profiles and the legacy domain map used by
+// older CLIs and ambient SDK lookup.
 type CredentialStore struct {
 	path string
 }
@@ -31,9 +27,7 @@ type credentialFile struct {
 	Profiles map[string]*CredentialEntry `json:"profiles,omitempty"`
 }
 
-// DefaultCredentialPath returns $XDG_CONFIG_HOME/fibe/credentials.json,
-// falling back to ~/.config/fibe/credentials.json.
-// This ensures consistent cross-platform behavior (macOS + Linux).
+// DefaultCredentialPath uses XDG_CONFIG_HOME, falling back to ~/.config/fibe.
 func DefaultCredentialPath() string {
 	cfgDir := os.Getenv("XDG_CONFIG_HOME")
 	if cfgDir == "" {

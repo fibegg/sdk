@@ -23,7 +23,7 @@ import (
 // fibe_pipeline_result.
 func (s *Server) registerPipelineTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.", tier: tierMeta,
+		name: "fibe_pipeline", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runPipeline(ctx, args)
@@ -33,7 +33,7 @@ func (s *Server) registerPipelineTools() {
 
 STEPS:
   Each step is {id, tool, args} or {parallel: [...]} or {for_each: "$.list", as, steps, collect}.
-  Args may contain JSONPath expressions beginning with "$." — they resolve against a map of
+  Args may contain JSONPath expressions beginning with "$.": they resolve against a map of
   prior step outputs. Example: "$.pg.id" references the "pg" step's result field "id".
 
 LIMITS:
@@ -45,8 +45,7 @@ RETURN:
   object literal with JSONPath values to project only what you need.
 
 CACHING:
-  The full result tree is cached per session for 5 minutes under a returned pipeline_id —
-  including partial results from pipelines that errored mid-run. Use fibe_pipeline_result
+  The full result tree is cached per session for 5 minutes under a returned pipeline_id: including partial results from pipelines that errored mid-run. Use fibe_pipeline_result
   to re-query specific fields later without rerunning. Successful runs have status:"completed";
   mid-run failures have status:"partial" with an "error" block identifying the failed step
   and a "completed_step_ids" array so you can garbage-collect created resources.
@@ -67,7 +66,7 @@ Each step is one of:
 Args may contain JSONPath references starting with "$.", resolved against the map of prior step outputs.`),
 			// Gemini's schema validator requires items to be declared on
 			// every array; other MCP hosts are looser. We describe steps as
-			// a permissive object — the runtime validates the polymorphic
+			// a permissive object: the runtime validates the polymorphic
 			// shape (tool / parallel / for_each) itself.
 			withObjectItems(stepSchema()),
 		),
@@ -78,7 +77,7 @@ Args may contain JSONPath references starting with "$.", resolved against the ma
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline_result", description: "[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution", tier: tierMeta,
+		name: "fibe_pipeline_result", description: "[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			pid := argString(args, "pipeline_id")
@@ -107,7 +106,7 @@ PATH RESOLUTION:
   path is a JSONPath expression rooted at the pipeline's step outputs (bindings).
   Example: path="$.create_team.id" returns the "create_team" step's "id" field.
   If the path doesn't resolve inside bindings, it's retried against the full cached
-  response — so "$.status", "$.error", "$.completed_step_ids" also work.
+  response: so "$.status", "$.error", "$.completed_step_ids" also work.
 
 Returns {expired: true} if the ID is unknown or the entry was evicted.`),
 		mcp.WithString("pipeline_id", mcp.Required(), mcp.Description("ID returned by a prior fibe_pipeline call")),
@@ -117,7 +116,7 @@ Returns {expired: true} if the ID is unknown or the entry was evicted.`),
 
 // withObjectItems is a PropertyOption that sets the "items" schema on an
 // array property. mcp-go ships WithStringItems/WithNumberItems/WithBooleanItems
-// but nothing for object items — and Gemini's validator rejects arrays that
+// but nothing for object items: and Gemini's validator rejects arrays that
 // have no items at all.
 func withObjectItems(itemsSchema map[string]any) mcp.PropertyOption {
 	return func(m map[string]any) {
@@ -125,19 +124,10 @@ func withObjectItems(itemsSchema map[string]any) mcp.PropertyOption {
 	}
 }
 
-// stepSchema returns the recursive schema describing a single pipeline
-// step. Gemini's validator walks every nested array and demands an items
-// declaration, so we make sure every inner "parallel" and "steps" array
-// carries one.
-//
-// The schema is intentionally permissive: the runtime validates the
-// polymorphic tool / parallel / for_each shape itself. Describing it with a
-// strict oneOf would bloat the schema without giving the agent better
-// guidance than the free-form description does.
+// stepSchema stays permissive while adding items to every nested array for
+// Gemini's validator; runtime code validates each polymorphic step shape.
 func stepSchema() map[string]any {
-	// Inner object schema used as items for arrays of sub-steps. We stop
-	// one level deep — enough for Gemini to accept the schema without
-	// exploding into a fully recursive definition.
+	// One nested level satisfies Gemini without an unbounded recursive schema.
 	innerStep := map[string]any{
 		"type":        "object",
 		"description": "A nested pipeline step.",
@@ -204,7 +194,6 @@ type pipelineStep struct {
 	Steps   []pipelineStep `json:"steps,omitempty"`
 	Collect string         `json:"collect,omitempty"` // optional JSONPath on each iteration's final output
 
-	// Error handling
 	OnError string `json:"on_error,omitempty"` // abort (default) | continue
 
 	// input_path/output_path filtering (Tool Chainer compatibility)
@@ -213,7 +202,7 @@ type pipelineStep struct {
 }
 
 func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, error) {
-	// Refuse nested pipelines at the top level — a fibe_pipeline step that
+	// Refuse nested pipelines at the top level: a fibe_pipeline step that
 	// invokes fibe_pipeline is caught by dispatcher lookup later. The
 	// dispatcher will return "unknown tool" if nesting is disallowed in
 	// dispatch; we handle that at step-invocation time too.
@@ -569,7 +558,6 @@ func (r *pipelineRunner) execTool(stepPath string, step pipelineStep, scope map[
 		return fmt.Errorf("resolve args for %q: %w", step.ID, err)
 	}
 
-	// input_path filters the resolved args down to the subtree named by the path.
 	if step.InputPath != "" {
 		filtered, err := projectOnMap(resolved, step.InputPath)
 		if err != nil {
@@ -732,7 +720,6 @@ func (r *pipelineRunner) execForEach(path string, step pipelineStep, scope map[s
 				return fmt.Errorf("for_each[%v]: %w", item, err)
 			}
 		}
-		// Collect projection
 		var collected any = iterScope
 		if step.Collect != "" {
 			projected, err := projectOnMap(iterScope, step.Collect)
@@ -810,27 +797,14 @@ func projectOnMap(data any, path string) (any, error) {
 	return jsonpath.Get(path, data)
 }
 
-// normalizeForJSONPath converts an arbitrary Go value (typically a struct
-// pointer returned by the SDK) into the subset jsonpath can walk:
-// map[string]any, []any, and JSON primitives. Implemented as a JSON
-// round-trip so we honor the same field projection and omitempty behavior
-// the rest of the server already exposes to clients.
-//
-// This is the single point that prevents the "pipeline step 2 can't read
-// step 1's fields" class of bug. It runs on every step output; keep it
-// cheap — the SDK responses are already JSON-shaped so the marshal side is
-// fast.
+// normalizeForJSONPath converts SDK values to JSON-shaped maps, slices, and
+// primitives so later pipeline steps can read projected fields consistently.
 func normalizeForJSONPath(v any) (any, error) {
 	if v == nil {
 		return nil, nil
 	}
-	// Fast path: scalar primitives only. We deliberately do NOT fast-path
-	// maps / slices even if they're already map[string]any / []any,
-	// because their element types might still be struct pointers (e.g.,
-	// the SDK's Debug endpoint returns map[string]any whose values could
-	// be any type). A JSON round-trip guarantees all numeric values
-	// surface as float64 — which the JSONPath library expects when
-	// comparing ordered values.
+	// Containers still need a round-trip because nested values may be structs;
+	// it also normalizes numbers to the float64 form JSONPath expects.
 	switch v.(type) {
 	case string, bool, float64, int, int64, nil:
 		return v, nil
@@ -846,11 +820,8 @@ func normalizeForJSONPath(v any) (any, error) {
 	return out, nil
 }
 
-// projectCached is the smart projection fibe_pipeline_result uses. It
-// tries the path against the pipeline's step bindings first (so agents
-// write $.step_id.field without having to remember the outer "steps"
-// wrapper), then falls back to the whole cached response (so $.status,
-// $.error, $.completed_step_ids remain reachable).
+// projectCached tries step bindings first, then the full cached response so
+// callers can omit the outer "steps" wrapper without losing status fields.
 func projectCached(raw json.RawMessage, path string) (any, error) {
 	var whole any
 	if err := json.Unmarshal(raw, &whole); err != nil {

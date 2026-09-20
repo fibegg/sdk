@@ -65,21 +65,9 @@ func resolveMCPProjectScope(client, project string, userScope bool) (string, err
 	return "", nil
 }
 
-// runMCPInstall writes the fibe MCP server entry into the target client's
-// configuration file. Works with claude-code, claude-desktop, cursor, vscode,
-// antigravity, and codex.
-//
-// Design notes:
-//   - Never clobber unrelated entries: we read the existing config, merge
-//     our "fibe" entry, and write the file back with the same shape.
-//   - Dry-run mode prints the resolved path and the proposed delta so users
-//     can review before overwriting.
-//   - Each client has a slightly different schema (claude uses "mcpServers",
-//     vscode uses "servers", Codex uses TOML "mcp_servers"), so we keep a
-//     small per-client adapter.
-//   - Default stdio installs pin a profile rather than forwarding shell
-//     auth env vars. Explicit --api-key/--domain are passed to the launched
-//     "fibe mcp serve" command as one-off overrides.
+// runMCPInstall merges a Fibe server into each client's native config shape.
+// Dry runs show the path and delta; default stdio installs pin a profile while
+// explicit API key and domain flags remain one-off command overrides.
 func runMCPInstall(client, project string, dryRun bool, opts installOptions) error {
 	bin, err := os.Executable()
 	if err != nil {
@@ -183,7 +171,6 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 		entry["env_vars"] = envVars
 	}
 	if client == "claude-code" || client == "vscode" {
-		// Claude Code and VS Code both emit "type":"stdio" in their current config schemas.
 		entry["type"] = "stdio"
 	}
 	return entry, warnings, nil
@@ -275,7 +262,7 @@ func remoteAuthHeaders(client string, opts installOptions) (map[string]string, [
 			return map[string]string{"Authorization": "Bearer " + v}, nil
 		}
 		return nil, []string{
-			"Authorization header omitted — antigravity does not expand ${VAR} placeholders in remote MCP config; rerun with --api-key <key> or export FIBE_API_KEY before install.",
+			"Authorization header omitted: antigravity does not expand ${VAR} placeholders in remote MCP config; rerun with --api-key <key> or export FIBE_API_KEY before install.",
 		}
 	default:
 		return nil, nil
@@ -311,7 +298,6 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 		env["FIBE_MCP_AUDIT_LOG"] = opts.AuditLog
 	}
 
-	// Arbitrary --env KEY=VALUE pairs (override earlier values).
 	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
 
 	return env, nil, warnings
@@ -344,7 +330,7 @@ func runMCPUninstall(client, project string, dryRun bool) error {
 	data, readErr := readMCPConfigFile(target.Path)
 	if readErr != nil {
 		if os.IsNotExist(readErr) {
-			fmt.Printf("No config file at %s — nothing to uninstall.\n", target.Path)
+			fmt.Printf("No config file at %s: nothing to uninstall.\n", target.Path)
 			return nil
 		}
 		return fmt.Errorf("read %s: %w", target.Path, readErr)
@@ -356,11 +342,11 @@ func runMCPUninstall(client, project string, dryRun bool) error {
 
 	servers, _ := existing[target.WrapperKey].(map[string]any)
 	if servers == nil {
-		fmt.Printf("No %q entries in %s — nothing to uninstall.\n", target.WrapperKey, target.Path)
+		fmt.Printf("No %q entries in %s: nothing to uninstall.\n", target.WrapperKey, target.Path)
 		return nil
 	}
 	if _, present := servers[mcpServerName]; !present {
-		fmt.Printf("No 'fibe' entry in %s — nothing to uninstall.\n", target.Path)
+		fmt.Printf("No 'fibe' entry in %s: nothing to uninstall.\n", target.Path)
 		return nil
 	}
 
@@ -407,7 +393,7 @@ func resolveMCPClientTarget(client, project string) (mcpClientTarget, error) {
 		target, err := codexConfigPath(project)
 		return mcpClientTarget{Path: target, WrapperKey: "mcp_servers", WrapperDefault: map[string]any{}, Format: mcpConfigTOML}, err
 	default:
-		return mcpClientTarget{}, fmt.Errorf("unknown client %q — valid: %s", client, mcpValidClientList)
+		return mcpClientTarget{}, fmt.Errorf("unknown client %q: valid: %s", client, mcpValidClientList)
 	}
 }
 

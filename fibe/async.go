@@ -18,7 +18,6 @@ type AsyncResult struct {
 	Status    string `json:"status"` // queued, running, success, error
 	StatusURL string `json:"status_url,omitempty"`
 
-	// Populated once the operation completes (status == "success"):
 	Payload map[string]any `json:"-"`
 	// Populated when the operation fails (status == "error"):
 	Error        string         `json:"error,omitempty"`
@@ -105,9 +104,9 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 		case "missing":
 			return result, fmt.Errorf("fibe: async request not found")
 		case "queued", "running":
-			// still in progress — wait and retry
+			// still in progress: wait and retry
 		default:
-			// Unknown terminal status — treat as success payload
+			// Unknown terminal status: treat as success payload
 			result.Status = "success"
 			if result.Payload == nil {
 				result.Payload = map[string]any{}
@@ -284,7 +283,6 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		if c.breaker != nil {
 			c.breaker.recordSuccess()
 		}
-		// Parse the 202 response to get the request_id
 		var asyncResp AsyncResult
 		decErr := decodeJSONLimited(resp.Body, maxResponseBody, "async accepted response body", &asyncResp)
 		drainAndClose(resp.Body)
@@ -305,7 +303,6 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 			Attempt:    0,
 		})
 
-		// Poll until completion
 		final, pollErr := c.PollAsync(ctx, statusPath, nil)
 		if pollErr != nil {
 			return pollErr
@@ -328,7 +325,6 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 			}
 		}
 
-		// Decode the final payload into the caller's result type
 		if result != nil && final.Payload != nil {
 			data, err := json.Marshal(final.Payload)
 			if err != nil {
@@ -339,7 +335,6 @@ func (c *Client) doAsync(ctx context.Context, method, path, statusPathFmt string
 		return nil
 	}
 
-	// Non-202 — standard response handling
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		if c.breaker != nil {
 			c.breaker.recordSuccess()

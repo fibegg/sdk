@@ -72,5 +72,5 @@ func (s *Server) registerPlaygroundMutationTools() {
 			mcp.WithNumber("logs_tail", mcp.Description("Optional number of service log lines to include.")),
 		))
 	}
-	registerPlaygroundDebugTool("fibe_playgrounds_debug", "[MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment.")
+	registerPlaygroundDebugTool("fibe_playgrounds_debug", "[MODE:DIALOG] Retrieve Playground service, container, port, path, label, status, URL, and recent-log diagnostics.")
 }

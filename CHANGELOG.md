@@ -76,9 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **MCP server (`fibe mcp`)**: The `fibe` binary now doubles as a local [Model Context Protocol](https://modelcontextprotocol.io) server so LLM agents can drive Fibe without paying the `fork+exec` cost of invoking the CLI per operation.
-  - **`fibe mcp serve`** — stdio transport (default), SSE (`--http :port`), or streamable-HTTP (`--http :port --streamable`).
+  - **`fibe mcp serve`**: stdio transport (default), SSE (`--http :port`), or streamable-HTTP (`--http :port --streamable`).
   - **60 registered dispatcher tools** with a curated agent workflow surface. The default/full tool surface advertises 59 non-hidden tools, while `--tools core` / `FIBE_MCP_TOOLS=core` advertises the 39 meta/base/greenfield/brownfield tools.
-  - **`fibe_pipeline`** — compose multiple tool calls in one round-trip with JSONPath bindings, `parallel` blocks, `for_each` fanout, `dry_run` validation. Results cached per session for 5 minutes under a `pipeline_id`; re-query via `fibe_pipeline_result` with a JSONPath projection.
+  - **`fibe_pipeline`**: compose multiple tool calls in one round-trip with JSONPath bindings, `parallel` blocks, `for_each` fanout, `dry_run` validation. Results cached per session for 5 minutes under a `pipeline_id`; re-query via `fibe_pipeline_result` with a JSONPath projection.
   - **`idempotency_key`** on `fibe_pipeline` is threaded into per-step SDK contexts (sha256 of `key:step_id`) so destructive pipeline retries hit the server-side 24-hour idempotency cache.
   - **Streaming**: `fibe_playgrounds_wait` emits MCP progress notifications per poll tick, and `fibe_logs_follow` streams playground or trick log lines as notifications.
   - **`--yolo` / `FIBE_MCP_YOLO=1`** skips the `confirm:true` gate on destructive tools for non-interactive (CI) use.

@@ -159,7 +159,7 @@ func (s *PlaygroundService) WaitForStatusWithReadinessByIdentifier(ctx context.C
 			if pendingReason == "" {
 				pendingReason = fmt.Sprintf("last status: %s", status.Status)
 			}
-			return nil, fmt.Errorf("timeout after %s — %s", timeout, pendingReason)
+			return nil, fmt.Errorf("timeout after %s: %s", timeout, pendingReason)
 		case <-time.After(interval):
 		}
 	}

@@ -29,7 +29,6 @@ func TestStdoutIsolation(t *testing.T) {
 		t.Skip("short mode: skipping subprocess-based pipe hygiene test")
 	}
 
-	// Locate the sdk module root so we can `go build` the fibe binary.
 	moduleRoot := findModuleRoot(t)
 	bin := filepath.Join(t.TempDir(), "fibe")
 	build := exec.Command("go", "build", "-o", bin, "./cmd/fibe")
@@ -65,14 +64,13 @@ func TestStdoutIsolation(t *testing.T) {
 		}
 	}
 
-	// 1. Handshake.
 	sendJSON(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}`)
 	sendJSON(`{"jsonrpc":"2.0","method":"notifications/initialized"}`)
 	// 2. Call fibe_run schema --list. printJSON uses fmt.Println, bypassing
 	//    cobra's SetOut and hitting the global os.Stdout. The pipe hijack
 	//    must redirect those bytes without waiting on network I/O.
 	sendJSON(`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"fibe_run","arguments":{"args":["schema","--list"]}}}`)
-	// 3. Call fibe_auth_set with a clearly bogus key and validate:false so
+	// 3. Call fibe_auth_set with an invalid key and validate:false so
 	//    we skip the ping path that would produce an expected HTTP error.
 	sendJSON(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"fibe_auth_set","arguments":{"api_key":"pk_test_totally_invalid","validate":false}}}`)
 	// 4. tools/list should still succeed after the prior calls.
@@ -138,8 +136,7 @@ func TestStdoutIsolation(t *testing.T) {
 // captures direct fmt.Println output into the result, instead of losing it
 // to stderr or corrupting the parent pipe.
 //
-// We use a real *cobra.Command with a RunE that calls fmt.Println directly —
-// the exact pattern every cmd_*.go handler uses in this repo.
+// We use a real *cobra.Command with a RunE that calls fmt.Println directly: // the exact pattern every cmd_*.go handler uses in this repo.
 func TestRunCobraCapturesStdout(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test"})
 	if err := srv.RegisterAll(); err != nil {
@@ -150,8 +147,6 @@ func TestRunCobraCapturesStdout(t *testing.T) {
 	echo := &cobra.Command{
 		Use: "echo",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Directly write to os.Stdout — bypasses cobra's SetOut, which is
-			// the exact antipattern the hijack has to tolerate.
 			fmt.Println("line via fmt.Println")
 			return nil
 		},
@@ -452,5 +447,4 @@ func findModuleRoot(t *testing.T) string {
 	}
 }
 
-// Keep fibe import live (used in other tests in this package; compile-time guard).
 var _ = fibe.NewIdempotencyKey

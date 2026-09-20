@@ -10,19 +10,8 @@ import (
 
 type onlyFieldsCtxKey struct{}
 
-// WithFields returns a context that causes SDK responses to be filtered
-// to only the specified fields. Works on any struct or map response.
-// Nested fields are not supported — only top-level keys.
-//
-// This is designed for LLM agents that need to minimize context window usage:
-//
-//	ctx := fibe.WithFields(ctx, "id", "name", "status")
-//	pg, _ := client.Playgrounds.Get(ctx, 42)
-//	// pg only has id, name, status populated — all other fields are zero values
-//
-// Field names use the JSON tag names (snake_case), not Go struct field names.
-// Unknown field names are silently ignored.
-// Passing zero fields disables filtering (returns all fields).
+// WithFields limits SDK responses to top-level JSON field names. Unknown names
+// are ignored and an empty list disables filtering; omitted struct fields stay zero-valued.
 func WithFields(ctx context.Context, fields ...string) context.Context {
 	if len(fields) == 0 {
 		return ctx

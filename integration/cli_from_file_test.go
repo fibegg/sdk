@@ -55,7 +55,6 @@ func TestCLI_FromFile_JSON(t *testing.T) {
 		t.Fatalf("expected error without name, got nil (out: %s)", out)
 	}
 	if !strings.Contains(out, "required field 'name' not set") && !strings.Contains(err.Error(), "required field") && !strings.Contains(out, "Error:") {
-		// Output usually contains the log
 	}
 
 	// 2. Should succeed when name is provided from flag (CLI override)
@@ -93,7 +92,6 @@ func TestCLI_FromFile_YAML(t *testing.T) {
 	err := os.WriteFile(yamlPath, []byte(yamlContent), 0644)
 	requireNoError(t, err, "write yaml")
 
-	// Will succeed fully from yaml file
 	out, err := runCLI(t, "pg", "create", "--from-file", yamlPath)
 	requireNoError(t, err, "failed creating playground from YAML:\nOUTPUT: "+out)
 
@@ -105,7 +103,6 @@ func TestCLI_FromFile_YAML(t *testing.T) {
 		t.Errorf("expected name %s, got %s", pgName, pg.Name)
 	}
 
-	// Update via file
 	yamlUpdatePath := filepath.Join(dir, "update.yml")
 	newName := pgName + "-renamed"
 	err = os.WriteFile(yamlUpdatePath, []byte("name: "+newName+"\n"), 0644)
@@ -148,7 +145,6 @@ func TestCLI_FromFile_STDIN(t *testing.T) {
 		requireNoError(t, err, "unexpected implicit STDIN error:\nOUTPUT: "+out)
 	}
 
-	// 2. Test explicit '-' parsing
 	pgName2 := uniqueName("test-stdin-explicit")
 	params["name"] = pgName2
 	data2, _ := json.Marshal(params)

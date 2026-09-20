@@ -20,9 +20,9 @@ func mcpCmd() *cobra.Command {
 without paying the fork+exec cost of invoking the CLI per operation.
 
 TRANSPORTS:
-  stdio  (default) — one client per spawned process; single-tenant
-  sse    --http :8080 — multiple clients, per-session auth required
-  http   --streamable :8080 — same as SSE but with streamable-HTTP transport
+  stdio  (default): one client per spawned process; single-tenant
+  sse    --http :8080: multiple clients, per-session auth required
+  http   --streamable :8080: same as SSE but with streamable-HTTP transport
 
 SUBCOMMANDS:
   serve     Run the MCP server (default: stdio)
@@ -156,7 +156,6 @@ EXAMPLES:
 				fmt.Fprintln(os.Stderr, "WARN: --yolo enabled; destructive tools do not require confirm:true")
 			}
 
-			// Wire the cobra root tree so fibe_help and fibe_run can introspect it.
 			cfg.CobraRoot = cmd.Root()
 			if exe, err := os.Executable(); err == nil {
 				cfg.CobraExecutable = exe
@@ -351,7 +350,7 @@ EXAMPLES:
 				enc.SetIndent("", "  ")
 				return enc.Encode(snippet)
 			case "vscode":
-				fmt.Println(`// Add under "servers" in .vscode/mcp.json (schema differs slightly — see VS Code docs):`)
+				fmt.Println(`// Add under "servers" in .vscode/mcp.json (schema differs slightly: see VS Code docs):`)
 				snippet := map[string]any{mcpServerName: entry}
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
@@ -376,7 +375,7 @@ EXAMPLES:
 				_, err = os.Stdout.Write(out)
 				return err
 			default:
-				return fmt.Errorf("unknown client %q — valid: %s", client, mcpValidClientList)
+				return fmt.Errorf("unknown client %q: valid: %s", client, mcpValidClientList)
 			}
 		},
 	}

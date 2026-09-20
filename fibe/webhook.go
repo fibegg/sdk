@@ -18,7 +18,7 @@ type WebhookPayload struct {
 }
 
 // VerifyWebhookSignature verifies the HMAC-SHA256 signature on a webhook request.
-// It does NOT check payload age — use VerifyWebhookSignatureWithMaxAge for replay protection.
+// It does NOT check payload age: use VerifyWebhookSignatureWithMaxAge for replay protection.
 func VerifyWebhookSignature(r *http.Request, secret string) (*WebhookPayload, error) {
 	return VerifyWebhookSignatureWithMaxAge(r, secret, 0)
 }

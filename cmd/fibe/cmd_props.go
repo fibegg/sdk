@@ -12,7 +12,7 @@ func propsCmd() *cobra.Command {
 		Use:     "props",
 		Aliases: []string{"pr", "repos"},
 		Short:   "Manage props (linked repositories)",
-		Long: `Manage Fibe props — linked Git repositories.
+		Long: `Manage Fibe props: linked Git repositories.
 
 Props connect your GitHub or Gitea repositories to Fibe for automatic
 syncing, branch tracking, and environment variable detection.
@@ -377,7 +377,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Mirroring started — prop %d (%s)\n", prop.ID, prop.Name)
+			fmt.Printf("Mirroring started: prop %d (%s)\n", prop.ID, prop.Name)
 			return nil
 		},
 	}

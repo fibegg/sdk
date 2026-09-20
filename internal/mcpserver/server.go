@@ -1,27 +1,6 @@
-// Package mcpserver implements the local MCP server for the Fibe SDK.
-//
-// The server is launched via `fibe mcp serve` and exposes the Fibe API as a
-// Model Context Protocol server so LLM agents can drive Fibe resources
-// without paying the fork+exec cost of invoking the CLI per operation.
-//
-// Design:
-//
-//   - Generic flat resource reads/deletes are exposed through
-//     fibe_resource_list/get/delete. Create/update and custom domain actions
-//     remain concrete MCP tools, matching the CLI where those workflows need
-//     richer input shapes.
-//
-//   - All tool invocations route through a single dispatcher that enforces
-//     destructive-op gating, --yolo bypass, per-session authentication, and
-//     idempotency. Both direct tool calls and fibe_pipeline steps go through
-//     the same dispatcher, so safety is checked in one place.
-//
-//   - Streaming tools (wait, logs --follow) emit MCP progress notifications
-//     rather than blocking until completion.
-//
-//   - fibe_pipeline composes multiple tool calls in one round-trip using
-//     JSONPath bindings; pipeline results are cached per session for five
-//     minutes and addressable via fibe_pipeline_result.
+// Package mcpserver exposes the Fibe API through MCP. One dispatcher applies
+// authentication, destructive-action gates, and idempotency to direct and
+// pipeline calls; streaming tools report progress and pipeline results are cached.
 package mcpserver
 
 import (
@@ -38,9 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// serverAlias is an indirection so we can keep the existing `server` local
-// variable name from the pre-refactor code while importing mcp-go's server
-// package under a distinct alias.
+// Keep the aliased mcp-go package compile-visible.
 var _ = mcpserver.NewMCPServer
 
 // Version is stamped at build time via ldflags; defaults to "devel".
@@ -97,7 +74,6 @@ type Config struct {
 	// in bytes. Larger results get truncated with a truncated:true marker.
 	PipelineCacheEntryMax int
 
-	// Pipeline execution bounds apply recursively across nested blocks.
 	PipelineMaxSteps       int
 	PipelineMaxIterations  int
 	PipelineMaxDepth       int
@@ -204,7 +180,6 @@ func New(cfg Config) *Server {
 // RegisterAll wires up tools, resources, and prompts. Called after New and
 // before Serve.
 func (s *Server) RegisterAll() error {
-	// Populated in later phases: registerTools, registerResources, registerPrompts.
 	if err := s.registerTools(); err != nil {
 		return fmt.Errorf("register tools: %w", err)
 	}
@@ -214,34 +189,15 @@ func (s *Server) RegisterAll() error {
 	return nil
 }
 
-// ServeStdio runs the MCP server against stdin/stdout.
-//
-// CRITICAL: The stdio transport piggybacks JSON-RPC on os.Stdout. Any stray
-// byte written to os.Stdout by any goroutine anywhere in the process (a
-// misbehaving log line, a cobra handler using fmt.Println, a panic trace)
-// will corrupt the MCP pipe with an unrecoverable parse error like:
-//
-//	calling "tools/call": invalid message version tag ""; expected "2.0"
-//
-// To prevent that, we:
-//  1. Capture the real os.Stdout into a private variable BEFORE mcp-go
-//     starts using it.
-//  2. Replace os.Stdout with os.Stderr so every fmt.Println / log.Println
-//     in the rest of the process writes to stderr instead of the pipe.
-//  3. Hand the captured real stdout to mcp-go's StdioServer.Listen so only
-//     properly-framed JSON-RPC messages reach the client.
-//  4. Redirect the stdlib "log" package to stderr too (its default writer
-//     is the same os.Stderr, but be explicit because log.SetOutput(nil)
-//     would target os.Stdout post-redirect).
+// ServeStdio runs the MCP server against stdin/stdout. Stdout carries JSON-RPC,
+// so it captures the real stream for mcp-go and redirects every other writer to
+// stderr. Any stray stdout byte would corrupt the protocol.
 func (s *Server) ServeStdio(ctx context.Context) error {
 	s.baseCli = s.buildBaseClient()
 	if s.audit != nil {
 		defer s.audit.Close()
 	}
 
-	// Capture & redirect. If anything later in this function calls
-	// fmt.Println or similar it will now go to stderr, which mcp-go and
-	// most MCP hosts treat as a debug channel, not as JSON-RPC.
 	realStdout := os.Stdout
 	os.Stdout = os.Stderr
 	log.SetOutput(os.Stderr)
@@ -332,8 +288,6 @@ func (s *Server) AllTools() []ToolInfo {
 // plain map[string]any suitable for JSON marshaling. It handles both the
 // structured InputSchema path and the RawInputSchema path.
 func toolInputSchemaToMap(tool mcp.Tool) any {
-	// The mcp.Tool has a custom MarshalJSON that resolves InputSchema vs
-	// RawInputSchema. We marshal the whole tool, then pull out inputSchema.
 	data, err := json.Marshal(tool)
 	if err != nil {
 		return nil
@@ -346,7 +300,6 @@ func toolInputSchemaToMap(tool mcp.Tool) any {
 	if !ok {
 		return nil
 	}
-	// Skip empty schemas (just {"type":"object"} or {"type":"object","properties":{}}).
 	if sm, ok := schema.(map[string]any); ok {
 		props, hasProps := sm["properties"]
 		if !hasProps {

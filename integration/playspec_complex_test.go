@@ -32,7 +32,6 @@ func TestPlayspec_WithTriggerConfig(t *testing.T) {
 		}
 	})
 
-	// Verify trigger_config persists
 	detail, err := c.Playspecs.Get(ctx(), *spec.ID)
 	requireNoError(t, err)
 	if detail.TriggerConfig == nil {
@@ -83,7 +82,6 @@ func TestPlayspec_WithRegistryCredential(t *testing.T) {
 
 	spec := seedPlayspec(t, c)
 
-	// Add a registry credential (dummy values — never actually used to pull)
 	_, err := c.Playspecs.AddRegistryCredential(ctx(), *spec.ID, &fibe.RegistryCredentialParams{
 		RegistryType: "dockerhub",
 		RegistryURL:  "https://index.docker.io/v1/",
@@ -100,7 +98,6 @@ func TestPlayspec_WithRegistryCredential(t *testing.T) {
 	// Detail should reflect the credential existence (exact shape is backend-defined)
 	d, err := c.Playspecs.Get(ctx(), *spec.ID)
 	requireNoError(t, err)
-	// d.Credentials may be a list; just check non-nil when creds added
 	_ = d
 }
 

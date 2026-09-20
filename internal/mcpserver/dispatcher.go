@@ -16,7 +16,7 @@ import (
 )
 
 // Ensure the fibe import stays compile-visible even when no signature
-// references it directly — handler is `func(..., *fibe.Client, ...)`.
+// references it directly: handler is `func(..., *fibe.Client, ...)`.
 var _ *fibe.Client
 
 var (
@@ -24,16 +24,8 @@ var (
 	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 )
 
-// dispatcher is the single choke point through which every tool invocation
-// passes — including steps of a fibe_pipeline. It enforces:
-//
-//   - destructive-op gating (confirm:true or --yolo)
-//   - per-session auth resolution
-//   - idempotency / rate-limit inheritance from the resolved client
-//
-// The actual work for each tool is performed by a toolImpl registered via
-// register(). toolImpls stay free of auth/safety concerns; the dispatcher
-// handles that uniformly.
+// dispatcher applies confirmation, per-session auth, idempotency, and rate
+// limits uniformly to direct and pipeline tool calls.
 type dispatcher struct {
 	srv   *Server
 	mu    sync.RWMutex
@@ -212,7 +204,7 @@ func valueAsInt64(v any) (int64, bool) {
 type confirmRequiredError struct{ tool string }
 
 func (e *confirmRequiredError) Error() string {
-	return fmt.Sprintf("tool %q is destructive — pass confirm:true or run server with --yolo", e.tool)
+	return fmt.Sprintf("tool %q is destructive: pass confirm:true or run server with --yolo", e.tool)
 }
 
 func argBool(args map[string]any, key string) bool {

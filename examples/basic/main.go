@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("list playgrounds: %v", err)
 	}
 	for _, pg := range playgrounds.Data {
-		fmt.Printf("  [%d] %s — %s\n", pg.ID, pg.Name, pg.Status)
+		fmt.Printf("  [%d] %s: %s\n", pg.ID, pg.Name, pg.Status)
 	}
 
 	agents, err := client.Agents.List(ctx, nil)
@@ -37,6 +37,6 @@ func main() {
 		log.Fatalf("list agents: %v", err)
 	}
 	for _, ag := range agents.Data {
-		fmt.Printf("  [%d] %s — %s (auth: %v)\n", ag.ID, ag.Name, ag.Provider, ag.Authenticated)
+		fmt.Printf("  [%d] %s: %s (auth: %v)\n", ag.ID, ag.Name, ag.Provider, ag.Authenticated)
 	}
 }

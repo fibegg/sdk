@@ -37,7 +37,7 @@ func walkCommands(cmd *cobra.Command, w io.Writer) error {
 	// Recurse into children, skipping:
 	// - hidden commands (aliases etc)
 	// - "help" (built-in, excludes itself)
-	// - "docs" (this command — avoid self-inclusion)
+	// - "docs" (this command: avoid self-inclusion)
 	for _, child := range cmd.Commands() {
 		if child.Hidden || child.Name() == "help" || child.Name() == "docs" {
 			continue

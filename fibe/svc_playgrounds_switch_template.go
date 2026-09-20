@@ -7,17 +7,8 @@ import (
 	"time"
 )
 
-// PlaygroundTemplateSwitchParams configures the brownfield analog of greenfield_create:
-// take an existing deployed playground, switch it onto a (potentially fresh) template,
-// optionally provision new private Gitea-backed Props on the fly, and roll it out.
-//
-// One of the following must be provided to identify the new template version:
-//  1. TemplateVersionID — use an exact existing version.
-//  2. TemplateID + (no body) — use the latest version of that template.
-//  3. TemplateBody / TemplateBodyPath (+ optional TemplateID) — author a fresh
-//     template version on the fly. If TemplateID is omitted, a new ImportTemplate
-//     is created (auto-named for the playground) and a first version is published
-//     under it.
+// PlaygroundTemplateSwitchParams moves an existing playground to an exact,
+// latest, or newly authored template version, with optional private Prop provisioning.
 type PlaygroundTemplateSwitchParams struct {
 	PlaygroundID          int64                `json:"playground_id"`
 	PlaygroundIdentifier  string               `json:"playground_identifier,omitempty"`

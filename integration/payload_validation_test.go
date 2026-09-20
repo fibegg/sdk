@@ -7,8 +7,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// TestPayload_PlaygroundDetail verifies that Get returns full detail fields,
-// not just the slim list view.
+// TestPayload_PlaygroundDetail verifies fields available only in detail responses.
 func TestPayload_PlaygroundDetail(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -39,7 +38,6 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 		if detail.Status == "" {
 			t.Error("expected Status")
 		}
-		// TimeRemaining and ExpirationPercentage become available once expiration set
 	})
 
 	t.Run("Compose returns yaml + project (poll until ready)", func(t *testing.T) {
@@ -67,7 +65,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 		if env.Metadata == nil {
 			t.Error("expected non-nil Metadata map")
 		}
-		// SystemKeys may be empty; just check non-nil
+		// An empty SystemKeys map must still be initialized.
 		if env.SystemKeys == nil {
 			t.Error("expected non-nil SystemKeys slice")
 		}
@@ -125,7 +123,6 @@ func TestPayload_APIKeyTokenExposure(t *testing.T) {
 		t.Error("expected MaskedToken always present")
 	}
 
-	// Now re-list: Token should NOT be exposed again
 	list, err := c.APIKeys.List(ctx(), nil)
 	requireNoError(t, err)
 	for _, kk := range list.Data {
@@ -159,7 +156,6 @@ func TestPayload_WebhookDelivery(t *testing.T) {
 		}
 	})
 
-	// Fire a test event
 	if ep.ID != nil {
 		_ = c.WebhookEndpoints.Test(ctx(), *ep.ID)
 	}
@@ -200,7 +196,6 @@ func TestPayload_PlayerMe(t *testing.T) {
 	}
 	// APIKeyScopes may be empty for full-access keys but the field should be present (non-nil when scopes configured)
 
-	// Verify scoped key reports its scopes
 	scoped := createScopedKey(t, c, "me-scopes", []string{"agents:read", "playgrounds:read"})
 	me2, err := scoped.APIKeys.Me(ctx())
 	requireNoError(t, err)
@@ -240,7 +235,6 @@ func TestPayload_SecretValueRoundtrip(t *testing.T) {
 		}
 	})
 
-	// List: value should NOT be exposed
 	list, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Key: key})
 	requireNoError(t, err)
 	for _, ls := range list.Data {
@@ -249,7 +243,6 @@ func TestPayload_SecretValueRoundtrip(t *testing.T) {
 		}
 	}
 
-	// Get: value SHOULD be exposed with explicit reveal
 	if s.ID != nil {
 		got, err := c.Secrets.Get(ctx(), *s.ID, true)
 		requireNoError(t, err)

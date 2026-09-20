@@ -12,7 +12,7 @@ func playspecsCmd() *cobra.Command {
 		Use:     "playspecs",
 		Aliases: []string{"ps"},
 		Short:   "Manage playspecs (service templates)",
-		Long: `Manage Fibe playspecs — service composition templates.
+		Long: `Manage Fibe playspecs: service composition templates.
 
 A playspec defines the docker-compose configuration, mounted files,
 registry credentials, and deployment settings for playgrounds.

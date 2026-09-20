@@ -141,7 +141,7 @@ func WithDomain(domain string) Option {
 }
 
 // WithBaseURL sets the full base URL (scheme + host + optional port).
-// Alias for WithDomain — accepts both "fibe.gg" and "http://localhost:3000".
+// Alias for WithDomain: accepts both "fibe.gg" and "http://localhost:3000".
 func WithBaseURL(url string) Option {
 	return func(c *clientConfig) { c.domain = url }
 }

@@ -30,7 +30,6 @@ SUBCOMMANDS:
 	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artUpdateCmd(), artDownloadCmd())
 	return cmd
 }
-
 func artListCmd() *cobra.Command {
 	var query, name, agentIDFlag, playground, contentType, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
@@ -292,7 +291,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&to, "to", "", "Output file path (required, use - for stdout)")
 	return cmd
 }
-
-// =============================================================================
-// Repo Status: check
-// =============================================================================

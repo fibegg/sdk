@@ -28,11 +28,9 @@ func TestCLIParity_ListTools(t *testing.T) {
 	apiKey, domain := requireRealServer(t)
 	configHome := t.TempDir()
 
-	// Set FIBE_AGENT_ID for feedbacks and mutters tools
 	os.Setenv("FIBE_AGENT_ID", "999999999")
 	defer os.Unsetenv("FIBE_AGENT_ID")
 
-	// 1. Build the fibe binary
 	moduleRoot := findModuleRoot(t)
 	bin := filepath.Join(t.TempDir(), "fibe")
 	build := exec.Command("go", "build", "-o", bin, "./cmd/fibe")
@@ -41,7 +39,6 @@ func TestCLIParity_ListTools(t *testing.T) {
 		t.Fatalf("go build fibe: %v\n%s", err, out)
 	}
 
-	// 2. Setup internal server for MCP calls
 	srv := New(Config{APIKey: apiKey, Domain: domain, AuthSource: "--api-key flag", DomainSource: "--domain flag", ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
@@ -201,7 +198,6 @@ func TestCLIParity_ListTools(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.mcpTool+"_"+tc.cliArgs[0], func(t *testing.T) {
-			// 1. Invoke native MCP tool
 			mcpRes, mcpErr := srv.dispatcher.dispatch(context.Background(), tc.mcpTool, tc.mcpArgs)
 			var mcpBytes []byte
 			if mcpErr != nil {
@@ -224,7 +220,6 @@ func TestCLIParity_ListTools(t *testing.T) {
 				mcpBytes, _ = json.Marshal(mcpRes)
 			}
 
-			// 2. Invoke real CLI via exec
 			cmd := exec.Command(bin, cliArgsWithAuth(apiKey, domain, tc.cliArgs...)...)
 			cmd.Env = append(cmd.Environ(), "FIBE_API_KEY="+apiKey, "FIBE_DOMAIN="+domain, "XDG_CONFIG_HOME="+configHome)
 			cliOut, cliErr := cmd.Output()
@@ -236,7 +231,6 @@ func TestCLIParity_ListTools(t *testing.T) {
 				}
 			}
 
-			// 3. Compare JSON parity
 			var mcpObj, cliObj any
 			if err := json.Unmarshal(mcpBytes, &mcpObj); err != nil {
 				t.Fatalf("unmarshal MCP bytes: %v\nBytes: %s", err, string(mcpBytes))
@@ -245,7 +239,6 @@ func TestCLIParity_ListTools(t *testing.T) {
 				t.Fatalf("unmarshal CLI stdout: %v\nstdout: %s", err, string(cliOut))
 			}
 
-			// Normalize error request IDs and messages which vary per request
 			if errMap, ok := mcpObj.(map[string]any); ok {
 				if errObj, ok := errMap["error"].(map[string]any); ok {
 					errObj["request_id"] = "normalized"
@@ -308,7 +301,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 
 	apiKey, domain := requireRealServer(t)
 
-	// 1. Build the fibe binary
 	moduleRoot := findModuleRoot(t)
 	bin := filepath.Join(t.TempDir(), "fibe")
 	build := exec.Command("go", "build", "-o", bin, "./cmd/fibe")
@@ -317,7 +309,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 		t.Fatalf("go build fibe: %v\n%s", err, out)
 	}
 
-	// 2. Setup internal server
 	srv := New(Config{APIKey: apiKey, Domain: domain, ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
@@ -327,7 +318,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 
 	for _, res := range resources {
 		t.Run(res, func(t *testing.T) {
-			// First, fetch the list via MCP to get a valid ID
 			listResRaw, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{"resource": res})
 			if err != nil {
 				t.Fatalf("Failed to fetch list for %s: %v", res, err)
@@ -351,7 +341,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 				t.Skipf("No %s found to test GET", res)
 			}
 
-			// Convert ID to float64 or string appropriately
 			var idVal any
 			switch v := id.(type) {
 			case float64:
@@ -362,7 +351,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 				idVal = id
 			}
 
-			// 1. Invoke native MCP tool for GET
 			mcpRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 				"resource": res,
 				"id":       idVal,
@@ -375,7 +363,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 			}
 			mcpBytes, _ := json.Marshal(mcpRes)
 
-			// 2. Invoke CLI
 			idStr := ""
 			switch v := idVal.(type) {
 			case int:
@@ -383,7 +370,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 			default:
 				idBytes, _ := json.Marshal(idVal)
 				idStr = string(idBytes)
-				// Remove quotes if string
 				if len(idStr) > 0 && idStr[0] == '"' {
 					idStr = idStr[1 : len(idStr)-1]
 				}
@@ -418,7 +404,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 				t.Fatalf("CLI GET failed: %v", err)
 			}
 
-			// 3. Compare JSON parity
 			var mcpObj, cliObj any
 			json.Unmarshal(mcpBytes, &mcpObj)
 			json.Unmarshal(cliOut, &cliObj)
@@ -433,7 +418,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 		t.Run(res+"_not_found", func(t *testing.T) {
 			invalidID := 999999999
 
-			// 1. Invoke native MCP tool for GET
 			_, mcpErr := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 				"resource": res,
 				"id":       invalidID,
@@ -467,7 +451,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 				cliResName = "job-env"
 			}
 
-			// 2. Invoke CLI
 			var cmd *exec.Cmd
 			if cliResName == "artefacts" {
 				cmd = exec.Command(bin, cliArgsWithAuth(apiKey, domain, cliResName, "get", fmt.Sprintf("%d", invalidID), fmt.Sprintf("%d", invalidID), "--output", "json", "--explain-errors")...)
@@ -487,7 +470,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 				t.Fatalf("Expected CLI to fail, but it succeeded: %s", cliOut)
 			}
 
-			// 3. Compare JSON parity
 			var mcpObj, cliObj any
 			json.Unmarshal(mcpBytes, &mcpObj)
 			if err := json.Unmarshal(cliStderr, &cliObj); err != nil {
@@ -495,8 +477,6 @@ func TestCLIParity_GetTools(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(mcpObj, cliObj) {
-				// Normalize request_id and message containing request_id
-				// Normalize request_id and message containing request_id
 				if mcpMap, ok := mcpObj.(map[string]any); ok {
 					if errMap, ok := mcpMap["error"].(map[string]any); ok {
 						delete(errMap, "request_id")
@@ -526,8 +506,6 @@ func normalizeGetParityObject(resource string, obj any) {
 	if !ok {
 		return
 	}
-	// The GET parity test invokes MCP and CLI sequentially against a live
-	// playground. Runtime state can legitimately change between those calls.
 	delete(m, "status")
 	delete(m, "time_remaining")
 	delete(m, "expiration_percentage")

@@ -14,10 +14,7 @@ import (
 	"github.com/fibegg/sdk/internal/resourceschema"
 )
 
-// TestToolContractSmoke invokes every registered MCP handler from its public
-// schema. Exact schemas and ordering are covered by TestMCPToolContract; this
-// test prevents a schema from drifting so far from its handler that binding
-// panics or the registered handler becomes unreachable.
+// TestToolContractSmoke checks that every public schema still binds to its handler.
 func TestToolContractSmoke(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())

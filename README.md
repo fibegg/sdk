@@ -1,4 +1,4 @@
-# Fibe SDK & CLI
+# Fibe SDK and CLI
 
 The official Go SDK and command-line interface for the Fibe platform.
 
@@ -51,52 +51,42 @@ metadata is stored in `~/.config/fibe/config.json`. `FIBE_API_KEY` and
 `FIBE_DOMAIN` remain supported as CI fallbacks when no profile is configured,
 but they do not override an active profile.
 
-## CLI Usage Highlights
+## CLI examples
 
-The CLI acts as a human-readable entrypoint or an automated integration for LLM agents.
+Use the CLI directly or from agent workflows.
 
 ```bash
-# General details
 fibe doctor
 fibe status
 fibe auth status
-fibe server-info   # server UTC clock + build identity (unauthenticated)
+fibe server-info
 
-# View JSON schemas for commands (useful for LLM Agents)
 fibe schema list
 fibe schema agent create
 
-# Create an agent
 fibe agents create --name "My Assistant" --provider "claude-code"
 
-# Send one chat turn by agent name
 fibe agent chat my-agent "Fix the failing tests"
 fibe agent chat my-agent - < prompt.md
 
-# List agents with bounded runtime status for the returned page
 fibe agents list --include-runtime-status --per-page 100 -o json
 
-# Work with runtime chat attachments through Rails
 fibe agents upload-attachment my-agent --file ./context.zip
 fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
 
-# Watch agent resource events
 fibe agents watch --max-events 5 --duration 1m
 
-# Create a playground from an existing Playspec and override one service field
 fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
-cat payload.yml | fibe pg create -f -   # explicit stdin
-fibe pg create < payload.yml           # file redirection
+cat payload.yml | fibe pg create -f -
+fibe pg create < payload.yml
 
-# Inspect service URLs and runtime service status
 fibe pg get demo
 fibe pg get demo -o json --only service_urls
 
-# Block until a playground starts running by name or ID
 fibe wait playground next --status running --timeout 5m
 ```
 
-## Output Formatting
+## Output formatting
 
 Use `-o` to change formatting:
 
@@ -105,14 +95,14 @@ fibe status -o json
 fibe status -o yaml
 ```
 
-You can filter payloads as well using `--only`
+Use `--only` to filter payloads:
 ```bash
 fibe agents list --output yaml --only "id,name"
 ```
 
-## Go SDK Usage
+## Go SDK
 
-To interact with the Fibe API from Go:
+Create a client and call the API:
 
 ```go
 package main
@@ -130,7 +120,6 @@ func main() {
 		fibe.WithRateLimitAutoWait(),
 	)
 
-	// Fetch account status
 	status, err := client.Status.Get(context.Background())
 	if err != nil {
 		panic(err)
@@ -140,12 +129,12 @@ func main() {
 }
 ```
 
-### Reliable Features Included
+### Reliability
 
-1. **Bounded retries and rate-limit waiting**: Retryable responses, including HTTP `429 Too Many Requests`, use bounded `Retry-After` or exponential-backoff delays. `fibe.WithRateLimitAutoWait()` also waits before a request when the client's last response showed that its known quota was exhausted.
-2. **Optional circuit breaking**: Enable `fibe.WithCircuitBreaker(...)` to stop sending requests after the configured number of transient failures and probe again after its reset interval.
-3. **Idempotency**: Mutating requests send an `Idempotency-Key` header. One automatic key is generated per logical operation and reused across all SDK retries. `fibe.WithIdempotencyKey(ctx, key)` overrides it when a caller needs a stable key across separate calls.
-4. **Progress hooks**: Long-running SDK operations emit `fibe.ProgressEvent` values through `fibe.WithProgress(...)`. The CLI renders these as single-line spinners in interactive terminals and keeps line-based status output for non-interactive scripts.
+1. **Bounded retries and rate-limit waits.** Retryable responses use bounded `Retry-After` or exponential backoff. `fibe.WithRateLimitAutoWait()` waits before a request when the last response exhausted the known quota.
+2. **Circuit breaking.** `fibe.WithCircuitBreaker(...)` stops requests after repeated transient failures, then probes after the reset interval.
+3. **Idempotency.** Mutations share one generated `Idempotency-Key` across retries. `fibe.WithIdempotencyKey(ctx, key)` supplies a key that can span calls.
+4. **Progress hooks.** `fibe.WithProgress(...)` receives `fibe.ProgressEvent` values. The CLI shows a spinner in terminals and line-based status in scripts.
 
 Retryable reads and idempotency-protected mutations handle transient transport
 failures and retryable server responses. Cancellation, expired deadlines,
@@ -155,21 +144,17 @@ client/session.
 
 ## MCP Server
 
-The same `fibe` binary also runs as a local [Model Context Protocol](https://modelcontextprotocol.io) server so LLM agents can drive Fibe without paying the `fork+exec` cost of invoking the CLI per operation.
+The `fibe` binary can also run as a local [Model Context Protocol](https://modelcontextprotocol.io) server, avoiding a new CLI process for every operation.
 
 ```bash
-# Register Fibe with your MCP client (claude-code | claude-desktop | cursor | vscode | antigravity | codex)
 fibe mcp install --client claude-code
-fibe mcp install --client claude-code --user # user-level ~/.claude.json instead of project .mcp.json
+fibe mcp install --client claude-code --user
 fibe mcp install --client codex --profile staging
 
-# Run the server manually (stdio, single-tenant, profile-backed)
 fibe mcp serve --profile staging
 
-# Serve multiple tenants over SSE with per-request bearer auth
 fibe mcp serve --http :8080 --require-auth
 
-# Emit a remote MCP entry for clients that support URL-backed servers
 fibe mcp install --client antigravity --transport streamable-http --url https://fibe.example.com/mcp
 ```
 
@@ -183,7 +168,9 @@ the existing local tools.
 
 ### Tool surface
 
-The server registers a curated tool catalog for agent workflows, with generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch` plus high-value actions such as `fibe_greenfield_create` and `fibe_launch`. Agent list/runtime, attachment, and scheduled poke flows use those generic resource tools: list agents through `fibe_resource_list` with `params.include_runtime_status`, upload attachments through `fibe_resource_mutate` using `agent.upload_attachment`, download runtime files through `fibe_resource_get` using `agent_attachment`, and manage scheduled pokes through the `agent_poke` resource aliases `agent_pokes` and `pokes`. Inspect Playground URLs and services through `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; the detailed response includes `service_urls` and `services`, while `fibe_playgrounds_debug` remains the deeper diagnostics surface for raw compose/routes/log context. Playspec job automation uses `fibe_resource_mutate` with `playspec.create` or `playspec.update`; inspect `fibe_schema(resource:"playspec", operation:"create")` for `schedule_config`, `trigger_config`, and `muti_config` payload fields. Mutation payload schemas are available through `fibe_schema` and are validated locally before API calls.
+The server provides generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch`, plus workflow tools such as `fibe_greenfield_create` and `fibe_launch`.
+
+Agent status, attachments, and scheduled pokes use the resource tools. Set `params.include_runtime_status` when listing agents. Use the `agent.upload_attachment`, `agent_attachment`, and `agent_poke` resource operations for files and pokes. To inspect a Playground, call `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; use `fibe_playgrounds_debug` for raw Compose, route, and log details. Playspec jobs use `playspec.create` or `playspec.update`. `fibe_schema` documents and locally validates mutation payloads.
 
 The generated registry docs currently list 60 registered dispatcher tools. By default, `fibe mcp serve` uses the `full` tool surface and advertises the 59 non-hidden tools. Use `--tools core` or `FIBE_MCP_TOOLS=core` to narrow the native surface to the 39 meta/base/greenfield/brownfield tools, or pass a comma-separated tier list such as `--tools other,meta`. Hidden tools are not advertised natively even in `full`, but remain dispatcher-reachable through `fibe_call` and `fibe_pipeline` when the caller already knows the tool name. Use `fibe_tools_catalog` to inspect `advertised` and `hidden` flags for a running server. Regenerate `fibe_mcp_tools_catalog.md` and `fibe_tools_table.md` deterministically from the Go MCP registry with:
 
@@ -192,11 +179,11 @@ go run ./scripts/docs
 go run ./scripts/docs --check
 ```
 
-Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` on delete/rollout/hard-restart. Destructive tools require `confirm:true` in their args unless the server is launched with `--yolo` (or `FIBE_MCP_YOLO=1`) for non-interactive environments.
+MCP annotations mark reads with `readOnlyHint` and delete, rollout, and hard-restart operations with `destructiveHint`. Destructive tools require `confirm:true` unless the server runs with `--yolo` or `FIBE_MCP_YOLO=1`.
 
 ### Pipeline composition
 
-`fibe_pipeline` composes multiple tool calls in one round-trip using JSONPath bindings, eliminating the need for the LLM to shuttle intermediate payloads between turns:
+`fibe_pipeline` runs several tool calls in one round trip and passes values between them with JSONPath bindings:
 
 ```json
 {
@@ -209,11 +196,11 @@ Safety annotations match MCP hints: `readOnlyHint` on reads, `destructiveHint` o
 }
 ```
 
-Supports `parallel` blocks for concurrent independent steps and `for_each` for fanout over arrays. Results are cached per session for 5 minutes and re-queryable via `fibe_pipeline_result` with a JSONPath projection — the LLM can keep referencing fields from a big pipeline result without re-running it.
+Use `parallel` for independent steps and `for_each` for arrays. Results stay in the session cache for five minutes and can be queried through `fibe_pipeline_result` without rerunning the pipeline.
 
 ### Streaming
 
-`fibe_playgrounds_wait` and `fibe_logs_follow` stream updates as MCP progress notifications, letting agents delegate "poll until X" loops to the server instead of burning round-trips. Long-running SDK-backed operations, including async request polling and template-switch rollout waits, also forward progress notifications when the MCP client provides a progress token. CLI users can run `fibe logs follow <id-or-name>` for continuous playground or trick logs.
+`fibe_playgrounds_wait` and `fibe_logs_follow` send MCP progress notifications. Long SDK operations do the same when the client supplies a progress token. Use `fibe logs follow <id-or-name>` for continuous Playground or Trick logs from the CLI.
 
 SDK WebSocket streams use the configured HTTP transport, enforce a 10 MiB
 frame limit, and close their channels on cancellation or terminal failure.
@@ -240,10 +227,10 @@ Stdio transport is single-tenant by design (one process per client). It starts
 with the selected CLI profile, and agents can switch the current MCP session at
 runtime with:
 
-- `fibe_auth_list` — list local profiles without exposing API keys
-- `fibe_auth_use` — switch this MCP session to another profile
-- `fibe_auth_status` — show the current MCP auth target
-- `fibe_auth_set` — advanced raw API key/domain override
+- `fibe_auth_list`: list local profiles without exposing API keys
+- `fibe_auth_use`: switch this MCP session to another profile
+- `fibe_auth_status`: show the current MCP auth target
+- `fibe_auth_set`: advanced raw API key/domain override
 
 For HTTP/SSE deployments serving multiple tenants, the server resolves
 credentials per request in this order:
@@ -258,13 +245,13 @@ are pinned to the session; conflicting later headers fail authentication. Use a
 new session or the transactional `fibe_auth_use` / `fibe_auth_set` tools to
 switch deliberately.
 
-### Audit Log
+### Audit log
 
-`FIBE_MCP_AUDIT_LOG` is experimental. It writes one JSON line per tool call for debugging/admin use, and its schema and redaction behavior may evolve.
+`FIBE_MCP_AUDIT_LOG` is experimental. It writes one JSON line per tool call; its schema and redaction may change.
 
-## Shell Completions
+## Shell completions
 
-You can generate shell completions natively using the CLI.
+Generate completions with the CLI.
 
 **Zsh:**
 ```bash

@@ -8,7 +8,6 @@ import (
 )
 
 func (s *Server) registerInstallationActionTools() {
-	// fibe_find_github_repos — aggregated search across all installations
 	s.addTool(&toolImpl{
 		name: "fibe_find_github_repos", description: "[MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -24,5 +23,3 @@ func (s *Server) registerInstallationActionTools() {
 		mcp.WithNumber("per_page", mcp.Description("Results per page (default: 30, max: 100)")),
 	))
 }
-
-// ---------- Marquees ----------

@@ -37,7 +37,7 @@ func (e *APIError) Error() string {
 		prefix = fmt.Sprintf("fibe [%s]", e.RequestID)
 	}
 	if e.Details != nil {
-		return fmt.Sprintf("%s: %s (%d): %s — %v", prefix, e.Code, e.StatusCode, e.Message, e.Details)
+		return fmt.Sprintf("%s: %s (%d): %s: %v", prefix, e.Code, e.StatusCode, e.Message, e.Details)
 	}
 	return fmt.Sprintf("%s: %s (%d): %s", prefix, e.Code, e.StatusCode, e.Message)
 }
@@ -72,7 +72,7 @@ type CircuitOpenError struct {
 }
 
 func (e *CircuitOpenError) Error() string {
-	return fmt.Sprintf("fibe: circuit breaker open for %s — too many recent failures", e.Resource)
+	return fmt.Sprintf("fibe: circuit breaker open for %s: too many recent failures", e.Resource)
 }
 
 type apiErrorResponse struct {

@@ -2,20 +2,14 @@ package fibe
 
 import "encoding/json"
 
-// LaunchResult captures the outcome of the POST /api/launches endpoint
-// (exposed as the fibe launch CLI command). The Fibe API returns
-// the freshly-created playspec ID, playground ID, and any props that were
-// implicitly registered as part of the compose import.
-//
-// Legacy fields (ID/Status/Name) are preserved for callers written against
-// an earlier SDK version, but the API does not populate them — agents
-// should read PlayspecID / PlaygroundID / PropsCreated instead.
+// LaunchResult contains the created playspec, playground, and imported Props.
+// Legacy fields remain for source compatibility but are not populated by the API.
 type LaunchResult struct {
 	PlayspecID   int64   `json:"playspec_id,omitempty"`
 	PlaygroundID int64   `json:"playground_id,omitempty"`
 	PropsCreated []int64 `json:"props_created,omitempty"`
 
-	// Legacy — kept for backwards compatibility; not populated today.
+	// Legacy fields retained for compatibility.
 	ID     int64  `json:"id,omitempty"`
 	Status string `json:"status,omitempty"`
 	Name   string `json:"name,omitempty"`

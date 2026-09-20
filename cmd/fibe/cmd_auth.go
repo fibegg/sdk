@@ -123,7 +123,6 @@ Examples:
 				return nil
 			}
 
-			// Step 1: Initiate device authorization
 			fmt.Fprintf(os.Stderr, "Initiating authentication for profile %s with %s...\n", profile, baseURL)
 
 			initResp, err := initiateDeviceAuth(baseURL, flagHostname)
@@ -131,7 +130,6 @@ Examples:
 				return fmt.Errorf("failed to initiate device auth: %w", err)
 			}
 
-			// Step 2: Show verification info
 			fmt.Fprintln(os.Stderr)
 			fmt.Fprintf(os.Stderr, "  Your code: %s\n", initResp.UserCode)
 			fmt.Fprintln(os.Stderr)
@@ -146,7 +144,6 @@ Examples:
 				fmt.Fprintln(os.Stderr, "  Browser opened. Waiting for approval...")
 			}
 
-			// Step 3: Poll with Ctrl-C support
 			interval := time.Duration(initResp.Interval) * time.Second
 			if interval < 3*time.Second {
 				interval = 5 * time.Second
@@ -156,7 +153,6 @@ Examples:
 			ctx, cancel := context.WithDeadline(context.Background(), deadline)
 			defer cancel()
 
-			// Handle Ctrl-C gracefully
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, os.Interrupt)
 			defer signal.Stop(sigCh)
@@ -176,7 +172,7 @@ Examples:
 				case <-ctx.Done():
 					progress.Stop()
 					fmt.Fprintln(os.Stderr)
-					return fmt.Errorf("timed out waiting for authorization — run `fibe auth login` again")
+					return fmt.Errorf("timed out waiting for authorization: run `fibe auth login` again")
 				case <-ticker.C:
 					pollResp, httpStatus, err := pollDeviceAuth(baseURL, initResp.DeviceCode)
 					if err != nil {
@@ -218,12 +214,12 @@ Examples:
 					case pollResp.Error == "already_consumed":
 						progress.Stop()
 						fmt.Fprintln(os.Stderr)
-						return fmt.Errorf("API key was already retrieved — run `fibe auth login` again")
+						return fmt.Errorf("API key was already retrieved: run `fibe auth login` again")
 
 					case httpStatus == http.StatusGone || pollResp.Error == "expired_token":
 						progress.Stop()
 						fmt.Fprintln(os.Stderr)
-						return fmt.Errorf("device code expired — run `fibe auth login` again")
+						return fmt.Errorf("device code expired: run `fibe auth login` again")
 
 					default:
 						progress.Stop()

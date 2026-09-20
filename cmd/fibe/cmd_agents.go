@@ -20,7 +20,7 @@ func agentsCmd() *cobra.Command {
 		Use:     "agents",
 		Aliases: []string{"ag", "agent"},
 		Short:   "Manage AI agents",
-		Long: `Manage Fibe agents — AI-powered assistants that work with your playgrounds.
+		Long: `Manage Fibe agents: AI-powered assistants that work with your playgrounds.
 
 Agents can be authenticated with GitHub, have mounted files, store messages
 and activity logs, create artefacts, and interact via chat.
@@ -226,7 +226,6 @@ EXAMPLES:
 		},
 	}
 }
-
 func agentRuntimeStatusColumns(status *fibe.AgentRuntimeStatus) []string {
 	if status == nil {
 		return []string{"", "", "", ""}
@@ -1345,7 +1344,3 @@ EXAMPLES:
 		},
 	}
 }
-
-// =============================================================================
-// Artefacts: download
-// =============================================================================

@@ -41,7 +41,7 @@ var (
 func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fibe",
-		Short: "Fibe CLI — manage playgrounds, agents, and infrastructure",
+		Short: "Fibe CLI: manage playgrounds, agents, and infrastructure",
 		Long: `Fibe CLI is the official command-line interface for the Fibe platform API.
 
 It provides complete access to all Fibe resources: playgrounds, tricks, agents,
@@ -155,7 +155,6 @@ DOCUMENTATION:
 		docsCmd(),
 	)
 
-	// Register template function to show aliases inline in help output.
 	cobra.AddTemplateFunc("nameWithAlias", func(cmd *cobra.Command) string {
 		if len(cmd.Aliases) == 0 {
 			return cmd.Name()
@@ -169,7 +168,6 @@ DOCUMENTATION:
 		return fmt.Sprintf("%s (%s)", cmd.Name(), shortest)
 	})
 
-	// Compute padding that accounts for alias suffixes.
 	cobra.AddTemplateFunc("aliasPadding", func(parent *cobra.Command) int {
 		maxLen := 0
 		for _, c := range parent.Commands() {

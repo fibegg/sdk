@@ -131,8 +131,7 @@ func (c *pipelineCache) DeleteSession(sessionID string) {
 	}
 }
 
-// Stats returns a snapshot of cache health. Kept internal for now; may be
-// surfaced via an admin resource in a later phase.
+// Stats returns current cache use and capacity.
 func (c *pipelineCache) Stats() (entries, capacity int) {
 	if c == nil {
 		return 0, 0

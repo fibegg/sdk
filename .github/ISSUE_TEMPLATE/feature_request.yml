@@ -7,7 +7,7 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: Describe the user outcome, not only a proposed implementation.
+      description: Describe the user outcome and separate it from any proposed implementation.
     validations:
       required: true
   - type: textarea

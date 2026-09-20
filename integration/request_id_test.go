@@ -65,7 +65,7 @@ func TestIdempotencyKey(t *testing.T) {
 	resp1.Body.Close()
 
 	if resp1.StatusCode != 201 {
-		t.Fatalf("first request: expected 201, got %d — %s", resp1.StatusCode, string(body1))
+		t.Fatalf("first request: expected 201, got %d: %s", resp1.StatusCode, string(body1))
 	}
 
 	var agent1 struct {

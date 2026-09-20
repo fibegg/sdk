@@ -17,7 +17,7 @@
             "type": "boolean"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -154,7 +154,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -174,7 +174,7 @@
     },
     {
       "name": "fibe_playgrounds_debug",
-      "description": "[MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment.",
+      "description": "[MODE:DIALOG] Retrieve Playground service, container, port, path, label, status, URL, and recent-log diagnostics.",
       "tier": "brownfield",
       "read_only": true,
       "idempotent": true,
@@ -198,7 +198,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -268,7 +268,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -415,7 +415,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -450,7 +450,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -517,7 +517,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -543,7 +543,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -654,7 +654,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -713,7 +713,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -821,7 +821,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -914,7 +914,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -956,7 +956,7 @@
             "type": "array"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -981,7 +981,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1059,7 +1059,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1176,7 +1176,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1251,7 +1251,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1283,7 +1283,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1331,7 +1331,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1447,7 +1447,7 @@
             "type": "object"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1470,7 +1470,7 @@
     },
     {
       "name": "fibe_status",
-      "description": "[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.",
+      "description": "[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.",
       "tier": "meta",
       "read_only": true,
       "idempotent": true
@@ -1484,7 +1484,7 @@
     },
     {
       "name": "fibe_auth_set",
-      "description": "[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations",
+      "description": "[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.",
       "tier": "other",
       "input_schema": {
         "properties": {
@@ -1497,7 +1497,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1537,7 +1537,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1579,7 +1579,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1624,7 +1624,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1648,7 +1648,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1685,7 +1685,7 @@
             "type": "boolean"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1716,7 +1716,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1881,7 +1881,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1933,7 +1933,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -1985,7 +1985,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2049,7 +2049,7 @@
             "type": "number"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2082,7 +2082,7 @@
     },
     {
       "name": "fibe_pipeline",
-      "description": "[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.",
+      "description": "[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.",
       "tier": "meta",
       "input_schema": {
         "properties": {
@@ -2099,7 +2099,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2272,14 +2272,14 @@
     },
     {
       "name": "fibe_pipeline_result",
-      "description": "[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution",
+      "description": "[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.",
       "tier": "meta",
       "read_only": true,
       "idempotent": true,
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2335,7 +2335,7 @@
             "type": "string"
           },
           "filename": {
-            "description": "Target filename — defaults to 'name' when omitted",
+            "description": "Target filename: defaults to 'name' when omitted",
             "type": "string"
           },
           "name": {
@@ -2343,7 +2343,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2422,7 +2422,7 @@
             "type": "array"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2466,7 +2466,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2506,7 +2506,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2550,7 +2550,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2594,7 +2594,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2638,7 +2638,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2680,7 +2680,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2728,7 +2728,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2771,7 +2771,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2799,7 +2799,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2835,7 +2835,7 @@
             "type": "object"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2866,7 +2866,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -2947,7 +2947,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3061,7 +3061,7 @@
             ]
           },
           "target_template_version_id": {
-            "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template — the server reconciles the prop set and regenerates services.",
+            "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template: the server reconciles the prop set and regenerates services.",
             "minimum": 1,
             "type": "integer"
           },
@@ -3111,7 +3111,7 @@
       "input_schema": {
         "properties": {
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3152,7 +3152,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3210,7 +3210,7 @@
             ]
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3288,7 +3288,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3338,7 +3338,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3364,7 +3364,7 @@
     },
     {
       "name": "fibe_tools_catalog",
-      "description": "[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds",
+      "description": "[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.",
       "tier": "meta",
       "read_only": true,
       "idempotent": true,
@@ -3379,7 +3379,7 @@
             "type": "string"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },
@@ -3426,7 +3426,7 @@
             "type": "boolean"
           },
           "only": {
-            "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
             "items": {
               "type": "string"
             },

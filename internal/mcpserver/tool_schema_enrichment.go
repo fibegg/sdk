@@ -35,7 +35,7 @@ func injectGlobalResponseShapeProperties(toolName string, schema map[string]any)
 	if _, exists := props[responseOnlyArg]; !exists {
 		props[responseOnlyArg] = map[string]any{
 			"type":        "array",
-			"description": `Return only these top-level fields from each result item. Example: only: ["uuid","title","project"] on local conversations keeps envelope metadata but trims each conversation.`,
+			"description": `Fields to keep in each result item. Example: ["uuid","title","project"]. Envelope metadata remains.`,
 			"items": map[string]any{
 				"type": "string",
 			},

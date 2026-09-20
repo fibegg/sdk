@@ -19,10 +19,8 @@ func main() {
 	client := fibe.NewClient(fibe.WithAPIKey(key))
 	ctx := context.Background()
 
-	// 1. Create a new Playground
-	fmt.Println("Launching robust Python playground...")
+	fmt.Println("Launching Playground...")
 
-	// Optional: You can enforce reliable network guarantees with an Idempotency-Key
 	ctxWithIdemp := fibe.WithIdempotencyKey(ctx, fibe.NewIdempotencyKey())
 
 	pg, err := client.Playgrounds.Create(ctxWithIdemp, &fibe.PlaygroundCreateParams{
@@ -35,7 +33,6 @@ func main() {
 
 	fmt.Printf("Created playground %d (Status: %s)\n", pg.ID, pg.Status)
 
-	// 2. Await Running Status utilizing robust retries
 	for {
 		fetched, err := client.Playgrounds.Get(ctx, pg.ID)
 		if err != nil {
@@ -53,7 +50,6 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 
-	// 3. Issue commands via Mutters (Interactive Agent interaction)
 	fmt.Println("\nCreating an interactive agent...")
 	ag, err := client.Agents.Create(ctx, &fibe.AgentCreateParams{
 		Name:     "sys-operator",
@@ -64,18 +60,17 @@ func main() {
 	}
 
 	msgResp, err := client.Agents.Chat(ctx, ag.ID, &fibe.AgentChatParams{
-		Text: "Hello! Are you successfully wired into the Python playground?",
+		Text: "Can you reach the Playground?",
 	})
 	if err != nil {
 		log.Fatalf("Chat attempt failed: %v", err)
 	}
 	fmt.Printf("Agent acknowledged: %v\n", msgResp)
 
-	// 4. Secure Cleanup
-	fmt.Println("\nCleaning up infrastructure...")
+	fmt.Println("\nDeleting Playground...")
 	if err := client.Playgrounds.Delete(ctx, pg.ID); err != nil {
-		log.Printf("Deletion encountered an issue: %v", err)
+		log.Printf("Deletion failed: %v", err)
 	} else {
-		fmt.Println("Playground safely deleted.")
+		fmt.Println("Playground deleted.")
 	}
 }

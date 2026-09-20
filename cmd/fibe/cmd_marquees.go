@@ -12,7 +12,7 @@ func marqueesCmd() *cobra.Command {
 		Use:     "marquees",
 		Aliases: []string{"mq"},
 		Short:   "Manage marquees (compute servers)",
-		Long: `Manage Fibe marquees — compute infrastructure servers.
+		Long: `Manage Fibe marquees: compute infrastructure servers.
 
 A marquee is a server (VPS, bare metal, etc.) that hosts your playgrounds.
 Marquees are connected via SSH and managed by Fibe.

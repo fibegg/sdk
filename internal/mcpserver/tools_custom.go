@@ -9,10 +9,9 @@ import (
 )
 
 // registerCustomTools wires tools that don't fit the uniform CRUD helpers in
-// tools_resource_mutations.go — operations with odd signatures, extra required
+// tools_resource_mutations.go: operations with odd signatures, extra required
 // string parameters, or compose-YAML payloads.
 func (s *Server) registerCustomTools() {
-	// ---------- fibe_playgrounds_logs ----------
 	// Needs: id_or_name (identifier), service (string, optional), tail (int, optional).
 	s.addTool(&toolImpl{
 		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.", tier: tierBrownfield,
@@ -37,7 +36,6 @@ func (s *Server) registerCustomTools() {
 		mcp.WithNumber("tail", mcp.Description("Number of log lines to return (default: 50)")),
 	))
 
-	// ---------- fibe_repo_status ----------
 	s.addTool(&toolImpl{
 		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -61,7 +59,6 @@ func (s *Server) registerCustomTools() {
 			mcp.WithStringItems()),
 	))
 
-	// ---------- fibe_get_github_token ----------
 	s.addTool(&toolImpl{
 		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.", tier: tierOther,
 		annotations: toolAnnotations{Idempotent: true},

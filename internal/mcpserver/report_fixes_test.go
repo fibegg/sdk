@@ -9,12 +9,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Aggregated tests for the fixes landing in response to REPORT.md.
-
-// ---------- SDK: PropBranches is an array of objects ----------
-
 func TestPropBranchesUnmarshalsObjectArray(t *testing.T) {
-	// Shape the Fibe API actually returns.
 	payload := []byte(`{"branches":[{"name":"main","default":true},{"name":"feat","default":false}]}`)
 	var pb fibe.PropBranches
 	if err := json.Unmarshal(payload, &pb); err != nil {
@@ -69,8 +64,6 @@ func TestBindArgsStringifiesStringSliceElements(t *testing.T) {
 	}
 }
 
-// ---------- Tool-level field validation ----------
-
 func TestAgentsSendMessageRequiresCanonicalTextField(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
@@ -103,8 +96,6 @@ func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
 
 // Note: HTTP tests have been moved to real integration tests in tools_templates_change_test.go
 
-// ---------- Props attach: URL-to-short-form parsing ----------
-
 func TestParseRepoFullName(t *testing.T) {
 	cases := map[string]string{
 		"octocat/Hello-World":                        "octocat/Hello-World",
@@ -122,8 +113,6 @@ func TestParseRepoFullName(t *testing.T) {
 		}
 	}
 }
-
-// ---------- pipeline_result bindings-rooted projection ----------
 
 func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10, PipelineCacheEntryMax: 1 << 20})
@@ -149,7 +138,6 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	m := resp.(map[string]any)
 	pid := m["pipeline_id"].(string)
 
-	// Bindings-rooted path: $.create_team.id should return 42.
 	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_pipeline_result", map[string]any{
 		"pipeline_id": pid,
 		"path":        "$.create_team.id",
@@ -174,8 +162,6 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	}
 }
 
-// ---------- fibe launch returns stable resource IDs ----------
-
 func TestLaunchSurfacesBothIDs(t *testing.T) {
 	var r fibe.LaunchResult
 	if err := json.Unmarshal([]byte(`{"playspec_id":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
@@ -199,8 +185,6 @@ func TestLaunchSurfacesBothIDs(t *testing.T) {
 	}
 }
 
-// ---------- splitContentHeader helps artefacts_download disambiguate ----------
-
 func TestSplitContentHeader(t *testing.T) {
 	cases := []struct {
 		input  string
@@ -220,16 +204,11 @@ func TestSplitContentHeader(t *testing.T) {
 	}
 }
 
-// ---------- Pipeline description documents the limit ----------
-
 func TestPipelineDescriptionDocumentsMaxSteps(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	// The dispatcher's description field is the short form; the full
-	// description lives on the mcp-go Tool, not our struct. Assert the
-	// short description mentions the docs exist.
 	t_impl, ok := srv.dispatcher.lookup("fibe_pipeline")
 	if !ok {
 		t.Fatal("fibe_pipeline not registered")

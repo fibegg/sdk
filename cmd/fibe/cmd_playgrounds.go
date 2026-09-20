@@ -15,7 +15,7 @@ func playgroundsCmd() *cobra.Command {
 		Use:     "playgrounds",
 		Aliases: []string{"pg"},
 		Short:   "Manage playgrounds (running environments)",
-		Long: `Manage Fibe playgrounds — running instances of your service compositions.
+		Long: `Manage Fibe playgrounds: running instances of your service compositions.
 
 A playground is a live environment created from a playspec (service template).
 Playgrounds can be started, stopped, restarted, and monitored.
@@ -87,7 +87,7 @@ func pgListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List all playgrounds (excludes tricks)",
 		Long: `List all playgrounds accessible to the authenticated user.
-Tricks (job-mode workloads) are excluded — use 'fibe tricks list' instead.
+Tricks (job-mode workloads) are excluded: use 'fibe tricks list' instead.
 
 FILTERS:
   -q, --query           Search across name (substring match)
@@ -547,7 +547,7 @@ EXAMPLES:
 				outputJSON(pg)
 				return nil
 			}
-			fmt.Printf("Created playground %d (%s) — status: %s\n", pg.ID, pg.Name, pg.Status)
+			fmt.Printf("Created playground %d (%s): status: %s\n", pg.ID, pg.Name, pg.Status)
 			return nil
 		},
 	}
@@ -621,7 +621,7 @@ func pgDeleteCmd() *cobra.Command {
 		Short: "Delete a playground",
 		Long: `Delete a playground and tear down all its services.
 
-This is an asynchronous operation — the playground will be marked for deletion
+This is an asynchronous operation: the playground will be marked for deletion
 and its containers will be stopped and removed.
 
 WARNING: This action is irreversible. All data in non-persistent volumes will be lost.
@@ -664,7 +664,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Rollout initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Rollout initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -679,7 +679,7 @@ func pgHardRestartCmd() *cobra.Command {
 		Short: "Hard restart all playground services",
 		Long: `Perform a hard restart of all services in the playground.
 
-Unlike rollout, this does not rebuild containers — it stops and restarts them.
+Unlike rollout, this does not rebuild containers: it stops and restarts them.
 Use this when services are unresponsive but the configuration hasn't changed.
 
 EXAMPLES:
@@ -694,7 +694,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Hard restart initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Hard restart initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -724,7 +724,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Stop initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Stop initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -754,7 +754,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Start initiated for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Start initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -786,7 +786,7 @@ func pgMaintenanceEnableCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Maintenance enabled for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Maintenance enabled for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -802,7 +802,7 @@ func pgMaintenanceDisableCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Maintenance disabled for playground %d — status: %s\n", pg.ID, pg.Status)
+			fmt.Printf("Maintenance disabled for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
 	}
@@ -843,7 +843,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Playground %d extended — expires: %s\n", result.ID, fmtTimeVal(result.ExpiresAt))
+			fmt.Printf("Playground %d extended: expires: %s\n", result.ID, fmtTimeVal(result.ExpiresAt))
 			return nil
 		},
 	}
@@ -1067,8 +1067,8 @@ EXAMPLES:
 func pgDebugCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "debug <id-or-name>",
-		Short: "Get comprehensive debug information",
-		Long: `Get comprehensive debug information for a playground.
+		Short: "Get detailed debug information",
+		Long: `Get detailed debug information for a playground.
 
 Returns detailed internal state useful for troubleshooting issues.
 Output is always JSON due to the complex nested structure.

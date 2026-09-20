@@ -12,11 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// cmd_playspecs_extra.go registers subcommands that close the
-// Extra playspec commands for mounted files and registry credentials.
-// These are wired into the playspecs parent command via initPlayspecExtras in
-// init.
-
 func init() {
 	initPlayspecExtras = func(parent *cobra.Command) {
 		parent.AddCommand(

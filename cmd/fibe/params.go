@@ -43,7 +43,6 @@ func applyFromFile(dest any) error {
 	}
 	rawPayload = data
 
-	// Try JSON first
 	err = json.Unmarshal(data, dest)
 	if err == nil {
 		return nil

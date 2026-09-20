@@ -11,8 +11,6 @@ import (
 	"github.com/fibegg/sdk/internal/resourceschema"
 )
 
-// ---------- Fix 1: empty updates rejected locally ----------
-
 // TestEmptyUpdateRejected reproduces the server-side empty-update rejection
 // the user hit on playground.update. With only "id_or_name" in the payload, the
 // outbound body would be {"playground": {}} which the server treats as blank and
@@ -38,9 +36,7 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Errorf("expected 'at least one field' message, got: %v", err)
 	}
 
-	// id_or_name + a real field -> passes the guard (and will then fail client-side
-	// on transport because we have no real server, which is fine for this
-	// test — we only care that the guard didn't block it).
+	// A real update field passes validation; transport may fail without a server.
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 		"resource":  "playground",
 		"operation": "update",
@@ -53,7 +49,6 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		t.Errorf("guard tripped on non-empty update: %v", err)
 	}
 
-	// Explicit nulls and empty strings are still treated as "no fields set".
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 		"resource":  "playground",
 		"operation": "update",
@@ -68,8 +63,6 @@ func TestEmptyUpdateRejected(t *testing.T) {
 	}
 }
 
-// ---------- Fix 2: pipeline partial results on failure ----------
-
 // TestPipelinePartialResultsOnFailure captures the user's biggest DX ask:
 // when a later pipeline step fails without on_error:continue, earlier
 // step outputs (e.g., freshly-created resource IDs) must still be
@@ -81,7 +74,6 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Step A succeeds and produces a fake ID the agent will want for cleanup.
 	srv.dispatcher.register(&toolImpl{
 		name: "test_create",
 		tier: tierMeta,
@@ -89,7 +81,6 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 			return map[string]any{"id": 99, "name": "provisional"}, nil
 		},
 	})
-	// Step B fails with a structured API error.
 	srv.dispatcher.register(&toolImpl{
 		name: "test_fail",
 		tier: tierMeta,
@@ -111,8 +102,6 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 			map[string]any{"id": "c", "tool": "test_create", "args": map[string]any{}},
 		},
 	})
-	// Partial runs are returned as a successful pipeline response with
-	// status:"partial" — the MCP call itself should not error.
 	if err != nil {
 		t.Fatalf("runPipeline should not error on mid-pipeline failure, got: %v", err)
 	}
@@ -132,7 +121,6 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 		t.Errorf("lost step 'a' ID in partial result: %#v", a)
 	}
 
-	// Step C should NOT have run (pipeline halts at first failure).
 	if _, ran := steps["c"]; ran {
 		t.Errorf("step 'c' should not have executed after 'b' failed")
 	}
@@ -186,8 +174,6 @@ func TestPipelinePartialResultsOnFailure(t *testing.T) {
 	}
 }
 
-// ---------- Fix 3: webhook event-type hint in schema ----------
-
 func TestWebhookEnumHintInSchemaRegistry(t *testing.T) {
 	hook, _, ok := resourceschema.SchemasFor("webhook")
 	if !ok {
@@ -203,7 +189,6 @@ func TestWebhookEnumHintInSchemaRegistry(t *testing.T) {
 	if !strings.Contains(desc, "fibe_schema") {
 		t.Errorf("events description should point to fibe_schema event_types, got: %s", desc)
 	}
-	// Examples should include canonical event identifiers.
 	examples, ok := events["examples"].([]string)
 	if !ok || len(examples) == 0 {
 		t.Errorf("expected non-empty examples on events schema, got %#v", events["examples"])
@@ -225,6 +210,5 @@ func asInt(v any) int {
 	return 0
 }
 
-// Keep imports live for future assertions.
 var _ = json.Marshal
 var _ = errors.New

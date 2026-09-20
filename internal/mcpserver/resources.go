@@ -14,7 +14,6 @@ import (
 // registerStaticResources wires the fixed URIs whose content doesn't depend
 // on path parameters: fibe://me, fibe://status, fibe://pipeline/schema.
 func (s *Server) registerStaticResources() {
-	// fibe://me — authenticated user snapshot
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://me",
 		"Authenticated user",
@@ -32,7 +31,6 @@ func (s *Server) registerStaticResources() {
 		return jsonResource(req.Params.URI, me), nil
 	})
 
-	// fibe://status — account status dashboard
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://status",
 		"Account status dashboard",
@@ -50,7 +48,7 @@ func (s *Server) registerStaticResources() {
 		return jsonResource(req.Params.URI, st), nil
 	})
 
-	// fibe://schema — all schemas at once
+	// fibe://schema: all schemas at once
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://schema",
 		"All JSON Schema hints",
@@ -60,7 +58,7 @@ func (s *Server) registerStaticResources() {
 		return jsonResource(req.Params.URI, resourceschema.Registry()), nil
 	})
 
-	// fibe://pipeline/schema — how to write a fibe_pipeline request
+	// fibe://pipeline/schema: how to write a fibe_pipeline request
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://pipeline/schema",
 		"fibe_pipeline DSL reference",
@@ -120,7 +118,6 @@ func (s *Server) registerResourceTemplates() {
 		mcp.WithTemplateMIMEType("application/json"),
 	), schemaHandler)
 
-	// Help per command path.
 	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
 		"fibe://help/{path}",
 		"Fibe CLI extended help",
@@ -131,7 +128,6 @@ func (s *Server) registerResourceTemplates() {
 		if s.cfg.CobraRoot == nil {
 			return nil, fmt.Errorf("help unavailable: server started without CobraRoot")
 		}
-		// URI path uses slashes as separators; cobra wants space-separated.
 		parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' })
 		cmd, _, err := s.cfg.CobraRoot.Find(parts)
 		if err != nil || cmd == nil {
@@ -147,7 +143,6 @@ func (s *Server) registerResourceTemplates() {
 		}}, nil
 	})
 
-	// Cached pipeline results.
 	s.mcp.AddResourceTemplate(mcp.NewResourceTemplate(
 		"fibe://pipelines/{pipeline_id}",
 		"Cached pipeline result",
@@ -242,7 +237,7 @@ var pipelineDSLSchema = map[string]any{
 	},
 	"examples": []any{
 		map[string]any{
-			"description": "Create, wait, fetch logs — one round-trip.",
+			"description": "Create, wait, fetch logs: one round-trip.",
 			"steps": []map[string]any{
 				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id_or_name": "starter"}}},
 				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"id_or_name": "$.pg.id", "status": "running"}},

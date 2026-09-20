@@ -14,7 +14,7 @@ func tricksCmd() *cobra.Command {
 		Use:     "tricks",
 		Aliases: []string{"tr"},
 		Short:   "Manage tricks (ad-hoc job workloads)",
-		Long: `Manage Fibe tricks — ad-hoc job workloads that run to completion.
+		Long: `Manage Fibe tricks: ad-hoc job workloads that run to completion.
 
 Unlike playgrounds (long-running environments), tricks are one-shot
 executions created from job-mode playspecs. They start, run their
@@ -262,7 +262,7 @@ EXAMPLES:
 				outputJSON(tr)
 				return nil
 			}
-			fmt.Printf("Triggered trick %d (%s) — status: %s\n", tr.ID, tr.Name, tr.Status)
+			fmt.Printf("Triggered trick %d (%s): status: %s\n", tr.ID, tr.Name, tr.Status)
 			return nil
 		},
 	}
@@ -296,7 +296,7 @@ EXAMPLES:
 				outputJSON(tr)
 				return nil
 			}
-			fmt.Printf("Re-triggered trick %d (%s) from source %s — status: %s\n", tr.ID, tr.Name, args[0], tr.Status)
+			fmt.Printf("Re-triggered trick %d (%s) from source %s: status: %s\n", tr.ID, tr.Name, args[0], tr.Status)
 			return nil
 		},
 	}

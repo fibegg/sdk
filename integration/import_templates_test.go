@@ -20,7 +20,6 @@ func TestImportTemplates_CRUD(t *testing.T) {
 	var templateID int64
 
 	t.Run("create template", func(t *testing.T) {
-		// Parallelism disabled: down-stream tests rely on templateID
 		tpl, err := c.ImportTemplates.Create(ctx(), &fibe.ImportTemplateCreateParams{
 			Name:         uniqueName("test-template"),
 			Description:  "integration test template",
@@ -125,10 +124,7 @@ func TestImportTemplates_CRUD(t *testing.T) {
 		if templateID == 0 {
 			t.Skip("no template created")
 		}
-		// A tiny 1x1 base64 GIF would actually be image/gif, let's use a dummy payload, but it will 400 because Marcel strict mode rejects invalid base64 padding or content type if invalid.
-		// For the sake of the test we expect a 400 with "Invalid base64 data" or similar from the API,
-		// but since we want to test success, we will supply a true base64 encoded PNG.
-		// "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=" is 1x1 black pixel PNG.
+		// A valid 1x1 PNG satisfies Marcel's strict content check.
 		b64png := "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQYV2NgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
 		_, err := c.ImportTemplates.UploadImage(ctx(), templateID, &fibe.UploadImageParams{
 			Filename:    "test.png",
@@ -143,16 +139,12 @@ func TestImportTemplates_CRUD(t *testing.T) {
 		if templateID == 0 {
 			t.Skip("no template created")
 		}
-		// First we must enable a public version since it checks for `latest_public_version`
 		ver, err := c.ImportTemplates.CreateVersion(ctx(), templateID, &fibe.ImportTemplateVersionCreateParams{
 			TemplateBody: "services:\n  api:\n    image: node:20\n",
 			Public:       ptr(true),
 		})
 		requireNoError(t, err)
 
-		// Wait, Fibe backend does not let you fork your own template!
-		// if source.player_id == current_player.id -> "Cannot fork your own template"
-		// We expect a 422 Unprocessable Content.
 		_, err = c.ImportTemplates.Fork(ctx(), templateID)
 		requireAPIError(t, err, "FORK_FAILED", 422)
 

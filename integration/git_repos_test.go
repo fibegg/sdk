@@ -15,8 +15,7 @@ func TestGitHubRepos_CreateFailure(t *testing.T) {
 		Name: "fibegg-invalid",
 	})
 	if err == nil {
-		// API accepted the request — GitHub integration is connected and created the repo
-		t.Logf("GitHub repo creation succeeded (name=%q) — API has active GitHub integration", repo.Name)
+		t.Logf("GitHub repo creation succeeded (name=%q): API has active GitHub integration", repo.Name)
 		return
 	}
 
@@ -45,7 +44,7 @@ func TestGiteaRepos_CreateFailure(t *testing.T) {
 		Name: "fibegg-invalid",
 	})
 	if err == nil {
-		t.Logf("Gitea repo creation succeeded — API has active Gitea integration")
+		t.Logf("Gitea repo creation succeeded: API has active Gitea integration")
 		return
 	}
 

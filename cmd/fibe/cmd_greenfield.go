@@ -351,7 +351,7 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 			if pendingReason == "" {
 				pendingReason = fmt.Sprintf("last status: %s", status.Status)
 			}
-			return nil, fmt.Errorf("timeout after %s — %s", timeout, pendingReason)
+			return nil, fmt.Errorf("timeout after %s: %s", timeout, pendingReason)
 		case <-time.After(interval):
 		}
 	}

@@ -101,8 +101,6 @@ func waitForSingleTemplatePatchRollout(ctx context.Context, c *fibe.Client, id i
 	}
 }
 
-// ---------- helpers for file-bearing tools ----------
-
 // decodeFileSource reads either args["content_base64"] or args["content_path"]
 // (local filesystem only) and returns an io.Reader suitable for multipart
 // upload. One of the two must be provided.

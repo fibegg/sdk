@@ -34,7 +34,7 @@ func TestInstallations_List(t *testing.T) {
 	t.Run("list scope read allows, other scope 403", func(t *testing.T) {
 		t.Parallel()
 		// Installations piggybacks on BaseController auth; no specific scope, so
-		// just verify a scoped key can still hit the endpoint (no crash).
+		// Verify a scoped key can reach the endpoint.
 		read := createScopedKey(t, c, "inst-read", []string{"props:read"})
 		_, err := read.Installations.List(ctx())
 		// Either works (no scope check) or 403; both are acceptable behavior.
@@ -53,7 +53,7 @@ func TestInstallations_Repos(t *testing.T) {
 	list, err := c.Installations.List(ctx())
 	requireNoError(t, err)
 	if len(list.Data) == 0 {
-		t.Skip("no installations linked — cannot test repo listing")
+		t.Skip("no installations linked: cannot test repo listing")
 	}
 	instID := list.Data[0].ID
 
@@ -94,7 +94,6 @@ func TestInstallations_Repos(t *testing.T) {
 	})
 
 	t.Run("repos search by query", func(t *testing.T) {
-		// Search for a very unlikely string, verify either empty or filter worked
 		result, err := c.Installations.Repos(ctx(), instID, &fibe.InstallationReposParams{
 			Q: "zzznonexistent-fibe-test-query-zzz",
 		})
@@ -121,7 +120,7 @@ func TestInstallations_Token(t *testing.T) {
 	list, err := c.Installations.List(ctx())
 	requireNoError(t, err)
 	if len(list.Data) == 0 {
-		t.Skip("no installations linked — cannot test token")
+		t.Skip("no installations linked: cannot test token")
 	}
 	instID := list.Data[0].ID
 

@@ -117,7 +117,7 @@ func keyCreateCmd() *cobra.Command {
 	var agentAccessible bool
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new API key",
-		Long: `Create a new API key. The full token is only shown ONCE — save it.
+		Long: `Create a new API key. The full token is only shown ONCE: save it.
 
 AUTH USAGE:
   Send as 'Authorization: Bearer fibe_...' header.
@@ -198,7 +198,7 @@ EXAMPLES:
 			fmt.Printf("Created API key %s (%s)\n", fmtInt64Ptr(key.ID), key.Label)
 			if key.Token != nil {
 				fmt.Printf("\nToken: %s\n", *key.Token)
-				fmt.Println("\nSave this token — it will not be shown again!")
+				fmt.Println("\nSave this token: it will not be shown again!")
 			}
 			return nil
 		},

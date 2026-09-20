@@ -12,7 +12,7 @@ func muttersCmd() *cobra.Command {
 		Use:     "mutters",
 		Aliases: []string{"mut"},
 		Short:   "Manage agent mutters (observations)",
-		Long: `Manage mutters — agent observation and monitoring data.
+		Long: `Manage mutters: agent observation and monitoring data.
 
 Mutters capture structured observations from agent runs, including
 status updates, severity markers, and playground-scoped data.

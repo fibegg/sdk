@@ -10,11 +10,6 @@ import (
 )
 
 // TestPlaygrounds_FullLifecycle exercises the complete real-world playground lifecycle:
-//
-//	Create → Status (async) → Compose/EnvMetadata/Debug → Logs → Update → Extend → Rollout → HardRestart → Delete
-//
-// It requires FIBE_TEST_MARQUEE_ID pointing to a functional marquee. Without it, the
-// create phase skips but all non-dependent parts still run against a pre-seeded playground.
 func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	c := userClient(t)
 
@@ -43,7 +38,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		t.Errorf("expected PlayspecID=%d, got %v", *spec.ID, pg.PlayspecID)
 	}
 
-	// 2. Status polling: expect transition from pending → in_progress → running
 	t.Run("status transitions", func(t *testing.T) {
 		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
 		if finalStatus != "running" {
@@ -54,7 +48,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 3. Detail fields populated (may require waiting for provisioning)
 	t.Run("detail has expiration and service info", func(t *testing.T) {
-		// Poll until ExpiresAt is populated or timeout
 		d, _ := pollUntil(20, time.Second, func() (*fibe.Playground, bool) {
 			got, err := c.Playgrounds.Get(ctx(), pg.ID)
 			if err != nil {
@@ -69,7 +62,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 			t.Fatal("could not fetch playground detail within timeout")
 		}
 		if d.ExpiresAt == nil {
-			t.Log("ExpiresAt not yet populated within timeout — may require running state")
+			t.Log("ExpiresAt not yet populated within timeout: may require running state")
 		}
 	})
 
@@ -93,7 +86,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 5. EnvMetadata returns structured response
 	t.Run("env metadata structure", func(t *testing.T) {
 		env, err := c.Playgrounds.EnvMetadata(ctx(), pg.ID)
 		requireNoError(t, err)
@@ -103,7 +95,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 6. Debug endpoint returns diagnostic info
 	t.Run("debug returns diagnostic data", func(t *testing.T) {
 		dbg, err := c.Playgrounds.Debug(ctx(), pg.ID)
 		requireNoError(t, err)
@@ -112,7 +103,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 7. ExtendExpiration bumps ExpiresAt
 	t.Run("extend expiration increases expiration", func(t *testing.T) {
 		before, err := c.Playgrounds.Get(ctx(), pg.ID)
 		requireNoError(t, err)
@@ -127,7 +117,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 8. Update changes name
 	t.Run("update name persists", func(t *testing.T) {
 		newName := uniqueName("renamed-pg")
 		upd, err := c.Playgrounds.Update(ctx(), pg.ID, &fibe.PlaygroundUpdateParams{Name: &newName})
@@ -135,7 +124,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		if upd.Name != newName {
 			t.Errorf("expected Name=%s, got %s", newName, upd.Name)
 		}
-		// Re-read to confirm persistence
 		got, err := c.Playgrounds.Get(ctx(), pg.ID)
 		requireNoError(t, err)
 		if got.Name != newName {
@@ -143,7 +131,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 9. Rollout should transition status (async)
 	t.Run("rollout triggers status change", func(t *testing.T) {
 		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionRollout, "rollout")
 		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
@@ -152,7 +139,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 10. HardRestart
 	t.Run("hard restart triggers status change", func(t *testing.T) {
 		playgroundActionEventuallyAccepted(t, c, pg.ID, fibe.PlaygroundActionHardRestart, "hard restart")
 		finalStatus := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running"}, PlaygroundLaunchWaitTimeout)
@@ -198,7 +184,6 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 		}
 	})
 
-	// 13. Logs for nonexistent service returns 4xx
 	t.Run("logs for nonexistent service returns error", func(t *testing.T) {
 		_, err := c.Playgrounds.Logs(ctx(), pg.ID, "nonexistent-service", nil)
 		if err == nil {
