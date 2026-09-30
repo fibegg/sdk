@@ -198,11 +198,9 @@ func attachGitHubPATToCurrentPlayer(t *testing.T, pat string) {
 		Success bool `json:"success"`
 	}
 	err = client.requestJSON(http.MethodPost, "/e2e_backdoor/operation", adminToken, map[string]any{
-		"operation":         "attach_github_token",
-		"player_id":         player.ID,
-		"access_token":      pat,
-		"provider_username": "fibegg-fixtures",
-		"provider_user_id":  fmt.Sprintf("fibegg-fixtures-sdk-%d", player.ID),
+		"operation":    "attach_github_token",
+		"player_id":    player.ID,
+		"access_token": pat,
 	}, &payload, http.StatusOK)
 	requireNoError(t, err, "attach GitHub PAT to current SDK e2e player")
 	if !payload.Success {

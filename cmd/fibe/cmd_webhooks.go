@@ -148,9 +148,12 @@ OPTIONAL FLAGS:
                     e.g. --event-filter playground.created=12,15
   --tool-filter     Restrict an event to specific MCP tool names (repeatable)
                     Format: event=tool1,tool2,...
-                    e.g. --tool-filter mcp.tool.executed=deploy,status
+                    e.g. --tool-filter playground.created=deploy,status
 
-For complex event_filters/tool_filters, use --from-file with JSON.
+Filter keys must be event names from fibe webhooks event-types. Tool filters match
+payload.tool_name; built-in lifecycle publishers currently omit it, so these
+filters block their events. An explicit empty array blocks all matches for that
+event. Use --from-file with JSON for empty arrays and complex filters.
 
 EXAMPLES:
   fibe webhooks create --url https://example.com/hook \
@@ -262,9 +265,12 @@ OPTIONAL FLAGS:
   --event-filter    Event filter (repeatable, format: event=id1,id2,...)
                     e.g. --event-filter playground.created=12,15
   --tool-filter     MCP tool filter (repeatable, format: event=tool1,tool2,...)
-                    e.g. --tool-filter mcp.tool.executed=deploy,status
+                    e.g. --tool-filter playground.created=deploy,status
 
-For complex event_filters/tool_filters, use --from-file with JSON.
+Filter keys must be event names from fibe webhooks event-types. Tool filters match
+payload.tool_name; built-in lifecycle publishers currently omit it, so these
+filters block their events. An explicit empty array blocks all matches for that
+event. Use --from-file with JSON for empty arrays and complex filters.
 
 EXAMPLES:
   fibe webhooks update 5 --enabled=false

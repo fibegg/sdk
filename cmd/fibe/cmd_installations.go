@@ -251,6 +251,10 @@ Enterprise resolves the GitHub App installation that has access to the
 repository. Standalone Core returns its configured stable credential. No
 installation ID is needed in either case.
 
+Enterprise requires a personal key with git_credentials:read, a current GitHub
+owner/organization-admin connection, and repository administrator access. The
+installation token is restricted to the requested repository.
+
 EXAMPLES:
   fibe installations get-token myorg/myrepo
   fibe inst get-token owner/repo -o json`,

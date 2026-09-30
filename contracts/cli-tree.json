@@ -3700,9 +3700,9 @@
         },
         {
           "name": "granular-scope",
-          "type": "stringSlice",
+          "type": "stringArray",
           "default": "[]",
-          "usage": "Granular scope (repeatable, format: scope=id1,id2)"
+          "usage": "Granular scope (repeatable: scope=id1,id2; scope= allows none)"
         },
         {
           "name": "label",

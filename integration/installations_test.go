@@ -31,18 +31,15 @@ func TestInstallations_List(t *testing.T) {
 		}
 	})
 
-	t.Run("list scope read allows, other scope 403", func(t *testing.T) {
+	t.Run("list requires the explicit personal Git credential grant", func(t *testing.T) {
 		t.Parallel()
-		// Installations piggybacks on BaseController auth; no specific scope, so
-		// Verify a scoped key can reach the endpoint.
 		read := createScopedKey(t, c, "inst-read", []string{"props:read"})
 		_, err := read.Installations.List(ctx())
-		// Either works (no scope check) or 403; both are acceptable behavior.
-		if err != nil {
-			if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode != 403 {
-				t.Errorf("unexpected status %d: %v", apiErr.StatusCode, err)
-			}
-		}
+		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
+
+		credentials := createScopedKey(t, c, "inst-credentials", []string{"git_credentials:read"})
+		_, err = credentials.Installations.List(ctx())
+		requireNoError(t, err)
 	})
 }
 

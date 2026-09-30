@@ -2,7 +2,7 @@
 
 The official Go SDK and command-line interface for the Fibe platform.
 
-Requires Go 1.26.5 or newer when building from source. See
+Requires Go 1.26.8 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
@@ -262,3 +262,27 @@ fibe completion zsh > "${fpath[1]}/_fibe"
 ```bash
 source <(fibe completion bash)
 ```
+
+
+## Webhook filters
+
+`EventFilters` and `ToolFilters` are keyed by actual event names returned by
+`WebhookEndpoints.EventTypes` (`fibe webhooks event-types`). For example,
+`ToolFilters: map[string][]string{"playground.created": {"deploy"}}` requires
+that event's `payload.tool_name` to equal `deploy`. There is no
+`mcp.tool.executed` event. Built-in lifecycle publishers currently omit tool names,
+so tool filters on those events block delivery unless a publisher supplies one.
+
+An omitted event key is unrestricted for that filter dimension; an explicit
+empty array matches nothing. Both entity and tool restrictions must match.
+Unknown event keys and blank tool names are rejected with HTTP 422. Use
+`--from-file` JSON to set empty arrays from the CLI.
+
+
+API-key resource restrictions distinguish omission from an empty list. Omit a
+`GranularScopes` map entry to use that scope's normal ownership access; provide
+`[]int64{}` to allow none. A nil slice encodes `null` and is invalid. In the CLI,
+`--granular-scope monitor:read=` allows no monitored agents, while
+`--granular-scope agents:read=12,15` selects those IDs. Repeat the flag for other
+scopes. Rails returns normalized restrictions; the current compatibility-frozen
+Go `APIKey` response struct ignores that additive response field.

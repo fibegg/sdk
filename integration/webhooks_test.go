@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
@@ -20,7 +21,7 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 			URL:         endpointURL,
 			Events:      []string{"playground.created", "playground.status.changed"},
 			Description: ptr("integration test webhook"),
-			ToolFilters: map[string][]string{"mcp.tool.executed": []string{"deploy", "status"}},
+			ToolFilters: map[string][]string{"playground.created": {"deploy", "status"}},
 		})
 		requireNoError(t, err)
 
@@ -37,8 +38,8 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 		if ep.Secret == nil || *ep.Secret == "" {
 			t.Error("expected server-generated secret")
 		}
-		if got := ep.ToolFilters["mcp.tool.executed"]; len(got) != 2 {
-			t.Errorf("expected 2 tool filters, got %d", len(got))
+		if want := (map[string][]string{"playground.created": {"deploy", "status"}}); !reflect.DeepEqual(ep.ToolFilters, want) {
+			t.Errorf("expected tool filters %v, got %v", want, ep.ToolFilters)
 		}
 	})
 	t.Cleanup(func() {
@@ -68,6 +69,9 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 		if *ep.ID != endpointID {
 			t.Errorf("expected ID %d", endpointID)
 		}
+		if want := (map[string][]string{"playground.created": {"deploy", "status"}}); !reflect.DeepEqual(ep.ToolFilters, want) {
+			t.Errorf("expected persisted tool filters %v, got %v", want, ep.ToolFilters)
+		}
 	})
 
 	t.Run("update webhook endpoint", func(t *testing.T) {
@@ -79,11 +83,18 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 		ep, err := c.WebhookEndpoints.Update(ctx(), endpointID, &fibe.WebhookEndpointUpdateParams{
 			Description: &newDesc,
 			Enabled:     ptr(false),
+			ToolFilters: map[string][]string{"playground.created": {}},
 		})
 		requireNoError(t, err)
 
 		if ep.Description == nil || *ep.Description != newDesc {
 			t.Error("expected updated description")
+		}
+		got, err := c.WebhookEndpoints.Get(ctx(), endpointID)
+		requireNoError(t, err)
+		want := map[string][]string{"playground.created": {}}
+		if !reflect.DeepEqual(ep.ToolFilters, want) || !reflect.DeepEqual(got.ToolFilters, want) {
+			t.Errorf("expected explicit empty filter to persist, update=%v get=%v", ep.ToolFilters, got.ToolFilters)
 		}
 	})
 
@@ -133,4 +144,43 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 		_, err = c.WebhookEndpoints.Get(ctx(), *ep.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
+}
+
+func TestWebhookToolFilters_Validation(t *testing.T) {
+	t.Parallel()
+	c := userClient(t)
+	for _, tc := range []struct {
+		name    string
+		filters map[string][]string
+	}{
+		{"unknown event", map[string][]string{"mcp.tool.executed": {"deploy"}}},
+		{"blank tool name", map[string][]string{"playground.created": {" "}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			endpointURL := "https://sdk-webhook-validation.invalid/" + uniqueName("")
+			_, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
+				URL:         endpointURL,
+				Events:      []string{"playground.created"},
+				ToolFilters: tc.filters,
+			})
+			requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
+
+			valid := map[string][]string{"playground.created": {"deploy"}}
+			ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
+				URL:         endpointURL,
+				Events:      []string{"playground.created"},
+				ToolFilters: valid,
+			})
+			requireNoError(t, err)
+			t.Cleanup(func() { c.WebhookEndpoints.Delete(ctx(), *ep.ID) })
+			_, err = c.WebhookEndpoints.Update(ctx(), *ep.ID, &fibe.WebhookEndpointUpdateParams{ToolFilters: tc.filters})
+			requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
+			got, err := c.WebhookEndpoints.Get(ctx(), *ep.ID)
+			requireNoError(t, err)
+			if !reflect.DeepEqual(got.ToolFilters, valid) {
+				t.Errorf("invalid update changed persisted filters: got %v, want %v", got.ToolFilters, valid)
+			}
+		})
+	}
 }

@@ -1,7 +1,7 @@
 # Support
 
 The latest tagged release is the supported SDK, CLI, and MCP server line.
-`main` is development software and may contain unreleased fixes. Go 1.26.5 or
+`main` is development software and may contain unreleased fixes. Go 1.26.8 or
 newer is required to build this repository.
 
 Use GitHub issues for reproducible bugs and feature requests. Include the Fibe

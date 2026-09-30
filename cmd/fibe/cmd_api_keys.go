@@ -129,7 +129,7 @@ OPTIONAL FLAGS:
   --scope                Access scopes (repeatable, default: *). Format: resource:action,
                          e.g. playgrounds:read, agents:write, mcp:access
   --granular-scope       Granular scope binding to specific IDs (repeatable).
-                         Format: scope_name=id1,id2,...
+                         Format: scope_name=id1,id2,...; scope_name= allows no resources.
                          e.g. --granular-scope playspecs:read=12,15
   --expires-at           Expiration time (RFC3339, e.g. 2026-12-31T23:59:59Z)
   --agent-accessible     Allow this key to be used by agents (default: false)
@@ -167,17 +167,19 @@ EXAMPLES:
 				}
 				for _, gs := range granularScopes {
 					eq := strings.Index(gs, "=")
-					if eq < 1 || eq == len(gs)-1 {
+					if eq < 1 {
 						return fmt.Errorf("invalid --granular-scope %q: expected scope=id1,id2", gs)
 					}
 					name := gs[:eq]
 					ids := []int64{}
-					for _, idStr := range strings.Split(gs[eq+1:], ",") {
-						id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
-						if err != nil {
-							return fmt.Errorf("invalid id %q in --granular-scope %q: %w", idStr, gs, err)
+					if gs[eq+1:] != "" {
+						for _, idStr := range strings.Split(gs[eq+1:], ",") {
+							id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+							if err != nil {
+								return fmt.Errorf("invalid id %q in --granular-scope %q: %w", idStr, gs, err)
+							}
+							ids = append(ids, id)
 						}
-						ids = append(ids, id)
 					}
 					params.GranularScopes[name] = ids
 				}
@@ -205,7 +207,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&label, "label", "", "Key label (required)")
 	cmd.Flags().StringSliceVar(&scopes, "scope", nil, "Access scope (repeatable)")
-	cmd.Flags().StringSliceVar(&granularScopes, "granular-scope", nil, "Granular scope (repeatable, format: scope=id1,id2)")
+	cmd.Flags().StringArrayVar(&granularScopes, "granular-scope", nil, "Granular scope (repeatable: scope=id1,id2; scope= allows none)")
 	cmd.Flags().StringVar(&expiresAt, "expires-at", "", "Expiration time (RFC3339)")
 	cmd.Flags().BoolVar(&agentAccessible, "agent-accessible", false, "Allow agent access")
 	return cmd
