@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.46] - 2026-10-01
 
+- Use Homebrew's default download URL verification, supported by current GoReleaser.
+
 ### Added
 
 - Language-neutral public API, CLI, MCP, and reliability contracts for
