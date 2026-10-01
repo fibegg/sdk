@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.46] - 2026-10-01
+
 ### Added
 
 - Language-neutral public API, CLI, MCP, and reliability contracts for
@@ -20,10 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   breaking, async polling, multipart upload, downloads, WebSockets, webhooks,
   local stores, MCP authentication, pipelines, audit logging, and filesystem
   operations without changing supported public contracts.
-- Updated the minimum toolchain to Go 1.26.5 and upgraded pinned dependencies.
+- Updated the minimum toolchain to Go 1.26.8 and upgraded pinned dependencies.
 
 ### Fixed
 
+- Repeatable multi-ID granular scopes and explicit empty resource restrictions.
+- Current Codex model defaults in credentialed runtime test profiles and help.
 - Stable automatic idempotency across retries, negative retry handling,
   bounded body decoding, response draining, same-origin async polling, MCP
   tenant isolation, destructive-command classification, and unsafe local path

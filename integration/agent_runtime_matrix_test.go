@@ -67,14 +67,14 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "Codex auth JSON",
 			provider:           fibe.ProviderOpenAICodex,
 			providerAPIKeyMode: false,
-			modelOptions:       "gpt-5.4-mini",
+			modelOptions:       "gpt-6-luna",
 			credentialEnv:      "CODEX_AUTH_JSON",
 		},
 		{
 			name:               "Codex API key",
 			provider:           fibe.ProviderOpenAICodex,
 			providerAPIKeyMode: true,
-			modelOptions:       "gpt-5.4-mini",
+			modelOptions:       "gpt-6-luna",
 			credentialEnv:      "OPENAI_API_KEY",
 		},
 		{
