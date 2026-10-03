@@ -82,6 +82,7 @@ func readTextValue(val string) (string, error) {
 		return val, nil
 	}
 	path := strings.TrimPrefix(val, "@")
+	// #nosec G304 -- @file explicitly selects a local input file supplied by the CLI user.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("read text file %q: %w", path, err)
