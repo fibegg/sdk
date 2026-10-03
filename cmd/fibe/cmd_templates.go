@@ -178,7 +178,11 @@ func tplCreateCmd() *cobra.Command {
 				params.CategoryID = id
 			}
 			if cmd.Flags().Changed("body") {
-				params.TemplateBody = body
+				var err error
+				params.TemplateBody, err = readTextValue(body)
+				if err != nil {
+					return err
+				}
 			}
 
 			if params.Name == "" {
@@ -373,8 +377,16 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			params := &fibe.ImportTemplateVersionCreateParams{
-				TemplateBody: resolveStringValue(body),
+			params := &fibe.ImportTemplateVersionCreateParams{}
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("body") {
+				var err error
+				params.TemplateBody, err = readTextValue(body)
+				if err != nil {
+					return err
+				}
 			}
 			if cmd.Flags().Changed("public") {
 				params.Public = &public

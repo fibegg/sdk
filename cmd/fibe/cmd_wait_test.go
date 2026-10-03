@@ -23,7 +23,7 @@ func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
 		}
 		switch path {
 		case "/api/playgrounds/next/status":
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "status": "running"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "status": "running", "services": []map[string]any{{"name": "web", "status": "running", "health": "healthy"}}})
 		case "/api/playgrounds/next":
 			_ = json.NewEncoder(w).Encode(map[string]any{"id": 129, "name": "next", "status": "running"})
 		default:

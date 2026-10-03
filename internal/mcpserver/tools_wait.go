@@ -68,7 +68,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			terminal  bool
 			terminalE string
 		)
-		pg, err := c.Playgrounds.StatusByIdentifier(ctx, identifier)
+		pg, err := c.Playgrounds.RuntimeStatusByIdentifier(ctx, identifier)
 		fetchErr = err
 		if err == nil {
 			payload = pg
@@ -76,7 +76,7 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 			if status == "error" || status == "failed" || status == "destroyed" {
 				if status != target {
 					terminal = true
-					terminalE = fibe.PlaygroundTerminalStateError(pg)
+					terminalE = fibe.PlaygroundTerminalStateError(&pg.PlaygroundStatus)
 				}
 			}
 		}
@@ -86,10 +86,10 @@ func (s *Server) runWait(ctx context.Context, c *fibe.Client, args map[string]an
 		}
 
 		if progressToken != nil {
-			s.sendProgress(ctx, progressToken, float64(tick), playgroundWaitProgressMessage(pg))
+			s.sendProgress(ctx, progressToken, float64(tick), playgroundWaitProgressMessage(&pg.PlaygroundStatus))
 		}
 
-		ready, pending := fibe.PlaygroundStatusMatchesWaitTarget(pg, target, readiness)
+		ready, pending := fibe.PlaygroundRuntimeStatusMatchesWaitTarget(pg, target, readiness)
 		if ready {
 			return payload, nil
 		}

@@ -330,19 +330,19 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 	}
 	deadline := time.After(timeout)
 	for {
-		status, err := c.Playgrounds.Status(ctx, id)
+		status, err := c.Playgrounds.RuntimeStatus(ctx, id)
 		if err != nil {
 			return nil, err
 		}
-		ready, pendingReason := fibe.PlaygroundStatusMatchesWaitTarget(status, target, readiness)
+		ready, pendingReason := fibe.PlaygroundRuntimeStatusMatchesWaitTarget(status, target, readiness)
 		if progress != nil {
-			progress(playgroundWaitProgressText(status, target, pendingReason))
+			progress(playgroundWaitProgressText(&status.PlaygroundStatus, target, pendingReason))
 		}
 		if ready {
 			return c.Playgrounds.Get(ctx, id)
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
-			return nil, fibe.NewPlaygroundTerminalStateError(status)
+			return nil, fibe.NewPlaygroundTerminalStateError(&status.PlaygroundStatus)
 		}
 		select {
 		case <-ctx.Done():

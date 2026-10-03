@@ -86,6 +86,21 @@ fibe pg get demo -o json --only service_urls
 fibe wait playground next --status running --timeout 5m
 ```
 
+Waiting for a running Playground checks service readiness by default: the requested
+configuration must be applied, builds must have no warnings, long-running services
+must be ready, and one-shot dependencies must have exited successfully. Use
+`--readiness lifecycle` when you only need the lifecycle status. For a slow
+startup, increase `--timeout` to cover the service's Compose healthcheck budget.
+Inspect deployment failures with
+`fibe playgrounds debug <id-or-name> --build-logs --output json`. New builds retain
+their complete logs; older truncated logs cannot be reconstructed.
+
+Repository mirroring is asynchronous. `fibe wait prop <id-or-name>` waits for
+`mirror_status: completed` and reports the persisted failure reason. The Go SDK
+exposes these diagnostics through `Playgrounds.RuntimeStatusByIdentifier`,
+`Playgrounds.DebugWithBuildLogsByIdentifier`, and
+`Props.GetMirrorStateByIdentifier`, preserving existing response struct layouts.
+
 ## Output formatting
 
 Use `-o` to change formatting:

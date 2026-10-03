@@ -101,7 +101,7 @@ func TestServiceContractSmoke(t *testing.T) {
 		}
 	}
 
-	if called != 297 {
+	if called != 302 {
 		t.Fatalf("called %d exported service methods; update the contract count and REST manifest together", called)
 	}
 }

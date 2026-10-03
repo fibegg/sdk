@@ -26,7 +26,7 @@ func TestTransformRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 		}
 	})
 
-	result, err := c.SwitchPlaygroundTemplate(context.Background(), &PlaygroundTemplateSwitchParams{
+	result, err := c.SwitchPlaygroundTemplate(WithFields(context.Background(), "mode"), &PlaygroundTemplateSwitchParams{
 		PlaygroundID: 7,
 		TemplateBody: "services: {}\n",
 	})
@@ -82,14 +82,14 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 				"provisioned_props":       []map[string]any{{"prop_id": 44, "source_repo_url": "https://github.com/fibegg/private-api"}},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/playgrounds/7/status":
-			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 7, Status: "running"})
+			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 7, Status: "running", Services: []PlaygroundServiceInfo{{Name: "web", Status: "running", Running: true}}})
 		default:
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 	})
 
 	provisionPrivate := false
-	result, err := c.SwitchPlaygroundTemplate(context.Background(), &PlaygroundTemplateSwitchParams{
+	result, err := c.SwitchPlaygroundTemplate(WithFields(context.Background(), "mode"), &PlaygroundTemplateSwitchParams{
 		PlaygroundID:          7,
 		TemplateBody:          "services:\n  web:\n    image: nginx\n",
 		TemplateName:          "pg-transform",

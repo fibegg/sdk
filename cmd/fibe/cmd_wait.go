@@ -16,6 +16,7 @@ func waitCmd() *cobra.Command {
 		timeout      time.Duration
 		interval     time.Duration
 		full         bool
+		readiness    string
 	)
 
 	cmd := &cobra.Command{
@@ -26,7 +27,7 @@ func waitCmd() *cobra.Command {
 Eliminates retry loops in LLM agent code: delegates
 polling to the CLI with built-in timeout and interval.
 
-Supported resources: playground, trick
+Supported resources: playground, trick, prop (mirror progress)
 
 Examples:
   fibe wait playground next --status running
@@ -40,6 +41,15 @@ Examples:
 			auth := resolveCLIAuth()
 
 			c := newClient()
+			if resource == "playground" || resource == "pg" {
+				var err error
+				readiness, err = fibe.NormalizePlaygroundWaitReadiness(readiness, targetStatus)
+				if err != nil {
+					return err
+				}
+			} else if cmd.Flags().Changed("readiness") {
+				return fmt.Errorf("--readiness is only supported for playgrounds")
+			}
 			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{FallbackUpdates: true})
 			progress.Start(fmt.Sprintf("waiting for %s %s to reach %s", resource, identifier, targetStatus))
 			defer progress.Stop()
@@ -48,7 +58,7 @@ Examples:
 			switch resource {
 			case "playground", "pg":
 				for {
-					status, err := c.Playgrounds.StatusByIdentifier(ctx(), identifier)
+					status, err := c.Playgrounds.RuntimeStatusByIdentifier(ctx(), identifier)
 					if err != nil {
 						return waitResourceError(resource, identifier, auth, err)
 					}
@@ -57,7 +67,8 @@ Examples:
 
 					progress.Update(fmt.Sprintf("status: %s", current))
 
-					if current == targetStatus {
+					ready, pendingReason := fibe.PlaygroundRuntimeStatusMatchesWaitTarget(status, targetStatus, readiness)
+					if ready {
 						pg, err := c.Playgrounds.GetByIdentifier(ctx(), identifier)
 						if err != nil {
 							return waitResourceError(resource, identifier, auth, err)
@@ -72,12 +83,12 @@ Examples:
 					}
 
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fibe.NewPlaygroundTerminalStateError(status)
+						return fibe.NewPlaygroundTerminalStateError(&status.PlaygroundStatus)
 					}
 
 					select {
 					case <-deadline:
-						return fmt.Errorf("timeout after %s: last status: %s", timeout, current)
+						return fmt.Errorf("timeout after %s: %s", timeout, pendingReason)
 					case <-time.After(interval):
 					}
 				}
@@ -126,8 +137,36 @@ Examples:
 					case <-time.After(interval):
 					}
 				}
+			case "prop":
+				if !cmd.Flags().Changed("status") {
+					targetStatus = "completed"
+				}
+				for {
+					prop, err := c.Props.GetMirrorStateByIdentifier(ctx(), identifier)
+					if err != nil {
+						return waitResourceError(resource, identifier, auth, err)
+					}
+					current := prop.MirrorStatus
+					if current == "" {
+						current = prop.Status
+					}
+					progress.Update("status: " + current)
+					if current == "failed" {
+						return fmt.Errorf("mirror failed: %s", prop.MirrorError)
+					}
+					if current == targetStatus {
+						progress.Stop()
+						output(prop)
+						return nil
+					}
+					select {
+					case <-deadline:
+						return fmt.Errorf("timeout after %s: mirror status %s: %s", timeout, current, prop.MirrorError)
+					case <-time.After(interval):
+					}
+				}
 			default:
-				return fmt.Errorf("unsupported resource %q: supported: playground, trick", resource)
+				return fmt.Errorf("unsupported resource %q: supported: playground, trick, prop", resource)
 			}
 		},
 	}
@@ -136,6 +175,7 @@ Examples:
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "Maximum time to wait")
 	cmd.Flags().DurationVar(&interval, "interval", 3*time.Second, "Polling interval")
 	cmd.Flags().BoolVar(&full, "full", false, "Print the full resource payload after success")
+	cmd.Flags().StringVar(&readiness, "readiness", "", "Playground readiness: services (default for running) or lifecycle")
 
 	return cmd
 }
@@ -152,6 +192,8 @@ func (e *waitNotFoundError) Error() string {
 	listCommand := "fibe playgrounds list --only id,name,status"
 	if e.resource == "trick" || e.resource == "tr" {
 		listCommand = "fibe tricks list --only id,name,status"
+	} else if e.resource == "prop" {
+		listCommand = "fibe props list --only id,name,status,mirror_status"
 	}
 	return fmt.Sprintf("%s %q was not found in profile %q (%s). Use --profile/--domain to select another environment, or run `%s` to find the correct name or ID",
 		e.resource, e.identifier, e.profile, effectiveBaseURL(e.domain), listCommand)

@@ -504,21 +504,9 @@ func fmtStr(s *string) string {
 }
 
 func ctx() context.Context {
-	c := currentCommandContext()
-	if len(flagOnly) > 0 {
-		var fields []string
-		for _, f := range flagOnly {
-			for _, part := range strings.Split(f, ",") {
-				if trimmed := strings.TrimSpace(part); trimmed != "" {
-					fields = append(fields, trimmed)
-				}
-			}
-		}
-		if len(fields) > 0 {
-			c = fibe.WithFields(c, fields...)
-		}
-	}
-	return c
+	// --only projects the final CLI output. Internal SDK lookups still need
+	// identity, authorization and readiness fields to complete an operation.
+	return currentCommandContext()
 }
 
 func setCommandContext(ctx context.Context) {

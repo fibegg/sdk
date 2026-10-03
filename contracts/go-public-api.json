@@ -263,6 +263,11 @@
       "signature": "func ParseWebhookData(payload *WebhookPayload) (any, error)"
     },
     {
+      "id": "func.PlaygroundRuntimeStatusMatchesWaitTarget",
+      "kind": "func",
+      "signature": "func PlaygroundRuntimeStatusMatchesWaitTarget(status *PlaygroundRuntimeStatus, target, readiness string) (bool, string)"
+    },
+    {
       "id": "func.PlaygroundServiceReadinessSummary",
       "kind": "func",
       "signature": "func PlaygroundServiceReadinessSummary(services []PlaygroundServiceInfo) string"
@@ -1693,6 +1698,11 @@
       "signature": "func (s *MutterService) GetByAgentIdentifier(ctx context.Context, agentIdentifier string, params *MutterListParams) (*Mutter, error)"
     },
     {
+      "id": "method.Playground.UnmarshalJSON",
+      "kind": "method",
+      "signature": "func (p *Playground) UnmarshalJSON(data []byte) error"
+    },
+    {
       "id": "method.PlaygroundActionParams.Validate",
       "kind": "method",
       "signature": "func (p *PlaygroundActionParams) Validate() error"
@@ -1706,6 +1716,11 @@
       "id": "method.PlaygroundCreateParams.Validate",
       "kind": "method",
       "signature": "func (p *PlaygroundCreateParams) Validate() error"
+    },
+    {
+      "id": "method.PlaygroundRuntimeStatus.UnmarshalJSON",
+      "kind": "method",
+      "signature": "func (p *PlaygroundRuntimeStatus) UnmarshalJSON(data []byte) error"
     },
     {
       "id": "method.PlaygroundService.Action",
@@ -1736,6 +1751,11 @@
       "id": "method.PlaygroundService.Debug",
       "kind": "method",
       "signature": "func (s *PlaygroundService) Debug(ctx context.Context, id int64) (map[string]any, error)"
+    },
+    {
+      "id": "method.PlaygroundService.DebugWithBuildLogsByIdentifier",
+      "kind": "method",
+      "signature": "func (s *PlaygroundService) DebugWithBuildLogsByIdentifier(ctx context.Context, identifier string, params *PlaygroundBuildLogDebugParams) (map[string]any, error)"
     },
     {
       "id": "method.PlaygroundService.DebugWithParams",
@@ -1821,6 +1841,16 @@
       "id": "method.PlaygroundService.LogsStreamByIdentifier",
       "kind": "method",
       "signature": "func (s *PlaygroundService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) \u003c-chan LogLine"
+    },
+    {
+      "id": "method.PlaygroundService.RuntimeStatus",
+      "kind": "method",
+      "signature": "func (s *PlaygroundService) RuntimeStatus(ctx context.Context, id int64) (*PlaygroundRuntimeStatus, error)"
+    },
+    {
+      "id": "method.PlaygroundService.RuntimeStatusByIdentifier",
+      "kind": "method",
+      "signature": "func (s *PlaygroundService) RuntimeStatusByIdentifier(ctx context.Context, identifier string) (*PlaygroundRuntimeStatus, error)"
     },
     {
       "id": "method.PlaygroundService.Status",
@@ -2083,6 +2113,11 @@
       "signature": "func (s *PropService) GetByIdentifier(ctx context.Context, identifier string) (*Prop, error)"
     },
     {
+      "id": "method.PropService.GetMirrorStateByIdentifier",
+      "kind": "method",
+      "signature": "func (s *PropService) GetMirrorStateByIdentifier(ctx context.Context, identifier string) (*PropMirrorState, error)"
+    },
+    {
       "id": "method.PropService.List",
       "kind": "method",
       "signature": "func (s *PropService) List(ctx context.Context, params *PropListParams) (*ListResult[Prop], error)"
@@ -2091,6 +2126,11 @@
       "id": "method.PropService.Mirror",
       "kind": "method",
       "signature": "func (s *PropService) Mirror(ctx context.Context, sourceURL string, name string) (*Prop, error)"
+    },
+    {
+      "id": "method.PropService.MirrorWithState",
+      "kind": "method",
+      "signature": "func (s *PropService) MirrorWithState(ctx context.Context, sourceURL, name string) (*PropMirrorState, error)"
     },
     {
       "id": "method.PropService.Sync",
@@ -3053,6 +3093,11 @@
       "signature": "type PlaygroundActionParams struct {\n\tActionType string `json:\"action_type\"`\n\tForce      *bool  `json:\"force,omitempty\"`\n}"
     },
     {
+      "id": "type.PlaygroundBuildLogDebugParams",
+      "kind": "type",
+      "signature": "type PlaygroundBuildLogDebugParams struct {\n\tPlaygroundDebugParams\n\tIncludeBuildLogs *bool `url:\"include_build_logs,omitempty\"`\n}"
+    },
+    {
       "id": "type.PlaygroundBuildRecordSnapshot",
       "kind": "type",
       "signature": "type PlaygroundBuildRecordSnapshot struct {\n\tID             int64      `json:\"id\"`\n\tServiceName    string     `json:\"service_name,omitempty\"`\n\tStatus         string     `json:\"status\"`\n\tCommitSHA      string     `json:\"commit_sha\"`\n\tShortCommitSHA string     `json:\"short_commit_sha,omitempty\"`\n\tImageRef       string     `json:\"image_ref,omitempty\"`\n\tErrorMessage   string     `json:\"error_message,omitempty\"`\n\tStartedAt      *time.Time `json:\"started_at,omitempty\"`\n\tCompletedAt    *time.Time `json:\"completed_at,omitempty\"`\n\tCreatedAt      *time.Time `json:\"created_at,omitempty\"`\n}"
@@ -3096,6 +3141,16 @@
       "id": "type.PlaygroundLogs",
       "kind": "type",
       "signature": "type PlaygroundLogs struct {\n\tService     string                        `json:\"service\"`\n\tLines       []string                      `json:\"lines\"`\n\tSource      string                        `json:\"source\"`\n\tEntries     []LogEntry                    `json:\"entries,omitempty\"`\n\tStartup     *PlaygroundStartupDiagnostics `json:\"startup,omitempty\"`\n\tDiagnostics map[string]any                `json:\"diagnostics,omitempty\"`\n}"
+    },
+    {
+      "id": "type.PlaygroundRuntimeServiceInfo",
+      "kind": "type",
+      "signature": "type PlaygroundRuntimeServiceInfo struct {\n\tPlaygroundServiceInfo\n\tCompletionExpected bool `json:\"completion_expected,omitempty\"`\n}"
+    },
+    {
+      "id": "type.PlaygroundRuntimeStatus",
+      "kind": "type",
+      "signature": "type PlaygroundRuntimeStatus struct {\n\tPlaygroundStatus\n\tRuntimeServices  []PlaygroundRuntimeServiceInfo `json:\"services,omitempty\"`\n\tRuntimeOperation map[string]any                 `json:\"runtime_operation,omitempty\"`\n\tBuildWarnings    []string                       `json:\"build_warnings,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundService",
@@ -3236,6 +3291,11 @@
       "id": "type.PropListParams",
       "kind": "type",
       "signature": "type PropListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tProvider      string `url:\"provider,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tPrivate       *bool  `url:\"private,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
+    },
+    {
+      "id": "type.PropMirrorState",
+      "kind": "type",
+      "signature": "type PropMirrorState struct {\n\tProp\n\tMirrorStatus string `json:\"mirror_status,omitempty\"`\n\tMirrorError  string `json:\"mirror_error,omitempty\"`\n}"
     },
     {
       "id": "type.PropResolutionEntry",

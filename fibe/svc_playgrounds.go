@@ -141,16 +141,16 @@ func (s *PlaygroundService) WaitForStatusWithReadinessByIdentifier(ctx context.C
 	}
 	deadline := time.After(timeout)
 	for {
-		status, err := s.StatusByIdentifier(ctx, identifier)
+		status, err := s.RuntimeStatusByIdentifier(ctx, identifier)
 		if err != nil {
 			return nil, err
 		}
-		ready, pendingReason := PlaygroundStatusMatchesWaitTarget(status, target, readiness)
+		ready, pendingReason := PlaygroundRuntimeStatusMatchesWaitTarget(status, target, readiness)
 		if ready {
 			return s.GetByIdentifier(ctx, identifier)
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
-			return nil, NewPlaygroundTerminalStateError(status)
+			return nil, NewPlaygroundTerminalStateError(&status.PlaygroundStatus)
 		}
 		select {
 		case <-ctx.Done():
@@ -193,6 +193,9 @@ func PlaygroundStatusMatchesWaitTarget(status *PlaygroundStatus, target string, 
 	}
 	if readiness != PlaygroundWaitReadinessServices || target != "running" {
 		return true, ""
+	}
+	if status.NeedsRecreation != nil && *status.NeedsRecreation {
+		return false, "runtime needs recreation; the requested deployment is not applied"
 	}
 	return PlaygroundServicesReady(status.Services)
 }

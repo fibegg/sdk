@@ -401,7 +401,21 @@ EXAMPLES:
   fibe playspecs validate-compose --compose "version: '3'..."`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			result, err := c.Playspecs.ValidateCompose(ctx(), compose)
+			params := &fibe.ComposeValidateParams{}
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("compose") {
+				var err error
+				params.ComposeYAML, err = readTextValue(compose)
+				if err != nil {
+					return err
+				}
+			}
+			if params.ComposeYAML == "" {
+				return fmt.Errorf("required field 'compose_yaml' not set; use --compose or --from-file")
+			}
+			result, err := c.Playspecs.ValidateComposeWithParams(ctx(), params)
 			if err != nil {
 				return err
 			}
@@ -410,7 +424,6 @@ EXAMPLES:
 		},
 	}
 
-	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML (required)")
-	mustMarkFlagRequired(cmd, "compose")
+	cmd.Flags().StringVar(&compose, "compose", "", "Docker-compose YAML or @path (or compose_yaml in --from-file)")
 	return cmd
 }

@@ -122,7 +122,8 @@ func TestWithFields_NoFieldsMeansNoFiltering(t *testing.T) {
 		})
 	})
 
-	pg, err := c.Playgrounds.Get(context.Background(), 1)
+	ctx := WithFields(WithFields(context.Background(), "id"))
+	pg, err := c.Playgrounds.Get(ctx, 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -50,6 +50,8 @@ func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *Playgroun
 	if params == nil {
 		return nil, fmt.Errorf("params is required")
 	}
+	// A composed mutation needs complete intermediate resource responses.
+	ctx = WithFields(ctx)
 	mode := strings.ToLower(strings.TrimSpace(params.Mode))
 	if mode == "" {
 		mode = "apply"
@@ -269,7 +271,7 @@ func waitForTemplateSwitchRollout(ctx context.Context, c *Client, playgroundID i
 	attempt := 0
 	for {
 		attempt++
-		status, err := c.Playgrounds.Status(ctx, playgroundID)
+		status, err := c.Playgrounds.RuntimeStatus(ctx, playgroundID)
 		if err != nil {
 			return map[string]any{"id": playgroundID, "success": false, "error": err.Error(), "last_status": lastStatus}
 		}
@@ -279,14 +281,15 @@ func waitForTemplateSwitchRollout(ctx context.Context, c *Client, playgroundID i
 			Status:    status.Status,
 			Attempt:   attempt,
 		})
-		if status.Status == "running" || status.Status == "completed" {
+		ready, pendingReason := PlaygroundRuntimeStatusMatchesWaitTarget(status, "running", PlaygroundWaitReadinessServices)
+		if ready || status.Status == "completed" && !TrickStatusResultFailed(&status.PlaygroundStatus) {
 			return map[string]any{"id": playgroundID, "success": true, "status": status.Status}
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {
 			return map[string]any{"id": playgroundID, "success": false, "status": status.Status, "failure_diagnostics": status.FailureDiagnostics}
 		}
 		if time.Now().After(deadline) {
-			return map[string]any{"id": playgroundID, "success": false, "status": status.Status, "error": fmt.Sprintf("timeout after %s", timeout)}
+			return map[string]any{"id": playgroundID, "success": false, "status": status.Status, "error": fmt.Sprintf("timeout after %s: %s", timeout, pendingReason)}
 		}
 		select {
 		case <-ctx.Done():

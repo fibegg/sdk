@@ -344,6 +344,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(prop)
+				return nil
+			}
 			fmt.Printf("Attached prop %d (%s)\n", prop.ID, prop.Name)
 			return nil
 		},
@@ -373,9 +377,13 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			nameFlag, _ := cmd.Flags().GetString("name")
-			prop, err := c.Props.Mirror(ctx(), sourceURL, nameFlag)
+			prop, err := c.Props.MirrorWithState(ctx(), sourceURL, nameFlag)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(prop)
+				return nil
 			}
 			fmt.Printf("Mirroring started: prop %d (%s)\n", prop.ID, prop.Name)
 			return nil

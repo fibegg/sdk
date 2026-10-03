@@ -74,3 +74,17 @@ func resolveStringValue(val string) string {
 	}
 	return val
 }
+
+// readTextValue accepts literal text or @path, and reports unreadable files
+// before a request is sent to the server.
+func readTextValue(val string) (string, error) {
+	if !strings.HasPrefix(val, "@") {
+		return val, nil
+	}
+	path := strings.TrimPrefix(val, "@")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read text file %q: %w", path, err)
+	}
+	return string(data), nil
+}

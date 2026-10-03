@@ -664,6 +664,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(pg)
+				return nil
+			}
 			fmt.Printf("Rollout initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
@@ -693,6 +697,10 @@ EXAMPLES:
 			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "hard restarting playground "+args[0], params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(pg)
+				return nil
 			}
 			fmt.Printf("Hard restart initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
@@ -724,6 +732,10 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
+			if effectiveOutput() != "table" {
+				outputJSON(pg)
+				return nil
+			}
 			fmt.Printf("Stop initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
 		},
@@ -753,6 +765,10 @@ EXAMPLES:
 			pg, err := runPlaygroundActionWithProgress(cmd, args[0], "starting playground "+args[0], params)
 			if err != nil {
 				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(pg)
+				return nil
 			}
 			fmt.Printf("Start initiated for playground %d: status: %s\n", pg.ID, pg.Status)
 			return nil
@@ -866,7 +882,7 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			status, err := c.Playgrounds.StatusByIdentifier(ctx(), args[0])
+			status, err := c.Playgrounds.RuntimeStatusByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
@@ -875,7 +891,7 @@ EXAMPLES:
 				return nil
 			}
 			fmt.Printf("Playground %d: %s (maintenance: %s)\n", status.ID, status.Status, fmtMaintenance(status.MaintenanceEnabled))
-			if reason := strings.TrimSpace(statusReasonText(status)); reason != "" {
+			if reason := strings.TrimSpace(statusReasonText(&status.PlaygroundStatus)); reason != "" {
 				fmt.Printf("Reason: %s\n", reason)
 			}
 			for _, build := range status.BuildStatuses {
@@ -1065,7 +1081,8 @@ EXAMPLES:
 }
 
 func pgDebugCmd() *cobra.Command {
-	return &cobra.Command{
+	var includeBuildLogs bool
+	cmd := &cobra.Command{
 		Use:   "debug <id-or-name>",
 		Short: "Get detailed debug information",
 		Long: `Get detailed debug information for a playground.
@@ -1081,7 +1098,7 @@ EXAMPLES:
 			progress.Start("loading debug info for playground " + args[0] + "...")
 			defer progress.Stop()
 			c := newClient(fibe.WithProgress(progress.Progress("loading debug info for playground " + args[0])))
-			debug, err := c.Playgrounds.DebugWithParamsByIdentifier(ctx(), args[0], nil)
+			debug, err := c.Playgrounds.DebugWithBuildLogsByIdentifier(ctx(), args[0], &fibe.PlaygroundBuildLogDebugParams{IncludeBuildLogs: &includeBuildLogs})
 			progress.Stop()
 			if err != nil {
 				return err
@@ -1094,6 +1111,8 @@ EXAMPLES:
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&includeBuildLogs, "build-logs", false, "Include retained build logs in debug output")
+	return cmd
 }
 
 func printPlaygroundLogs(logs *fibe.PlaygroundLogs) {

@@ -13,9 +13,6 @@ type onlyFieldsCtxKey struct{}
 // WithFields limits SDK responses to top-level JSON field names. Unknown names
 // are ignored and an empty list disables filtering; omitted struct fields stay zero-valued.
 func WithFields(ctx context.Context, fields ...string) context.Context {
-	if len(fields) == 0 {
-		return ctx
-	}
 	set := make(map[string]bool, len(fields))
 	for _, f := range fields {
 		set[f] = true

@@ -11177,6 +11177,15 @@
           "usage": "Auth profile to use (default: active profile or default)"
         }
       ],
+      "local_flags": [
+        {
+          "name": "build-logs",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Include retained build logs in debug output"
+        }
+      ],
       "exit_on_error": false
     },
     {
@@ -14048,7 +14057,7 @@
           "name": "compose",
           "type": "string",
           "default": "",
-          "usage": "Docker-compose YAML (required)"
+          "usage": "Docker-compose YAML or @path (or compose_yaml in --from-file)"
         }
       ],
       "exit_on_error": false
@@ -18629,6 +18638,12 @@
           "type": "duration",
           "default": "3s",
           "usage": "Polling interval"
+        },
+        {
+          "name": "readiness",
+          "type": "string",
+          "default": "",
+          "usage": "Playground readiness: services (default for running) or lifecycle"
         },
         {
           "name": "status",

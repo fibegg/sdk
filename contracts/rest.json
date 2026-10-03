@@ -1454,6 +1454,15 @@
       "delegates_to": "PlaygroundService.DebugWithParams"
     },
     {
+      "name": "PlaygroundService.DebugWithBuildLogsByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/playgrounds/{identifier}/debug{?query}",
+      "path_expression": "identifierPath(\"/api/playgrounds\", identifier) + \"/debug\" + buildQuery(params)",
+      "codec": "async-json",
+      "request_type": "*PlaygroundBuildLogDebugParams",
+      "response_type": "map[string]any, error"
+    },
+    {
       "name": "PlaygroundService.DebugWithParams",
       "codec": "delegated",
       "request_type": "*PlaygroundDebugParams",
@@ -1577,6 +1586,20 @@
       "delegates_to": "PlaygroundService.LogStreamByIdentifier"
     },
     {
+      "name": "PlaygroundService.RuntimeStatus",
+      "codec": "delegated",
+      "response_type": "*PlaygroundRuntimeStatus, error",
+      "delegates_to": "PlaygroundService.RuntimeStatusByIdentifier"
+    },
+    {
+      "name": "PlaygroundService.RuntimeStatusByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/playgrounds/{identifier}/status",
+      "path_expression": "identifierPath(\"/api/playgrounds\", identifier) + \"/status\"",
+      "codec": "json",
+      "response_type": "*PlaygroundRuntimeStatus, error"
+    },
+    {
       "name": "PlaygroundService.Status",
       "codec": "delegated",
       "response_type": "*PlaygroundStatus, error",
@@ -1636,7 +1659,7 @@
       "name": "PlaygroundService.WaitForStatusWithReadinessByIdentifier",
       "codec": "delegated",
       "response_type": "*Playground, error",
-      "delegates_to": "PlaygroundService.StatusByIdentifier"
+      "delegates_to": "PlaygroundService.RuntimeStatusByIdentifier"
     },
     {
       "name": "PlayspecService.AddMountedFile",
@@ -1908,6 +1931,14 @@
       "response_type": "*Prop, error"
     },
     {
+      "name": "PropService.GetMirrorStateByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/props/{identifier}",
+      "path_expression": "identifierPath(\"/api/props\", identifier)",
+      "codec": "json",
+      "response_type": "*PropMirrorState, error"
+    },
+    {
       "name": "PropService.List",
       "codec": "delegated",
       "request_type": "*PropListParams",
@@ -1920,6 +1951,14 @@
       "path_expression": "\"/api/props/mirrors\"",
       "codec": "json",
       "response_type": "*Prop, error"
+    },
+    {
+      "name": "PropService.MirrorWithState",
+      "http_method": "POST",
+      "path_template": "/api/props/mirrors",
+      "path_expression": "\"/api/props/mirrors\"",
+      "codec": "json",
+      "response_type": "*PropMirrorState, error"
     },
     {
       "name": "PropService.Sync",
@@ -2225,7 +2264,9 @@
     "MarqueeCreateParams",
     "MarqueeUpdateParams",
     "MutterItemParams",
+    "Playground",
     "PlaygroundCreateParams",
+    "PlaygroundRuntimeStatus",
     "PlaygroundUpdateParams",
     "PlayspecServiceDef",
     "PlayspecTemplateVersionSwitchParams",
