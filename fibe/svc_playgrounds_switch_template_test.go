@@ -8,16 +8,16 @@ import (
 	"testing"
 )
 
-func TestTransformRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
+func TestTransformRejectsRawSpecBeforeCreatingTemplate(t *testing.T) {
 	var sawTemplateCreate bool
-	playspecID := int64(9)
+	specID := int64(9)
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/api/playgrounds/7":
-			json.NewEncoder(w).Encode(Playground{ID: 7, Name: "raw-pg", Status: "running", PlayspecID: &playspecID})
-		case r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/9":
+			json.NewEncoder(w).Encode(Playground{ID: 7, Name: "raw-pg", Status: "running", SpecID: &specID})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/specs/9":
 			id := int64(9)
-			json.NewEncoder(w).Encode(Playspec{ID: &id, Name: "raw"})
+			json.NewEncoder(w).Encode(Spec{ID: &id, Name: "raw"})
 		case r.Method == http.MethodPost && r.URL.Path == "/api/import_templates":
 			sawTemplateCreate = true
 			w.WriteHeader(http.StatusInternalServerError)
@@ -42,7 +42,7 @@ func TestTransformRejectsRawPlayspecBeforeCreatingTemplate(t *testing.T) {
 }
 
 func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
-	playspecID := int64(9)
+	specID := int64(9)
 	sourceVersionID := int64(33)
 	templateID := int64(11)
 	templateVersionID := int64(22)
@@ -52,16 +52,16 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/api/playgrounds/7":
-			json.NewEncoder(w).Encode(Playground{ID: 7, Name: "pg", Status: "running", PlayspecID: &playspecID})
-		case r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/9":
+			json.NewEncoder(w).Encode(Playground{ID: 7, Name: "pg", Status: "running", SpecID: &specID})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/specs/9":
 			id := int64(9)
-			json.NewEncoder(w).Encode(Playspec{ID: &id, Name: "ps", SourceTemplateVersionID: &sourceVersionID})
+			json.NewEncoder(w).Encode(Spec{ID: &id, Name: "ps", SourceTemplateVersionID: &sourceVersionID})
 		case r.Method == http.MethodPost && r.URL.Path == "/api/import_templates":
 			if err := json.NewDecoder(r.Body).Decode(&createBody); err != nil {
 				t.Fatalf("decode template create body: %v", err)
 			}
 			json.NewEncoder(w).Encode(ImportTemplate{ID: &templateID, Name: "pg-transform", LatestVersionID: &templateVersionID})
-		case r.Method == http.MethodPost && r.URL.Path == "/api/playspecs/9/template_switches":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/specs/9/template_switches":
 			if err := json.NewDecoder(r.Body).Decode(&switchBody); err != nil {
 				t.Fatalf("decode switch body: %v", err)
 			}
@@ -74,12 +74,12 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 				"target_template_version": map[string]any{
 					"id": templateVersionID,
 				},
-				"playspec": map[string]any{
-					"id":                         playspecID,
+				"spec": map[string]any{
+					"id":                         specID,
 					"source_template_version_id": templateVersionID,
 				},
-				"playground_rollout_plan": map[string]any{"rollout": []int64{7}},
-				"provisioned_props":       []map[string]any{{"prop_id": 44, "source_repo_url": "https://github.com/fibegg/private-api"}},
+				"playground_rollout_plan":  map[string]any{"rollout": []int64{7}},
+				"provisioned_repositories": []map[string]any{{"repository_id": 44, "source_repo_url": "https://github.com/fibegg/private-api"}},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/playgrounds/7/status":
 			json.NewEncoder(w).Encode(PlaygroundStatus{ID: 7, Status: "running", Services: []PlaygroundServiceInfo{{Name: "web", Status: "running", Running: true}}})
@@ -90,13 +90,13 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 
 	provisionPrivate := false
 	result, err := c.SwitchPlaygroundTemplate(WithFields(context.Background(), "mode"), &PlaygroundTemplateSwitchParams{
-		PlaygroundID:          7,
-		TemplateBody:          "services:\n  web:\n    image: nginx\n",
-		TemplateName:          "pg-transform",
-		ProvisionMissingProps: "gitea",
-		ProvisionPrivate:      &provisionPrivate,
-		ReuseExistingProps:    true,
-		Wait:                  true,
+		PlaygroundID:                 7,
+		TemplateBody:                 "services:\n  web:\n    image: nginx\n",
+		TemplateName:                 "pg-transform",
+		ProvisionMissingRepositories: "gitea",
+		ProvisionPrivate:             &provisionPrivate,
+		ReuseExistingRepositories:    true,
+		Wait:                         true,
 	})
 	if err != nil {
 		t.Fatalf("Transform: %v", err)
@@ -104,8 +104,8 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	if result.Template == nil || result.Template.ID == nil || *result.Template.ID != templateID {
 		t.Fatalf("expected created template in result, got %#v", result.Template)
 	}
-	if len(result.ProvisionedProps) != 1 || result.ProvisionedProps[0].PropID != 44 {
-		t.Fatalf("expected provisioned prop result, got %#v", result.ProvisionedProps)
+	if len(result.ProvisionedRepositories) != 1 || result.ProvisionedRepositories[0].RepositoryID != 44 {
+		t.Fatalf("expected provisioned repository result, got %#v", result.ProvisionedRepositories)
 	}
 	if len(result.WaitResults) != 1 || result.WaitResults[0]["success"] != true {
 		t.Fatalf("expected successful wait result, got %#v", result.WaitResults)
@@ -121,10 +121,10 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 	if switchBody["rollout_mode"] != "target" || switchBody["target_playground_id"].(float64) != 7 {
 		t.Fatalf("unexpected rollout switch body: %#v", switchBody)
 	}
-	if switchBody["provision_missing_props"] != "gitea" || switchBody["provision_private"] != false {
+	if switchBody["provision_missing_repositories"] != "gitea" || switchBody["provision_private"] != false {
 		t.Fatalf("unexpected provision switch body: %#v", switchBody)
 	}
-	if switchBody["reuse_existing_props"] != true {
-		t.Fatalf("unexpected reuse_existing_props in switch body: %#v", switchBody)
+	if switchBody["reuse_existing_repositories"] != true {
+		t.Fatalf("unexpected reuse_existing_repositories in switch body: %#v", switchBody)
 	}
 }

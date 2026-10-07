@@ -13,17 +13,17 @@ import (
 func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	c := userClient(t)
 
-	spec := seedPlayspec(t, c)
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run full lifecycle")
+	spec := seedSpec(t, c)
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to run full lifecycle")
 	}
 	expiresAt := time.Now().UTC().Add(2 * time.Hour)
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
 		Name:        uniqueName("life-pg"),
-		PlayspecID:  *spec.ID,
-		MarqueeID:   &marqueeID,
+		SpecID:      *spec.ID,
+		HostID:      &hostID,
 		ExpiresAt:   &expiresAt,
 		NeverExpire: ptr(false),
 	})
@@ -34,8 +34,8 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 	if pg.ID == 0 || pg.Name == "" || pg.Status == "" {
 		t.Errorf("create response missing core fields: id=%d name=%q status=%q", pg.ID, pg.Name, pg.Status)
 	}
-	if pg.PlayspecID == nil || *pg.PlayspecID != *spec.ID {
-		t.Errorf("expected PlayspecID=%d, got %v", *spec.ID, pg.PlayspecID)
+	if pg.SpecID == nil || *pg.SpecID != *spec.ID {
+		t.Errorf("expected SpecID=%d, got %v", *spec.ID, pg.SpecID)
 	}
 
 	t.Run("status transitions", func(t *testing.T) {
@@ -197,49 +197,49 @@ func TestPlaygrounds_ListFilterIntegration(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test list filters")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to test list filters")
 	}
 
-	spec := seedPlayspec(t, c)
+	spec := seedSpec(t, c)
 
 	pg1, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("filter-alpha"),
-		PlayspecID: *spec.ID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("filter-alpha"),
+		SpecID: *spec.ID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg1.ID) })
 
 	pg2, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("filter-beta"),
-		PlayspecID: *spec.ID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("filter-beta"),
+		SpecID: *spec.ID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg2.ID) })
 
-	t.Run("filter by playspec_id narrows results", func(t *testing.T) {
+	t.Run("filter by spec_id narrows results", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Playgrounds.List(ctx(), &fibe.PlaygroundListParams{PlayspecID: *spec.ID, PerPage: 50})
+		r, err := c.Playgrounds.List(ctx(), &fibe.PlaygroundListParams{SpecID: *spec.ID, PerPage: 50})
 		requireNoError(t, err)
 		if len(r.Data) < 2 {
-			t.Errorf("expected >= 2 playgrounds with playspec_id=%d, got %d", *spec.ID, len(r.Data))
+			t.Errorf("expected >= 2 playgrounds with spec_id=%d, got %d", *spec.ID, len(r.Data))
 		}
 		for _, pg := range r.Data {
-			if pg.PlayspecID == nil || *pg.PlayspecID != *spec.ID {
-				t.Errorf("expected PlayspecID=%d, got %v for pg %d", *spec.ID, pg.PlayspecID, pg.ID)
+			if pg.SpecID == nil || *pg.SpecID != *spec.ID {
+				t.Errorf("expected SpecID=%d, got %v for pg %d", *spec.ID, pg.SpecID, pg.ID)
 			}
 		}
 	})
 
-	t.Run("filter by marquee_id narrows results", func(t *testing.T) {
+	t.Run("filter by host_id narrows results", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Playgrounds.List(ctx(), &fibe.PlaygroundListParams{MarqueeID: marqueeID, PerPage: 50})
+		r, err := c.Playgrounds.List(ctx(), &fibe.PlaygroundListParams{HostID: hostID, PerPage: 50})
 		requireNoError(t, err)
 		if len(r.Data) < 2 {
-			t.Errorf("expected >= 2 playgrounds with marquee_id=%d, got %d", marqueeID, len(r.Data))
+			t.Errorf("expected >= 2 playgrounds with host_id=%d, got %d", hostID, len(r.Data))
 		}
 	})
 

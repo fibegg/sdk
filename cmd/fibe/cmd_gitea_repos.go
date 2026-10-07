@@ -9,10 +9,10 @@ func giteaReposCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gitea-repos",
 		Short: "Manage Gitea repositories",
-		Long: `Create Gitea repositories via the Fibe API and register them as Props.
+		Long: `Create Gitea repositories via the Fibe API and register them as Repositories.
 
 SUBCOMMANDS:
-  create    Create a new Gitea repository and Prop`,
+  create    Create a new Gitea repository and Repository`,
 	}
 	cmd.AddCommand(giteaRepoCreateCmd())
 	return cmd
@@ -23,8 +23,8 @@ func giteaRepoCreateCmd() *cobra.Command {
 	var private, autoInit bool
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Create a new Gitea repository and Prop",
-		Long: `Create a new Gitea repository and register it as a Fibe Prop.
+		Short: "Create a new Gitea repository and Repository",
+		Long: `Create a new Gitea repository and register it as a Fibe Repository.
 
 REQUIRED FLAGS:
   --name    Repository name

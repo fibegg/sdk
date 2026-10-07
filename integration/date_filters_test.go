@@ -37,22 +37,22 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 			},
 		},
 		{
-			name: "playspecs",
+			name: "specs",
 			run: func(t *testing.T, past, future string) {
-				r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{CreatedBefore: past, PerPage: 100})
+				r, err := c.Specs.List(ctx(), &fibe.SpecListParams{CreatedBefore: past, PerPage: 100})
 				requireNoError(t, err)
 				if r.Meta.Total != 0 {
-					t.Errorf("expected 0 playspecs before %s, got %d", past, r.Meta.Total)
+					t.Errorf("expected 0 specs before %s, got %d", past, r.Meta.Total)
 				}
 			},
 		},
 		{
-			name: "props",
+			name: "repositories",
 			run: func(t *testing.T, past, future string) {
-				r, err := c.Props.List(ctx(), &fibe.PropListParams{CreatedAfter: future, PerPage: 100})
+				r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{CreatedAfter: future, PerPage: 100})
 				requireNoError(t, err)
 				if r.Meta.Total != 0 {
-					t.Errorf("expected 0 props created after far future, got %d", r.Meta.Total)
+					t.Errorf("expected 0 repositories created after far future, got %d", r.Meta.Total)
 				}
 			},
 		},
@@ -67,12 +67,12 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 			},
 		},
 		{
-			name: "marquees",
+			name: "hosts",
 			run: func(t *testing.T, past, future string) {
-				r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{CreatedBefore: past, PerPage: 100})
+				r, err := c.Hosts.List(ctx(), &fibe.HostListParams{CreatedBefore: past, PerPage: 100})
 				requireNoError(t, err)
 				if r.Meta.Total != 0 {
-					t.Errorf("expected 0 marquees before %s, got %d", past, r.Meta.Total)
+					t.Errorf("expected 0 hosts before %s, got %d", past, r.Meta.Total)
 				}
 			},
 		},

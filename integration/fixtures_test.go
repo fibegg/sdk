@@ -35,14 +35,14 @@ func minimalComposeYAML() string {
 	return "services:\n  web:\n    image: nginx:alpine\n"
 }
 
-// uniqueHost returns a fake but unique hostname for marquee tests.
+// uniqueHost returns a fake but unique hostname for host tests.
 // The backend enforces host uniqueness, and Docker E2E databases can retain
 // old rows between runs, so include the same nanosecond entropy as uniqueName.
 func uniqueHost() string {
 	return fmt.Sprintf("%s.test.local", uniqueName("host"))
 }
 
-// jobComposeYAML returns a compose suitable for job-mode playspecs (tricks).
+// jobComposeYAML returns a compose suitable for job-mode specs (tasks).
 func jobComposeYAML() string {
 	return `services:
   worker:
@@ -55,22 +55,22 @@ func jobComposeYAML() string {
 
 // jobWatchedService returns a service def with JobWatch=true, which is required
 // for backends that enforce "job_mode requires at least one watched service".
-func jobWatchedService(name string) fibe.PlayspecServiceDef {
+func jobWatchedService(name string) fibe.SpecServiceDef {
 	t := true
-	return fibe.PlayspecServiceDef{
+	return fibe.SpecServiceDef{
 		Name:     name,
 		Type:     fibe.ServiceTypeStatic,
 		JobWatch: &t,
 	}
 }
 
-// seedPlayspec creates a real playspec, registers cleanup, returns ID.
-func seedPlayspec(t *testing.T, c *fibe.Client, opts ...func(*fibe.PlayspecCreateParams)) *fibe.Playspec {
+// seedSpec creates a real spec, registers cleanup, returns ID.
+func seedSpec(t *testing.T, c *fibe.Client, opts ...func(*fibe.SpecCreateParams)) *fibe.Spec {
 	t.Helper()
-	params := &fibe.PlayspecCreateParams{
+	params := &fibe.SpecCreateParams{
 		Name:            uniqueName("fx-spec"),
 		BaseComposeYAML: realComposeYAML(),
-		Services: []fibe.PlayspecServiceDef{
+		Services: []fibe.SpecServiceDef{
 			{Name: "web", Type: fibe.ServiceTypeStatic},
 			{Name: "db", Type: fibe.ServiceTypeStatic},
 			{Name: "cache", Type: fibe.ServiceTypeStatic},
@@ -79,12 +79,12 @@ func seedPlayspec(t *testing.T, c *fibe.Client, opts ...func(*fibe.PlayspecCreat
 	for _, o := range opts {
 		o(params)
 	}
-	spec, err := c.Playspecs.Create(ctx(), params)
-	requireNoError(t, err, "seed playspec")
+	spec, err := c.Specs.Create(ctx(), params)
+	requireNoError(t, err, "seed spec")
 	if spec.ID == nil || *spec.ID == 0 {
-		t.Fatal("expected playspec ID")
+		t.Fatal("expected spec ID")
 	}
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 	return spec
 }
 
@@ -124,38 +124,38 @@ func seedSecret(t *testing.T, c *fibe.Client, keySuffix string) *fibe.Secret {
 	return s
 }
 
-// seedWritableGiteaProp creates a real writable repo through the e2e player's
-// connected Gitea account and returns the Prop surfaced by that flow.
-func seedWritableGiteaProp(t *testing.T, c *fibe.Client, prefix string) *fibe.Prop {
+// seedWritableGiteaRepository creates a real writable repo through the e2e player's
+// connected Gitea account and returns the Repository surfaced by that flow.
+func seedWritableGiteaRepository(t *testing.T, c *fibe.Client, prefix string) *fibe.Repository {
 	t.Helper()
-	prop := createWritableGiteaProp(t, c, prefix)
-	t.Cleanup(func() { _ = c.Props.Delete(ctx(), prop.ID) })
-	return prop
+	repository := createWritableGiteaRepository(t, c, prefix)
+	t.Cleanup(func() { _ = c.Repositories.Delete(ctx(), repository.ID) })
+	return repository
 }
 
-func createWritableGiteaProp(t *testing.T, c *fibe.Client, prefix string) *fibe.Prop {
+func createWritableGiteaRepository(t *testing.T, c *fibe.Client, prefix string) *fibe.Repository {
 	t.Helper()
 	repo := seedWritableGiteaRepo(t, c, prefix)
-	var prop *fibe.Prop
-	if repo.Prop != nil {
-		prop = repo.Prop
-	} else if repo.PropID > 0 {
+	var repository *fibe.Repository
+	if repo.Repository != nil {
+		repository = repo.Repository
+	} else if repo.RepositoryID > 0 {
 		var err error
-		prop, err = c.Props.Get(ctx(), repo.PropID)
-		requireNoError(t, err, "get writable gitea prop")
+		repository, err = c.Repositories.Get(ctx(), repo.RepositoryID)
+		requireNoError(t, err, "get writable gitea repository")
 	} else {
-		t.Fatalf("gitea repo create did not return prop metadata: %#v", repo)
+		t.Fatalf("gitea repo create did not return repository metadata: %#v", repo)
 	}
-	return prop
+	return repository
 }
 
 // seedWritableGiteaRepoURL creates a real Gitea repo and removes the auto-created
-// Prop so callers can exercise the generic props create path against a writable URL.
+// Repository so callers can exercise the generic repositories create path against a writable URL.
 func seedWritableGiteaRepoURL(t *testing.T, c *fibe.Client, prefix string) string {
 	t.Helper()
 	repo := seedWritableGiteaRepo(t, c, prefix)
-	if repo.PropID > 0 {
-		_ = c.Props.Delete(ctx(), repo.PropID)
+	if repo.RepositoryID > 0 {
+		_ = c.Repositories.Delete(ctx(), repo.RepositoryID)
 	}
 	if repo.HTMLURL != "" {
 		return repo.HTMLURL

@@ -36,9 +36,9 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 
 	pat := githubFixturePAT(t)
 	c := userClient(t)
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("FIBE_TEST_MARQUEE_ID or an active Marquee is required for GitHub fixture launch tests")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("FIBE_TEST_HOST_ID or an active Host is required for GitHub fixture launch tests")
 	}
 
 	attachGitHubPATToCurrentPlayer(t, pat)
@@ -54,7 +54,7 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 			RepositoryURL:    githubFixtureBackendRepo,
 			ConfigPath:       githubFixtureConfigPath,
 			GitHubRef:        githubFixtureRef,
-			MarqueeID:        &marqueeID,
+			HostID:           &hostID,
 			CreatePlayground: &create,
 			PersistVolumes:   &persist,
 			Variables: map[string]string{
@@ -98,17 +98,17 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 		requireRepoRuntimeWritable(t, c, githubFixtureRepos)
 	})
 
-	t.Run("pasted compose requires writable fixture props and rejects read-only public attachments", func(t *testing.T) {
+	t.Run("pasted compose requires writable fixture repositories and rejects read-only public attachments", func(t *testing.T) {
 		composeYAML := fetchGitHubFixtureCompose(t, pat)
 
 		if !writeAccess.writable {
-			requireFixturePropCreateRejected(t, c, githubFixtureBackendRepo, "sdk-fixture-backend-readonly", writeAccess.reason)
+			requireFixtureRepositoryCreateRejected(t, c, githubFixtureBackendRepo, "sdk-fixture-backend-readonly", writeAccess.reason)
 			create := false
 			persist := false
 			_, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 				Name:             uniqueName("sdk-fixture-pasted-readonly"),
 				ComposeYAML:      composeYAML,
-				MarqueeID:        &marqueeID,
+				HostID:           &hostID,
 				CreatePlayground: &create,
 				PersistVolumes:   &persist,
 				Variables: map[string]string{
@@ -123,8 +123,8 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 			return
 		}
 
-		createFixturePropWithoutCredentials(t, c, githubFixtureBackendRepo, "sdk-fixture-backend-prop")
-		createFixturePropWithoutCredentials(t, c, githubFixtureFrontendRepo, "sdk-fixture-frontend-prop")
+		createFixtureRepositoryWithoutCredentials(t, c, githubFixtureBackendRepo, "sdk-fixture-backend-repository")
+		createFixtureRepositoryWithoutCredentials(t, c, githubFixtureFrontendRepo, "sdk-fixture-frontend-repository")
 		requireRepoRuntimeWritable(t, c, githubFixtureRepos)
 
 		create := false
@@ -132,7 +132,7 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:             uniqueName("sdk-fixture-pasted"),
 			ComposeYAML:      composeYAML,
-			MarqueeID:        &marqueeID,
+			HostID:           &hostID,
 			CreatePlayground: &create,
 			PersistVolumes:   &persist,
 			Variables: map[string]string{
@@ -148,15 +148,15 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 		})
 		requireNoError(t, err, "launch GitHub fixture by pasted compose")
 		cleanupLaunchResult(t, c, result)
-		requirePlayspecID(t, result)
+		requireSpecID(t, result)
 		requireRepoRuntimeWritable(t, c, githubFixtureRepos)
 
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("sdk-fixture-pasted-pg"),
-			PlayspecID: result.PlayspecID,
-			MarqueeID:  &marqueeID,
+			Name:   uniqueName("sdk-fixture-pasted-pg"),
+			SpecID: result.SpecID,
+			HostID: &hostID,
 		})
-		requireNoError(t, err, "create playground from pasted-compose fixture playspec")
+		requireNoError(t, err, "create playground from pasted-compose fixture spec")
 		t.Cleanup(func() { _ = c.Playgrounds.Delete(ctx(), pg.ID) })
 
 		status := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running", "completed", "error", "failed"}, githubFixtureLaunchWaitTimeout())
@@ -288,38 +288,38 @@ func permissionTruthy(value any) bool {
 	}
 }
 
-func createFixturePropWithoutCredentials(t *testing.T, c *fibe.Client, repoURL, prefix string) *fibe.Prop {
+func createFixtureRepositoryWithoutCredentials(t *testing.T, c *fibe.Client, repoURL, prefix string) *fibe.Repository {
 	t.Helper()
 	name := uniqueName(prefix)
 	provider := "github"
 	branch := githubFixtureRef
 	private := false
-	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+	repository, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 		RepositoryURL: repoURL,
 		Name:          &name,
 		Provider:      &provider,
 		DefaultBranch: &branch,
 		Private:       &private,
 	})
-	requireNoError(t, err, "create fixture prop without credentials")
-	t.Cleanup(func() { _ = c.Props.Delete(ctx(), prop.ID) })
-	return prop
+	requireNoError(t, err, "create fixture repository without credentials")
+	t.Cleanup(func() { _ = c.Repositories.Delete(ctx(), repository.ID) })
+	return repository
 }
 
-func requireFixturePropCreateRejected(t *testing.T, c *fibe.Client, repoURL, prefix, accessReason string) {
+func requireFixtureRepositoryCreateRejected(t *testing.T, c *fibe.Client, repoURL, prefix, accessReason string) {
 	t.Helper()
 	name := uniqueName(prefix)
 	provider := "github"
 	branch := githubFixtureRef
 	private := false
-	_, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+	_, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 		RepositoryURL: repoURL,
 		Name:          &name,
 		Provider:      &provider,
 		DefaultBranch: &branch,
 		Private:       &private,
 	})
-	requireRuntimeWriteRejected(t, err, "create fixture prop without runtime write permission", accessReason)
+	requireRuntimeWriteRejected(t, err, "create fixture repository without runtime write permission", accessReason)
 }
 
 func requireRuntimeWriteRejected(t *testing.T, err error, label, accessReason string) {
@@ -406,15 +406,15 @@ func requireRepoRequiresFork(t *testing.T, c *fibe.Client, urls []string) {
 
 func requireLaunchIDs(t *testing.T, result *fibe.LaunchResult) {
 	t.Helper()
-	if result == nil || result.PlayspecID == 0 || result.PlaygroundID == 0 {
-		t.Fatalf("launch result missing playspec/playground IDs: %#v", result)
+	if result == nil || result.SpecID == 0 || result.PlaygroundID == 0 {
+		t.Fatalf("launch result missing spec/playground IDs: %#v", result)
 	}
 }
 
-func requirePlayspecID(t *testing.T, result *fibe.LaunchResult) {
+func requireSpecID(t *testing.T, result *fibe.LaunchResult) {
 	t.Helper()
-	if result == nil || result.PlayspecID == 0 {
-		t.Fatalf("launch result missing playspec ID: %#v", result)
+	if result == nil || result.SpecID == 0 {
+		t.Fatalf("launch result missing spec ID: %#v", result)
 	}
 	if result.PlaygroundID != 0 {
 		t.Fatalf("launch result unexpectedly created playground when create_playground=false: %#v", result)
@@ -430,8 +430,8 @@ func cleanupLaunchResult(t *testing.T, c *fibe.Client, result *fibe.LaunchResult
 		if result.PlaygroundID != 0 {
 			_ = c.Playgrounds.Delete(ctx(), result.PlaygroundID)
 		}
-		if result.PlayspecID != 0 {
-			_ = c.Playspecs.Delete(ctx(), result.PlayspecID)
+		if result.SpecID != 0 {
+			_ = c.Specs.Delete(ctx(), result.SpecID)
 		}
 	})
 }

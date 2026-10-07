@@ -101,12 +101,12 @@ func TestAgentSendMessageToolUploadsAttachmentsAndPassesConversationControls(t *
 
 func TestAgentCreateConversationInputSchemaUsesIdentifierName(t *testing.T) {
 	schema := agentCreateConversationInputSchema()
-	props := schema["properties"].(map[string]any)
-	if _, ok := props["id_or_name"]; !ok {
-		t.Fatalf("expected id_or_name property: %#v", props)
+	repositories := schema["properties"].(map[string]any)
+	if _, ok := repositories["id_or_name"]; !ok {
+		t.Fatalf("expected id_or_name property: %#v", repositories)
 	}
-	if _, ok := props["agent_id"]; ok {
-		t.Fatalf("agent_id should not be advertised: %#v", props)
+	if _, ok := repositories["agent_id"]; ok {
+		t.Fatalf("agent_id should not be advertised: %#v", repositories)
 	}
 	required := schema["required"].([]string)
 	if len(required) != 2 || required[0] != "id_or_name" || required[1] != "conversation_id" {

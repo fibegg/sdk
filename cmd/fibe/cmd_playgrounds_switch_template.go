@@ -28,7 +28,7 @@ func pgSwitchTemplateCmd() *cobra.Command {
 		Short: "Switch a playground to another template version",
 		Long: `Preview or apply a template switch for a deployed playground.
 
-The playground must currently come from a template-backed playspec.
+The playground must currently come from a template-backed spec.
 
 EXAMPLES:
   fibe playgrounds switch-template staging --template billing-app --preview

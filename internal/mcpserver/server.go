@@ -160,6 +160,7 @@ func New(cfg Config) *Server {
 		mcpserver.WithResourceCapabilities(false, true),
 	}
 	hooks := &mcpserver.Hooks{}
+	hooks.AddOnRequestInitialization(rejectRemovedMCPRequest)
 	hooks.AddOnUnregisterSession(func(_ context.Context, session mcpserver.ClientSession) {
 		s.sessions.drop(session.SessionID())
 		s.cache.DeleteSession(session.SessionID())
@@ -301,11 +302,11 @@ func toolInputSchemaToMap(tool mcp.Tool) any {
 		return nil
 	}
 	if sm, ok := schema.(map[string]any); ok {
-		props, hasProps := sm["properties"]
-		if !hasProps {
+		repositories, hasRepositories := sm["properties"]
+		if !hasRepositories {
 			return nil
 		}
-		if pm, ok := props.(map[string]any); ok && len(pm) == 0 {
+		if pm, ok := repositories.(map[string]any); ok && len(pm) == 0 {
 			return nil
 		}
 	}

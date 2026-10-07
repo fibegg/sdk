@@ -9,7 +9,7 @@ import (
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee", "agent", "template", "artefact", "artefact_attachment", "template_source":
+	case "playground", "task", "spec", "repository", "host", "agent", "template", "artefact", "artefact_attachment", "template_source":
 		return true
 	default:
 		return false
@@ -143,22 +143,22 @@ func identifierStructField(idField string) (string, bool) {
 	switch idField {
 	case "build_in_public_playground_id":
 		return "BuildInPublicPlaygroundIdentifier", true
-	case "ci_marquee_id":
-		return "CIMarqueeIdentifier", true
-	case "marquee_id":
-		return "MarqueeIdentifier", true
+	case "ci_host_id":
+		return "CIHostIdentifier", true
+	case "host_id":
+		return "HostIdentifier", true
 	case "playground_id":
 		return "PlaygroundIdentifier", true
-	case "playspec_id":
-		return "PlayspecIdentifier", true
-	case "prop_id":
-		return "PropIdentifier", true
-	case "source_prop_id":
-		return "SourcePropIdentifier", true
+	case "spec_id":
+		return "SpecIdentifier", true
+	case "repository_id":
+		return "RepositoryIdentifier", true
+	case "source_repository_id":
+		return "SourceRepositoryIdentifier", true
 	case "target_playground_id":
 		return "TargetPlaygroundIdentifier", true
-	case "target_playspec_id":
-		return "TargetPlayspecIdentifier", true
+	case "target_spec_id":
+		return "TargetSpecIdentifier", true
 	default:
 		return "", false
 	}

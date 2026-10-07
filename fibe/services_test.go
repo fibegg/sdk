@@ -197,7 +197,7 @@ func TestPlaygrounds_WaitForStatusWithLifecycleReadinessUsesTopLevelStatus(t *te
 	}
 }
 
-func TestTricks_GetByIdentifierUsesName(t *testing.T) {
+func TestTasks_GetByIdentifierUsesName(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" || r.URL.EscapedPath() != "/api/playgrounds/nightly-build" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.EscapedPath())
@@ -205,12 +205,12 @@ func TestTricks_GetByIdentifierUsesName(t *testing.T) {
 		json.NewEncoder(w).Encode(Playground{ID: 77, Name: "nightly-build", Status: "completed"})
 	})
 
-	trick, err := c.Tricks.GetByIdentifier(context.Background(), "nightly-build")
+	task, err := c.Tasks.GetByIdentifier(context.Background(), "nightly-build")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if trick.ID != 77 || trick.Name != "nightly-build" {
-		t.Fatalf("unexpected trick: %#v", trick)
+	if task.ID != 77 || task.Name != "nightly-build" {
+		t.Fatalf("unexpected task: %#v", task)
 	}
 }
 
@@ -230,8 +230,8 @@ func TestPlaygrounds_Create(t *testing.T) {
 	})
 
 	pg, err := c.Playgrounds.Create(context.Background(), &PlaygroundCreateParams{
-		Name:       "new-pg",
-		PlayspecID: 5,
+		Name:   "new-pg",
+		SpecID: 5,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -258,13 +258,13 @@ func TestGreenfield_Create(t *testing.T) {
 		})
 	})
 
-	marqueeID := int64(12)
+	hostID := int64(12)
 	templateVersionID := int64(912)
 	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
 		Name:              "tower-defence",
 		TemplateBody:      "services:\n  web:\n    image: nginx\n",
 		GitProvider:       "github",
-		MarqueeID:         &marqueeID,
+		HostID:            &hostID,
 		TemplateVersionID: &templateVersionID,
 		Variables:         map[string]any{"app_name": "Tower"},
 	})
@@ -276,7 +276,7 @@ func TestGreenfield_Create(t *testing.T) {
 		Name:              "tower-defence",
 		TemplateVersionID: &templateVersionID,
 		GitProvider:       "github",
-		MarqueeID:         &marqueeID,
+		HostID:            &hostID,
 		Variables:         map[string]any{"app_name": "Tower"},
 		ServiceSubdomains: map[string]string{"app": "tower", "admin": "tower-admin"},
 	})
@@ -289,8 +289,8 @@ func TestGreenfield_Create(t *testing.T) {
 	if body["name"] != "tower-defence" || body["git_provider"] != "github" {
 		t.Fatalf("unexpected body: %#v", body)
 	}
-	if body["marquee_id"].(float64) != 12 {
-		t.Fatalf("unexpected marquee id in body: %#v", body)
+	if body["host_id"].(float64) != 12 {
+		t.Fatalf("unexpected host id in body: %#v", body)
 	}
 	if body["template_version_id"].(float64) != 912 {
 		t.Fatalf("unexpected template version id in body: %#v", body)
@@ -341,14 +341,14 @@ func TestGreenfield_CreateWithRepositoryURL(t *testing.T) {
 		json.NewEncoder(w).Encode(GreenfieldResult{Name: "repo", Playground: &Playground{ID: 77}})
 	})
 
-	marqueeID := int64(12)
+	hostID := int64(12)
 	installationID := int64(123)
 	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
 		RepositoryURL:        "https://github.com/owner/repo",
 		ConfigPath:           "deploy/fibe.yml",
 		GitHubRef:            "main",
 		GitHubInstallationID: &installationID,
-		MarqueeID:            &marqueeID,
+		HostID:               &hostID,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -374,14 +374,14 @@ func TestGreenfield_CreateWithTemplateID(t *testing.T) {
 		json.NewEncoder(w).Encode(GreenfieldResult{Name: "todo", Playground: &Playground{ID: 77}})
 	})
 
-	marqueeID := int64(12)
+	hostID := int64(12)
 	templateID := int64(347)
 	_, err := c.Greenfield.Create(context.Background(), &GreenfieldCreateParams{
 		Name:        "todo",
 		TemplateID:  &templateID,
 		Version:     "v1",
 		GitProvider: "gitea",
-		MarqueeID:   &marqueeID,
+		HostID:      &hostID,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -408,7 +408,7 @@ func TestGitHubApps_ConnectInfo(t *testing.T) {
 	}
 }
 
-func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
+func TestGiteaRepos_CreateSurfacesRepository(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/api/gitea_repositories" {
@@ -433,8 +433,8 @@ func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
 				"clone_url":      "https://git-next.fibe.live/viktorvsk/bagg-app.git",
 				"default_branch": "main",
 			},
-			"prop_id": 456,
-			"prop": map[string]any{
+			"repository_id": 456,
+			"repository": map[string]any{
 				"id":             456,
 				"name":           "bagg-app",
 				"repository_url": "https://git-next.fibe.live/viktorvsk/bagg-app",
@@ -451,8 +451,8 @@ func TestGiteaRepos_CreateSurfacesProp(t *testing.T) {
 	if body["name"] != "bagg-app" || body["private"] != true {
 		t.Fatalf("unexpected body: %#v", body)
 	}
-	if result.PropID != 456 || result.Prop == nil || result.Prop.ID != 456 {
-		t.Fatalf("expected prop in result, got %#v", result)
+	if result.RepositoryID != 456 || result.Repository == nil || result.Repository.ID != 456 {
+		t.Fatalf("expected repository in result, got %#v", result)
 	}
 	if result.Repo == nil || result.Repo.HTMLURL != "https://git-next.fibe.live/viktorvsk/bagg-app" {
 		t.Fatalf("expected nested repo in result, got %#v", result)
@@ -493,20 +493,20 @@ func TestPlaygrounds_Action(t *testing.T) {
 	}
 }
 
-func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
+func TestHosts_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "PATCH" || r.URL.Path != "/api/marquees/1" {
+		if r.Method != "PATCH" || r.URL.Path != "/api/hosts/1" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("decode body: %v", err)
 		}
-		json.NewEncoder(w).Encode(Marquee{ID: 1, Name: "Elastic"})
+		json.NewEncoder(w).Encode(Host{ID: 1, Name: "Elastic"})
 	})
 
 	provider := "cloudflare"
-	_, err := c.Marquees.Update(context.Background(), 1, &MarqueeUpdateParams{
+	_, err := c.Hosts.Update(context.Background(), 1, &HostUpdateParams{
 		DnsProvider:    &provider,
 		DnsCredentials: map[string]string{"CF_DNS_API_TOKEN": "secret-token"},
 	})
@@ -514,10 +514,10 @@ func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	marquee := body["marquee"].(map[string]any)
-	raw, ok := marquee["dns_credentials"].(string)
+	host := body["host"].(map[string]any)
+	raw, ok := host["dns_credentials"].(string)
 	if !ok {
-		t.Fatalf("dns_credentials = %T (%#v), want JSON string", marquee["dns_credentials"], marquee["dns_credentials"])
+		t.Fatalf("dns_credentials = %T (%#v), want JSON string", host["dns_credentials"], host["dns_credentials"])
 	}
 	var decoded map[string]string
 	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
@@ -528,10 +528,10 @@ func TestMarquees_UpdateSerializesDnsCredentialsForServer(t *testing.T) {
 	}
 }
 
-func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
+func TestHosts_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 	var body map[string]any
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "PATCH" || r.URL.Path != "/api/marquees/1" {
+		if r.Method != "PATCH" || r.URL.Path != "/api/hosts/1" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -539,14 +539,14 @@ func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 		}
 		enabled := true
 		source := "provided"
-		json.NewEncoder(w).Encode(Marquee{ID: 1, Name: "Elastic", HttpsEnabled: &enabled, TlsCertificateSource: &source})
+		json.NewEncoder(w).Encode(Host{ID: 1, Name: "Elastic", HttpsEnabled: &enabled, TlsCertificateSource: &source})
 	})
 
 	enabled := true
 	source := "provided"
 	cert := "-----BEGIN CERTIFICATE-----\ncert\n-----END CERTIFICATE-----"
 	key := "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----"
-	result, err := c.Marquees.Update(context.Background(), 1, &MarqueeUpdateParams{
+	result, err := c.Hosts.Update(context.Background(), 1, &HostUpdateParams{
 		HttpsEnabled:         &enabled,
 		TlsCertificateSource: &source,
 		TlsCertificatePEM:    &cert,
@@ -556,17 +556,17 @@ func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	marquee := body["marquee"].(map[string]any)
-	if marquee["https_enabled"] != true {
-		t.Fatalf("https_enabled = %#v, want true", marquee["https_enabled"])
+	host := body["host"].(map[string]any)
+	if host["https_enabled"] != true {
+		t.Fatalf("https_enabled = %#v, want true", host["https_enabled"])
 	}
-	if marquee["tls_certificate_source"] != "provided" {
-		t.Fatalf("tls_certificate_source = %#v", marquee["tls_certificate_source"])
+	if host["tls_certificate_source"] != "provided" {
+		t.Fatalf("tls_certificate_source = %#v", host["tls_certificate_source"])
 	}
-	if marquee["tls_certificate_pem"] != cert {
+	if host["tls_certificate_pem"] != cert {
 		t.Fatalf("tls_certificate_pem was not serialized")
 	}
-	if marquee["tls_private_key_pem"] != key {
+	if host["tls_private_key_pem"] != key {
 		t.Fatalf("tls_private_key_pem was not serialized")
 	}
 	if result.TlsCertificateSource == nil || *result.TlsCertificateSource != "provided" {
@@ -574,7 +574,7 @@ func TestMarquees_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 	}
 }
 
-func TestMarqueeDecodesBillingRuntimeFields(t *testing.T) {
+func TestHostDecodesBillingRuntimeFields(t *testing.T) {
 	raw := []byte(`{
 		"id": 42,
 		"name": "runtime",
@@ -583,30 +583,30 @@ func TestMarqueeDecodesBillingRuntimeFields(t *testing.T) {
 		"billing_runtime_active": true,
 		"chat_launchable": true
 	}`)
-	var marquee Marquee
-	if err := json.Unmarshal(raw, &marquee); err != nil {
-		t.Fatalf("unmarshal marquee: %v", err)
+	var host Host
+	if err := json.Unmarshal(raw, &host); err != nil {
+		t.Fatalf("unmarshal host: %v", err)
 	}
-	if marquee.PaidUntil == nil || marquee.PaidUntil.UTC().Format(time.RFC3339) != "2026-05-22T23:59:59Z" {
-		t.Fatalf("unexpected paid_until: %#v", marquee.PaidUntil)
+	if host.PaidUntil == nil || host.PaidUntil.UTC().Format(time.RFC3339) != "2026-05-22T23:59:59Z" {
+		t.Fatalf("unexpected paid_until: %#v", host.PaidUntil)
 	}
-	if marquee.BillingRequestedUntil == nil || marquee.BillingRequestedUntil.UTC().Format(time.RFC3339) != "2026-05-25T23:59:59Z" {
-		t.Fatalf("unexpected billing_requested_until: %#v", marquee.BillingRequestedUntil)
+	if host.BillingRequestedUntil == nil || host.BillingRequestedUntil.UTC().Format(time.RFC3339) != "2026-05-25T23:59:59Z" {
+		t.Fatalf("unexpected billing_requested_until: %#v", host.BillingRequestedUntil)
 	}
-	if !marquee.BillingRuntimeActive || !marquee.ChatLaunchable {
-		t.Fatalf("expected runtime booleans true, got billing_runtime_active=%v chat_launchable=%v", marquee.BillingRuntimeActive, marquee.ChatLaunchable)
+	if !host.BillingRuntimeActive || !host.ChatLaunchable {
+		t.Fatalf("expected runtime booleans true, got billing_runtime_active=%v chat_launchable=%v", host.BillingRuntimeActive, host.ChatLaunchable)
 	}
 }
 
-func TestMarquees_GenerateSSHKeyPollsAccepted(t *testing.T) {
+func TestHosts_GenerateSSHKeyPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/marquees/5/ssh_keys",
+		"/api/hosts/5/ssh_keys",
 		"/api/async_requests/req-async",
 		map[string]any{"public_key": "ssh-ed25519 AAAA test"},
 	)
 
-	result, err := c.Marquees.GenerateSSHKey(context.Background(), 5)
+	result, err := c.Hosts.GenerateSSHKey(context.Background(), 5)
 	if err != nil {
 		t.Fatalf("generate ssh key: %v", err)
 	}
@@ -638,7 +638,7 @@ func TestImportTemplates_RefreshSourcePollsAccepted(t *testing.T) {
 	}
 }
 
-func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
+func TestImportTemplates_UpgradeLinkedSpecsPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
 		"/api/import_templates/12/versions/34/upgrades",
@@ -646,9 +646,9 @@ func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
 		map[string]any{"success": true, "upgraded_count": 2, "failed_count": 0},
 	)
 
-	result, err := c.ImportTemplates.UpgradeLinkedPlayspecs(context.Background(), 12, 34)
+	result, err := c.ImportTemplates.UpgradeLinkedSpecs(context.Background(), 12, 34)
 	if err != nil {
-		t.Fatalf("upgrade linked playspecs: %v", err)
+		t.Fatalf("upgrade linked specs: %v", err)
 	}
 	if !result.Success || result.UpgradedCount != 2 || result.FailedCount != 0 {
 		t.Fatalf("unexpected upgrade result: %#v", result)
@@ -658,15 +658,15 @@ func TestImportTemplates_UpgradeLinkedPlayspecsPollsAccepted(t *testing.T) {
 	}
 }
 
-func TestPlayspecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
+func TestSpecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,
-		"/api/playspecs/9/template_switches",
+		"/api/specs/9/template_switches",
 		"/api/async_requests/req-async",
 		map[string]any{"no_op": true, "suggested_upgrade": true},
 	)
 
-	result, err := c.Playspecs.SwitchTemplateVersion(context.Background(), 9, &PlayspecTemplateVersionSwitchParams{TargetTemplateVersionID: 2})
+	result, err := c.Specs.SwitchTemplateVersion(context.Background(), 9, &SpecTemplateVersionSwitchParams{TargetTemplateVersionID: 2})
 	if err != nil {
 		t.Fatalf("switch template version: %v", err)
 	}
@@ -680,21 +680,21 @@ func TestPlayspecs_SwitchTemplateVersionPollsAccepted(t *testing.T) {
 
 func TestVerifyTemplateVersionSwitchResult(t *testing.T) {
 	targetID := int64(42)
-	result := &PlayspecTemplateVersionSwitchResult{
+	result := &SpecTemplateVersionSwitchResult{
 		TargetTemplateVersion: &TemplateVersionRef{ID: &targetID},
-		Playspec:              &Playspec{SourceTemplateVersionID: &targetID},
+		Spec:                  &Spec{SourceTemplateVersionID: &targetID},
 	}
 
 	if err := VerifyTemplateVersionSwitchResult(result, targetID); err != nil {
 		t.Fatalf("expected valid switch result: %v", err)
 	}
 
-	if err := VerifyTemplateVersionSwitchResult(&PlayspecTemplateVersionSwitchResult{}, targetID); err == nil || !strings.Contains(err.Error(), "target_template_version") {
+	if err := VerifyTemplateVersionSwitchResult(&SpecTemplateVersionSwitchResult{}, targetID); err == nil || !strings.Contains(err.Error(), "target_template_version") {
 		t.Fatalf("expected missing target error, got %v", err)
 	}
 
 	wrongID := int64(41)
-	result.Playspec.SourceTemplateVersionID = &wrongID
+	result.Spec.SourceTemplateVersionID = &wrongID
 	if err := VerifyTemplateVersionSwitchResult(result, targetID); err == nil || !strings.Contains(err.Error(), "did not apply target version") {
 		t.Fatalf("expected source version mismatch error, got %v", err)
 	}
@@ -1152,8 +1152,8 @@ func TestAgents_StartChat(t *testing.T) {
 		}
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
-		if body["marquee_id"] != float64(9) {
-			t.Errorf("expected marquee_id 9, got %v", body["marquee_id"])
+		if body["host_id"] != float64(9) {
+			t.Errorf("expected host_id 9, got %v", body["host_id"])
 		}
 		json.NewEncoder(w).Encode(AgentChatSession{ID: 123, Status: "starting"})
 	})
@@ -1561,20 +1561,20 @@ func TestImportTemplates_SetSourceCIFields(t *testing.T) {
 		if source["ci_enabled"] != true {
 			t.Errorf("expected ci_enabled=true, got %#v", source["ci_enabled"])
 		}
-		if source["ci_marquee_id"] != float64(22) {
-			t.Errorf("expected ci_marquee_id=22, got %#v", source["ci_marquee_id"])
+		if source["ci_host_id"] != float64(22) {
+			t.Errorf("expected ci_host_id=22, got %#v", source["ci_host_id"])
 		}
 		id := int64(11)
 		json.NewEncoder(w).Encode(ImportTemplate{ID: &id})
 	})
 
 	ciEnabled := true
-	ciMarqueeID := int64(22)
+	ciHostID := int64(22)
 	_, err := c.ImportTemplates.SetSource(context.Background(), 11, &ImportTemplateSourceParams{
-		SourcePropID: 1,
-		SourcePath:   "fibe-ci.yml",
-		CIEnabled:    &ciEnabled,
-		CIMarqueeID:  &ciMarqueeID,
+		SourceRepositoryID: 1,
+		SourcePath:         "fibe-ci.yml",
+		CIEnabled:          &ciEnabled,
+		CIHostID:           &ciHostID,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1589,16 +1589,16 @@ func TestImportTemplates_SetSourceByIdentifierUsesName(t *testing.T) {
 		var body map[string]map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
 		source := body["source"]
-		if source["source_prop_id"] != "api-prop" {
-			t.Errorf("expected source_prop_id=api-prop, got %#v", source["source_prop_id"])
+		if source["source_repository_id"] != "api-repository" {
+			t.Errorf("expected source_repository_id=api-repository, got %#v", source["source_repository_id"])
 		}
 		id := int64(11)
 		json.NewEncoder(w).Encode(ImportTemplate{ID: &id, Name: "starter"})
 	})
 
 	_, err := c.ImportTemplates.SetSourceByIdentifier(context.Background(), "starter", &ImportTemplateSourceParams{
-		SourcePropIdentifier: "api-prop",
-		SourcePath:           "fibe-ci.yml",
+		SourceRepositoryIdentifier: "api-repository",
+		SourcePath:                 "fibe-ci.yml",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1669,13 +1669,13 @@ func TestWebhookEndpoints_EventTypes(t *testing.T) {
 
 func TestProps_Sync(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/api/props/7/syncs" {
+		if r.Method != "POST" || r.URL.Path != "/api/repositories/7/syncs" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		json.NewEncoder(w).Encode(map[string]any{"message": "Sync scheduled"})
 	})
 
-	err := c.Props.Sync(context.Background(), 7)
+	err := c.Repositories.Sync(context.Background(), 7)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1709,9 +1709,9 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"playgrounds":  map[string]any{"total": 2, "active": 1, "stopped": 1},
 			"agents":       map[string]any{"total": 3, "authenticated": 2},
-			"props":        5,
-			"playspecs":    4,
-			"marquees":     1,
+			"repositories": 5,
+			"specs":        4,
+			"hosts":        1,
 			"secrets":      0,
 			"api_keys":     2,
 			"subscription": map[string]any{"plan": "single", "playground_limit": 1000},
@@ -1757,13 +1757,13 @@ func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"playgrounds": map[string]any{"total": 0, "active": 0, "stopped": 0},
-			"agents":      map[string]any{"total": 0, "authenticated": 0},
-			"props":       0,
-			"playspecs":   0,
-			"marquees":    0,
-			"secrets":     0,
-			"api_keys":    0,
+			"playgrounds":  map[string]any{"total": 0, "active": 0, "stopped": 0},
+			"agents":       map[string]any{"total": 0, "authenticated": 0},
+			"repositories": 0,
+			"specs":        0,
+			"hosts":        0,
+			"secrets":      0,
+			"api_keys":     0,
 		})
 	})
 

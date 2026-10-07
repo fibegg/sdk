@@ -147,14 +147,14 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			}
 
 			t.Logf("using credential from %s", credentialSource)
-			marqueeID := requiredAgentRuntimeMarqueeID(t)
+			hostID := requiredAgentRuntimeHostID(t)
 			c := userClient(t)
-			runAgentRuntimeMatrixCase(t, c, marqueeID, tc, secret)
+			runAgentRuntimeMatrixCase(t, c, hostID, tc, secret)
 		})
 	}
 }
 
-func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc agentRuntimeMatrixCase, secret string) {
+func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, hostID int64, tc agentRuntimeMatrixCase, secret string) {
 	t.Helper()
 	agentRuntimeProgressf("%s: creating %s runtime (model=%s api_key_mode=%t)", tc.name, tc.provider, tc.modelOptions, tc.providerAPIKeyMode)
 
@@ -195,8 +195,8 @@ func runAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, marqueeID int64, tc
 		t.Fatal("expected authenticated agent")
 	}
 
-	agentRuntimeProgressf("%s: starting chat for agent %d on marquee %d", tc.name, agent.ID, marqueeID)
-	chat, err := c.Agents.StartChat(ctx(), agent.ID, marqueeID)
+	agentRuntimeProgressf("%s: starting chat for agent %d on host %d", tc.name, agent.ID, hostID)
+	chat, err := c.Agents.StartChat(ctx(), agent.ID, hostID)
 	requireNoError(t, err, "start chat")
 	if chat.ID == 0 {
 		t.Fatal("expected started chat ID")
@@ -362,19 +362,19 @@ func agentRuntimeEnvInt(envNames []string, fallback int) int {
 	return fallback
 }
 
-func requiredAgentRuntimeMarqueeID(t *testing.T) int64 {
+func requiredAgentRuntimeHostID(t *testing.T) int64 {
 	t.Helper()
 
-	raw := strings.TrimSpace(os.Getenv("FIBE_TEST_MARQUEE_ID"))
+	raw := strings.TrimSpace(os.Getenv("FIBE_TEST_HOST_ID"))
 	if raw == "" {
-		t.Fatal("set FIBE_TEST_MARQUEE_ID to run selected agent runtime matrix rows")
+		t.Fatal("set FIBE_TEST_HOST_ID to run selected agent runtime matrix rows")
 	}
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
-		t.Fatalf("invalid FIBE_TEST_MARQUEE_ID %q: %v", raw, err)
+		t.Fatalf("invalid FIBE_TEST_HOST_ID %q: %v", raw, err)
 	}
 	if id <= 0 {
-		t.Fatalf("invalid FIBE_TEST_MARQUEE_ID %q: must be greater than zero", raw)
+		t.Fatalf("invalid FIBE_TEST_HOST_ID %q: must be greater than zero", raw)
 	}
 	return id
 }

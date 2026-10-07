@@ -112,7 +112,7 @@ func TestComposeValidationReadsStructuredInputAndFlagOverrides(t *testing.T) {
 	t.Setenv("FIBE_DOMAIN", srv.URL)
 	t.Setenv("FIBE_API_KEY", "pk_test")
 	for _, override := range []string{"", "services: {web: {image: nginx}}"} {
-		args := []string{"playspecs", "validate-compose", "--from-file", path}
+		args := []string{"specs", "validate-compose", "--from-file", path}
 		if override != "" {
 			wantBody = override
 			args = append(args, "--compose", override)
@@ -127,8 +127,8 @@ func TestComposeValidationReadsStructuredInputAndFlagOverrides(t *testing.T) {
 
 func TestMutationCommandsRespectJSONOutput(t *testing.T) {
 	for _, args := range [][]string{
-		{"props", "mirror", "--url", "https://github.com/example/app"},
-		{"props", "attach", "--repo", "example/app"},
+		{"repositories", "mirror", "--url", "https://github.com/example/app"},
+		{"repositories", "attach", "--repo", "example/app"},
 		{"pg", "stop", "demo"}, {"pg", "start", "demo"},
 		{"pg", "rollout", "demo"}, {"pg", "hard-restart", "demo"},
 	} {
@@ -202,12 +202,12 @@ func TestWaitRunningRequiresServicesUnlessLifecycleRequested(t *testing.T) {
 	}
 }
 
-func TestWaitPropReportsAnAsynchronousMirrorFailure(t *testing.T) {
+func TestWaitRepositoryReportsAnAsynchronousMirrorFailure(t *testing.T) {
 	setupAuthTest(t)
 	requests := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if r.Method != http.MethodGet || r.URL.Path != "/api/props/42" {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/repositories/42" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		status := "retrying"
@@ -221,7 +221,7 @@ func TestWaitPropReportsAnAsynchronousMirrorFailure(t *testing.T) {
 	t.Setenv("FIBE_API_KEY", "pk_test")
 	cmd := RootCmd()
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{"wait", "prop", "42", "--interval", "1ms", "--timeout", "1s"})
+	cmd.SetArgs([]string{"wait", "repository", "42", "--interval", "1ms", "--timeout", "1s"})
 	_, err := captureStdout(cmd.Execute)
 	if err == nil || !strings.Contains(err.Error(), "Repository access denied") || requests != 2 {
 		t.Fatalf("requests=%d error=%v", requests, err)

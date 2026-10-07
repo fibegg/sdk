@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"reflect"
 )
@@ -48,6 +49,12 @@ func decodeJSONLimited(r io.Reader, limit int64, label string, dst any) error {
 	data, err := readLimited(r, limit, label)
 	if err != nil {
 		return err
+	}
+	var structural any
+	if err := json.Unmarshal(data, &structural); err == nil {
+		if err := domainnames.RejectFields(structural); err != nil {
+			return err
+		}
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(dst); err != nil {

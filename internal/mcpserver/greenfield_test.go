@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+func TestGreenfieldArgsUseEnvHostID(t *testing.T) {
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	params, timeout, err := greenfieldArgs(map[string]any{
 		"name":               "tower-defence",
@@ -20,8 +20,8 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("greenfieldArgs: %v", err)
 	}
-	if params.MarqueeID == nil || *params.MarqueeID != 88 {
-		t.Fatalf("marquee_id=%v want 88", params.MarqueeID)
+	if params.HostID == nil || *params.HostID != 88 {
+		t.Fatalf("host_id=%v want 88", params.HostID)
 	}
 	if params.GitProvider != "gitea" {
 		t.Fatalf("git_provider=%q want gitea", params.GitProvider)
@@ -41,7 +41,7 @@ func TestGreenfieldArgsUseEnvMarqueeID(t *testing.T) {
 }
 
 func TestGreenfieldArgsAcceptTemplateIDAndVersion(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	params, _, err := greenfieldArgs(map[string]any{
 		"name":                "todo",
@@ -60,7 +60,7 @@ func TestGreenfieldArgsAcceptTemplateIDAndVersion(t *testing.T) {
 }
 
 func TestGreenfieldArgsAcceptTemplateVersionID(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	params, _, err := greenfieldArgs(map[string]any{
 		"name":                "todo",
@@ -75,7 +75,7 @@ func TestGreenfieldArgsAcceptTemplateVersionID(t *testing.T) {
 }
 
 func TestGreenfieldArgsAcceptTemplateBody(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	params, _, err := greenfieldArgs(map[string]any{
 		"name":          "todo",
@@ -90,7 +90,7 @@ func TestGreenfieldArgsAcceptTemplateBody(t *testing.T) {
 }
 
 func TestGreenfieldArgsAcceptTemplateBodyPath(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	body := "services:\n  web:\n    image: nginx\n"
 	path := filepath.Join(t.TempDir(), "template.yml")
@@ -111,7 +111,7 @@ func TestGreenfieldArgsAcceptTemplateBodyPath(t *testing.T) {
 }
 
 func TestGreenfieldArgsAcceptGitHubRepository(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	client := githubInstallationTestClient(t)
 	params, _, err := greenfieldArgsWithClient(context.Background(), client, map[string]any{
@@ -133,7 +133,7 @@ func TestGreenfieldArgsAcceptGitHubRepository(t *testing.T) {
 }
 
 func TestGreenfieldArgsRejectTemplateBodyWithTemplateID(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	_, _, err := greenfieldArgs(map[string]any{
 		"name":                "todo",
@@ -146,7 +146,7 @@ func TestGreenfieldArgsRejectTemplateBodyWithTemplateID(t *testing.T) {
 }
 
 func TestGreenfieldArgsRejectTemplateVersionIDWithTemplateID(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "88")
+	t.Setenv("FIBE_HOST_ID", "88")
 
 	_, _, err := greenfieldArgs(map[string]any{
 		"name":                "todo",

@@ -196,14 +196,14 @@ func contractSpecialPointer(typ reflect.Type, filePath string) reflect.Value {
 		return reflect.ValueOf(&GreenfieldCreateParams{Name: "fixture"})
 	case "LaunchParams":
 		return reflect.ValueOf(&LaunchParams{Name: "fixture", ComposeYAML: "services: {}"})
-	case "MarqueeCreateParams":
-		return reflect.ValueOf(&MarqueeCreateParams{Name: "fixture", Host: "127.0.0.1", Port: 22, User: "fixture", SSHPrivateKey: "fixture"})
+	case "HostCreateParams":
+		return reflect.ValueOf(&HostCreateParams{Name: "fixture", Host: "127.0.0.1", Port: 22, User: "fixture", SSHPrivateKey: "fixture"})
 	case "PlaygroundActionParams":
 		return reflect.ValueOf(&PlaygroundActionParams{ActionType: PlaygroundActionStop})
 	case "PlaygroundCreateParams":
-		return reflect.ValueOf(&PlaygroundCreateParams{Name: "fixture", PlayspecID: 1})
-	case "PlayspecCreateParams":
-		return reflect.ValueOf(&PlayspecCreateParams{Name: "fixture", BaseComposeYAML: "services: {}"})
+		return reflect.ValueOf(&PlaygroundCreateParams{Name: "fixture", SpecID: 1})
+	case "SpecCreateParams":
+		return reflect.ValueOf(&SpecCreateParams{Name: "fixture", BaseComposeYAML: "services: {}"})
 	case "SecretCreateParams":
 		return reflect.ValueOf(&SecretCreateParams{Key: "FIXTURE", Value: "fixture"})
 	case "UploadImageParams":

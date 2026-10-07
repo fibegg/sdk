@@ -139,7 +139,7 @@ func TestListEnrichesClaudeTitleAndProjectFromHistory(t *testing.T) {
 `)
 	writeFile(t, filepath.Join(home, ".claude", "history.jsonl"), `
 {"display":"/resume","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
-{"display":"Fix tutorial marquee invariant","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
+{"display":"Fix tutorial host invariant","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
 {"display":"later follow-up should not replace title","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
 `)
 
@@ -150,7 +150,7 @@ func TestListEnrichesClaudeTitleAndProjectFromHistory(t *testing.T) {
 	if len(conversations) != 1 {
 		t.Fatalf("len = %d", len(conversations))
 	}
-	if conversations[0].Title != "Fix tutorial marquee invariant" {
+	if conversations[0].Title != "Fix tutorial host invariant" {
 		t.Fatalf("title = %q", conversations[0].Title)
 	}
 	if conversations[0].Project != "fibe" {

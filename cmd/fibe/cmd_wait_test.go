@@ -50,7 +50,7 @@ func TestWaitPlaygroundUsesIdentifierEndpoint(t *testing.T) {
 	}
 }
 
-func TestWaitTrickUsesIdentifierEndpoint(t *testing.T) {
+func TestWaitTaskUsesIdentifierEndpoint(t *testing.T) {
 	setupAuthTest(t)
 
 	var gotPath string
@@ -67,7 +67,7 @@ func TestWaitTrickUsesIdentifierEndpoint(t *testing.T) {
 	t.Setenv("FIBE_API_KEY", "pk_test")
 
 	cmd := waitCmd()
-	cmd.SetArgs([]string{"trick", "nightly-build", "--status", "completed", "--timeout", "1s"})
+	cmd.SetArgs([]string{"task", "nightly-build", "--status", "completed", "--timeout", "1s"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestWaitTrickUsesIdentifierEndpoint(t *testing.T) {
 	}
 }
 
-func TestWaitTrickFailsOnFailedJobResult(t *testing.T) {
+func TestWaitTaskFailsOnFailedJobResult(t *testing.T) {
 	setupAuthTest(t)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +98,7 @@ func TestWaitTrickFailsOnFailedJobResult(t *testing.T) {
 	t.Setenv("FIBE_API_KEY", "pk_test")
 
 	cmd := waitCmd()
-	cmd.SetArgs([]string{"trick", "nightly-build", "--status", "completed", "--timeout", "1s"})
+	cmd.SetArgs([]string{"task", "nightly-build", "--status", "completed", "--timeout", "1s"})
 	if err := cmd.Execute(); err == nil {
 		t.Fatal("expected failed job result error")
 	}

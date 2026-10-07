@@ -11,78 +11,78 @@ import (
 )
 
 var (
-	testMarqueeOnce sync.Once
-	testMarquee     int64
-	testMarqueeErr  error
+	testHostOnce sync.Once
+	testHost     int64
+	testHostErr  error
 )
 
-func testMarqueeID(t *testing.T) int64 {
+func testHostID(t *testing.T) int64 {
 	t.Helper()
-	testMarqueeOnce.Do(func() {
+	testHostOnce.Do(func() {
 		c := userClient(t)
 
-		if v := os.Getenv("FIBE_TEST_MARQUEE_ID"); v != "" {
+		if v := os.Getenv("FIBE_TEST_HOST_ID"); v != "" {
 			id, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				testMarqueeErr = fmt.Errorf("invalid FIBE_TEST_MARQUEE_ID: %w", err)
+				testHostErr = fmt.Errorf("invalid FIBE_TEST_HOST_ID: %w", err)
 				return
 			}
-			if _, err := c.Marquees.Get(ctx(), id); err == nil {
-				testMarquee = id
+			if _, err := c.Hosts.Get(ctx(), id); err == nil {
+				testHost = id
 				return
 			}
 		}
 
-		result, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{
+		result, err := c.Hosts.List(ctx(), &fibe.HostListParams{
 			Status:  "active",
 			Sort:    "created_at_asc",
 			PerPage: 100,
 		})
 		if err != nil {
-			testMarqueeErr = fmt.Errorf("discover marquee: %w", err)
+			testHostErr = fmt.Errorf("discover host: %w", err)
 			return
 		}
 		if len(result.Data) == 0 {
 			return
 		}
-		testMarquee = result.Data[0].ID
+		testHost = result.Data[0].ID
 	})
 
-	if testMarqueeErr != nil {
-		t.Fatalf("%v", testMarqueeErr)
+	if testHostErr != nil {
+		t.Fatalf("%v", testHostErr)
 	}
-	return testMarquee
+	return testHost
 }
 
-func setupPlaygroundDeps(t *testing.T, c *fibe.Client) (specID, marqueeID int64) {
+func setupPlaygroundDeps(t *testing.T, c *fibe.Client) (specID, hostID int64) {
 	t.Helper()
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            uniqueName("pg-spec"),
 		BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
-		Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+		Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 	})
-	requireNoError(t, err, "create playspec for playground")
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	requireNoError(t, err, "create spec for playground")
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
-	return *spec.ID, testMarqueeID(t)
+	return *spec.ID, testHostID(t)
 }
 
 func TestPlaygrounds_CRUD(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	specID, hostID := setupPlaygroundDeps(t, c)
 
 	var pgID int64
 
 	t.Run("create playground", func(t *testing.T) {
 		// Parallel disabled: dependent sequence
-		if marqueeID == 0 {
-			t.Skip("set FIBE_TEST_MARQUEE_ID to test playground creation")
+		if hostID == 0 {
+			t.Skip("set FIBE_TEST_HOST_ID to test playground creation")
 		}
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("test-pg"),
-			PlayspecID: specID,
-			MarqueeID:  &marqueeID,
+			Name:   uniqueName("test-pg"),
+			SpecID: specID,
+			HostID: &hostID,
 		})
 		requireNoError(t, err)
 
@@ -177,8 +177,8 @@ func TestPlaygrounds_ScopeEnforcement(t *testing.T) {
 		t.Parallel()
 		readOnly := createScopedKey(t, c, "pg-read2", []string{"playgrounds:read"})
 		_, err := readOnly.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       "nope",
-			PlayspecID: 999,
+			Name:   "nope",
+			SpecID: 999,
 		})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})

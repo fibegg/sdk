@@ -35,7 +35,7 @@ func alListCmd() *cobra.Command {
 
 FILTERS:
   -q, --query           Search across action (substring match)
-  --resource-type       Filter by resource type (e.g. Playground, Agent, Prop)
+  --resource-type       Filter by resource type (e.g. Playground, Agent, Repository)
   --channel             Filter by channel. Values: api, ui
   --action-prefix       Filter by action prefix (substring match)
 

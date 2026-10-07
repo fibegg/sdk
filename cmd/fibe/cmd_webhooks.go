@@ -275,7 +275,7 @@ event. Use --from-file with JSON for empty arrays and complex filters.
 EXAMPLES:
   fibe webhooks update 5 --enabled=false
   fibe wh update 5 --url https://hooks.example.com/new --secret newSecret
-  fibe wh update 5 --event playground.created --event marquee.deleted
+  fibe wh update 5 --event playground.created --event host.deleted
   fibe wh update 5 --event-filter playground.created=12,15`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()

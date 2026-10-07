@@ -6,37 +6,37 @@ import (
 )
 
 type JobEnvEntry struct {
-	ID          *int64     `json:"id"`
-	PlayerID    *int64     `json:"player_id,omitempty"`
-	PropID      *int64     `json:"prop_id,omitempty"`
-	PropName    *string    `json:"prop_name,omitempty"`
-	Key         string     `json:"key"`
-	Value       *string    `json:"value,omitempty"`
-	Secret      bool       `json:"secret"`
-	Enabled     bool       `json:"enabled"`
-	Description *string    `json:"description,omitempty"`
-	CreatedAt   *time.Time `json:"created_at,omitempty"`
-	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+	ID             *int64     `json:"id"`
+	PlayerID       *int64     `json:"player_id,omitempty"`
+	RepositoryID   *int64     `json:"repository_id,omitempty"`
+	RepositoryName *string    `json:"repository_name,omitempty"`
+	Key            string     `json:"key"`
+	Value          *string    `json:"value,omitempty"`
+	Secret         bool       `json:"secret"`
+	Enabled        bool       `json:"enabled"`
+	Description    *string    `json:"description,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+	UpdatedAt      *time.Time `json:"updated_at,omitempty"`
 }
 
 type JobEnvListParams struct {
-	PropID         int64  `url:"prop_id,omitempty"`
-	PropIdentifier string `url:"prop_id,omitempty"`
-	Secret         *bool  `url:"secret,omitempty"`
-	Enabled        *bool  `url:"enabled,omitempty"`
-	Q              string `url:"q,omitempty"`
-	Page           int    `url:"page,omitempty"`
-	PerPage        int    `url:"per_page,omitempty"`
+	RepositoryID         int64  `url:"repository_id,omitempty"`
+	RepositoryIdentifier string `url:"repository_id,omitempty"`
+	Secret               *bool  `url:"secret,omitempty"`
+	Enabled              *bool  `url:"enabled,omitempty"`
+	Q                    string `url:"q,omitempty"`
+	Page                 int    `url:"page,omitempty"`
+	PerPage              int    `url:"per_page,omitempty"`
 }
 
 type JobEnvSetParams struct {
-	PropID         *int64  `json:"prop_id,omitempty"`
-	PropIdentifier string  `json:"-"`
-	Key            string  `json:"key"`
-	Value          string  `json:"value"`
-	Secret         bool    `json:"secret,omitempty"`
-	Enabled        *bool   `json:"enabled,omitempty"`
-	Description    *string `json:"description,omitempty"`
+	RepositoryID         *int64  `json:"repository_id,omitempty"`
+	RepositoryIdentifier string  `json:"-"`
+	Key                  string  `json:"key"`
+	Value                string  `json:"value"`
+	Secret               bool    `json:"secret,omitempty"`
+	Enabled              *bool   `json:"enabled,omitempty"`
+	Description          *string `json:"description,omitempty"`
 }
 
 func (p *JobEnvSetParams) Validate() error {
@@ -55,8 +55,8 @@ func (p JobEnvSetParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.PropIdentifier != "" {
-		body["prop_id"] = p.PropIdentifier
+	if p.RepositoryIdentifier != "" {
+		body["repository_id"] = p.RepositoryIdentifier
 	}
 	return json.Marshal(body)
 }

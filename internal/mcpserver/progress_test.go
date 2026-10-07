@@ -14,7 +14,7 @@ import (
 func TestAsyncSDKProgressEmitsMCPNotifications(t *testing.T) {
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.EscapedPath() {
-		case "/api/marquees/3/ssh_keys":
+		case "/api/hosts/3/ssh_keys":
 			if r.Method != http.MethodPost {
 				t.Fatalf("unexpected method %s", r.Method)
 			}
@@ -46,7 +46,7 @@ func TestAsyncSDKProgressEmitsMCPNotifications(t *testing.T) {
 	ctx := srv.mcp.WithContext(context.Background(), session)
 
 	out, err := srv.dispatcher.dispatch(ctx, "fibe_resource_mutate", map[string]any{
-		"resource":  "marquee",
+		"resource":  "host",
 		"operation": "generate_ssh_key",
 		"payload":   map[string]any{"id_or_name": "3"},
 	})

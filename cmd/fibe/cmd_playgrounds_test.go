@@ -104,10 +104,10 @@ func TestPlaygroundGetTableShowsServiceURLsAndHidesPassword(t *testing.T) {
 			"status":              "running",
 			"maintenance_enabled": false,
 			"job_mode":            false,
-			"playspec_id":         7,
-			"playspec_name":       "starter",
-			"marquee_id":          9,
-			"marquee_name":        "edge",
+			"spec_id":             7,
+			"spec_name":           "starter",
+			"host_id":             9,
+			"host_name":           "edge",
 			"compose_project":     "starter--42",
 			"root_domain":         "example.test",
 			"routing_scheme":      "https",
@@ -135,10 +135,10 @@ func TestPlaygroundGetTableShowsServiceURLsAndHidesPassword(t *testing.T) {
 			},
 			"service_sources": []map[string]any{
 				{
-					"service":        "web",
-					"prop_name":      "app",
-					"branch":         "main",
-					"repository_url": "https://github.com/acme/app",
+					"service":         "web",
+					"repository_name": "app",
+					"branch":          "main",
+					"repository_url":  "https://github.com/acme/app",
 				},
 			},
 			"build_statuses": []map[string]any{
@@ -243,7 +243,7 @@ func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/api/playspecs/starter" {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/specs/starter" {
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":   7,
 				"name": "starter",
@@ -270,8 +270,8 @@ func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 	cmd.SetArgs([]string{
 		"create",
 		"--name", "demo",
-		"--playspec", "starter",
-		"--marquee", "next",
+		"--spec", "starter",
+		"--host", "next",
 		"--service", "web.subdomain=demo",
 		"--service", "web.exposure_port=3000",
 		"--service", "web.exposure_visibility=external",
@@ -285,11 +285,11 @@ func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 	}
 
 	playground := body["playground"].(map[string]any)
-	if playground["playspec_id"] != "starter" {
-		t.Fatalf("playspec_id = %#v, want starter", playground["playspec_id"])
+	if playground["spec_id"] != "starter" {
+		t.Fatalf("spec_id = %#v, want starter", playground["spec_id"])
 	}
-	if playground["marquee_id"] != "next" {
-		t.Fatalf("marquee_id = %#v, want next", playground["marquee_id"])
+	if playground["host_id"] != "next" {
+		t.Fatalf("host_id = %#v, want next", playground["host_id"])
 	}
 	web := playground["services"].(map[string]any)["web"].(map[string]any)
 	if web["subdomain"] != "demo" || web["exposure_port"] != float64(3000) || web["exposure_visibility"] != "external" {
@@ -310,9 +310,9 @@ func TestPlaygroundCreateServiceOverridesMapBody(t *testing.T) {
 func TestPlaygroundCreateRejectsRetiredIDFlags(t *testing.T) {
 	setupAuthTest(t)
 
-	retiredFlag := "--playspec" + "-id"
+	retiredFlag := "--spec" + "-id"
 	cmd := playgroundsCmd()
-	cmd.SetArgs([]string{"create", "--name", "demo", retiredFlag, "one", "--marquee", "next"})
+	cmd.SetArgs([]string{"create", "--name", "demo", retiredFlag, "one", "--host", "next"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
@@ -322,16 +322,27 @@ func TestPlaygroundCreateRejectsRetiredIDFlags(t *testing.T) {
 	}
 }
 
-func TestPlaygroundCreateRequiresMarqueeWhenInferenceFails(t *testing.T) {
+func TestPlaygroundCreateRequiresHostWhenInferenceFails(t *testing.T) {
 	setupAuthTest(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/hosts" {
+			t.Errorf("unexpected request %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{}})
+	}))
+	defer server.Close()
+	flagDomain, flagAPIKey = server.URL, "synthetic-host-inference"
 
 	cmd := playgroundsCmd()
-	cmd.SetArgs([]string{"create", "--name", "demo", "--playspec", "starter"})
+	cmd.SetArgs([]string{"create", "--name", "demo", "--spec", "starter"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatalf("execute succeeded, want error")
 	}
-	if got := err.Error(); !strings.Contains(got, "Authentication required") && !strings.Contains(got, "API key") {
+	if got := err.Error(); !strings.Contains(got, "--host is required; no launchable Hosts are available") {
 		t.Fatalf("error = %q", got)
 	}
 }

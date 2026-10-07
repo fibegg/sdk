@@ -25,24 +25,24 @@ func TestE2E_TemplatesChangeFlow(t *testing.T) {
 	}
 
 	mqRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
-		"resource": "marquee",
+		"resource": "host",
 	})
 	if err != nil {
-		t.Fatalf("list marquees failed: %v", err)
+		t.Fatalf("list hosts failed: %v", err)
 	}
-	marquees := mqRes.(*fibe.ListResult[fibe.Marquee]).Data
-	var activeMarqueeID int64
-	for _, m := range marquees {
+	hosts := mqRes.(*fibe.ListResult[fibe.Host]).Data
+	var activeHostID int64
+	for _, m := range hosts {
 		if m.Status == "active" {
-			activeMarqueeID = m.ID
+			activeHostID = m.ID
 			break
 		}
 	}
-	if activeMarqueeID == 0 {
-		t.Skip("no active marquees available")
+	if activeHostID == 0 {
+		t.Skip("no active hosts available")
 	}
-	t.Setenv("FIBE_MARQUEE_ID", fmt.Sprintf("%d", activeMarqueeID))
-	t.Setenv("MARQUEE_ROOT", t.TempDir())
+	t.Setenv("FIBE_HOST_ID", fmt.Sprintf("%d", activeHostID))
+	t.Setenv("HOST_ROOT", t.TempDir())
 
 	repoName := fmt.Sprintf("mcp-test-dev-%d", time.Now().UnixNano())
 	res, err := srv.dispatcher.dispatch(context.Background(), "fibe_greenfield_create", map[string]any{
@@ -71,14 +71,14 @@ services:
 	}
 	m := res.(*fibe.GreenfieldResult)
 
-	playspecID := int(m.Playspec.ID)
+	specID := int(m.Spec.ID)
 	templateID := int(*m.ImportTemplate.ID)
 	baseVersionID := int(*m.ImportTemplateVersion.ID)
 	playgroundID := int(m.Playground.ID)
 
 	previewRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":       "playspec",
-		"target_id_or_name": playspecID,
+		"target_type":       "spec",
+		"target_id_or_name": specID,
 		"mode":              "preview",
 		"change_type":       "patch",
 		"base_version_id":   baseVersionID,
@@ -93,8 +93,8 @@ services:
 	}
 
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":       "playspec",
-		"target_id_or_name": playspecID,
+		"target_type":       "spec",
+		"target_id_or_name": specID,
 		"mode":              "apply",
 		"change_type":       "patch",
 		"base_version_id":   baseVersionID,
@@ -148,7 +148,7 @@ services:
 
 	_, err = srv.dispatcher.dispatch(context.Background(), "fibe_launch", map[string]any{
 		"template_id_or_name": templateID,
-		"marquee_id_or_name":  activeMarqueeID,
+		"host_id_or_name":     activeHostID,
 	})
 	if err != nil {
 		t.Fatalf("fibe_launch failed: %v", err)
@@ -175,7 +175,7 @@ func TestTemplatesChangeApplyRequiresConfirm(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":                "playspec",
+		"target_type":                "spec",
 		"target_id_or_name":          1,
 		"mode":                       "apply",
 		"change_type":                "switch_existing",
@@ -193,7 +193,7 @@ func TestTemplatesChangePreviewDoesNotRequireConfirm(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":                "playspec",
+		"target_type":                "spec",
 		"target_id_or_name":          1,
 		"mode":                       "preview",
 		"change_type":                "switch_existing",
@@ -214,7 +214,7 @@ func TestTemplatesChangeApplyAcceptsConfirm(t *testing.T) {
 	}
 
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_templates_change", map[string]any{
-		"target_type":                "playspec",
+		"target_type":                "spec",
 		"target_id_or_name":          1,
 		"mode":                       "apply",
 		"change_type":                "switch_existing",

@@ -61,18 +61,18 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_resource_list",
-			mcpArgs: map[string]any{"resource": "marquees"},
-			cliArgs: []string{"marquees", "list", "--output", "json"},
+			mcpArgs: map[string]any{"resource": "hosts"},
+			cliArgs: []string{"hosts", "list", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_resource_list",
-			mcpArgs: map[string]any{"resource": "props"},
-			cliArgs: []string{"props", "list", "--output", "json"},
+			mcpArgs: map[string]any{"resource": "repositories"},
+			cliArgs: []string{"repositories", "list", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_resource_list",
-			mcpArgs: map[string]any{"resource": "tricks"},
-			cliArgs: []string{"tricks", "list", "--output", "json"},
+			mcpArgs: map[string]any{"resource": "tasks"},
+			cliArgs: []string{"tasks", "list", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_resource_list",
@@ -81,8 +81,8 @@ func TestCLIParity_ListTools(t *testing.T) {
 		},
 		{
 			mcpTool: "fibe_resource_list",
-			mcpArgs: map[string]any{"resource": "playspecs"},
-			cliArgs: []string{"playspecs", "list", "--output", "json"},
+			mcpArgs: map[string]any{"resource": "specs"},
+			cliArgs: []string{"specs", "list", "--output", "json"},
 		},
 		{
 			mcpTool: "fibe_resource_list",
@@ -261,9 +261,9 @@ func TestCLIParity_ListTools(t *testing.T) {
 				if tc.mcpTool == "fibe_status" {
 					delete(mcpMap, "playgrounds")
 					delete(mcpMap, "agents")
-					delete(mcpMap, "props")
-					delete(mcpMap, "playspecs")
-					delete(mcpMap, "marquees")
+					delete(mcpMap, "repositories")
+					delete(mcpMap, "specs")
+					delete(mcpMap, "hosts")
 					delete(mcpMap, "secrets")
 					delete(mcpMap, "api_keys")
 					delete(mcpMap, "resource_quotas")
@@ -278,9 +278,9 @@ func TestCLIParity_ListTools(t *testing.T) {
 				if tc.mcpTool == "fibe_status" {
 					delete(cliMap, "playgrounds")
 					delete(cliMap, "agents")
-					delete(cliMap, "props")
-					delete(cliMap, "playspecs")
-					delete(cliMap, "marquees")
+					delete(cliMap, "repositories")
+					delete(cliMap, "specs")
+					delete(cliMap, "hosts")
 					delete(cliMap, "secrets")
 					delete(cliMap, "api_keys")
 					delete(cliMap, "resource_quotas")
@@ -314,7 +314,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	resources := []string{"playgrounds", "agents", "marquees", "props", "tricks", "artefacts", "playspecs", "secrets", "webhooks", "templates", "job_envs"}
+	resources := []string{"playgrounds", "agents", "hosts", "repositories", "tasks", "artefacts", "specs", "secrets", "webhooks", "templates", "job_envs"}
 
 	for _, res := range resources {
 		t.Run(res, func(t *testing.T) {

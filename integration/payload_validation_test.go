@@ -12,15 +12,15 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	specID, marqueeID := setupPlaygroundDeps(t, c)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run this test")
+	specID, hostID := setupPlaygroundDeps(t, c)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to run this test")
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("payload-pg"),
-		PlayspecID: specID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("payload-pg"),
+		SpecID: specID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
@@ -72,15 +72,15 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 	})
 }
 
-// TestPayload_PlayspecDetail verifies detailed playspec fields.
-func TestPayload_PlayspecDetail(t *testing.T) {
+// TestPayload_SpecDetail verifies detailed spec fields.
+func TestPayload_SpecDetail(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	spec := seedPlayspec(t, c)
+	spec := seedSpec(t, c)
 
 	t.Run("Get returns services and mounted_files", func(t *testing.T) {
-		d, err := c.Playspecs.Get(ctx(), *spec.ID)
+		d, err := c.Specs.Get(ctx(), *spec.ID)
 		requireNoError(t, err)
 		if d.Name == "" {
 			t.Error("expected Name on detail")
@@ -91,7 +91,7 @@ func TestPayload_PlayspecDetail(t *testing.T) {
 	})
 
 	t.Run("Services returns expected service definitions", func(t *testing.T) {
-		services, err := c.Playspecs.Services(ctx(), *spec.ID)
+		services, err := c.Specs.Services(ctx(), *spec.ID)
 		requireNoError(t, err)
 		// Services may be a wrapper; at least check it's non-nil
 		if services == nil {

@@ -132,14 +132,14 @@ func cloneSchemaAndRemoveAgentID(schema any) map[string]any {
 		out[k] = v
 	}
 
-	if props, ok := out["properties"].(map[string]any); ok {
-		newProps := make(map[string]any, len(props))
-		for k, v := range props {
+	if repositories, ok := out["properties"].(map[string]any); ok {
+		newRepositories := make(map[string]any, len(repositories))
+		for k, v := range repositories {
 			if k != "agent_id" && k != "agent_id_or_name" {
-				newProps[k] = v
+				newRepositories[k] = v
 			}
 		}
-		out["properties"] = newProps
+		out["properties"] = newRepositories
 	}
 
 	if reqs, ok := out["required"].([]string); ok {

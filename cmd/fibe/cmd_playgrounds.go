@@ -17,7 +17,7 @@ func playgroundsCmd() *cobra.Command {
 		Short:   "Manage playgrounds (running environments)",
 		Long: `Manage Fibe playgrounds: running instances of your service compositions.
 
-A playground is a live environment created from a playspec (service template).
+A playground is a live environment created from a spec (service template).
 Playgrounds can be started, stopped, restarted, and monitored.
 Maintenance mode is an overlay: a playground can keep its runtime status while
 exposed service URLs route to a 503 maintenance page.
@@ -34,7 +34,7 @@ LIFECYCLE SUMMARY:
   - destroying:    Delete requested and cleanup is in progress
 
 CORE TROUBLESHOOTING:
-  - "Stuck in Pending": Valid marquee?
+  - "Stuck in Pending": Valid host?
   - "Dirty Working Tree": Target source code repository drift (Requires commit/re-sync).
 
 SUBCOMMANDS:
@@ -82,19 +82,19 @@ SUBCOMMANDS:
 
 func pgListCmd() *cobra.Command {
 	var query, status, name, sort, createdAfter, createdBefore string
-	var playspec, marquee string
+	var spec, host string
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all playgrounds (excludes tricks)",
+		Short: "List all playgrounds (excludes tasks)",
 		Long: `List all playgrounds accessible to the authenticated user.
-Tricks (job-mode workloads) are excluded: use 'fibe tricks list' instead.
+Tasks (job-mode workloads) are excluded: use 'fibe tasks list' instead.
 
 FILTERS:
   -q, --query           Search across name (substring match)
   --status              Filter by exact status. Values: pending, in_progress, running, error, has_changes, completed, stopping, stopped, destroying
   --name                Filter by name (substring match)
-  --playspec            Filter by playspec ID or name
-  --marquee             Filter by marquee ID or name
+  --spec            Filter by spec ID or name
+  --host             Filter by host ID or name
 
 DATE RANGE:
   --created-after       Show items created on or after this date (ISO 8601, e.g. 2026-01-15)
@@ -108,7 +108,7 @@ SORTING:
                         Example: --sort name_asc
 
 OUTPUT:
-  Columns: ID, NAME, STATUS, MAINT, PLAYSPEC, EXPIRES
+  Columns: ID, NAME, STATUS, MAINT, SPEC, EXPIRES
   Use --output json for full details.
 
 EXAMPLES:
@@ -130,11 +130,11 @@ EXAMPLES:
 			if name != "" {
 				params.Name = name
 			}
-			if playspec != "" {
-				params.PlayspecIdentifier = playspec
+			if spec != "" {
+				params.SpecIdentifier = spec
 			}
-			if marquee != "" {
-				params.MarqueeIdentifier = marquee
+			if host != "" {
+				params.HostIdentifier = host
 			}
 			if createdAfter != "" {
 				params.CreatedAfter = createdAfter
@@ -159,12 +159,12 @@ EXAMPLES:
 				outputJSON(pgs)
 				return nil
 			}
-			headers := []string{"ID", "NAME", "STATUS", "MAINT", "PLAYSPEC", "EXPIRES"}
+			headers := []string{"ID", "NAME", "STATUS", "MAINT", "SPEC", "EXPIRES"}
 			rows := make([][]string, len(pgs.Data))
 			for i, pg := range pgs.Data {
 				rows[i] = []string{
 					fmtInt64(pg.ID), pg.Name, pg.Status, fmtMaintenance(pg.MaintenanceEnabled),
-					fmtStr(pg.PlayspecName), fmtTime(pg.ExpiresAt),
+					fmtStr(pg.SpecName), fmtTime(pg.ExpiresAt),
 				}
 			}
 			outputTable(headers, rows)
@@ -174,8 +174,8 @@ EXAMPLES:
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search across name")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
 	cmd.Flags().StringVar(&name, "name", "", "Filter by name (substring)")
-	cmd.Flags().StringVar(&playspec, "playspec", "", "Filter by playspec ID or name")
-	cmd.Flags().StringVar(&marquee, "marquee", "", "Filter by marquee ID or name")
+	cmd.Flags().StringVar(&spec, "spec", "", "Filter by spec ID or name")
+	cmd.Flags().StringVar(&host, "host", "", "Filter by host ID or name")
 	cmd.Flags().StringVar(&createdAfter, "created-after", "", "Filter: created after date (ISO 8601)")
 	cmd.Flags().StringVar(&createdBefore, "created-before", "", "Filter: created before date (ISO 8601)")
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc, name_asc)")
@@ -221,8 +221,8 @@ func printPlaygroundDetails(pg *fibe.Playground) {
 	fmt.Printf("Status:          %s\n", pg.Status)
 	fmt.Printf("Maintenance:     %s\n", fmtMaintenance(pg.MaintenanceEnabled))
 	fmt.Printf("Job mode:        %s\n", fmtBool(pg.JobMode))
-	fmt.Printf("Playspec:        %s (%s)\n", fmtStr(pg.PlayspecName), fmtInt64Ptr(pg.PlayspecID))
-	fmt.Printf("Marquee:         %s (%s)\n", fmtStr(pg.MarqueeName), fmtInt64Ptr(pg.MarqueeID))
+	fmt.Printf("Spec:        %s (%s)\n", fmtStr(pg.SpecName), fmtInt64Ptr(pg.SpecID))
+	fmt.Printf("Host:         %s (%s)\n", fmtStr(pg.HostName), fmtInt64Ptr(pg.HostID))
 	fmt.Printf("Compose project: %s\n", fmtStr(pg.ComposeProject))
 	if pg.PersistentVolumePrefix != nil {
 		fmt.Printf("Volume prefix:   %s\n", *pg.PersistentVolumePrefix)
@@ -318,12 +318,12 @@ func printPlaygroundSources(sources []map[string]any) {
 	for i, source := range sources {
 		rows[i] = []string{
 			mapValueString(source, "service"),
-			mapValueString(source, "prop_name"),
+			mapValueString(source, "repository_name"),
 			mapValueString(source, "branch"),
 			mapValueString(source, "repository_url"),
 		}
 	}
-	outputTable([]string{"SERVICE", "PROP", "BRANCH", "REPOSITORY"}, rows)
+	outputTable([]string{"SERVICE", "REPOSITORY", "BRANCH", "REPOSITORY"}, rows)
 }
 
 func printPlaygroundBuildStatuses(statuses []fibe.PlaygroundBuildStatus) {
@@ -454,28 +454,28 @@ func valueOrDash(value string) string {
 
 func pgCreateCmd() *cobra.Command {
 	var name string
-	var playspec string
-	var marquee string
+	var spec string
+	var host string
 	var serviceFlags []string
 
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Deploy a playspec blueprint as a running playground",
-		Long: `Deploy a playspec blueprint onto a marquee host as a running playground.
+		Short: "Deploy a spec blueprint as a running playground",
+		Long: `Deploy a spec blueprint onto a host host as a running playground.
 
-Requires an existing playspec.
+Requires an existing spec.
 For an automated one-shot deployment directly from raw Docker Compose YAML 
-(without pre-creating a playspec), use the 'fibe launch' command instead.
+(without pre-creating a spec), use the 'fibe launch' command instead.
 
 SUBDOMAIN BOUNDARIES:
-  - Every exposed service reserves a subdomain prefix mapping to the Marquee root.
+  - Every exposed service reserves a subdomain prefix mapping to the Host root.
   - Subdomains MUST be strictly unique per server architecture. Fibe will reject conflicts.
   - You can manually map specific domain names over the automatic hashing by defining 'services[X].subdomain' in your payload payload.json
 
 REQUIRED FLAGS:
   --name          Playground name
-  --playspec      ID or name of the playspec to use
-  --marquee       ID or name of the target marquee
+  --spec      ID or name of the spec to use
+  --host       ID or name of the target host
 
 SERVICE OVERRIDES:
   --service SERVICE.FIELD=VALUE may be repeated and merges into the services payload.
@@ -485,10 +485,10 @@ SERVICE OVERRIDES:
   git_config.create_branch.
 
 EXAMPLES:
-  fibe playgrounds create --name my-app --playspec starter --marquee next
-  fibe pg create --name staging --playspec starter --marquee next
-  fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
-  echo '{"name": "test", "playspec_id": 5, "marquee_id": "next"}' | fibe pg create -f -
+  fibe playgrounds create --name my-app --spec starter --host next
+  fibe pg create --name staging --spec starter --host next
+  fibe pg create --name demo --spec starter --host next --service web.subdomain=demo
+  echo '{"name": "test", "spec_id": 5, "host_id": "next"}' | fibe pg create -f -
   fibe pg create -f payload.json` + generateSchemaDoc(&fibe.PlaygroundCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -500,11 +500,11 @@ EXAMPLES:
 			if cmd.Flags().Changed("name") {
 				params.Name = name
 			}
-			if cmd.Flags().Changed("playspec") {
-				params.PlayspecIdentifier = playspec
+			if cmd.Flags().Changed("spec") {
+				params.SpecIdentifier = spec
 			}
-			if cmd.Flags().Changed("marquee") {
-				params.MarqueeIdentifier = marquee
+			if cmd.Flags().Changed("host") {
+				params.HostIdentifier = host
 			}
 			if len(serviceFlags) > 0 {
 				if err := applyPlaygroundServiceOverrides(params, serviceFlags); err != nil {
@@ -515,26 +515,26 @@ EXAMPLES:
 			if params.Name == "" {
 				return fmt.Errorf("required field 'name' not set")
 			}
-			if params.PlayspecID == 0 && params.PlayspecIdentifier == "" {
-				return fmt.Errorf("required field 'playspec' not set")
+			if params.SpecID == 0 && params.SpecIdentifier == "" {
+				return fmt.Errorf("required field 'spec' not set")
 			}
-			if params.MarqueeID == nil && params.MarqueeIdentifier == "" {
-				inferred, err := resolveLaunchMarqueeIdentifier(c, "")
+			if params.HostID == nil && params.HostIdentifier == "" {
+				inferred, err := resolveLaunchHostIdentifier(c, "")
 				if err != nil {
 					return err
 				}
-				params.MarqueeIdentifier = inferred
+				params.HostIdentifier = inferred
 			}
 			if len(params.Services) > 0 {
-				playspecIdentifier := params.PlayspecIdentifier
-				if playspecIdentifier == "" && params.PlayspecID > 0 {
-					playspecIdentifier = strconv.FormatInt(params.PlayspecID, 10)
+				specIdentifier := params.SpecIdentifier
+				if specIdentifier == "" && params.SpecID > 0 {
+					specIdentifier = strconv.FormatInt(params.SpecID, 10)
 				}
-				ps, err := c.Playspecs.GetByIdentifier(ctx(), playspecIdentifier)
+				ps, err := c.Specs.GetByIdentifier(ctx(), specIdentifier)
 				if err != nil {
 					return err
 				}
-				if err := validateServiceOverrideNames(playspecServiceNames(ps), params.Services); err != nil {
+				if err := validateServiceOverrideNames(specServiceNames(ps), params.Services); err != nil {
 					return err
 				}
 			}
@@ -553,15 +553,15 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Playground name (required)")
-	cmd.Flags().StringVar(&playspec, "playspec", "", "Playspec ID or name (required)")
-	cmd.Flags().StringVar(&marquee, "marquee", "", "Marquee ID or name (optional when exactly one launchable Marquee exists)")
+	cmd.Flags().StringVar(&spec, "spec", "", "Spec ID or name (required)")
+	cmd.Flags().StringVar(&host, "host", "", "Host ID or name (optional when exactly one launchable Host exists)")
 	cmd.Flags().StringArrayVar(&serviceFlags, "service", nil, "Set service config as SERVICE.FIELD=VALUE (repeatable)")
 	return cmd
 }
 
 func pgUpdateCmd() *cobra.Command {
 	var name string
-	var playspec, marquee string
+	var spec, host string
 
 	cmd := &cobra.Command{
 		Use:   "update <id-or-name>",
@@ -570,16 +570,16 @@ func pgUpdateCmd() *cobra.Command {
 
 OPTIONAL FLAGS:
   --name           New playground name
-  --playspec       Switch to a different playspec by ID or name
-  --marquee        Move to a different marquee by ID or name
+  --spec       Switch to a different spec by ID or name
+  --host        Move to a different host by ID or name
 
 For complex updates (services, build_overrides_yaml), use --from-file:
   fibe playgrounds update 42 -f update.json
 
 EXAMPLES:
   fibe playgrounds update 42 --name new-name
-  fibe pg update 42 --marquee 7
-  fibe pg update 42 --playspec 12 --marquee 7` + generateSchemaDoc(&fibe.PlaygroundUpdateParams{}),
+  fibe pg update 42 --host 7
+  fibe pg update 42 --spec 12 --host 7` + generateSchemaDoc(&fibe.PlaygroundUpdateParams{}),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
@@ -590,11 +590,11 @@ EXAMPLES:
 			if cmd.Flags().Changed("name") {
 				params.Name = &name
 			}
-			if cmd.Flags().Changed("playspec") {
-				params.PlayspecIdentifier = playspec
+			if cmd.Flags().Changed("spec") {
+				params.SpecIdentifier = spec
 			}
-			if cmd.Flags().Changed("marquee") {
-				params.MarqueeIdentifier = marquee
+			if cmd.Flags().Changed("host") {
+				params.HostIdentifier = host
 			}
 			pg, err := c.Playgrounds.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
@@ -610,8 +610,8 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "New playground name")
-	cmd.Flags().StringVar(&playspec, "playspec", "", "Switch to a different playspec by ID or name")
-	cmd.Flags().StringVar(&marquee, "marquee", "", "Move to a different marquee by ID or name")
+	cmd.Flags().StringVar(&spec, "spec", "", "Switch to a different spec by ID or name")
+	cmd.Flags().StringVar(&host, "host", "", "Move to a different host by ID or name")
 	return cmd
 }
 
@@ -645,12 +645,12 @@ func pgRolloutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollout <id-or-name>",
 		Short: "Recreate playground with latest configuration",
-		Long: `Trigger a rollout to recreate the playground with the latest playspec configuration.
+		Long: `Trigger a rollout to recreate the playground with the latest spec configuration.
 
 This tears down the existing containers and rebuilds them from scratch.
 Equivalent to a fresh deployment with current settings.
 
-Use this when you've updated the playspec and want the changes applied.
+Use this when you've updated the spec and want the changes applied.
 
 EXAMPLES:
   fibe playgrounds rollout 42`,
@@ -749,10 +749,10 @@ func pgStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start <id-or-name>",
 		Short: "Start a stopped playground",
-		Long: `Start a stopped playground using its current playspec and service settings.
+		Long: `Start a stopped playground using its current spec and service settings.
 
 The server queues the normal deployment path and keeps persistent volumes unless
-the playspec itself is configured otherwise.
+the spec itself is configured otherwise.
 
 EXAMPLES:
   fibe playgrounds start 42`,

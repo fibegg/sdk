@@ -18,7 +18,7 @@ func artefactsCmd() *cobra.Command {
 
 ARTEFACT CONSTRAINTS:
   - Artefacts securely embed massive context responses, markdown scripts, or JSON configs into the Agent brain without polluting the chat logs.
-  - LLM Genies MUST bundle any text output over ~40 lines into an Artefact instead of direct chat messages to keep the session context token window efficient.
+  - LLM Agents MUST bundle any text output over ~40 lines into an Artefact instead of direct chat messages to keep the session context token window efficient.
 
 SUBCOMMANDS:
   list <agent-id-or-name>          List artefacts

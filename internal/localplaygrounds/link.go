@@ -3,6 +3,7 @@ package localplaygrounds
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,32 +23,32 @@ const linkOwnerFilename = ".fibe-playground-links"
 var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
 type Service struct {
-	Name      string `json:"name" yaml:"name"`
-	Image     string `json:"image,omitempty" yaml:"image,omitempty"`
-	Traefik   bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
-	Expose    bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
-	Subdomain string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
-	StartCmd  string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
-	HostMount string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
-	Prop      string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch    string `json:"branch,omitempty" yaml:"branch,omitempty"`
-	JobWatch  bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
+	Name       string `json:"name" yaml:"name"`
+	Image      string `json:"image,omitempty" yaml:"image,omitempty"`
+	Traefik    bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
+	Expose     bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
+	Subdomain  string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+	StartCmd   string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
+	HostMount  string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	JobWatch   bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
 }
 
 type Playground struct {
 	ID       string              `json:"id,omitempty" yaml:"id,omitempty"`
 	DirName  string              `json:"name" yaml:"name"`
 	Path     string              `json:"path" yaml:"path"`
-	Playspec string              `json:"playspec" yaml:"playspec"`
+	Spec     string              `json:"spec" yaml:"spec"`
 	JobMode  bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
 	Services map[string]*Service `json:"services" yaml:"services"`
 }
 
 type NameEntry struct {
-	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
-	Name     string `json:"name" yaml:"name"`
-	Playspec string `json:"playspec" yaml:"playspec"`
-	Path     string `json:"path" yaml:"path"`
+	ID   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Name string `json:"name" yaml:"name"`
+	Spec string `json:"spec" yaml:"spec"`
+	Path string `json:"path" yaml:"path"`
 }
 
 type URLEntry struct {
@@ -56,20 +57,20 @@ type URLEntry struct {
 }
 
 type MountEntry struct {
-	Service string `json:"service" yaml:"service"`
-	Mount   string `json:"mount" yaml:"mount"`
-	Prop    string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch  string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Service    string `json:"service" yaml:"service"`
+	Mount      string `json:"mount" yaml:"mount"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
 type RepoEntry struct {
-	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
-	Service  string `json:"service" yaml:"service"`
-	Prop     string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch   string `json:"branch,omitempty" yaml:"branch,omitempty"`
-	LinkPath string `json:"link_path" yaml:"link_path"`
-	Target   string `json:"target" yaml:"target"`
-	RepoRoot string `json:"repo_root" yaml:"repo_root"`
+	ID         string `json:"id,omitempty" yaml:"id,omitempty"`
+	Service    string `json:"service" yaml:"service"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	LinkPath   string `json:"link_path" yaml:"link_path"`
+	Target     string `json:"target" yaml:"target"`
+	RepoRoot   string `json:"repo_root" yaml:"repo_root"`
 }
 
 type CurrentState struct {
@@ -77,7 +78,7 @@ type CurrentState struct {
 	Name       string              `json:"name" yaml:"name"`
 	DirName    string              `json:"dir_name" yaml:"dir_name"`
 	Path       string              `json:"path" yaml:"path"`
-	Playspec   string              `json:"playspec" yaml:"playspec"`
+	Spec       string              `json:"spec" yaml:"spec"`
 	LinkDir    string              `json:"link_dir" yaml:"link_dir"`
 	StateFile  string              `json:"state_file" yaml:"state_file"`
 	JobMode    bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
@@ -94,7 +95,7 @@ type BaseDirMissingError struct {
 }
 
 func (e *BaseDirMissingError) Error() string {
-	return fmt.Sprintf("directory %q does not exist; set MARQUEE_ROOT to the Marquee root or playgrounds directory", e.Path)
+	return fmt.Sprintf("directory %q does not exist; set HOST_ROOT to the Host root or playgrounds directory", e.Path)
 }
 
 func (e *BaseDirMissingError) Unwrap() error {
@@ -114,20 +115,23 @@ func (e *BaseDirMissingError) ErrorDetails() map[string]any {
 }
 
 func BaseDir() string {
-	if v := strings.TrimSpace(os.Getenv("MARQUEE_ROOT")); v != "" {
-		return resolveMarqueeRoot(v)
+	if v := strings.TrimSpace(os.Getenv("HOST_ROOT")); v != "" {
+		return resolveHostRoot(v)
 	}
 	return defaultBaseDir
 }
 
 func RootDomain() string {
-	if v := os.Getenv("MARQUEE_ROOT_DOMAIN"); v != "" {
+	if v := os.Getenv("HOST_ROOT_DOMAIN"); v != "" {
 		return v
 	}
 	return defaultRootDomain
 }
 
 func Scan(baseDir string) ([]Playground, error) {
+	if err := domainnames.CheckEnvironment(); err != nil {
+		return nil, err
+	}
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -156,7 +160,7 @@ func Scan(baseDir string) ([]Playground, error) {
 	return playgrounds, nil
 }
 
-func resolveMarqueeRoot(root string) string {
+func resolveHostRoot(root string) string {
 	root = filepath.Clean(root)
 	if filepath.Base(root) == "playgrounds" || hasComposeProjectDirs(root) {
 		return root
@@ -208,13 +212,13 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 		return nil, ambiguousError(target, matches)
 	}
 
-	if matches := exactPlayspecMatches(playgrounds, target); len(matches) == 1 {
+	if matches := exactSpecMatches(playgrounds, target); len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
 		return nil, ambiguousError(target, matches)
 	}
 
-	if matches := playspecPrefixMatches(playgrounds, target); len(matches) == 1 {
+	if matches := specPrefixMatches(playgrounds, target); len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
 		return nil, ambiguousError(target, matches)
@@ -230,10 +234,10 @@ func Names(playgrounds []Playground) []NameEntry {
 			continue
 		}
 		items = append(items, NameEntry{
-			ID:       pg.ID,
-			Name:     pg.DirName,
-			Playspec: pg.Playspec,
-			Path:     pg.Path,
+			ID:   pg.ID,
+			Name: pg.DirName,
+			Spec: pg.Spec,
+			Path: pg.Path,
 		})
 	}
 	return items
@@ -276,17 +280,17 @@ func Mounts(pg *Playground) []MountEntry {
 			continue
 		}
 		entries = append(entries, MountEntry{
-			Service: name,
-			Mount:   svc.HostMount,
-			Prop:    svc.Prop,
-			Branch:  svc.Branch,
+			Service:    name,
+			Mount:      svc.HostMount,
+			Repository: svc.Repository,
+			Branch:     svc.Branch,
 		})
 	}
 	return entries
 }
 
 func URLScheme() string {
-	if v := strings.TrimSpace(os.Getenv("MARQUEE_URL_SCHEME")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("HOST_URL_SCHEME")); v != "" {
 		return strings.TrimSuffix(strings.ToLower(v), "://")
 	}
 	return "https"
@@ -388,7 +392,7 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	for _, name := range serviceNames(pg.Services) {
 		svc := pg.Services[name]
 		if svc.HostMount != "" {
-			if err := validateLinkComponent("prop", svc.Prop); err != nil {
+			if err := validateLinkComponent("repository", svc.Repository); err != nil {
 				return nil, err
 			}
 			if err := validateLinkComponent("branch", svc.Branch); err != nil {
@@ -412,7 +416,7 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	created := make(map[string]string)
 	linkNames := make([]string, 0, len(mountable))
 	for _, svc := range mountable {
-		symlinkName := svc.Prop
+		symlinkName := svc.Repository
 		if symlinkName == "" {
 			symlinkName = "default"
 		}
@@ -429,12 +433,12 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		linkNames = append(linkNames, symlinkName)
 		symlinkPath := filepath.Join(linkDir, symlinkName)
 		result.Links = append(result.Links, fibe.GreenfieldLinkedPath{
-			Name:    symlinkName,
-			Path:    symlinkPath,
-			Target:  svc.HostMount,
-			Service: svc.Name,
-			Prop:    svc.Prop,
-			Branch:  svc.Branch,
+			Name:       symlinkName,
+			Path:       symlinkPath,
+			Target:     svc.HostMount,
+			Service:    svc.Name,
+			Repository: svc.Repository,
+			Branch:     svc.Branch,
 		})
 	}
 
@@ -488,13 +492,13 @@ func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fi
 			repoRoot = link.Target
 		}
 		repos = append(repos, RepoEntry{
-			ID:       link.Name,
-			Service:  link.Service,
-			Prop:     link.Prop,
-			Branch:   link.Branch,
-			LinkPath: link.Path,
-			Target:   link.Target,
-			RepoRoot: repoRoot,
+			ID:         link.Name,
+			Service:    link.Service,
+			Repository: link.Repository,
+			Branch:     link.Branch,
+			LinkPath:   link.Path,
+			Target:     link.Target,
+			RepoRoot:   repoRoot,
 		})
 	}
 	return CurrentState{
@@ -502,7 +506,7 @@ func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fi
 		Name:       pg.DirName,
 		DirName:    pg.DirName,
 		Path:       pg.Path,
-		Playspec:   pg.Playspec,
+		Spec:       pg.Spec,
 		LinkDir:    linkDir,
 		StateFile:  stateFile,
 		JobMode:    pg.JobMode,
@@ -685,7 +689,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 	pg := Playground{
 		DirName:  dirName,
 		Path:     dirPath,
-		Playspec: dirName,
+		Spec:     dirName,
 		Services: map[string]*Service{},
 	}
 
@@ -711,9 +715,9 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		if service.JobWatch {
 			pg.JobMode = true
 		}
-		if pg.Playspec == dirName {
-			if playspec := labels["fibe.gg/playspec"]; playspec != "" {
-				pg.Playspec = playspec
+		if pg.Spec == dirName {
+			if spec := labels["fibe.gg/spec"]; spec != "" {
+				pg.Spec = spec
 			}
 		}
 		if pg.ID == "" {
@@ -868,22 +872,22 @@ func labelExists(labels map[string]string, key string) bool {
 }
 
 func setMount(service *Service, hostPath string) {
-	propsIdx := strings.Index(hostPath, "/props/")
-	if propsIdx == -1 {
+	repositoriesIdx := strings.Index(hostPath, "/repositories/")
+	if repositoriesIdx == -1 {
 		return
 	}
-	relative := hostPath[propsIdx+7:]
+	relative := hostPath[repositoriesIdx+len("/repositories/"):]
 	parts := strings.SplitN(relative, "/", 3)
 	if len(parts) < 2 {
 		return
 	}
 	service.HostMount = hostPath
-	rawProp := parts[0]
-	propParts := strings.Split(rawProp, "--")
-	if len(propParts) >= 3 {
-		service.Prop = strings.Join(propParts[1:len(propParts)-1], "--")
+	rawRepository := parts[0]
+	repositoryParts := strings.Split(rawRepository, "--")
+	if len(repositoryParts) >= 3 {
+		service.Repository = strings.Join(repositoryParts[1:len(repositoryParts)-1], "--")
 	} else {
-		service.Prop = rawProp
+		service.Repository = rawRepository
 	}
 	service.Branch = parts[1]
 }
@@ -931,20 +935,20 @@ func exactNameMatches(playgrounds []Playground, target string) []*Playground {
 	return matches
 }
 
-func exactPlayspecMatches(playgrounds []Playground, target string) []*Playground {
+func exactSpecMatches(playgrounds []Playground, target string) []*Playground {
 	var matches []*Playground
 	for i := range playgrounds {
-		if playgrounds[i].Playspec == target {
+		if playgrounds[i].Spec == target {
 			matches = append(matches, &playgrounds[i])
 		}
 	}
 	return matches
 }
 
-func playspecPrefixMatches(playgrounds []Playground, target string) []*Playground {
+func specPrefixMatches(playgrounds []Playground, target string) []*Playground {
 	var matches []*Playground
 	for i := range playgrounds {
-		if strings.HasPrefix(playgrounds[i].Playspec, target) {
+		if strings.HasPrefix(playgrounds[i].Spec, target) {
 			matches = append(matches, &playgrounds[i])
 		}
 	}
@@ -955,8 +959,8 @@ func ambiguousError(target string, matches []*Playground) error {
 	candidates := make([]string, 0, len(matches))
 	for _, pg := range matches {
 		label := pg.DirName
-		if pg.Playspec != "" {
-			label += " (playspec: " + pg.Playspec
+		if pg.Spec != "" {
+			label += " (spec: " + pg.Spec
 			if pg.ID != "" {
 				label += ", id: " + pg.ID
 			}

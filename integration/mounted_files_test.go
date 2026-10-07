@@ -48,22 +48,22 @@ func TestAgentMountedFiles(t *testing.T) {
 	})
 }
 
-func TestPlayspecMountedFiles(t *testing.T) {
+func TestSpecMountedFiles(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 	mountedFilename := "nginx.conf"
 
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            uniqueName("mf-spec"),
 		BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
-		Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+		Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
 	t.Run("add mounted file", func(t *testing.T) {
 		file := strings.NewReader("nginx config content")
-		err := c.Playspecs.AddMountedFile(ctx(), *spec.ID, file, "nginx.conf", &fibe.MountedFileParams{
+		err := c.Specs.AddMountedFile(ctx(), *spec.ID, file, "nginx.conf", &fibe.MountedFileParams{
 			MountPath:      "/etc/nginx/nginx.conf",
 			TargetServices: []string{"web"},
 			ReadOnly:       ptr(true),
@@ -72,11 +72,11 @@ func TestPlayspecMountedFiles(t *testing.T) {
 	})
 
 	t.Run("file visible in detail", func(t *testing.T) {
-		detail, err := c.Playspecs.Get(ctx(), *spec.ID)
+		detail, err := c.Specs.Get(ctx(), *spec.ID)
 		requireNoError(t, err)
 
 		if len(detail.MountedFiles) == 0 {
-			t.Error("expected mounted_files in playspec detail")
+			t.Error("expected mounted_files in spec detail")
 			return
 		}
 		if detail.MountedFiles[0].Filename != "" {
@@ -85,7 +85,7 @@ func TestPlayspecMountedFiles(t *testing.T) {
 	})
 
 	t.Run("update mounted file", func(t *testing.T) {
-		err := c.Playspecs.UpdateMountedFile(ctx(), *spec.ID, &fibe.MountedFileUpdateParams{
+		err := c.Specs.UpdateMountedFile(ctx(), *spec.ID, &fibe.MountedFileUpdateParams{
 			Filename:  mountedFilename,
 			MountPath: "/etc/nginx/conf.d/default.conf",
 		})
@@ -93,7 +93,7 @@ func TestPlayspecMountedFiles(t *testing.T) {
 	})
 
 	t.Run("remove mounted file", func(t *testing.T) {
-		err := c.Playspecs.RemoveMountedFile(ctx(), *spec.ID, mountedFilename)
+		err := c.Specs.RemoveMountedFile(ctx(), *spec.ID, mountedFilename)
 		requireNoError(t, err)
 	})
 }

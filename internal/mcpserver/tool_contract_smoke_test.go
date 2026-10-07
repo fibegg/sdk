@@ -88,8 +88,8 @@ func TestAllResourceMutationHandlers(t *testing.T) {
 			"latest_version_id":          1,
 			"source_template_version_id": 1,
 			"source_template":            map[string]any{"id": 1},
-			"playspec_id":                1,
-			"marquee_id":                 1,
+			"spec_id":                    1,
+			"host_id":                    1,
 			"job_mode":                   true,
 			"template":                   map[string]any{"id": 1},
 			"version":                    map[string]any{"id": 1, "template_id": 1},
@@ -215,9 +215,9 @@ func completeMutationFixture(resource, operation string, payload map[string]any)
 		switch resource {
 		case "agent_poke":
 			payload["prompt"] = "fixture"
-		case "agent", "marquee", "playground", "prop":
+		case "agent", "host", "playground", "repository":
 			payload["name"] = "fixture-updated"
-		case "playspec", "template", "webhook":
+		case "spec", "template", "webhook":
 			payload["description"] = "fixture-updated"
 		case "secret", "job_env":
 			payload["value"] = "fixture-updated"

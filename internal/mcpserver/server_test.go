@@ -291,13 +291,13 @@ func TestAdvertisedToolInputSchemasHaveObjectProperties(t *testing.T) {
 						t.Fatalf("%s inputSchema has top-level %q, which breaks OpenAI/Codex-style MCP clients: %#v", tool.Tool.Name, keyword, schema[keyword])
 					}
 				}
-				props, ok := schema["properties"].(map[string]any)
+				repositories, ok := schema["properties"].(map[string]any)
 				if !ok {
 					t.Fatalf("%s inputSchema.properties is %T, want object", tool.Tool.Name, schema["properties"])
 				}
-				for name, prop := range props {
-					if _, ok := prop.(map[string]any); !ok {
-						t.Fatalf("%s inputSchema.properties.%s is %T (%#v), want object schema", tool.Tool.Name, name, prop, prop)
+				for name, repository := range repositories {
+					if _, ok := repository.(map[string]any); !ok {
+						t.Fatalf("%s inputSchema.properties.%s is %T (%#v), want object schema", tool.Tool.Name, name, repository, repository)
 					}
 				}
 			}
@@ -434,25 +434,25 @@ func TestToolsCatalogNamePatternMatchesDescriptions(t *testing.T) {
 
 func assertSchemaDescriptionsAndIDMinimums(t *testing.T, path string, schema map[string]any) {
 	t.Helper()
-	props, _ := schema["properties"].(map[string]any)
-	for name, raw := range props {
-		prop, ok := raw.(map[string]any)
+	repositories, _ := schema["properties"].(map[string]any)
+	for name, raw := range repositories {
+		repository, ok := raw.(map[string]any)
 		if !ok {
 			continue
 		}
 		fieldPath := path + "." + name
-		desc, _ := prop["description"].(string)
+		desc, _ := repository["description"].(string)
 		if strings.TrimSpace(desc) == "" {
 			t.Fatalf("%s is missing description", fieldPath)
 		}
-		if isNumericIDSchema(name, prop) {
-			minimum, ok := numericMinimum(prop["minimum"])
+		if isNumericIDSchema(name, repository) {
+			minimum, ok := numericMinimum(repository["minimum"])
 			if !ok || minimum < 1 {
-				t.Fatalf("%s missing minimum >= 1: %#v", fieldPath, prop)
+				t.Fatalf("%s missing minimum >= 1: %#v", fieldPath, repository)
 			}
 		}
-		assertSchemaDescriptionsAndIDMinimums(t, fieldPath, prop)
-		if items, ok := prop["items"].(map[string]any); ok {
+		assertSchemaDescriptionsAndIDMinimums(t, fieldPath, repository)
+		if items, ok := repository["items"].(map[string]any); ok {
 			assertSchemaDescriptionsAndIDMinimums(t, fieldPath+"[]", items)
 		}
 	}
@@ -460,17 +460,17 @@ func assertSchemaDescriptionsAndIDMinimums(t *testing.T, path string, schema map
 
 func schemaPropertyEnum(t *testing.T, schema map[string]any, property string) []string {
 	t.Helper()
-	props, ok := schema["properties"].(map[string]any)
+	repositories, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties is %T", schema["properties"])
 	}
-	prop, ok := props[property].(map[string]any)
+	repository, ok := repositories[property].(map[string]any)
 	if !ok {
-		t.Fatalf("schema property %q is %T", property, props[property])
+		t.Fatalf("schema property %q is %T", property, repositories[property])
 	}
-	raw, ok := prop["enum"].([]any)
+	raw, ok := repository["enum"].([]any)
 	if !ok {
-		t.Fatalf("schema property %q enum is %T", property, prop["enum"])
+		t.Fatalf("schema property %q enum is %T", property, repository["enum"])
 	}
 	out := make([]string, 0, len(raw))
 	for _, value := range raw {

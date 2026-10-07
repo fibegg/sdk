@@ -15,7 +15,7 @@ func TestLaunchWaitPrintsFinalReadyPlayground(t *testing.T) {
 	statusCalls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/playspecs/starter":
+		case "/api/specs/starter":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":       299,
 				"name":     "starter",
@@ -57,8 +57,8 @@ func TestLaunchWaitPrintsFinalReadyPlayground(t *testing.T) {
 				"status":              "running",
 				"maintenance_enabled": false,
 				"job_mode":            false,
-				"playspec_id":         299,
-				"playspec_name":       "starter",
+				"spec_id":             299,
+				"spec_name":           "starter",
 				"services": []map[string]any{{
 					"name":    "api",
 					"status":  "running",
@@ -77,7 +77,7 @@ func TestLaunchWaitPrintsFinalReadyPlayground(t *testing.T) {
 
 	cmd := launchCmd()
 	cmd.SetErr(&bytes.Buffer{})
-	cmd.SetArgs([]string{"--playspec", "starter", "--name", "demo", "--marquee", "office", "--wait", "--wait-timeout", "1s"})
+	cmd.SetArgs([]string{"--spec", "starter", "--name", "demo", "--host", "office", "--wait", "--wait-timeout", "1s"})
 
 	out, err := captureStdout(func() error {
 		return cmd.Execute()

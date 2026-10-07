@@ -237,15 +237,15 @@ func TestResponseShapeToolSchemasAdvertiseOnlyAndOutputPath(t *testing.T) {
 	}
 
 	schema := srv.toolSchemas["fibe_resource_list"]
-	props := schema["properties"].(map[string]any)
-	only := props["only"].(map[string]any)
+	repositories := schema["properties"].(map[string]any)
+	only := repositories["only"].(map[string]any)
 	if only["type"] != "array" {
 		t.Fatalf("only schema = %#v", only)
 	}
-	if _, ok := props["fields"]; ok {
-		t.Fatalf("fields alias should not be advertised: %#v", props["fields"])
+	if _, ok := repositories["fields"]; ok {
+		t.Fatalf("fields alias should not be advertised: %#v", repositories["fields"])
 	}
-	outputPath := props["output_path"].(map[string]any)
+	outputPath := repositories["output_path"].(map[string]any)
 	if outputPath["type"] != "string" {
 		t.Fatalf("output_path schema = %#v", outputPath)
 	}

@@ -20,8 +20,8 @@ func TestListCoverage_Pagination(t *testing.T) {
 	_ = seedSecret(t, c, "pg2")
 	_ = seedAgent(t, c, fibe.ProviderGemini)
 	_ = seedAgent(t, c, fibe.ProviderClaudeCode)
-	_ = seedPlayspec(t, c)
-	_ = seedPlayspec(t, c)
+	_ = seedSpec(t, c)
+	_ = seedSpec(t, c)
 
 	cases := []struct {
 		name string
@@ -34,15 +34,15 @@ func TestListCoverage_Pagination(t *testing.T) {
 			}
 			return r.Meta.Page, r.Meta.PerPage, len(r.Data), nil
 		}},
-		{"playspecs", func() (int, int, int, error) {
-			r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Page: 1, PerPage: 1})
+		{"specs", func() (int, int, int, error) {
+			r, err := c.Specs.List(ctx(), &fibe.SpecListParams{Page: 1, PerPage: 1})
 			if err != nil {
 				return 0, 0, 0, err
 			}
 			return r.Meta.Page, r.Meta.PerPage, len(r.Data), nil
 		}},
-		{"props", func() (int, int, int, error) {
-			r, err := c.Props.List(ctx(), &fibe.PropListParams{Page: 1, PerPage: 1})
+		{"repositories", func() (int, int, int, error) {
+			r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{Page: 1, PerPage: 1})
 			if err != nil {
 				return 0, 0, 0, err
 			}
@@ -55,8 +55,8 @@ func TestListCoverage_Pagination(t *testing.T) {
 			}
 			return r.Meta.Page, r.Meta.PerPage, len(r.Data), nil
 		}},
-		{"marquees", func() (int, int, int, error) {
-			r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{Page: 1, PerPage: 1})
+		{"hosts", func() (int, int, int, error) {
+			r, err := c.Hosts.List(ctx(), &fibe.HostListParams{Page: 1, PerPage: 1})
 			if err != nil {
 				return 0, 0, 0, err
 			}
@@ -151,30 +151,30 @@ func TestListCoverage_Sorting(t *testing.T) {
 		}
 	})
 
-	playspecTag := tag("sortplayspec")
-	_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) { p.Name = playspecTag + "alpha" })
-	_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) { p.Name = playspecTag + "bravo" })
+	specTag := tag("sortspec")
+	_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) { p.Name = specTag + "alpha" })
+	_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) { p.Name = specTag + "bravo" })
 
-	propTag := tag("sortprop")
-	propA := seedWritableGiteaProp(t, c, "sort-prop-alpha")
-	_, err = c.Props.Update(ctx(), propA.ID, &fibe.PropUpdateParams{Name: ptr(propTag + "alpha")})
-	requireNoError(t, err, "name sort prop alpha")
-	propB := seedWritableGiteaProp(t, c, "sort-prop-bravo")
-	_, err = c.Props.Update(ctx(), propB.ID, &fibe.PropUpdateParams{Name: ptr(propTag + "bravo")})
-	requireNoError(t, err, "name sort prop bravo")
+	repositoryTag := tag("sortprop")
+	repositoryA := seedWritableGiteaRepository(t, c, "sort-repository-alpha")
+	_, err = c.Repositories.Update(ctx(), repositoryA.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "alpha")})
+	requireNoError(t, err, "name sort repository alpha")
+	repositoryB := seedWritableGiteaRepository(t, c, "sort-repository-bravo")
+	_, err = c.Repositories.Update(ctx(), repositoryB.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "bravo")})
+	requireNoError(t, err, "name sort repository bravo")
 
-	marqueeTag := tag("sortmarquee")
-	marqueeParamsA := testMarqueeParams("sort-marquee-alpha")
-	marqueeParamsA.Name = marqueeTag + "alpha"
-	marqueeA, err := c.Marquees.Create(ctx(), marqueeParamsA)
-	requireNoError(t, err, "seed sort marquee alpha")
-	marqueeParamsB := testMarqueeParams("sort-marquee-bravo")
-	marqueeParamsB.Name = marqueeTag + "bravo"
-	marqueeB, err := c.Marquees.Create(ctx(), marqueeParamsB)
-	requireNoError(t, err, "seed sort marquee bravo")
+	hostTag := tag("sorthost")
+	hostParamsA := testHostParams("sort-host-alpha")
+	hostParamsA.Name = hostTag + "alpha"
+	hostA, err := c.Hosts.Create(ctx(), hostParamsA)
+	requireNoError(t, err, "seed sort host alpha")
+	hostParamsB := testHostParams("sort-host-bravo")
+	hostParamsB.Name = hostTag + "bravo"
+	hostB, err := c.Hosts.Create(ctx(), hostParamsB)
+	requireNoError(t, err, "seed sort host bravo")
 	t.Cleanup(func() {
-		c.Marquees.Delete(ctx(), marqueeA.ID)
-		c.Marquees.Delete(ctx(), marqueeB.ID)
+		c.Hosts.Delete(ctx(), hostA.ID)
+		c.Hosts.Delete(ctx(), hostB.ID)
 	})
 
 	t.Run("agents sort name_asc", func(t *testing.T) {
@@ -205,15 +205,15 @@ func TestListCoverage_Sorting(t *testing.T) {
 		}
 	})
 
-	t.Run("playspecs sort name_asc", func(t *testing.T) {
+	t.Run("specs sort name_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Name: playspecTag, Sort: "name_asc", PerPage: 50})
+		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{Name: specTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, p := range r.Data {
 			names = append(names, p.Name)
 		}
-		requireSortedByStringLocaleAware(t, "playspecs name_asc", names, true)
+		requireSortedByStringLocaleAware(t, "specs name_asc", names, true)
 	})
 
 	t.Run("secrets sort key_asc", func(t *testing.T) {
@@ -227,26 +227,26 @@ func TestListCoverage_Sorting(t *testing.T) {
 		requireSortedByStringLocaleAware(t, "secrets key_asc", keys, true)
 	})
 
-	t.Run("props sort name_desc", func(t *testing.T) {
+	t.Run("repositories sort name_desc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Props.List(ctx(), &fibe.PropListParams{Name: propTag, Sort: "name_desc", PerPage: 50})
+		r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{Name: repositoryTag, Sort: "name_desc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, p := range r.Data {
 			names = append(names, p.Name)
 		}
-		requireSortedByStringLocaleAware(t, "props name_desc", names, false)
+		requireSortedByStringLocaleAware(t, "repositories name_desc", names, false)
 	})
 
-	t.Run("marquees sort name_asc", func(t *testing.T) {
+	t.Run("hosts sort name_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{Name: marqueeTag, Sort: "name_asc", PerPage: 50})
+		r, err := c.Hosts.List(ctx(), &fibe.HostListParams{Name: hostTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
 		names := make([]string, 0, len(r.Data))
 		for _, m := range r.Data {
 			names = append(names, m.Name)
 		}
-		requireSortedByStringLocaleAware(t, "marquees name_asc", names, true)
+		requireSortedByStringLocaleAware(t, "hosts name_asc", names, true)
 	})
 }
 
@@ -289,15 +289,15 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("playspecs filter by job_mode=true", func(t *testing.T) {
+	t.Run("specs filter by job_mode=true", func(t *testing.T) {
 		t.Parallel()
 		jm := true
-		_ = seedPlayspec(t, c, func(p *fibe.PlayspecCreateParams) {
+		_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) {
 			p.JobMode = &jm
 			p.BaseComposeYAML = jobComposeYAML()
-			p.Services = []fibe.PlayspecServiceDef{jobWatchedService("worker")}
+			p.Services = []fibe.SpecServiceDef{jobWatchedService("worker")}
 		})
-		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{JobMode: &jm, PerPage: 50})
+		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{JobMode: &jm, PerPage: 50})
 		requireNoError(t, err)
 		for _, p := range r.Data {
 			if p.JobMode == nil || !*p.JobMode {
@@ -306,10 +306,10 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("playspecs filter by job_mode=false", func(t *testing.T) {
+	t.Run("specs filter by job_mode=false", func(t *testing.T) {
 		t.Parallel()
 		jmf := false
-		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{JobMode: &jmf, PerPage: 50})
+		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{JobMode: &jmf, PerPage: 50})
 		requireNoError(t, err)
 		for _, p := range r.Data {
 			if p.JobMode != nil && *p.JobMode {

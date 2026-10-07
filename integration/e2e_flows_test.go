@@ -8,35 +8,35 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// TestE2E_PlayspecToPlayground exercises the primary user flow:
-//  1. Create playspec with real compose
-//  2. Deploy playground from that playspec on the shared marquee
+// TestE2E_SpecToPlayground exercises the primary user flow:
+//  1. Create spec with real compose
+//  2. Deploy playground from that spec on the shared host
 //  3. Verify status polling works
-//  4. Verify compose reflects the playspec
+//  4. Verify compose reflects the spec
 //  5. Clean up
-func TestE2E_PlayspecToPlayground(t *testing.T) {
+func TestE2E_SpecToPlayground(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run E2E flow")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to run E2E flow")
 	}
 
 	specName := uniqueName("e2e-spec")
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            specName,
 		BaseComposeYAML: realComposeYAML(),
-		Services: []fibe.PlayspecServiceDef{
+		Services: []fibe.SpecServiceDef{
 			{Name: "web", Type: fibe.ServiceTypeStatic},
 			{Name: "db", Type: fibe.ServiceTypeStatic},
 			{Name: "cache", Type: fibe.ServiceTypeStatic},
 		},
 	})
-	requireNoError(t, err, "create e2e playspec")
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	requireNoError(t, err, "create e2e spec")
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
-	services, err := c.Playspecs.Services(ctx(), *spec.ID)
+	services, err := c.Specs.Services(ctx(), *spec.ID)
 	requireNoError(t, err)
 	if services == nil {
 		t.Error("expected non-nil services response")
@@ -44,9 +44,9 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 
 	pgName := uniqueName("e2e-pg")
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       pgName,
-		PlayspecID: *spec.ID,
-		MarqueeID:  &marqueeID,
+		Name:   pgName,
+		SpecID: *spec.ID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err, "create e2e playground")
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })

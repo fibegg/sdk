@@ -75,7 +75,7 @@ func Generate(dir string) ([]byte, error) {
 		},
 		Serialization: Serialization{
 			RequestContentType: "application/json", ResponseContentType: "application/json",
-			UnknownFields: "accepted", TrailingJSON: "rejected", QueryEncoding: "RFC 3986 via net/url.Values.Encode",
+			UnknownFields: "accepted except removed FIBE naming fields; application-owned extension maps retain their properties", TrailingJSON: "rejected", QueryEncoding: "RFC 3986 via net/url.Values.Encode",
 			SuccessBodyLimit: 10 << 20, ErrorBodyLimit: 1 << 20,
 		},
 	}

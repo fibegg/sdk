@@ -3,6 +3,7 @@ package resourceschema
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"math"
 	"reflect"
 	"regexp"
@@ -13,6 +14,12 @@ import (
 )
 
 func ValidateMutationPayload(rawResource, rawOperation string, payload map[string]any) (string, string, error) {
+	if err := domainnames.RemovedError(rawResource); err != nil {
+		return "", "", err
+	}
+	if err := domainnames.RejectFields(payload); err != nil {
+		return "", "", err
+	}
 	schema, resource, operation, ok := MutationSchemaFor(rawResource, rawOperation)
 	if !ok {
 		if resource == "" {
@@ -40,6 +47,12 @@ func ValidateMutationPayload(rawResource, rawOperation string, payload map[strin
 }
 
 func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (string, string, error) {
+	if err := domainnames.RemovedError(rawResource); err != nil {
+		return "", "", err
+	}
+	if err := domainnames.RejectFields(payload); err != nil {
+		return "", "", err
+	}
 	schema, resource, operation, ok := SchemaFor(rawResource, rawOperation)
 	if !ok {
 		if resource == "" {

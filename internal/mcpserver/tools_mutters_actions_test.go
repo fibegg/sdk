@@ -81,17 +81,17 @@ func TestMuttersGetSchemaRequiresAgentID(t *testing.T) {
 	}
 
 	schema := srv.toolSchemas["fibe_mutters_get"]
-	props := schema["properties"].(map[string]any)
-	if _, ok := props["id_or_name"]; !ok {
+	repositories := schema["properties"].(map[string]any)
+	if _, ok := repositories["id_or_name"]; !ok {
 		t.Fatalf("fibe_mutters_get schema missing id_or_name: %#v", schema)
 	}
 	for _, bad := range []string{"PlaygroundID", "Query", "PerPage"} {
-		if _, ok := props[bad]; ok {
+		if _, ok := repositories[bad]; ok {
 			t.Fatalf("fibe_mutters_get schema should use snake_case, found %q in %#v", bad, schema)
 		}
 	}
-	if playground, ok := props["playground_id_or_name"].(map[string]any); !ok {
-		t.Fatalf("fibe_mutters_get playground_id_or_name should be identifier schema: %#v", props["playground_id_or_name"])
+	if playground, ok := repositories["playground_id_or_name"].(map[string]any); !ok {
+		t.Fatalf("fibe_mutters_get playground_id_or_name should be identifier schema: %#v", repositories["playground_id_or_name"])
 	} else if _, ok := playground["oneOf"]; !ok {
 		t.Fatalf("fibe_mutters_get playground_id_or_name should accept ID or name: %#v", playground)
 	}

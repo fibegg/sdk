@@ -26,8 +26,8 @@ type PlaygroundBuildLogDebugParams struct {
 	IncludeBuildLogs *bool `url:"include_build_logs,omitempty"`
 }
 
-type PropMirrorState struct {
-	Prop
+type RepositoryMirrorState struct {
+	Repository
 	MirrorStatus string `json:"mirror_status,omitempty"`
 	MirrorError  string `json:"mirror_error,omitempty"`
 }
@@ -48,19 +48,19 @@ func (s *PlaygroundService) DebugWithBuildLogsByIdentifier(ctx context.Context, 
 	return result, err
 }
 
-func (s *PropService) GetMirrorStateByIdentifier(ctx context.Context, identifier string) (*PropMirrorState, error) {
-	var result PropMirrorState
-	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/props", identifier), nil, &result)
+func (s *RepositoryService) GetMirrorStateByIdentifier(ctx context.Context, identifier string) (*RepositoryMirrorState, error) {
+	var result RepositoryMirrorState
+	err := s.client.do(ctx, http.MethodGet, identifierPath("/api/repositories", identifier), nil, &result)
 	return &result, err
 }
 
-func (s *PropService) MirrorWithState(ctx context.Context, sourceURL, name string) (*PropMirrorState, error) {
-	var result PropMirrorState
+func (s *RepositoryService) MirrorWithState(ctx context.Context, sourceURL, name string) (*RepositoryMirrorState, error) {
+	var result RepositoryMirrorState
 	body := map[string]any{"source_url": sourceURL}
 	if name != "" {
 		body["name"] = name
 	}
-	err := s.client.do(ctx, http.MethodPost, "/api/props/mirrors", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/repositories/mirrors", body, &result)
 	return &result, err
 }
 

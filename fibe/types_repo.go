@@ -9,8 +9,8 @@ type RepoStatusEntry struct {
 	URL                  string `json:"url"`
 	Status               string `json:"status"`
 	Error                string `json:"error,omitempty"`
-	PropID               int64  `json:"prop_id,omitempty"`
-	PropName             string `json:"prop_name,omitempty"`
+	RepositoryID         int64  `json:"repository_id,omitempty"`
+	RepositoryName       string `json:"repository_name,omitempty"`
 	GitHubURL            string `json:"github_url,omitempty"`
 	PlayerRepo           string `json:"player_repo,omitempty"`
 	PlayerRepoURL        string `json:"player_repo_url,omitempty"`
@@ -57,8 +57,8 @@ type GiteaRepo struct {
 	Description   string            `json:"description"`
 	DefaultBranch string            `json:"default_branch,omitempty"`
 	Repo          *GiteaRepoSummary `json:"repo,omitempty"`
-	PropID        int64             `json:"prop_id,omitempty"`
-	Prop          *Prop             `json:"prop,omitempty"`
+	RepositoryID  int64             `json:"repository_id,omitempty"`
+	Repository    *Repository       `json:"repository,omitempty"`
 }
 
 type GiteaRepoSummary struct {

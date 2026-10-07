@@ -27,13 +27,13 @@ func waitCmd() *cobra.Command {
 Eliminates retry loops in LLM agent code: delegates
 polling to the CLI with built-in timeout and interval.
 
-Supported resources: playground, trick, prop (mirror progress)
+Supported resources: playground, task, repository (mirror progress)
 
 Examples:
   fibe wait playground next --status running
-  fibe wait trick nightly-build --status completed
+  fibe wait task nightly-build --status completed
   fibe wait playground 42 --status running --timeout 5m --interval 5s
-  fibe wait trick nightly-build --status completed --full`,
+  fibe wait task nightly-build --status completed --full`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := strings.ToLower(args[0])
@@ -92,9 +92,9 @@ Examples:
 					case <-time.After(interval):
 					}
 				}
-			case "trick", "tr":
+			case "task", "tr":
 				for {
-					status, err := c.Tricks.StatusByIdentifier(ctx(), identifier)
+					status, err := c.Tasks.StatusByIdentifier(ctx(), identifier)
 					if err != nil {
 						return waitResourceError(resource, identifier, auth, err)
 					}
@@ -104,11 +104,11 @@ Examples:
 					progress.Update(fmt.Sprintf("status: %s", current))
 
 					if current == targetStatus {
-						if fibe.TrickStatusResultFailed(status) {
-							return fmt.Errorf("trick reached %s with failed result", current)
+						if fibe.TaskStatusResultFailed(status) {
+							return fmt.Errorf("task reached %s with failed result", current)
 						}
 						if full {
-							pg, err := c.Tricks.GetByIdentifier(ctx(), identifier)
+							pg, err := c.Tasks.GetByIdentifier(ctx(), identifier)
 							if err != nil {
 								return waitResourceError(resource, identifier, auth, err)
 							}
@@ -122,13 +122,13 @@ Examples:
 					}
 
 					if current == "completed" && targetStatus != "completed" {
-						return fmt.Errorf("trick reached terminal state: %s", current)
+						return fmt.Errorf("task reached terminal state: %s", current)
 					}
-					if current == "completed" && fibe.TrickStatusResultFailed(status) {
-						return fmt.Errorf("trick reached completed with failed result")
+					if current == "completed" && fibe.TaskStatusResultFailed(status) {
+						return fmt.Errorf("task reached completed with failed result")
 					}
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fmt.Errorf("trick reached terminal state: %s", current)
+						return fmt.Errorf("task reached terminal state: %s", current)
 					}
 
 					select {
@@ -137,36 +137,36 @@ Examples:
 					case <-time.After(interval):
 					}
 				}
-			case "prop":
+			case "repository":
 				if !cmd.Flags().Changed("status") {
 					targetStatus = "completed"
 				}
 				for {
-					prop, err := c.Props.GetMirrorStateByIdentifier(ctx(), identifier)
+					repository, err := c.Repositories.GetMirrorStateByIdentifier(ctx(), identifier)
 					if err != nil {
 						return waitResourceError(resource, identifier, auth, err)
 					}
-					current := prop.MirrorStatus
+					current := repository.MirrorStatus
 					if current == "" {
-						current = prop.Status
+						current = repository.Status
 					}
 					progress.Update("status: " + current)
 					if current == "failed" {
-						return fmt.Errorf("mirror failed: %s", prop.MirrorError)
+						return fmt.Errorf("mirror failed: %s", repository.MirrorError)
 					}
 					if current == targetStatus {
 						progress.Stop()
-						output(prop)
+						output(repository)
 						return nil
 					}
 					select {
 					case <-deadline:
-						return fmt.Errorf("timeout after %s: mirror status %s: %s", timeout, current, prop.MirrorError)
+						return fmt.Errorf("timeout after %s: mirror status %s: %s", timeout, current, repository.MirrorError)
 					case <-time.After(interval):
 					}
 				}
 			default:
-				return fmt.Errorf("unsupported resource %q: supported: playground, trick, prop", resource)
+				return fmt.Errorf("unsupported resource %q: supported: playground, task, repository", resource)
 			}
 		},
 	}
@@ -190,10 +190,10 @@ type waitNotFoundError struct {
 
 func (e *waitNotFoundError) Error() string {
 	listCommand := "fibe playgrounds list --only id,name,status"
-	if e.resource == "trick" || e.resource == "tr" {
-		listCommand = "fibe tricks list --only id,name,status"
-	} else if e.resource == "prop" {
-		listCommand = "fibe props list --only id,name,status,mirror_status"
+	if e.resource == "task" || e.resource == "tr" {
+		listCommand = "fibe tasks list --only id,name,status"
+	} else if e.resource == "repository" {
+		listCommand = "fibe repositories list --only id,name,status,mirror_status"
 	}
 	return fmt.Sprintf("%s %q was not found in profile %q (%s). Use --profile/--domain to select another environment, or run `%s` to find the correct name or ID",
 		e.resource, e.identifier, e.profile, effectiveBaseURL(e.domain), listCommand)

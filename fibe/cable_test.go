@@ -201,7 +201,7 @@ func TestPlaygroundLogStreamByIdentifierResolvesID(t *testing.T) {
 	}
 }
 
-func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
+func TestTaskLogStreamByIdentifierResolvesID(t *testing.T) {
 	apiKey := "fibe_test_secret"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -242,7 +242,7 @@ func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	events, errs := client.Tricks.LogStreamByIdentifier(ctx, "nightly-build", "worker", &LogsStreamOptions{Tail: 10, MaxLines: 1})
+	events, errs := client.Tasks.LogStreamByIdentifier(ctx, "nightly-build", "worker", &LogsStreamOptions{Tail: 10, MaxLines: 1})
 	select {
 	case ev := <-events:
 		if ev.Type != "log" || ev.Line != "job ready" || ev.Service != "worker" || ev.Stream != "stderr" {
@@ -253,7 +253,7 @@ func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	case <-ctx.Done():
-		t.Fatal("timed out waiting for trick log event")
+		t.Fatal("timed out waiting for task log event")
 	}
 }
 

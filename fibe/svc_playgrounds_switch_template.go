@@ -8,43 +8,43 @@ import (
 )
 
 // PlaygroundTemplateSwitchParams moves an existing playground to an exact,
-// latest, or newly authored template version, with optional private Prop provisioning.
+// latest, or newly authored template version, with optional private Repository provisioning.
 type PlaygroundTemplateSwitchParams struct {
-	PlaygroundID          int64                `json:"playground_id"`
-	PlaygroundIdentifier  string               `json:"playground_identifier,omitempty"`
-	Mode                  string               `json:"mode,omitempty"` // "preview" | "apply" (default)
-	TemplateBody          string               `json:"template_body,omitempty"`
-	TemplateID            int64                `json:"template_id,omitempty"`
-	TemplateIdentifier    string               `json:"template_identifier,omitempty"`
-	TemplateVersionID     int64                `json:"template_version_id,omitempty"`
-	TemplateName          string               `json:"template_name,omitempty"`
-	Variables             map[string]any       `json:"variables,omitempty"`
-	RegenerateVariables   []string             `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings       bool                 `json:"confirm_warnings,omitempty"`
-	ProvisionMissingProps string               `json:"provision_missing_props,omitempty"`
-	ProvisionPrivate      *bool                `json:"provision_private,omitempty"`
-	ProvisionInputs       []ProvisionPropInput `json:"provision_inputs,omitempty"`
-	ReuseExistingProps    bool                 `json:"reuse_existing_props,omitempty"`
-	Wait                  bool                 `json:"wait,omitempty"`
-	WaitTimeoutSeconds    int64                `json:"wait_timeout_seconds,omitempty"`
-	DiagnoseOnFailure     *bool                `json:"diagnose_on_failure,omitempty"`
-	ResponseMode          string               `json:"response_mode,omitempty"`
-	Changelog             string               `json:"changelog,omitempty"`
+	PlaygroundID                 int64                      `json:"playground_id"`
+	PlaygroundIdentifier         string                     `json:"playground_identifier,omitempty"`
+	Mode                         string                     `json:"mode,omitempty"` // "preview" | "apply" (default)
+	TemplateBody                 string                     `json:"template_body,omitempty"`
+	TemplateID                   int64                      `json:"template_id,omitempty"`
+	TemplateIdentifier           string                     `json:"template_identifier,omitempty"`
+	TemplateVersionID            int64                      `json:"template_version_id,omitempty"`
+	TemplateName                 string                     `json:"template_name,omitempty"`
+	Variables                    map[string]any             `json:"variables,omitempty"`
+	RegenerateVariables          []string                   `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings              bool                       `json:"confirm_warnings,omitempty"`
+	ProvisionMissingRepositories string                     `json:"provision_missing_repositories,omitempty"`
+	ProvisionPrivate             *bool                      `json:"provision_private,omitempty"`
+	ProvisionInputs              []ProvisionRepositoryInput `json:"provision_inputs,omitempty"`
+	ReuseExistingRepositories    bool                       `json:"reuse_existing_repositories,omitempty"`
+	Wait                         bool                       `json:"wait,omitempty"`
+	WaitTimeoutSeconds           int64                      `json:"wait_timeout_seconds,omitempty"`
+	DiagnoseOnFailure            *bool                      `json:"diagnose_on_failure,omitempty"`
+	ResponseMode                 string                     `json:"response_mode,omitempty"`
+	Changelog                    string                     `json:"changelog,omitempty"`
 }
 
 // PlaygroundTemplateSwitchResult is the composite response from a playground template switch run.
 type PlaygroundTemplateSwitchResult struct {
-	Mode             string                               `json:"mode"`
-	Playground       *Playground                          `json:"playground,omitempty"`
-	Template         *ImportTemplate                      `json:"template,omitempty"`
-	TemplateVersion  *ImportTemplateVersion               `json:"template_version,omitempty"`
-	SwitchResult     *PlayspecTemplateVersionSwitchResult `json:"switch_result,omitempty"`
-	ProvisionedProps []ProvisionedPropResult              `json:"provisioned_props,omitempty"`
-	WaitResults      []map[string]any                     `json:"wait_results,omitempty"`
-	Diagnostics      map[string]any                       `json:"diagnostics,omitempty"`
+	Mode                    string                           `json:"mode"`
+	Playground              *Playground                      `json:"playground,omitempty"`
+	Template                *ImportTemplate                  `json:"template,omitempty"`
+	TemplateVersion         *ImportTemplateVersion           `json:"template_version,omitempty"`
+	SwitchResult            *SpecTemplateVersionSwitchResult `json:"switch_result,omitempty"`
+	ProvisionedRepositories []ProvisionedRepositoryResult    `json:"provisioned_repositories,omitempty"`
+	WaitResults             []map[string]any                 `json:"wait_results,omitempty"`
+	Diagnostics             map[string]any                   `json:"diagnostics,omitempty"`
 }
 
-// SwitchPlaygroundTemplate composes ImportTemplate{,Version}.Create + Playspec.SwitchTemplateVersion
+// SwitchPlaygroundTemplate composes ImportTemplate{,Version}.Create + Spec.SwitchTemplateVersion
 // + post-rollout wait into a single brownfield playground template switch flow.
 func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *PlaygroundTemplateSwitchParams) (*PlaygroundTemplateSwitchResult, error) {
 	if params == nil {
@@ -72,8 +72,8 @@ func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *Playgroun
 	if err != nil {
 		return nil, fmt.Errorf("could not load playground: %w", err)
 	}
-	if pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
-		return nil, fmt.Errorf("playground %d has no playspec_id", pg.ID)
+	if pg.SpecID == nil || *pg.SpecID <= 0 {
+		return nil, fmt.Errorf("playground %d has no spec_id", pg.ID)
 	}
 
 	out := &PlaygroundTemplateSwitchResult{Mode: mode, Playground: pg}
@@ -92,34 +92,34 @@ func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *Playgroun
 		out.TemplateVersion = version
 	}
 
-	switchParams := &PlayspecTemplateVersionSwitchParams{
-		TargetTemplateVersionID: versionID,
-		Variables:               params.Variables,
-		RegenerateVariables:     params.RegenerateVariables,
-		ConfirmWarnings:         params.ConfirmWarnings,
-		RolloutMode:             templateSwitchRolloutMode(mode),
-		TargetPlaygroundID:      &pg.ID,
-		ResponseMode:            params.ResponseMode,
-		ProvisionMissingProps:   params.ProvisionMissingProps,
-		ProvisionPrivate:        params.ProvisionPrivate,
-		ProvisionInputs:         params.ProvisionInputs,
-		ReuseExistingProps:      params.ReuseExistingProps,
+	switchParams := &SpecTemplateVersionSwitchParams{
+		TargetTemplateVersionID:      versionID,
+		Variables:                    params.Variables,
+		RegenerateVariables:          params.RegenerateVariables,
+		ConfirmWarnings:              params.ConfirmWarnings,
+		RolloutMode:                  templateSwitchRolloutMode(mode),
+		TargetPlaygroundID:           &pg.ID,
+		ResponseMode:                 params.ResponseMode,
+		ProvisionMissingRepositories: params.ProvisionMissingRepositories,
+		ProvisionPrivate:             params.ProvisionPrivate,
+		ProvisionInputs:              params.ProvisionInputs,
+		ReuseExistingRepositories:    params.ReuseExistingRepositories,
 	}
 
 	if mode == "preview" {
-		previewResult, perr := c.Playspecs.PreviewTemplateVersionSwitch(ctx, *pg.PlayspecID, switchParams)
+		previewResult, perr := c.Specs.PreviewTemplateVersionSwitch(ctx, *pg.SpecID, switchParams)
 		if perr != nil {
 			return out, perr
 		}
 		out.SwitchResult = previewResult
 		if previewResult != nil {
-			out.ProvisionedProps = previewResult.ProvisionedProps
+			out.ProvisionedRepositories = previewResult.ProvisionedRepositories
 		}
 		_ = templateID // surface for caller
 		return out, nil
 	}
 
-	switchResult, serr := c.Playspecs.SwitchTemplateVersion(ctx, *pg.PlayspecID, switchParams)
+	switchResult, serr := c.Specs.SwitchTemplateVersion(ctx, *pg.SpecID, switchParams)
 	if serr != nil {
 		return out, serr
 	}
@@ -128,7 +128,7 @@ func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *Playgroun
 	}
 	out.SwitchResult = switchResult
 	if switchResult != nil {
-		out.ProvisionedProps = switchResult.ProvisionedProps
+		out.ProvisionedRepositories = switchResult.ProvisionedRepositories
 	}
 
 	if !params.Wait {
@@ -154,15 +154,15 @@ func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *Playgroun
 }
 
 func (c *Client) ensureTemplateSwitchSource(ctx context.Context, pg *Playground) error {
-	if pg == nil || pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
-		return fmt.Errorf("playground has no playspec_id")
+	if pg == nil || pg.SpecID == nil || *pg.SpecID <= 0 {
+		return fmt.Errorf("playground has no spec_id")
 	}
-	ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
+	ps, err := c.Specs.Get(ctx, *pg.SpecID)
 	if err != nil {
-		return fmt.Errorf("could not load playspec %d before switch-template: %w", *pg.PlayspecID, err)
+		return fmt.Errorf("could not load spec %d before switch-template: %w", *pg.SpecID, err)
 	}
 	if ps.SourceTemplateVersionID == nil || *ps.SourceTemplateVersionID <= 0 {
-		return fmt.Errorf("playground %d cannot be switched because playspec %d was not launched from a template version", pg.ID, *pg.PlayspecID)
+		return fmt.Errorf("playground %d cannot be switched because spec %d was not launched from a template version", pg.ID, *pg.SpecID)
 	}
 	return nil
 }
@@ -282,7 +282,7 @@ func waitForTemplateSwitchRollout(ctx context.Context, c *Client, playgroundID i
 			Attempt:   attempt,
 		})
 		ready, pendingReason := PlaygroundRuntimeStatusMatchesWaitTarget(status, "running", PlaygroundWaitReadinessServices)
-		if ready || status.Status == "completed" && !TrickStatusResultFailed(&status.PlaygroundStatus) {
+		if ready || status.Status == "completed" && !TaskStatusResultFailed(&status.PlaygroundStatus) {
 			return map[string]any{"id": playgroundID, "success": true, "status": status.Status}
 		}
 		if status.Status == "error" || status.Status == "failed" || status.Status == "destroyed" {

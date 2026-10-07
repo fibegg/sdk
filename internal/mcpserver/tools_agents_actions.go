@@ -13,7 +13,7 @@ import (
 
 func (s *Server) registerAgentActionTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid.", tier: tierOverseer,
+		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat. Fails with HOST_NOT_FUNDED when the chat Host is unpaid.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -42,31 +42,31 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.ChatByIdentifier(ctx, identifier, &p)
 		},
 	}, mcp.NewTool("fibe_agents_send_message",
-		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent chat, optionally uploading local attachments first. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid."),
+		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent chat, optionally uploading local attachments first. Fails with HOST_NOT_FUNDED when the chat Host is unpaid."),
 		withRawInputSchema(agentSendMessageInputSchema()),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED.", tier: tierOverseer,
+		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
-			marqueeID, err := parseMarqueeIDEnv()
+			hostID, err := parseHostIDEnv()
 			if err != nil {
-				return nil, fmt.Errorf("fibe_agents_start_chat requires an implicit Marquee: %w", err)
+				return nil, fmt.Errorf("fibe_agents_start_chat requires an implicit Host: %w", err)
 			}
-			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, strconv.FormatInt(marqueeID, 10))
+			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, strconv.FormatInt(hostID, 10))
 		},
 	}, mcp.NewTool("fibe_agents_start_chat",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee from FIBE_MARQUEE_ID. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host from FIBE_HOST_ID. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED."),
 		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with MARQUEE_NOT_FUNDED when unpaid.", tier: tierOverseer,
+		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -76,7 +76,7 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.RuntimeStatusByIdentifier(ctx, identifier)
 		},
 	}, mcp.NewTool("fibe_agents_runtime_status",
-		mcp.WithDescription("[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with MARQUEE_NOT_FUNDED when unpaid."),
+		mcp.WithDescription("[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid."),
 		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
 	))
 
@@ -218,8 +218,8 @@ func agentIdentifierOnlyInputSchema(description string) map[string]any {
 
 func agentConversationInputSchema(description string, requireConversation bool) map[string]any {
 	schema := agentIdentifierOnlyInputSchema(description)
-	props := schema["properties"].(map[string]any)
-	props["conversation_id"] = map[string]any{
+	repositories := schema["properties"].(map[string]any)
+	repositories["conversation_id"] = map[string]any{
 		"type":        "string",
 		"description": "Specific conversation/thread ID.",
 	}
@@ -231,8 +231,8 @@ func agentConversationInputSchema(description string, requireConversation bool) 
 
 func agentCreateConversationInputSchema() map[string]any {
 	schema := agentConversationInputSchema("Agent ID or name.", true)
-	props := schema["properties"].(map[string]any)
-	props["title"] = map[string]any{
+	repositories := schema["properties"].(map[string]any)
+	repositories["title"] = map[string]any{
 		"type":        "string",
 		"description": "Human-readable conversation title. Optional.",
 	}
@@ -241,31 +241,31 @@ func agentCreateConversationInputSchema() map[string]any {
 
 func agentSendMessageInputSchema() map[string]any {
 	schema := agentIdentifierOnlyInputSchema("Agent ID or name.")
-	props := schema["properties"].(map[string]any)
-	props["text"] = map[string]any{
+	repositories := schema["properties"].(map[string]any)
+	repositories["text"] = map[string]any{
 		"type":        "string",
 		"minLength":   1,
 		"description": "Text to send to the agent.",
 	}
-	props["conversation_id"] = map[string]any{
+	repositories["conversation_id"] = map[string]any{
 		"type":        "string",
 		"description": "Specific conversation/thread ID. Optional.",
 	}
-	props["busy_policy"] = map[string]any{
+	repositories["busy_policy"] = map[string]any{
 		"type":        "string",
 		"description": "Runtime busy behavior, e.g. queue. Optional.",
 	}
-	props["images"] = map[string]any{
+	repositories["images"] = map[string]any{
 		"type":        "array",
 		"items":       map[string]any{"type": "string"},
 		"description": "Image payloads to send to the runtime, such as data URLs. Optional.",
 	}
-	props["attachment_paths"] = map[string]any{
+	repositories["attachment_paths"] = map[string]any{
 		"type":        "array",
 		"items":       map[string]any{"type": "string"},
 		"description": "Local file paths to upload before sending. Optional.",
 	}
-	props["attachment_filenames"] = map[string]any{
+	repositories["attachment_filenames"] = map[string]any{
 		"type":        "array",
 		"items":       map[string]any{"type": "string"},
 		"description": "Runtime attachment filenames returned by a previous upload. Optional.",

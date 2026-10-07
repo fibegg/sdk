@@ -30,8 +30,7 @@ func greenfieldCmd() *cobra.Command {
 		repoRef                string
 		githubAccount          string
 		githubInstallationID   int64
-		marqueeID              string
-		marqueeIDTypoMarque    int64
+		hostID                 string
 		vars                   []string
 		serviceSubdomains      []string
 		waitTimeout            time.Duration
@@ -40,17 +39,17 @@ func greenfieldCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "greenfield [github-repo]",
 		Short: "Create a new greenfield app from the platform template flow",
-		Long: `Create a new app from a template, including one or more destination repositories and Props, an app-owned template version, and a deployed playground.
+		Long: `Create a new app from a template, including one or more destination repositories and Repositories, an app-owned template version, and a deployed playground.
 
 The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local playground checkout into /app/playground by default.
-The target Marquee must be funded; unpaid Marquees fail with
-MARQUEE_NOT_FUNDED before deployment starts.
+The target Host must be funded; unpaid Hosts fail with
+HOST_NOT_FUNDED before deployment starts.
 
 Examples:
-  fibe greenfield owner/repo --marquee 12
-  fibe greenfield owner/repo@main --file fibe.yml --marquee 12
-  fibe greenfield https://github.com/owner/repo --ref main --marquee 12
+  fibe greenfield owner/repo --host 12
+  fibe greenfield owner/repo@main --file fibe.yml --host 12
+  fibe greenfield https://github.com/owner/repo --ref main --host 12
   fibe greenfield --name my-app --template "Rails 8 Starter Kit"
   fibe greenfield --name my-app --template-version 912
   fibe greenfield --name my-app --service-subdomain app=my-app --service-subdomain admin=my-app-admin
@@ -113,17 +112,14 @@ Examples:
 				id := githubInstallationID
 				params.GitHubInstallationID = &id
 			}
-			if cmd.Flags().Changed("marquee") && marqueeID != "" {
-				params.MarqueeIdentifier = marqueeID
-			} else if cmd.Flags().Changed("marque-id") && marqueeIDTypoMarque > 0 {
-				id := marqueeIDTypoMarque
-				params.MarqueeID = &id
-			} else if params.MarqueeID == nil && params.MarqueeIdentifier == "" {
-				identifier, err := resolveLaunchMarqueeIdentifier(c, "")
+			if cmd.Flags().Changed("host") && hostID != "" {
+				params.HostIdentifier = hostID
+			} else if params.HostID == nil && params.HostIdentifier == "" {
+				identifier, err := resolveLaunchHostIdentifier(c, "")
 				if err != nil {
 					return err
 				}
-				params.MarqueeIdentifier = identifier
+				params.HostIdentifier = identifier
 			}
 			if cmd.Flags().Changed("var") && len(vars) > 0 {
 				parsed, err := parseGreenfieldVars(vars)
@@ -214,16 +210,14 @@ Examples:
 	cmd.Flags().StringVar(&repoRef, "ref", "", "Git branch, tag, or commit for the config file (optional)")
 	cmd.Flags().StringVar(&githubAccount, "github-account", "", "GitHub App installation account owner to use when multiple installations are connected")
 	cmd.Flags().Int64Var(&githubInstallationID, "github-installation-id", 0, "GitHub App installation ID to use when multiple installations are connected")
-	cmd.Flags().StringVar(&marqueeID, "marquee", "", "Target marquee ID or name (optional, default: current Marquee)")
+	cmd.Flags().StringVar(&hostID, "host", "", "Target host ID or name (optional, default: current Host)")
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "Set template variables (e.g., --var app_name=Tower, optional)")
 	cmd.Flags().StringSliceVar(&serviceSubdomains, "service-subdomain", nil, "Set an exposed service subdomain override (repeatable, e.g., --service-subdomain app=my-app)")
 	cmd.Flags().DurationVar(&waitTimeout, "wait-timeout", 10*time.Minute, "Maximum time to wait for the playground to reach running (optional, default 10m0s)")
 	cmd.Flags().Int64Var(&templateIDTypoTempalte, "tempalte-id", 0, "Alias for --template")
 	cmd.Flags().Int64Var(&templateIDTypoTemlate, "temlate-id", 0, "Alias for --template")
-	cmd.Flags().Int64Var(&marqueeIDTypoMarque, "marque-id", 0, "Alias for --marquee")
 	_ = cmd.Flags().MarkHidden("tempalte-id")
 	_ = cmd.Flags().MarkHidden("temlate-id")
-	_ = cmd.Flags().MarkHidden("marque-id")
 	return cmd
 }
 
@@ -308,11 +302,11 @@ func normalizeVariableFlagKey(key string) string {
 }
 
 func greenfieldLocalTarget(result *fibe.GreenfieldResult) string {
-	if result.Playground != nil && result.Playground.PlayspecName != nil && *result.Playground.PlayspecName != "" {
-		return *result.Playground.PlayspecName
+	if result.Playground != nil && result.Playground.SpecName != nil && *result.Playground.SpecName != "" {
+		return *result.Playground.SpecName
 	}
-	if result.Playspec != nil && result.Playspec.Name != "" {
-		return result.Playspec.Name
+	if result.Spec != nil && result.Spec.Name != "" {
+		return result.Spec.Name
 	}
 	if result.Playground != nil && result.Playground.Name != "" {
 		return result.Playground.Name

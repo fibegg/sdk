@@ -14,10 +14,10 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestResolveLaunchMarqueeIdentifierUsesEnv(t *testing.T) {
-	t.Setenv("FIBE_MARQUEE_ID", "42")
+func TestResolveLaunchHostIdentifierUsesEnv(t *testing.T) {
+	t.Setenv("FIBE_HOST_ID", "42")
 
-	id, err := resolveLaunchMarqueeIdentifier(nil, "")
+	id, err := resolveLaunchHostIdentifier(nil, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

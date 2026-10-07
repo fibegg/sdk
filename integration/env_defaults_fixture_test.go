@@ -15,9 +15,9 @@ import (
 )
 
 // Own a real repository for the lifetime of these subtests. Borrowing another
-// parallel test's Prop races its cleanup, and synthetic branch indexes can be
+// parallel test's Repository races its cleanup, and synthetic branch indexes can be
 // overwritten by the application's normal background reindexing.
-func ownedEnvDefaultsFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
+func ownedEnvDefaultsFixture(t *testing.T, c *fibe.Client) (fibe.Repository, string) {
 	t.Helper()
 	token, err := os.ReadFile(os.Getenv("GITEA_ADMIN_TOKEN_FILE"))
 	requireNoError(t, err, "read local Gitea fixture token")
@@ -61,23 +61,25 @@ func ownedEnvDefaultsFixture(t *testing.T, c *fibe.Client) (fibe.Prop, string) {
 		t.Fatal("local Gitea fixture response is incomplete")
 	}
 	t.Cleanup(func() { request(http.MethodDelete, "/api/v1/repos/"+repo.FullName, nil) })
-	request(http.MethodPost, "/api/v1/repos/"+repo.FullName+"/contents/"+seededPropEnvFile, map[string]any{
+	request(http.MethodPost, "/api/v1/repos/"+repo.FullName+"/contents/"+seededRepositoryEnvFile, map[string]any{
 		"branch":  repo.DefaultBranch,
 		"content": base64.StdEncoding.EncodeToString([]byte("FIBE_E2E=1\nRAILS_ENV=e2e\n")),
 		"message": "Create environment defaults fixture",
 	})
-	prop, err := c.Props.Create(ctx(), &fibe.PropCreateParams{Name: ptr(uniqueName(seededPropNamePrefix)), RepositoryURL: repo.CloneURL})
+	repository, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{Name: ptr(uniqueName(seededRepositoryNamePrefix)), RepositoryURL: repo.CloneURL})
 	requireNoError(t, err, "attach owned environment defaults fixture")
-	t.Cleanup(func() { requireNoError(t, c.Props.Delete(ctx(), prop.ID), "delete owned environment defaults fixture") })
+	t.Cleanup(func() {
+		requireNoError(t, c.Repositories.Delete(ctx(), repository.ID), "delete owned environment defaults fixture")
+	})
 	deadline := time.Now().Add(time.Minute)
 	for time.Now().Before(deadline) {
-		defaults, err := c.Props.EnvDefaults(ctx(), prop.ID, repo.DefaultBranch, seededPropEnvFile)
+		defaults, err := c.Repositories.EnvDefaults(ctx(), repository.ID, repo.DefaultBranch, seededRepositoryEnvFile)
 		requireNoError(t, err, "read owned environment defaults fixture")
 		if defaults.Defaults["FIBE_E2E"] == "1" {
-			return *prop, repo.DefaultBranch
+			return *repository, repo.DefaultBranch
 		}
 		time.Sleep(time.Second)
 	}
 	t.Fatal("owned environment defaults fixture did not become ready")
-	return fibe.Prop{}, ""
+	return fibe.Repository{}, ""
 }

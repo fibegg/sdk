@@ -32,14 +32,14 @@ type Client struct {
 	lastRequestID atomic.Value // stores string
 
 	Playgrounds            *PlaygroundService
-	Tricks                 *TrickService
+	Tasks                  *TaskService
 	Agents                 *AgentService
 	Cable                  *CableService
 	AgentDefaults          *AgentDefaultsService
 	Artefacts              *ArtefactService
-	Playspecs              *PlayspecService
-	Props                  *PropService
-	Marquees               *MarqueeService
+	Specs                  *SpecService
+	Repositories           *RepositoryService
+	Hosts                  *HostService
 	Secrets                *SecretService
 	JobEnv                 *JobEnvService
 	APIKeys                *APIKeyService
@@ -140,14 +140,14 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	}
 
 	c.Playgrounds = &PlaygroundService{client: c}
-	c.Tricks = &TrickService{client: c}
+	c.Tasks = &TaskService{client: c}
 	c.Agents = &AgentService{client: c}
 	c.Cable = &CableService{client: c}
 	c.AgentDefaults = &AgentDefaultsService{client: c}
 	c.Artefacts = &ArtefactService{client: c}
-	c.Playspecs = &PlayspecService{client: c}
-	c.Props = &PropService{client: c}
-	c.Marquees = &MarqueeService{client: c}
+	c.Specs = &SpecService{client: c}
+	c.Repositories = &RepositoryService{client: c}
+	c.Hosts = &HostService{client: c}
 	c.Secrets = &SecretService{client: c}
 	c.JobEnv = &JobEnvService{client: c}
 	c.APIKeys = &APIKeyService{client: c}

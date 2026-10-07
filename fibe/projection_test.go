@@ -45,7 +45,7 @@ func TestPlaygroundGetDecodesDetailAccessFields(t *testing.T) {
 			"id":                       42,
 			"name":                     "demo",
 			"status":                   "running",
-			"marquee_name":             "edge",
+			"host_name":                "edge",
 			"root_domain":              "example.test",
 			"routing_scheme":           "https",
 			"persistent_volume_prefix": "demo-edge",
@@ -68,8 +68,8 @@ func TestPlaygroundGetDecodesDetailAccessFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if pg.MarqueeName == nil || *pg.MarqueeName != "edge" {
-		t.Fatalf("marquee_name = %#v", pg.MarqueeName)
+	if pg.HostName == nil || *pg.HostName != "edge" {
+		t.Fatalf("host_name = %#v", pg.HostName)
 	}
 	if pg.RootDomain == nil || *pg.RootDomain != "example.test" {
 		t.Fatalf("root_domain = %#v", pg.RootDomain)
@@ -193,11 +193,11 @@ func TestToYAML_Basic(t *testing.T) {
 }
 
 func TestToYAML_UsesJSONKeys(t *testing.T) {
-	pg := Playground{ID: 1, PlayspecName: strPtr("my-spec")}
+	pg := Playground{ID: 1, SpecName: strPtr("my-spec")}
 	y := ToYAML(pg)
 
-	if !strings.Contains(y, "playspec_name:") {
-		t.Errorf("expected snake_case JSON key 'playspec_name', got:\n%s", y)
+	if !strings.Contains(y, "spec_name:") {
+		t.Errorf("expected snake_case JSON key 'spec_name', got:\n%s", y)
 	}
 }
 

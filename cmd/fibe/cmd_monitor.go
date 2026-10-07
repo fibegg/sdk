@@ -15,13 +15,13 @@ func monitorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "monitor",
 		Aliases: []string{"mon"},
-		Short:   "List/follow agent events and stream playground or trick logs",
+		Short:   "List/follow agent events and stream playground or task logs",
 		Long: `Monitor Fibe activity and runtime logs.
 
 Modes:
   list    One-shot paginated query for agent-produced events.
   follow  Poll for newly produced agent events.
-  logs    Stream playground or trick logs over Fibe's live log stream.
+  logs    Stream playground or task logs over Fibe's live log stream.
 
 Monitorable types (see --type):
   message       Chat messages
@@ -176,22 +176,22 @@ func monitorLogsCmd() *cobra.Command {
 	var duration time.Duration
 	cmd := &cobra.Command{
 		Use:   "logs <id-or-name>",
-		Short: "Stream playground or trick logs",
-		Long: `Stream live runtime logs for a playground or trick.
+		Short: "Stream playground or task logs",
+		Long: `Stream live runtime logs for a playground or task.
 
 By default this subscribes to all services for a playground. Pass --service
-to stream one Compose service. Use --target trick for job-mode playgrounds.
+to stream one Compose service. Use --target task for job-mode playgrounds.
 
 EXAMPLES:
   fibe monitor logs 42
   fibe mon logs staging --service web
-  fibe mon logs ci-run --target trick --duration 10m --max-lines 500`,
+  fibe mon logs ci-run --target task --duration 10m --max-lines 500`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runLogMonitor(cmd, target, args[0], service, tail, maxLines, duration)
 		},
 	}
-	cmd.Flags().StringVar(&target, "target", "playground", "Target type: playground or trick")
+	cmd.Flags().StringVar(&target, "target", "playground", "Target type: playground or task")
 	cmd.Flags().StringVar(&service, "service", "", "Optional Compose service name")
 	cmd.Flags().IntVar(&tail, "tail", 0, "Initial lines from history (0 = server default)")
 	cmd.Flags().IntVar(&maxLines, "max-lines", 0, "Stop after N log lines (0 = unbounded)")
@@ -213,10 +213,10 @@ func runLogMonitor(cmd *cobra.Command, target, identifier, service string, tail 
 	switch strings.ToLower(strings.TrimSpace(target)) {
 	case "", "playground", "playgrounds":
 		events, errs = newClient().Playgrounds.LogStreamByIdentifier(monitorCtx, identifier, service, opts)
-	case "trick", "tricks":
-		events, errs = newClient().Tricks.LogStreamByIdentifier(monitorCtx, identifier, service, opts)
+	case "task", "tasks":
+		events, errs = newClient().Tasks.LogStreamByIdentifier(monitorCtx, identifier, service, opts)
 	default:
-		return fmt.Errorf("unknown target %q: expected playground or trick", target)
+		return fmt.Errorf("unknown target %q: expected playground or task", target)
 	}
 
 	jsonOutput := effectiveOutput() != "table"

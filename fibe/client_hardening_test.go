@@ -46,7 +46,7 @@ func TestClient_AutomaticIdempotencyKeyIsStableAcrossRetries(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(Playground{ID: 1, Name: "test"})
 	})
 
-	_, err := c.Playgrounds.Create(context.Background(), &PlaygroundCreateParams{Name: "test", PlayspecID: 1})
+	_, err := c.Playgrounds.Create(context.Background(), &PlaygroundCreateParams{Name: "test", SpecID: 1})
 	if err != nil {
 		t.Fatalf("create after retry: %v", err)
 	}

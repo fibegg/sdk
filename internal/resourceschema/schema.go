@@ -29,15 +29,15 @@ type resourceDef struct {
 
 var flatResources = []resourceDef{
 	{name: "playground", aliases: []string{"playgrounds"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
-	{name: "trick", aliases: []string{"tricks"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
+	{name: "task", aliases: []string{"tasks"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
 	{name: "agent", aliases: []string{"agents"}, operations: []string{"list", "get", "delete", "watch"}, listSchema: listParamsSchema[fibe.AgentListParams](), get: true, delete: true},
 	{name: "agent_attachment", aliases: []string{"agent_attachments", "agent_upload", "agent_uploads"}, operations: []string{"get"}, get: true},
 	{name: "agent_poke", aliases: []string{"agent_pokes", "pokes"}, operations: []string{"list", "get", "delete"}, listSchema: agentPokeListParamsSchema(), get: true, delete: true},
 	{name: "artefact", aliases: []string{"artefacts"}, operations: []string{"list", "get"}, listSchema: artefactListParamsSchema(), get: true},
 	{name: "artefact_attachment", aliases: []string{"artefact_attachments"}, operations: []string{"get"}, get: true},
-	{name: "playspec", aliases: []string{"playspecs"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlayspecListParams](), get: true, delete: true},
-	{name: "prop", aliases: []string{"props"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PropListParams](), get: true, delete: true},
-	{name: "marquee", aliases: []string{"marquees"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.MarqueeListParams](), get: true, delete: true},
+	{name: "spec", aliases: []string{"specs"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.SpecListParams](), get: true, delete: true},
+	{name: "repository", aliases: []string{"repositories"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.RepositoryListParams](), get: true, delete: true},
+	{name: "host", aliases: []string{"hosts"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.HostListParams](), get: true, delete: true},
 	{name: "secret", aliases: []string{"secrets"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.SecretListParams](), get: true, delete: true},
 	{name: "api_key", aliases: []string{"api_keys"}, operations: []string{"list", "delete"}, listSchema: listParamsSchema[fibe.APIKeyListParams](), delete: true},
 	{name: "webhook", aliases: []string{"webhooks", "webhook_endpoint", "webhook_endpoints"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.WebhookEndpointListParams](), get: true, delete: true},
@@ -243,12 +243,12 @@ func buildRegistry() map[string]map[string]any {
 	out := map[string]map[string]any{
 		"playground": {
 			"create": map[string]any{
-				"required": []string{"name", "playspec_id"},
+				"required": []string{"name", "spec_id"},
 				"properties": map[string]any{
-					"name":        map[string]any{"type": "string", "maxLength": 255, "description": "Playground name"},
-					"playspec_id": map[string]any{"type": "integer", "description": "ID of the playspec to use"},
-					"marquee_id":  map[string]any{"type": "integer", "description": "ID of the marquee (server) to deploy on"},
-					"services":    map[string]any{"type": "object", "description": "Per-service configuration overrides"},
+					"name":     map[string]any{"type": "string", "maxLength": 255, "description": "Playground name"},
+					"spec_id":  map[string]any{"type": "integer", "description": "ID of the spec to use"},
+					"host_id":  map[string]any{"type": "integer", "description": "ID of the host (server) to deploy on"},
+					"services": map[string]any{"type": "object", "description": "Per-service configuration overrides"},
 				},
 			},
 			"update": map[string]any{
@@ -268,7 +268,7 @@ func buildRegistry() map[string]map[string]any {
 				},
 			},
 		},
-		"playspec": {
+		"spec": {
 			"create": map[string]any{
 				"required": []string{"name"},
 				"properties": map[string]any{
@@ -279,7 +279,7 @@ func buildRegistry() map[string]map[string]any {
 				},
 			},
 		},
-		"prop": {
+		"repository": {
 			"create": map[string]any{
 				"required": []string{"repository_url"},
 				"properties": map[string]any{
@@ -290,7 +290,7 @@ func buildRegistry() map[string]map[string]any {
 				},
 			},
 		},
-		"marquee": {
+		"host": {
 			"create": map[string]any{
 				"required": []string{"name", "host"},
 				"properties": map[string]any{
@@ -348,8 +348,8 @@ func buildRegistry() map[string]map[string]any {
 		}
 	}
 
-	out["playground"]["create"] = renameIdentifierFields(paramsSchema[fibe.PlaygroundCreateParams]("name", "playspec_id"), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
-	out["playground"]["update"] = renameIdentifierFields(renameSchemaField(updateParamsSchemaFor[fibe.PlaygroundUpdateParams]("playground_id"), "playground_id", "id_or_name", "Playground ID or slug-safe name."), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
+	out["playground"]["create"] = renameIdentifierFields(paramsSchema[fibe.PlaygroundCreateParams]("name", "spec_id"), map[string]string{"spec_id": "spec_id_or_name", "host_id": "host_id_or_name"})
+	out["playground"]["update"] = renameIdentifierFields(renameSchemaField(updateParamsSchemaFor[fibe.PlaygroundUpdateParams]("playground_id"), "playground_id", "id_or_name", "Playground ID or slug-safe name."), map[string]string{"spec_id": "spec_id_or_name", "host_id": "host_id_or_name"})
 	out["playground"]["action"] = map[string]any{
 		"type":     "object",
 		"required": []string{"id_or_name", "action_type"},
@@ -374,18 +374,18 @@ func buildRegistry() map[string]map[string]any {
 	out["agent_poke"]["create"] = agentPokeCreateSchema()
 	out["agent_poke"]["update"] = agentPokeUpdateSchema()
 	out["mutter"]["create"] = mutterCreateSchema()
-	out["playspec"]["create"] = withPlayspecConfigSchemas(paramsSchema[fibe.PlayspecCreateParams]("name", "base_compose_yaml"))
-	out["playspec"]["update"] = withPlayspecConfigSchemas(renameSchemaField(updateParamsSchemaFor[fibe.PlayspecUpdateParams]("playspec_id"), "playspec_id", "id_or_name", "Playspec ID or slug-safe name."))
-	out["prop"]["create"] = withPropertyEnum(paramsSchema[fibe.PropCreateParams]("repository_url"), "provider", []string{"github", "gitea"})
-	out["prop"]["update"] = withPropertyEnum(renameSchemaField(updateParamsSchemaFor[fibe.PropUpdateParams]("prop_id"), "prop_id", "id_or_name", "Prop ID or slug-safe name."), "provider", []string{"github", "gitea"})
-	out["marquee"]["create"] = marqueeCreateSchema()
-	out["marquee"]["update"] = renameIdentifierFields(renameSchemaField(updateParamsSchemaFor[fibe.MarqueeUpdateParams]("marquee_id"), "marquee_id", "id_or_name", "Marquee ID or slug-safe name."), map[string]string{"prop_id": "prop_id_or_name"})
-	out["marquee"]["autoconnect_token"] = marqueeAutoconnectTokenSchema()
-	out["marquee"]["generate_ssh_key"] = resourceActionIDSchema("id_or_name", "Marquee ID or name used to generate a new SSH keypair.")
-	out["marquee"]["test_connection"] = resourceActionIDSchema("id_or_name", "Marquee ID or name used to run the connection test.")
-	out["prop"]["attach"] = propAttachSchema()
-	out["prop"]["mirror"] = propMirrorSchema()
-	out["prop"]["sync"] = resourceActionIDSchema("id_or_name", "Prop ID or name to synchronize with its git remote.")
+	out["spec"]["create"] = withSpecConfigSchemas(paramsSchema[fibe.SpecCreateParams]("name", "base_compose_yaml"))
+	out["spec"]["update"] = withSpecConfigSchemas(renameSchemaField(updateParamsSchemaFor[fibe.SpecUpdateParams]("spec_id"), "spec_id", "id_or_name", "Spec ID or slug-safe name."))
+	out["repository"]["create"] = withPropertyEnum(paramsSchema[fibe.RepositoryCreateParams]("repository_url"), "provider", []string{"github", "gitea"})
+	out["repository"]["update"] = withPropertyEnum(renameSchemaField(updateParamsSchemaFor[fibe.RepositoryUpdateParams]("repository_id"), "repository_id", "id_or_name", "Repository ID or slug-safe name."), "provider", []string{"github", "gitea"})
+	out["host"]["create"] = hostCreateSchema()
+	out["host"]["update"] = renameIdentifierFields(renameSchemaField(updateParamsSchemaFor[fibe.HostUpdateParams]("host_id"), "host_id", "id_or_name", "Host ID or slug-safe name."), map[string]string{"repository_id": "repository_id_or_name"})
+	out["host"]["autoconnect_token"] = hostAutoconnectTokenSchema()
+	out["host"]["generate_ssh_key"] = resourceActionIDSchema("id_or_name", "Host ID or name used to generate a new SSH keypair.")
+	out["host"]["test_connection"] = resourceActionIDSchema("id_or_name", "Host ID or name used to run the connection test.")
+	out["repository"]["attach"] = repositoryAttachSchema()
+	out["repository"]["mirror"] = repositoryMirrorSchema()
+	out["repository"]["sync"] = resourceActionIDSchema("id_or_name", "Repository ID or name to synchronize with its git remote.")
 	out["secret"]["create"] = paramsSchema[fibe.SecretCreateParams]("key", "value")
 	out["secret"]["update"] = renameSchemaField(updateParamsSchemaFor[fibe.SecretUpdateParams]("secret_id"), "secret_id", "id_or_key", "Secret ID or key.")
 	out["api_key"]["create"] = paramsSchema[fibe.APIKeyCreateParams]("label")
@@ -401,15 +401,15 @@ func buildRegistry() map[string]map[string]any {
 	out["template"]["fork"] = resourceActionIDSchema("id_or_name", "Template ID or name to fork into a new standalone template.")
 	out["template"]["source_refresh"] = resourceActionIDSchema("id_or_name", "Template ID or name whose tracked source file should be refreshed.")
 	out["template"]["source_set"] = templateSourceSetSchema()
-	out["template"]["upgrade_playspecs"] = templateUpgradePlayspecsSchema()
+	out["template"]["upgrade_specs"] = templateUpgradeSpecsSchema()
 	out["template_version"]["create"] = templateVersionCreateSchema()
 	out["template_version"]["toggle_public"] = templateVersionTogglePublicSchema()
-	trickTrigger := renameIdentifierFields(paramsSchema[fibe.TrickTriggerParams]("playspec_id"), map[string]string{"playspec_id": "playspec_id_or_name", "marquee_id": "marquee_id_or_name"})
-	withPropertyDescription(trickTrigger, "env_overrides", "Per-run environment overrides for this job-mode run.")
-	withPropertyDescription(trickTrigger, "only_services", "Limit this job-mode run to these service names.")
-	withPropertyDescription(trickTrigger, "except_services", "Exclude these service names from this job-mode run.")
-	out["trick"]["trigger"] = trickTrigger
-	out["trick"]["rerun"] = resourceActionIDSchema("id_or_name", "Source trick ID or name to rerun.")
+	taskTrigger := renameIdentifierFields(paramsSchema[fibe.TaskTriggerParams]("spec_id"), map[string]string{"spec_id": "spec_id_or_name", "host_id": "host_id_or_name"})
+	withPropertyDescription(taskTrigger, "env_overrides", "Per-run environment overrides for this job-mode run.")
+	withPropertyDescription(taskTrigger, "only_services", "Limit this job-mode run to these service names.")
+	withPropertyDescription(taskTrigger, "except_services", "Exclude these service names from this job-mode run.")
+	out["task"]["trigger"] = taskTrigger
+	out["task"]["rerun"] = resourceActionIDSchema("id_or_name", "Source task ID or name to rerun.")
 	out["job_env"]["create"] = jobEnvCreateSchema()
 	out["job_env"]["update"] = jobEnvUpdateSchema()
 	out["memory"]["memorize"] = MemoryMemorizeSchema()
@@ -475,41 +475,41 @@ func allowEmptyStringProperty(schema map[string]any, field string) map[string]an
 	return schema
 }
 
-func withPlayspecConfigSchemas(schema map[string]any) map[string]any {
+func withSpecConfigSchemas(schema map[string]any) map[string]any {
 	props, ok := schema["properties"].(map[string]any)
 	if !ok {
 		return schema
 	}
-	props["schedule_config"] = playspecScheduleConfigSchema()
-	props["trigger_config"] = playspecTriggerConfigSchema()
-	props["muti_config"] = playspecMutiConfigSchema()
+	props["schedule_config"] = specScheduleConfigSchema()
+	props["trigger_config"] = specTriggerConfigSchema()
+	props["muti_config"] = specMutiConfigSchema()
 	return schema
 }
 
-func playspecScheduleConfigSchema() map[string]any {
+func specScheduleConfigSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"description":          "Scheduled job configuration for a job-mode Playspec.",
+		"description":          "Scheduled job configuration for a job-mode Spec.",
 		"properties": map[string]any{
-			"enabled":    map[string]any{"type": "boolean", "description": "Whether scheduled job runs are enabled."},
-			"cron":       map[string]any{"type": "string", "description": "Cron or Fugit schedule expression, for example every 5 minutes."},
-			"marquee_id": namedIdentifierSchema("marquee_id", "Target Marquee ID or name for scheduled job runs."),
+			"enabled": map[string]any{"type": "boolean", "description": "Whether scheduled job runs are enabled."},
+			"cron":    map[string]any{"type": "string", "description": "Cron or Fugit schedule expression, for example every 5 minutes."},
+			"host_id": namedIdentifierSchema("host_id", "Target Host ID or name for scheduled job runs."),
 		},
 	}
 }
 
-func playspecTriggerConfigSchema() map[string]any {
+func specTriggerConfigSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"description":          "Git event trigger configuration for a job-mode Playspec.",
+		"description":          "Git event trigger configuration for a job-mode Spec.",
 		"properties": map[string]any{
 			"enabled":         map[string]any{"type": "boolean", "description": "Whether CI trigger runs are enabled."},
-			"event_type":      map[string]any{"type": "string", "enum": []string{"push", "pull_request"}, "description": "Git event type that triggers the Playspec."},
+			"event_type":      map[string]any{"type": "string", "enum": []string{"push", "pull_request"}, "description": "Git event type that triggers the Spec."},
 			"branch":          map[string]any{"type": "string", "description": "Branch filter for trigger events."},
-			"prop_id":         namedIdentifierSchema("prop_id", "Prop ID or name whose git events trigger the Playspec."),
-			"marquee_id":      namedIdentifierSchema("marquee_id", "Target Marquee ID or name for CI trigger runs."),
+			"repository_id":   namedIdentifierSchema("repository_id", "Repository ID or name whose git events trigger the Spec."),
+			"host_id":         namedIdentifierSchema("host_id", "Target Host ID or name for CI trigger runs."),
 			"agent_id":        namedIdentifierSchema("agent_id", "Agent ID or name to notify when a CI trigger job fails."),
 			"max_retries":     map[string]any{"type": "integer", "minimum": 0, "maximum": 10, "description": "Maximum reruns after CI trigger failure."},
 			"prompt_template": map[string]any{"type": "string", "description": "Prompt template sent to the selected Agent on CI failure. Supports {{logs}}."},
@@ -517,7 +517,7 @@ func playspecTriggerConfigSchema() map[string]any {
 	}
 }
 
-func playspecMutiConfigSchema() map[string]any {
+func specMutiConfigSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
@@ -525,7 +525,7 @@ func playspecMutiConfigSchema() map[string]any {
 		"properties": map[string]any{
 			"enabled":         map[string]any{"type": "boolean", "description": "Whether Muti mutation-cure jobs are enabled."},
 			"language":        map[string]any{"type": "string", "description": "Mutation language, for example ruby."},
-			"prop_id":         namedIdentifierSchema("prop_id", "Prop ID or name whose surviving mutations should be cured."),
+			"repository_id":   namedIdentifierSchema("repository_id", "Repository ID or name whose surviving mutations should be cured."),
 			"agent_id":        namedIdentifierSchema("agent_id", "Agent ID or name to notify for surviving mutations."),
 			"prompt_template": map[string]any{"type": "string", "description": "Prompt template sent to the selected Agent for surviving mutations. Supports {{diff}} and mutation metadata placeholders."},
 		},
@@ -719,8 +719,8 @@ func mutterCreateSchema() map[string]any {
 	}
 }
 
-func marqueeCreateSchema() map[string]any {
-	schema := paramsSchema[fibe.MarqueeCreateParams]("name", "host", "port", "user", "ssh_private_key")
+func hostCreateSchema() map[string]any {
+	schema := paramsSchema[fibe.HostCreateParams]("name", "host", "port", "user", "ssh_private_key")
 	props := schema["properties"].(map[string]any)
 	if port, ok := props["port"].(map[string]any); ok {
 		port["description"] = "SSH port. The Fibe UI defaults to 22."
@@ -731,7 +731,7 @@ func marqueeCreateSchema() map[string]any {
 	return schema
 }
 
-func marqueeAutoconnectTokenSchema() map[string]any {
+func hostAutoconnectTokenSchema() map[string]any {
 	schema := paramsSchema[fibe.AutoconnectTokenParams]()
 	props := schema["properties"].(map[string]any)
 	props["email"].(map[string]any)["description"] = "Email address to place in the generated autoconnect token payload."
@@ -746,7 +746,7 @@ func marqueeAutoconnectTokenSchema() map[string]any {
 	return schema
 }
 
-func propAttachSchema() map[string]any {
+func repositoryAttachSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
@@ -757,7 +757,7 @@ func propAttachSchema() map[string]any {
 	}
 }
 
-func propMirrorSchema() map[string]any {
+func repositoryMirrorSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
@@ -770,31 +770,31 @@ func propMirrorSchema() map[string]any {
 }
 
 func templateSourceSetSchema() map[string]any {
-	schema := paramsSchema[fibe.ImportTemplateSourceParams]("source_prop_id", "source_path")
+	schema := paramsSchema[fibe.ImportTemplateSourceParams]("source_repository_id", "source_path")
 	props := schema["properties"].(map[string]any)
 	props["template_id_or_name"] = namedIdentifierSchema("template_id_or_name", "Template ID or name whose tracked source should be configured.")
-	props["source_prop_id_or_name"] = namedIdentifierSchema("source_prop_id_or_name", "Source Prop ID or slug-safe name containing the template YAML file.")
-	props["source_path"].(map[string]any)["description"] = "Path to the source YAML file inside the Prop repository."
+	props["source_repository_id_or_name"] = namedIdentifierSchema("source_repository_id_or_name", "Source Repository ID or slug-safe name containing the template YAML file.")
+	props["source_path"].(map[string]any)["description"] = "Path to the source YAML file inside the Repository repository."
 	props["source_ref"].(map[string]any)["description"] = "Source branch, tag, or git ref."
 	props["source_auto_refresh"].(map[string]any)["description"] = "Refresh the template when matching source changes are detected."
-	props["source_auto_upgrade"].(map[string]any)["description"] = "Automatically upgrade linked job Playspecs after a source refresh creates a new version."
+	props["source_auto_upgrade"].(map[string]any)["description"] = "Automatically upgrade linked job Specs after a source refresh creates a new version."
 	props["ci_enabled"].(map[string]any)["description"] = "Enable CI workflow sync for this template source."
-	props["ci_marquee_id_or_name"] = namedIdentifierSchema("ci_marquee_id_or_name", "Marquee ID or slug-safe name used by CI workflow sync.")
+	props["ci_host_id_or_name"] = namedIdentifierSchema("ci_host_id_or_name", "Host ID or slug-safe name used by CI workflow sync.")
 	delete(props, "template_id")
-	delete(props, "source_prop_id")
-	delete(props, "ci_marquee_id")
-	delete(props, "marquee_id")
-	schema["required"] = []string{"template_id_or_name", "source_prop_id_or_name", "source_path"}
+	delete(props, "source_repository_id")
+	delete(props, "ci_host_id")
+	delete(props, "host_id")
+	schema["required"] = []string{"template_id_or_name", "source_repository_id_or_name", "source_path"}
 	return schema
 }
 
-func templateUpgradePlayspecsSchema() map[string]any {
+func templateUpgradeSpecsSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{"template_id_or_name", "version_id"},
 		"properties": map[string]any{
-			"template_id_or_name": namedIdentifierSchema("template_id_or_name", "Template ID or name whose linked job Playspecs should be upgraded."),
+			"template_id_or_name": namedIdentifierSchema("template_id_or_name", "Template ID or name whose linked job Specs should be upgraded."),
 			"version_id":          map[string]any{"type": "integer", "description": "Target template version ID.", "minimum": 1},
 		},
 	}
@@ -1001,7 +1001,7 @@ func composeValidateSchema() map[string]any {
 		"properties": map[string]any{
 			"compose_yaml": map[string]any{"type": "string", "description": "Docker Compose YAML content to validate."},
 			"compose_path": map[string]any{"type": "string", "description": "Absolute local path to a Docker Compose YAML file. Local MCP only."},
-			"target_type":  map[string]any{"type": "string", "enum": []string{"playspec", "template", "trick"}, "description": "Validation target. Use trick for job-mode playspec/template constraints."},
+			"target_type":  map[string]any{"type": "string", "enum": []string{"spec", "template", "task"}, "description": "Validation target. Use task for job-mode spec/template constraints."},
 			"job_mode":     map[string]any{"type": "boolean", "description": "Apply job-mode validation rules: at least one watched service and no exposed services."},
 		},
 	}
@@ -1019,20 +1019,20 @@ func playgroundSwitchTemplateSchema() map[string]any {
 			map[string]any{"required": []string{"template_version_id"}},
 		},
 		"properties": map[string]any{
-			"id_or_name":              namedIdentifierSchema("id_or_name", "Playground ID or slug-safe name of the deployed playground to switch-template."),
-			"mode":                    map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and reports diffs/warnings/required variables without writes; apply commits the change. Defaults to apply."},
-			"template_body":           map[string]any{"type": "string", "description": "Inline template YAML. Authoring a new target shape on the fly: a new ImportTemplateVersion is created, then the playground is switched to it. Mutually exclusive with template_version_id."},
-			"template_body_path":      map[string]any{"type": "string", "description": "Absolute local path to template YAML (local MCP only)."},
-			"template_id_or_name":     namedIdentifierSchema("template_id_or_name", "Existing ImportTemplate ID or name to use. Without template_body, the latest version is selected. With template_body, a new version is published under this template."),
-			"template_version_id":     map[string]any{"type": "integer", "description": "Exact existing ImportTemplateVersion to switch to. Mutually exclusive with template_body.", "minimum": 1},
-			"template_name":           map[string]any{"type": "string", "description": "Optional name for the freshly created ImportTemplate when template_body is provided and template_id_or_name is not. Auto-generated otherwise."},
-			"variables":               map[string]any{"type": "object", "description": "Template variable values for the new template version."},
-			"regenerate_variables":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate from defaults instead of carrying over."},
-			"confirm_warnings":        map[string]any{"type": "boolean", "description": "Allow apply to proceed when preview reports switch warnings (e.g. dropped services)."},
-			"confirm":                 map[string]any{"type": "boolean", "description": "Required true for mode=apply unless server runs with --yolo."},
-			"reuse_existing_props":    map[string]any{"type": "boolean", "description": "Reuse the playground's existing dynamic service Props for the target template before creating new ones. Matching keeps same service names first, then current service order; extra old Props are retired after the switch when they are no longer referenced."},
-			"provision_missing_props": map[string]any{"type": "string", "enum": []string{"off", "gitea", "github"}, "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Props."},
-			"provision_private":       map[string]any{"type": "boolean", "description": "Whether the freshly provisioned repos should be private. Defaults to true."},
+			"id_or_name":                     namedIdentifierSchema("id_or_name", "Playground ID or slug-safe name of the deployed playground to switch-template."),
+			"mode":                           map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and reports diffs/warnings/required variables without writes; apply commits the change. Defaults to apply."},
+			"template_body":                  map[string]any{"type": "string", "description": "Inline template YAML. Authoring a new target shape on the fly: a new ImportTemplateVersion is created, then the playground is switched to it. Mutually exclusive with template_version_id."},
+			"template_body_path":             map[string]any{"type": "string", "description": "Absolute local path to template YAML (local MCP only)."},
+			"template_id_or_name":            namedIdentifierSchema("template_id_or_name", "Existing ImportTemplate ID or name to use. Without template_body, the latest version is selected. With template_body, a new version is published under this template."),
+			"template_version_id":            map[string]any{"type": "integer", "description": "Exact existing ImportTemplateVersion to switch to. Mutually exclusive with template_body.", "minimum": 1},
+			"template_name":                  map[string]any{"type": "string", "description": "Optional name for the freshly created ImportTemplate when template_body is provided and template_id_or_name is not. Auto-generated otherwise."},
+			"variables":                      map[string]any{"type": "object", "description": "Template variable values for the new template version."},
+			"regenerate_variables":           map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate from defaults instead of carrying over."},
+			"confirm_warnings":               map[string]any{"type": "boolean", "description": "Allow apply to proceed when preview reports switch warnings (e.g. dropped services)."},
+			"confirm":                        map[string]any{"type": "boolean", "description": "Required true for mode=apply unless server runs with --yolo."},
+			"reuse_existing_repositories":    map[string]any{"type": "boolean", "description": "Reuse the playground's existing dynamic service Repositories for the target template before creating new ones. Matching keeps same service names first, then current service order; extra old Repositories are retired after the switch when they are no longer referenced."},
+			"provision_missing_repositories": map[string]any{"type": "string", "enum": []string{"off", "gitea", "github"}, "description": "When the new template references repos the player does not yet own a Repository for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Repository for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Repositories."},
+			"provision_private":              map[string]any{"type": "boolean", "description": "Whether the freshly provisioned repos should be private. Defaults to true."},
 			"provision_inputs": map[string]any{
 				"type":        "array",
 				"description": "Per-URL overrides for provisioning. Each item: {source_repo_url, name_override?, default_branch?, description?, auto_init?}.",
@@ -1064,32 +1064,32 @@ func templateChangeSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"target_type", "target_id_or_name", "mode", "change_type"},
 		"properties": map[string]any{
-			"target_type":                map[string]any{"type": "string", "enum": []string{"template", "playspec", "playground", "trick"}, "description": "Object to start from. With target_type=playground and change_type=switch_existing, this performs an advanced template-version switch for a deployed playground."},
-			"target_id_or_name":          namedIdentifierSchema("target_id_or_name", "ID or name of the target object."),
-			"mode":                       map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and diffs without writes; apply creates/switches resources."},
-			"change_type":                map[string]any{"type": "string", "enum": []string{"patch", "overwrite", "switch_existing"}, "description": "Advanced template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the playspec/playground/trick at a different template version."},
-			"base_version_id":            map[string]any{"type": "integer", "description": "Base template version ID for patch or overwrite. Defaults from target when possible.", "minimum": 1},
-			"target_template_version_id": map[string]any{"type": "integer", "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template: the server reconciles the prop set and regenerates services.", "minimum": 1},
-			"patches":                    map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Patch entries: YAML path set/remove or exact search/replace."},
-			"edits":                      map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Alias for patches."},
-			"template_body":              map[string]any{"type": "string", "description": "Full replacement template YAML for overwrite."},
-			"template_body_path":         map[string]any{"type": "string", "description": "Absolute local path to full replacement template YAML."},
-			"changelog":                  map[string]any{"type": "string", "description": "Human-readable changelog for a created template version."},
-			"public":                     map[string]any{"type": "boolean", "description": "Make the created template version public."},
-			"switch_variables":           map[string]any{"type": "object", "description": "Template variables to use when switching a playspec."},
-			"regenerate_variables":       map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate while switching."},
-			"confirm_warnings":           map[string]any{"type": "boolean", "description": "Allow apply when preview reports switch warnings."},
-			"confirm":                    map[string]any{"type": "boolean", "description": "Required for mode=apply unless the MCP server runs with --yolo. Not required for previews."},
-			"reuse_existing_props":       map[string]any{"type": "boolean", "description": "Reuse the target playspec/playground's current dynamic service Props before provisioning new ones. Same-name services keep their Prop first; remaining services reuse existing Props in current service order; extras are retired after apply when no longer referenced."},
-			"post_apply":                 map[string]any{"type": "string", "enum": []string{"none", "rollout_target", "rollout_all", "trigger_trick"}, "description": "Optional action after apply. Tricks should use trigger_trick; normal playgrounds can use rollout_target or rollout_all."},
-			"wait":                       map[string]any{"type": "boolean", "description": "Wait for rollout targets or triggered trick completion."},
-			"wait_timeout_seconds":       map[string]any{"type": "integer", "description": "Maximum seconds to wait.", "minimum": 1},
-			"diagnose_on_failure":        map[string]any{"type": "boolean", "description": "Attach playground diagnostics when a wait fails."},
-			"response_mode":              map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "Response detail mode."},
-			"provision_missing_props": map[string]any{
+			"target_type":                 map[string]any{"type": "string", "enum": []string{"template", "spec", "playground", "task"}, "description": "Object to start from. With target_type=playground and change_type=switch_existing, this performs an advanced template-version switch for a deployed playground."},
+			"target_id_or_name":           namedIdentifierSchema("target_id_or_name", "ID or name of the target object."),
+			"mode":                        map[string]any{"type": "string", "enum": []string{"preview", "apply"}, "description": "Preview validates and diffs without writes; apply creates/switches resources."},
+			"change_type":                 map[string]any{"type": "string", "enum": []string{"patch", "overwrite", "switch_existing"}, "description": "Advanced template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the spec/playground/task at a different template version."},
+			"base_version_id":             map[string]any{"type": "integer", "description": "Base template version ID for patch or overwrite. Defaults from target when possible.", "minimum": 1},
+			"target_template_version_id":  map[string]any{"type": "integer", "description": "Existing template version ID to switch the target's spec to. Required for change_type=switch_existing. Can belong to a completely different template: the server reconciles the repository set and regenerates services.", "minimum": 1},
+			"patches":                     map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Patch entries: YAML path set/remove or exact search/replace."},
+			"edits":                       map[string]any{"type": "array", "items": map[string]any{"type": "object"}, "description": "Alias for patches."},
+			"template_body":               map[string]any{"type": "string", "description": "Full replacement template YAML for overwrite."},
+			"template_body_path":          map[string]any{"type": "string", "description": "Absolute local path to full replacement template YAML."},
+			"changelog":                   map[string]any{"type": "string", "description": "Human-readable changelog for a created template version."},
+			"public":                      map[string]any{"type": "boolean", "description": "Make the created template version public."},
+			"switch_variables":            map[string]any{"type": "object", "description": "Template variables to use when switching a spec."},
+			"regenerate_variables":        map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Variable names to regenerate while switching."},
+			"confirm_warnings":            map[string]any{"type": "boolean", "description": "Allow apply when preview reports switch warnings."},
+			"confirm":                     map[string]any{"type": "boolean", "description": "Required for mode=apply unless the MCP server runs with --yolo. Not required for previews."},
+			"reuse_existing_repositories": map[string]any{"type": "boolean", "description": "Reuse the target spec/playground's current dynamic service Repositories before provisioning new ones. Same-name services keep their Repository first; remaining services reuse existing Repositories in current service order; extras are retired after apply when no longer referenced."},
+			"post_apply":                  map[string]any{"type": "string", "enum": []string{"none", "rollout_target", "rollout_all", "trigger_task"}, "description": "Optional action after apply. Tasks should use trigger_task; normal playgrounds can use rollout_target or rollout_all."},
+			"wait":                        map[string]any{"type": "boolean", "description": "Wait for rollout targets or triggered task completion."},
+			"wait_timeout_seconds":        map[string]any{"type": "integer", "description": "Maximum seconds to wait.", "minimum": 1},
+			"diagnose_on_failure":         map[string]any{"type": "boolean", "description": "Attach playground diagnostics when a wait fails."},
+			"response_mode":               map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "Response detail mode."},
+			"provision_missing_repositories": map[string]any{
 				"type":        "string",
 				"enum":        []string{"off", "gitea", "github"},
-				"description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. \"gitea\" provisions Gitea-backed private repos seeded from the template's source URLs. \"off\" (default) keeps today's behaviour: public repos auto-create Props, private/missing repos fail with a manual-creation hint.",
+				"description": "When the new template references repos the player does not yet own a Repository for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Repository for each. \"gitea\" provisions Gitea-backed private repos seeded from the template's source URLs. \"off\" (default) keeps today's behaviour: public repos auto-create Repositories, private/missing repos fail with a manual-creation hint.",
 			},
 			"provision_private": map[string]any{
 				"type":        "boolean",
@@ -1248,7 +1248,7 @@ func withPropertyDescription(schema map[string]any, property string, description
 
 func resourceIDSchema(resource, tool string) map[string]any {
 	required := []string{"resource", "id"}
-	properties := map[string]any{
+	props := map[string]any{
 		"resource": map[string]any{
 			"type":        "string",
 			"enum":        []string{resource},
@@ -1263,14 +1263,14 @@ func resourceIDSchema(resource, tool string) map[string]any {
 	var anyOf []any
 	if namedResource(resource) {
 		required = []string{"resource"}
-		properties["id_or_name"] = namedIdentifierSchema("id_or_name", "Numeric ID or resource name.")
+		props["id_or_name"] = namedIdentifierSchema("id_or_name", "Numeric ID or resource name.")
 		anyOf = []any{
 			map[string]any{"required": []string{"id"}},
 			map[string]any{"required": []string{"id_or_name"}},
 		}
 	} else if resource == "secret" {
 		required = []string{"resource"}
-		properties["id_or_key"] = namedIdentifierSchema("id_or_key", "Numeric ID or secret key.")
+		props["id_or_key"] = namedIdentifierSchema("id_or_key", "Numeric ID or secret key.")
 		anyOf = []any{
 			map[string]any{"required": []string{"id"}},
 			map[string]any{"required": []string{"id_or_key"}},
@@ -1280,7 +1280,7 @@ func resourceIDSchema(resource, tool string) map[string]any {
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             required,
-		"properties":           properties,
+		"properties":           props,
 	}
 	if len(anyOf) > 0 {
 		schema["anyOf"] = anyOf
@@ -1390,7 +1390,7 @@ func enrichPropertySchema(name string, prop map[string]any) {
 
 func namedResource(resource string) bool {
 	switch resource {
-	case "playground", "trick", "playspec", "prop", "marquee", "agent", "template", "artefact", "artefact_attachment", "template_source":
+	case "playground", "task", "spec", "repository", "host", "agent", "template", "artefact", "artefact_attachment", "template_source":
 		return true
 	default:
 		return false
@@ -1401,10 +1401,10 @@ func namedIdentifierField(name string) bool {
 	switch name {
 	case "agent_id",
 		"playground_id", "target_playground_id", "build_in_public_playground_id",
-		"trick_id",
-		"playspec_id", "target_playspec_id",
-		"prop_id", "source_prop_id",
-		"marquee_id", "ci_marquee_id", "target_marquee_id":
+		"task_id",
+		"spec_id", "target_spec_id",
+		"repository_id", "source_repository_id",
+		"host_id", "ci_host_id", "target_host_id":
 		return true
 	default:
 		return false
@@ -1519,20 +1519,20 @@ func schemaIDDescription(name string) string {
 		return "Build-in-public playground ID"
 	case "category_id":
 		return "Template category ID"
-	case "ci_marquee_id":
-		return "CI marquee ID"
+	case "ci_host_id":
+		return "CI host ID"
 	case "feedback_id":
 		return "Feedback ID"
 	case "job_env_id":
 		return "Job environment variable ID"
-	case "marquee_id", "target_marquee_id":
-		return "Marquee ID"
+	case "host_id", "target_host_id":
+		return "Host ID"
 	case "playground_id":
 		return "Playground ID"
-	case "playspec_id", "target_playspec_id":
-		return "Playspec ID"
-	case "prop_id", "source_prop_id":
-		return "Prop ID"
+	case "spec_id", "target_spec_id":
+		return "Spec ID"
+	case "repository_id", "source_repository_id":
+		return "Repository ID"
 	case "secret_id":
 		return "Secret ID"
 	case "source_template_version_id":
@@ -1541,8 +1541,8 @@ func schemaIDDescription(name string) string {
 		return "Template ID"
 	case "target_template_version_id", "version_id":
 		return "Template version ID"
-	case "trick_id":
-		return "Trick ID"
+	case "task_id":
+		return "Task ID"
 	case "webhook_id":
 		return "Webhook endpoint ID"
 	default:
@@ -1553,8 +1553,8 @@ func schemaIDDescription(name string) string {
 // #nosec G101 -- these are public schema descriptions, not embedded credentials.
 var schemaFieldDescriptions = map[string]string{
 	"agent_accessible":       "Whether the API key is accessible to agents.",
-	"auto_switch":            "Switch the target playspec to the created version after patch creation.",
-	"base_compose_yaml":      "Docker Compose YAML used as the playspec base.",
+	"auto_switch":            "Switch the target spec to the created version after patch creation.",
+	"base_compose_yaml":      "Docker Compose YAML used as the spec base.",
 	"build_in_public":        "Allow the agent to build in a public playground.",
 	"build_overrides_yaml":   "Per-service build override YAML values.",
 	"build_platform":         "Target Docker build platform.",
@@ -1576,15 +1576,15 @@ var schemaFieldDescriptions = map[string]string{
 	"dockerhub_username":     "Docker Hub username.",
 	"domains_input":          "Domain list or domain configuration input.",
 	"enabled":                "Whether the resource is enabled.",
-	"https_enabled":          "Enable HTTPS routing for the Marquee.",
+	"https_enabled":          "Enable HTTPS routing for the Host.",
 	"env_overrides":          "Environment variable overrides for a playground launch.",
 	"event_filters":          "Webhook event filter object.",
 	"events":                 "Webhook event names.",
 	"expires_at":             "Expiration time. For playgrounds, this is when the playground is automatically deleted; for API keys, this is when the key stops working.",
 	"filename":               "File name.",
-	"tls_certificate_pem":    "Write-only TLS certificate PEM for provided Marquee certificates.",
-	"tls_certificate_source": "Marquee TLS certificate source: automatic or provided.",
-	"tls_private_key_pem":    "Write-only TLS private key PEM for provided Marquee certificates.",
+	"tls_certificate_pem":    "Write-only TLS certificate PEM for provided Host certificates.",
+	"tls_certificate_source": "Host TLS certificate source: automatic or provided.",
+	"tls_private_key_pem":    "Write-only TLS private key PEM for provided Host certificates.",
 	"granular_scopes":        "Fine-grained API key scopes keyed by resource.",
 	"host":                   "Host name or IP address.",
 	"key":                    "Environment variable or secret key.",
@@ -1600,7 +1600,7 @@ var schemaFieldDescriptions = map[string]string{
 	"page":                   "Page number.",
 	"patches":                "Patch operations to preview or apply.",
 	"per_page":               "Number of results per page.",
-	"persist_volumes":        "Persist Docker volumes for the playspec.",
+	"persist_volumes":        "Persist Docker volumes for the spec.",
 	"port":                   "Network port.",
 	"post_init_script":       "Shell script run after agent initialization.",
 	"private":                "Whether the repository is private.",

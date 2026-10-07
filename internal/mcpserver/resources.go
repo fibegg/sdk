@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"strings"
 
 	"github.com/fibegg/sdk/internal/resourceschema"
@@ -34,7 +35,7 @@ func (s *Server) registerStaticResources() {
 	s.mcp.AddResource(mcp.NewResource(
 		"fibe://status",
 		"Account status dashboard",
-		mcp.WithResourceDescription("Counts across all resources (playgrounds, agents, props, ...). Single request, full context."),
+		mcp.WithResourceDescription("Counts across all resources (playgrounds, agents, repositories, ...). Single request, full context."),
 		mcp.WithMIMEType("application/json"),
 	), func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		c, err := s.resolveClient(ctx)
@@ -94,6 +95,9 @@ func (s *Server) registerResourceTemplates() {
 		}
 		schemas, canonical, ok := resourceschema.SchemasFor(resource)
 		if !ok {
+			if err := domainnames.RemovedError(resource); err != nil {
+				return nil, err
+			}
 			return nil, fmt.Errorf("unknown resource %q", resource)
 		}
 		if op != "" {
@@ -239,7 +243,7 @@ var pipelineDSLSchema = map[string]any{
 		map[string]any{
 			"description": "Create, wait, fetch logs: one round-trip.",
 			"steps": []map[string]any{
-				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "playspec_id_or_name": "starter"}}},
+				{"id": "pg", "tool": "fibe_resource_mutate", "args": map[string]any{"resource": "playground", "operation": "create", "payload": map[string]any{"name": "ci-test", "spec_id_or_name": "starter"}}},
 				{"id": "wait", "tool": "fibe_playgrounds_wait", "args": map[string]any{"id_or_name": "$.pg.id", "status": "running"}},
 				{"id": "logs", "tool": "fibe_playgrounds_logs", "args": map[string]any{"id_or_name": "$.pg.id", "tail": 100}},
 			},

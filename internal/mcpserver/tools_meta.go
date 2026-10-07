@@ -227,7 +227,7 @@ selected profile with /api/me before keeping the new session client.`),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierBrownfield,
+		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or HOST_ROOT.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))
@@ -245,19 +245,19 @@ selected profile with /api/me before keeping the new session client.`),
 			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain(), argString(args, "link_dir"))
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_info",
-		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
+		mcp.WithDescription(`Inspect local playgrounds from the Host filesystem without calling the Fibe API.
 
 Views:
-  names    list selector-visible mountable local playground names, playspecs, IDs, and paths; omit id_or_name
+  names    list selector-visible mountable local playground names, specs, IDs, and paths; omit id_or_name
   current  currently linked playground JSON state; omit id_or_name
   repos    git repository roots for the currently linked playground; omit id_or_name
   urls     exposed service URLs for one playground
   mounts   source-code mount locations for one playground
   details  full local metadata for one playground
 
-Selectors accept local numeric playground ID, compose project/name, playspec, or unique playspec prefix.`),
+Selectors accept local numeric playground ID, compose project/name, spec, or unique spec prefix.`),
 		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, current, repos, urls, mounts, or details.")),
-		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix. Omit for view=names.")),
 		mcp.WithString("link_dir", mcp.Description("Current-link directory for view=current or view=repos (default: /app/playground).")),
 	))
 
@@ -277,7 +277,7 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_link",
 		mcp.WithDescription("[MODE:BROWNFIELD] Link local playground mounts into a working directory."),
-		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix")),
 		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: /app/playground)")),
 	))
 
@@ -324,7 +324,7 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 	}, mcp.NewTool("fibe_run",
 		mcp.WithDescription(`Last-resort escape hatch for arbitrary CLI commands.
 
-Prefer dedicated MCP tools first (for example fibe_launch, fibe_greenfield_create, fibe_playgrounds_*, fibe_props_*, etc.). If the target tool already exists but is not advertised in the current tier, prefer fibe_call over fibe_run.
+Prefer dedicated MCP tools first (for example fibe_launch, fibe_greenfield_create, fibe_playgrounds_*, fibe_repositories_*, etc.). If the target tool already exists but is not advertised in the current tier, prefer fibe_call over fibe_run.
 
 Use timeout_ms to bound risky calls that might otherwise outlive the host's tool-call budget.`),
 		mcp.WithArray("args", mcp.Required(), mcp.WithStringItems(),
@@ -374,7 +374,7 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 						jobMode := argBool(payload, "job_mode")
 						params.JobMode = &jobMode
 					}
-					return c.Playspecs.ValidateComposeWithParams(ctx, params)
+					return c.Specs.ValidateComposeWithParams(ctx, params)
 				}
 			}
 			schema, _, op, ok := resourceschema.SchemaFor(canonical, operation)
@@ -777,14 +777,14 @@ func isCLIResourceMutationPath(path []string) bool {
 		"agents create":                   true,
 		"agents update":                   true,
 		"api-keys create":                 true,
-		"marquees create":                 true,
-		"marquees update":                 true,
+		"hosts create":                    true,
+		"hosts update":                    true,
 		"playgrounds create":              true,
 		"playgrounds update":              true,
-		"playspecs create":                true,
-		"playspecs update":                true,
-		"props create":                    true,
-		"props update":                    true,
+		"specs create":                    true,
+		"specs update":                    true,
+		"repositories create":             true,
+		"repositories update":             true,
 		"secrets create":                  true,
 		"secrets update":                  true,
 		"templates create":                true,

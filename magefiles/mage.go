@@ -212,7 +212,7 @@ func chatE2EHelpText() string {
 Required for any runnable row:
   FIBE_API_KEY
   FIBE_DOMAIN optional; defaults to localhost:3000
-  FIBE_TEST_MARQUEE_ID
+  FIBE_TEST_HOST_ID
 
 Prompt:
   MESSAGE or FIBE_TEST_AGENT_MESSAGE overrides the first chat message.

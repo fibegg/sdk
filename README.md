@@ -2,6 +2,13 @@
 
 The official Go SDK and command-line interface for the Fibe platform.
 
+This checkout contains the coordinated v0.3 candidate naming contract:
+Hosts, Specs, Repositories and Tasks. Existing Agent, Audit Log, conversation,
+document and memory operations retain their model identities. Published 0.2.x
+CLI distributions keep their production contract until the separate production
+cutover; candidate binaries are built from matched source without release tags.
+See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the migration contract.
+
 Requires Go 1.26.8 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
@@ -76,7 +83,7 @@ fibe agents download-attachment my-agent runtime-context.zip --to ./context.zip
 
 fibe agents watch --max-events 5 --duration 1m
 
-fibe pg create --name demo --playspec starter --marquee next --service web.subdomain=demo
+fibe pg create --name demo --spec starter --host next --service web.subdomain=demo
 cat payload.yml | fibe pg create -f -
 fibe pg create < payload.yml
 
@@ -95,11 +102,11 @@ Inspect deployment failures with
 `fibe playgrounds debug <id-or-name> --build-logs --output json`. New builds retain
 their complete logs; older truncated logs cannot be reconstructed.
 
-Repository mirroring is asynchronous. `fibe wait prop <id-or-name>` waits for
+Repository mirroring is asynchronous. `fibe wait repository <id-or-name>` waits for
 `mirror_status: completed` and reports the persisted failure reason. The Go SDK
 exposes these diagnostics through `Playgrounds.RuntimeStatusByIdentifier`,
 `Playgrounds.DebugWithBuildLogsByIdentifier`, and
-`Props.GetMirrorStateByIdentifier`, preserving existing response struct layouts.
+`Repositories.GetMirrorStateByIdentifier`, preserving existing response struct layouts.
 
 ## Output formatting
 
@@ -185,7 +192,7 @@ the existing local tools.
 
 The server provides generic resource tools such as `fibe_resource_list`, `fibe_resource_get`, `fibe_resource_delete`, `fibe_resource_mutate`, and `fibe_resource_watch`, plus workflow tools such as `fibe_greenfield_create` and `fibe_launch`.
 
-Agent status, attachments, and scheduled pokes use the resource tools. Set `params.include_runtime_status` when listing agents. Use the `agent.upload_attachment`, `agent_attachment`, and `agent_poke` resource operations for files and pokes. To inspect a Playground, call `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; use `fibe_playgrounds_debug` for raw Compose, route, and log details. Playspec jobs use `playspec.create` or `playspec.update`. `fibe_schema` documents and locally validates mutation payloads.
+Agent status, attachments, and scheduled pokes use the resource tools. Set `params.include_runtime_status` when listing agents. Use the `agent.upload_attachment`, `agent_attachment`, and `agent_poke` resource operations for files and pokes. To inspect a Playground, call `fibe_resource_get` with `resource:"playground"` and `id_or_name:"..."`; use `fibe_playgrounds_debug` for raw Compose, route, and log details. Spec jobs use `spec.create` or `spec.update`. `fibe_schema` documents and locally validates mutation payloads.
 
 The generated registry docs currently list 60 registered dispatcher tools. By default, `fibe mcp serve` uses the `full` tool surface and advertises the 59 non-hidden tools. Use `--tools core` or `FIBE_MCP_TOOLS=core` to narrow the native surface to the 39 meta/base/greenfield/brownfield tools, or pass a comma-separated tier list such as `--tools other,meta`. Hidden tools are not advertised natively even in `full`, but remain dispatcher-reachable through `fibe_call` and `fibe_pipeline` when the caller already knows the tool name. Use `fibe_tools_catalog` to inspect `advertised` and `hidden` flags for a running server. Regenerate `fibe_mcp_tools_catalog.md` and `fibe_tools_table.md` deterministically from the Go MCP registry with:
 
@@ -203,7 +210,7 @@ MCP annotations mark reads with `readOnlyHint` and delete, rollout, and hard-res
 ```json
 {
   "steps": [
-    {"id": "pg",   "tool": "fibe_resource_mutate", "args": {"resource": "playground", "operation": "create", "payload": {"name": "ci", "playspec_id": 5}}},
+    {"id": "pg",   "tool": "fibe_resource_mutate", "args": {"resource": "playground", "operation": "create", "payload": {"name": "ci", "spec_id": 5}}},
     {"id": "wait", "tool": "fibe_playgrounds_wait",   "args": {"id_or_name": "$.pg.id", "status": "running"}},
     {"id": "logs", "tool": "fibe_playgrounds_logs",   "args": {"id_or_name": "$.pg.id", "service": "web", "tail": 100}}
   ],
@@ -215,7 +222,7 @@ Use `parallel` for independent steps and `for_each` for arrays. Results stay in 
 
 ### Streaming
 
-`fibe_playgrounds_wait` and `fibe_logs_follow` send MCP progress notifications. Long SDK operations do the same when the client supplies a progress token. Use `fibe logs follow <id-or-name>` for continuous Playground or Trick logs from the CLI.
+`fibe_playgrounds_wait` and `fibe_logs_follow` send MCP progress notifications. Long SDK operations do the same when the client supplies a progress token. Use `fibe logs follow <id-or-name>` for continuous Playground or Task logs from the CLI.
 
 SDK WebSocket streams use the configured HTTP transport, enforce a 10 MiB
 frame limit, and close their channels on cancellation or terminal failure.

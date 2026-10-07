@@ -21,9 +21,9 @@ API keys support granular scopes and expiration dates.
 The token is only shown once at creation time.
 
 AVAILABLE SCOPES:
-  marquees:read, marquees:write, marquees:delete, marquees:manage
-  props:read, props:write, props:delete
-  playspecs:read, playspecs:write, playspecs:delete
+  hosts:read, hosts:write, hosts:delete, hosts:manage
+  repositories:read, repositories:write, repositories:delete
+  specs:read, specs:write, specs:delete
   playgrounds:read, playgrounds:write, playgrounds:delete
   import_templates:read, import_templates:write
   agents:read, agents:write, agents:delete
@@ -130,7 +130,7 @@ OPTIONAL FLAGS:
                          e.g. playgrounds:read, agents:write, mcp:access
   --granular-scope       Granular scope binding to specific IDs (repeatable).
                          Format: scope_name=id1,id2,...; scope_name= allows no resources.
-                         e.g. --granular-scope playspecs:read=12,15
+                         e.g. --granular-scope specs:read=12,15
   --expires-at           Expiration time (RFC3339, e.g. 2026-12-31T23:59:59Z)
   --agent-accessible     Allow this key to be used by agents (default: false)
 
@@ -138,7 +138,7 @@ EXAMPLES:
   fibe api-keys create --label "CI/CD"
   fibe keys create --label "Read only" --scope playgrounds:read --scope agents:read
   fibe keys create --label "Bot key" --agent-accessible --expires-at 2026-12-31T23:59:59Z
-  fibe keys create --label "Scoped" --granular-scope playspecs:read=12,15` + generateSchemaDoc(&fibe.APIKeyCreateParams{}),
+  fibe keys create --label "Scoped" --granular-scope specs:read=12,15` + generateSchemaDoc(&fibe.APIKeyCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.APIKeyCreateParams{}

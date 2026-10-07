@@ -78,7 +78,7 @@ func TestLogsFollowDefaultsToPlaygroundAndAllServices(t *testing.T) {
 	}
 }
 
-func TestMonitorLogsFollowStreamsTrickLogs(t *testing.T) {
+func TestMonitorLogsFollowStreamsTaskLogs(t *testing.T) {
 	api := logsFollowAPIServer(t, []string{
 		`{"message":{"type":"log","stream":"stderr","service":"worker","line":"job ready"}}`,
 	}, 0, func(identifier map[string]any) {
@@ -95,7 +95,7 @@ func TestMonitorLogsFollowStreamsTrickLogs(t *testing.T) {
 
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_logs_follow", map[string]any{
 		"id_or_name": "demo",
-		"target":     "trick",
+		"target":     "task",
 		"service":    "worker",
 		"max_lines":  1,
 		"duration":   "2s",
@@ -104,12 +104,12 @@ func TestMonitorLogsFollowStreamsTrickLogs(t *testing.T) {
 		t.Fatalf("logs follow dispatch: %v", err)
 	}
 	result := out.(map[string]any)
-	if result["target"] != "trick" || result["line_count"] != 1 {
-		t.Fatalf("unexpected trick logs follow result: %#v", result)
+	if result["target"] != "task" || result["line_count"] != 1 {
+		t.Fatalf("unexpected task logs follow result: %#v", result)
 	}
 	lines := result["lines"].([]map[string]string)
 	if lines[0]["service"] != "worker" || lines[0]["text"] != "job ready" {
-		t.Fatalf("unexpected trick lines: %#v", lines)
+		t.Fatalf("unexpected task lines: %#v", lines)
 	}
 }
 
@@ -228,15 +228,15 @@ func TestMonitorLogsFollowSchemaAndCatalogExposure(t *testing.T) {
 	}
 
 	schema := srv.toolSchemas["fibe_logs_follow"]
-	props := schema["properties"].(map[string]any)
+	repositories := schema["properties"].(map[string]any)
 	for _, want := range []string{"id_or_name", "target", "service", "tail", "duration", "max_lines"} {
-		if _, ok := props[want]; !ok {
-			t.Fatalf("monitor logs follow schema missing %q: %#v", want, props)
+		if _, ok := repositories[want]; !ok {
+			t.Fatalf("monitor logs follow schema missing %q: %#v", want, repositories)
 		}
 	}
 	targets := schemaPropertyEnum(t, schema, "target")
-	if !containsString(targets, "playground") || !containsString(targets, "trick") {
-		t.Fatalf("target enum missing playground/trick: %#v", targets)
+	if !containsString(targets, "playground") || !containsString(targets, "task") {
+		t.Fatalf("target enum missing playground/task: %#v", targets)
 	}
 	for _, retired := range []string{"fibe_monitor_logs_" + "follow", "fibe_playgrounds_logs_" + "follow"} {
 		if _, ok := srv.toolSchemas[retired]; ok {
@@ -262,8 +262,8 @@ func TestMonitorLogsFollowSchemaAndCatalogExposure(t *testing.T) {
 	}
 	inputSchema := canonical["input_schema"].(map[string]any)
 	targets = schemaPropertyEnum(t, inputSchema, "target")
-	if !containsString(targets, "playground") || !containsString(targets, "trick") {
-		t.Fatalf("catalog input schema target enum missing playground/trick: %#v", targets)
+	if !containsString(targets, "playground") || !containsString(targets, "task") {
+		t.Fatalf("catalog input schema target enum missing playground/task: %#v", targets)
 	}
 }
 

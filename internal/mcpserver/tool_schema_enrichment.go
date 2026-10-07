@@ -118,7 +118,7 @@ func enumForToolProperty(toolName, name string) []string {
 		switch {
 		case strings.HasPrefix(toolName, "fibe_agents_"):
 			return fibe.ValidProviders
-		case strings.HasPrefix(toolName, "fibe_props_"):
+		case strings.HasPrefix(toolName, "fibe_repositories_"):
 			return []string{"github", "gitea"}
 		}
 	case "git_provider":
@@ -228,22 +228,22 @@ func idDescription(name string) string {
 		return "Build-in-public playground ID"
 	case "category_id":
 		return "Template category ID"
-	case "ci_marquee_id":
-		return "CI marquee ID"
+	case "ci_host_id":
+		return "CI host ID"
 	case "feedback_id":
 		return "Feedback ID"
-	case "marquee_id", "target_marquee_id":
-		return "Marquee ID"
+	case "host_id", "target_host_id":
+		return "Host ID"
 	case "parent_id":
 		return "Parent resource ID"
 	case "pipeline_id":
 		return "Pipeline ID"
 	case "playground_id":
 		return "Playground ID"
-	case "playspec_id", "target_playspec_id":
-		return "Playspec ID"
-	case "prop_id", "source_prop_id":
-		return "Prop ID"
+	case "spec_id", "target_spec_id":
+		return "Spec ID"
+	case "repository_id", "source_repository_id":
+		return "Repository ID"
 	case "source_template_version_id":
 		return "Source template version ID"
 	case "template_id":
@@ -262,8 +262,8 @@ var knownPropertyDescriptions = map[string]string{
 	"args":                   "Argument object or command tokens for the target operation.",
 	"action_type":            "Lifecycle action to perform.",
 	"auto_init":              "Initialize the repository with default files.",
-	"auto_switch":            "Switch the target playspec to the created version after patch creation.",
-	"base_compose_yaml":      "Docker Compose YAML used as the playspec base.",
+	"auto_switch":            "Switch the target spec to the created version after patch creation.",
+	"base_compose_yaml":      "Docker Compose YAML used as the spec base.",
 	"body":                   "Text body to store.",
 	"build_in_public":        "Allow the agent to build in a public playground.",
 	"build_overrides_yaml":   "Per-service build override YAML values.",
@@ -286,15 +286,15 @@ var knownPropertyDescriptions = map[string]string{
 	"domains_input":          "Domain list or domain configuration input.",
 	"edits":                  "Patch edits to apply.",
 	"enabled":                "Whether the resource is enabled.",
-	"https_enabled":          "Enable HTTPS routing for the Marquee.",
+	"https_enabled":          "Enable HTTPS routing for the Host.",
 	"env_overrides":          "Environment variable overrides for a playground launch.",
 	"event_filters":          "Webhook event filter object.",
 	"events":                 "Webhook event names.",
 	"expires_at":             "Expiration time. For playgrounds, this is when the playground is automatically deleted; for API keys, this is when the key stops working.",
 	"filename":               "File name.",
-	"tls_certificate_pem":    "Write-only TLS certificate PEM for provided Marquee certificates.",
-	"tls_certificate_source": "Marquee TLS certificate source: automatic or provided.",
-	"tls_private_key_pem":    "Write-only TLS private key PEM for provided Marquee certificates.",
+	"tls_certificate_pem":    "Write-only TLS certificate PEM for provided Host certificates.",
+	"tls_certificate_source": "Host TLS certificate source: automatic or provided.",
+	"tls_private_key_pem":    "Write-only TLS private key PEM for provided Host certificates.",
 	"force":                  "Force the operation when the server permits it.",
 	"git_provider":           "Destination git provider.",
 	"granular_scopes":        "Fine-grained API key scopes keyed by resource.",
@@ -324,7 +324,7 @@ var knownPropertyDescriptions = map[string]string{
 	"params":                 "Resource-specific parameter object.",
 	"patches":                "Patch operations to preview or apply.",
 	"per_page":               "Number of results per page.",
-	"persist_volumes":        "Persist Docker volumes for the playspec.",
+	"persist_volumes":        "Persist Docker volumes for the spec.",
 	"port":                   "Network port.",
 	"post_init_script":       "Shell script run after agent initialization.",
 	"private":                "Whether the repository is private.",
@@ -344,7 +344,7 @@ var knownPropertyDescriptions = map[string]string{
 	"services":               "Per-service configuration.",
 	"sort":                   "Sort expression.",
 	"source_auto_refresh":    "Refresh from source automatically.",
-	"source_auto_upgrade":    "Upgrade linked playspecs automatically.",
+	"source_auto_upgrade":    "Upgrade linked specs automatically.",
 	"source_base64":          "Base64-encoded source content.",
 	"source_path":            "Source file path.",
 	"source_ref":             "Source branch, tag, or ref.",

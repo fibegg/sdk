@@ -9,9 +9,9 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestPropBranchesUnmarshalsObjectArray(t *testing.T) {
+func TestRepositoryBranchesUnmarshalsObjectArray(t *testing.T) {
 	payload := []byte(`{"branches":[{"name":"main","default":true},{"name":"feat","default":false}]}`)
-	var pb fibe.PropBranches
+	var pb fibe.RepositoryBranches
 	if err := json.Unmarshal(payload, &pb); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -83,13 +83,13 @@ func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	props, ok := srv.toolSchemas["fibe_agents_send_message"]["properties"].(map[string]any)
+	repositories, ok := srv.toolSchemas["fibe_agents_send_message"]["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties missing: %#v", srv.toolSchemas["fibe_agents_send_message"])
 	}
 	for _, want := range []string{"id_or_name", "text", "conversation_id", "busy_policy", "images", "attachment_paths", "attachment_filenames"} {
-		if _, ok := props[want]; !ok {
-			t.Fatalf("schema property %q missing: %#v", want, props)
+		if _, ok := repositories[want]; !ok {
+			t.Fatalf("schema property %q missing: %#v", want, repositories)
 		}
 	}
 }
@@ -164,24 +164,24 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 
 func TestLaunchSurfacesBothIDs(t *testing.T) {
 	var r fibe.LaunchResult
-	if err := json.Unmarshal([]byte(`{"playspec_id":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"spec_id":10,"playground_id":20,"repositories_created":[1,2]}`), &r); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if r.PlayspecID != 10 {
-		t.Errorf("PlayspecID=%d want 10", r.PlayspecID)
+	if r.SpecID != 10 {
+		t.Errorf("SpecID=%d want 10", r.SpecID)
 	}
 	if r.PlaygroundID != 20 {
 		t.Errorf("PlaygroundID=%d want 20", r.PlaygroundID)
 	}
-	if len(r.PropsCreated) != 2 {
-		t.Errorf("PropsCreated=%v want [1,2]", r.PropsCreated)
+	if len(r.RepositoriesCreated) != 2 {
+		t.Errorf("RepositoriesCreated=%v want [1,2]", r.RepositoriesCreated)
 	}
 
-	if err := json.Unmarshal([]byte(`{"playspecs_created":11}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"specs_created":11}`), &r); err != nil {
 		t.Fatalf("legacy unmarshal: %v", err)
 	}
-	if r.PlayspecID != 11 {
-		t.Errorf("legacy PlayspecID=%d want 11", r.PlayspecID)
+	if r.SpecID != 11 {
+		t.Errorf("legacy SpecID=%d want 11", r.SpecID)
 	}
 }
 

@@ -114,9 +114,9 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 
 	skipThirdpartyIfDisabled(t)
 
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to bootstrap an agent chat")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to bootstrap an agent chat")
 	}
 
 	secret, modelOptions, opencodeProvider, credentialSource := opencodeChatCredential(t)
@@ -142,7 +142,7 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 		t.Fatal("expected authenticated opencode agent")
 	}
 
-	chat, err := c.Agents.StartChat(ctx(), ag.ID, marqueeID)
+	chat, err := c.Agents.StartChat(ctx(), ag.ID, hostID)
 	requireNoError(t, err)
 	if chat.ChatURL == nil || *chat.ChatURL == "" {
 		t.Fatal("expected started chat to expose chat_url")

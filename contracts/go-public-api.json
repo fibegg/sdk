@@ -33,6 +33,11 @@
       "signature": "const ErrCodeForbidden = \"FORBIDDEN\""
     },
     {
+      "id": "const.ErrCodeHostNotFunded",
+      "kind": "const",
+      "signature": "const ErrCodeHostNotFunded = \"HOST_NOT_FUNDED\""
+    },
+    {
       "id": "const.ErrCodeInternalError",
       "kind": "const",
       "signature": "const ErrCodeInternalError = \"INTERNAL_ERROR\""
@@ -41,11 +46,6 @@
       "id": "const.ErrCodeLocked",
       "kind": "const",
       "signature": "const ErrCodeLocked = \"LOCKED\""
-    },
-    {
-      "id": "const.ErrCodeMarqueeNotFunded",
-      "kind": "const",
-      "signature": "const ErrCodeMarqueeNotFunded = \"MARQUEE_NOT_FUNDED\""
     },
     {
       "id": "const.ErrCodeNotFound",
@@ -188,24 +188,24 @@
       "signature": "const ServiceTypeStatic = \"static\""
     },
     {
-      "id": "const.TrickResultFailed",
+      "id": "const.TaskResultFailed",
       "kind": "const",
-      "signature": "const TrickResultFailed = \"failed\""
+      "signature": "const TaskResultFailed = \"failed\""
     },
     {
-      "id": "const.TrickResultRunning",
+      "id": "const.TaskResultRunning",
       "kind": "const",
-      "signature": "const TrickResultRunning = \"running\""
+      "signature": "const TaskResultRunning = \"running\""
     },
     {
-      "id": "const.TrickResultSucceeded",
+      "id": "const.TaskResultSucceeded",
       "kind": "const",
-      "signature": "const TrickResultSucceeded = \"succeeded\""
+      "signature": "const TaskResultSucceeded = \"succeeded\""
     },
     {
-      "id": "const.TrickResultUnknown",
+      "id": "const.TaskResultUnknown",
       "kind": "const",
-      "signature": "const TrickResultUnknown = \"unknown\""
+      "signature": "const TaskResultUnknown = \"unknown\""
     },
     {
       "id": "func.DefaultAuthProfilePath",
@@ -303,34 +303,34 @@
       "signature": "func ResolveGitHubInstallation(ctx context.Context, c *Client, selection GitHubInstallationSelection) (*Installation, error)"
     },
     {
+      "id": "func.TaskOutcome",
+      "kind": "func",
+      "signature": "func TaskOutcome(pg Playground) string"
+    },
+    {
+      "id": "func.TaskOutcomeIsFailed",
+      "kind": "func",
+      "signature": "func TaskOutcomeIsFailed(pg Playground) bool"
+    },
+    {
+      "id": "func.TaskStatusOutcome",
+      "kind": "func",
+      "signature": "func TaskStatusOutcome(pg *PlaygroundStatus) string"
+    },
+    {
+      "id": "func.TaskStatusResultFailed",
+      "kind": "func",
+      "signature": "func TaskStatusResultFailed(pg *PlaygroundStatus) bool"
+    },
+    {
       "id": "func.ToYAML",
       "kind": "func",
       "signature": "func ToYAML(v any) string"
     },
     {
-      "id": "func.TrickOutcome",
-      "kind": "func",
-      "signature": "func TrickOutcome(pg Playground) string"
-    },
-    {
-      "id": "func.TrickOutcomeIsFailed",
-      "kind": "func",
-      "signature": "func TrickOutcomeIsFailed(pg Playground) bool"
-    },
-    {
-      "id": "func.TrickStatusOutcome",
-      "kind": "func",
-      "signature": "func TrickStatusOutcome(pg *PlaygroundStatus) string"
-    },
-    {
-      "id": "func.TrickStatusResultFailed",
-      "kind": "func",
-      "signature": "func TrickStatusResultFailed(pg *PlaygroundStatus) bool"
-    },
-    {
       "id": "func.VerifyTemplateVersionSwitchResult",
       "kind": "func",
-      "signature": "func VerifyTemplateVersionSwitchResult(result *PlayspecTemplateVersionSwitchResult, targetVersionID int64) error"
+      "signature": "func VerifyTemplateVersionSwitchResult(result *SpecTemplateVersionSwitchResult, targetVersionID int64) error"
     },
     {
       "id": "func.VerifyWebhookSignature",
@@ -443,9 +443,9 @@
       "signature": "func (e *APIError) IsForbidden() bool"
     },
     {
-      "id": "method.APIError.IsMarqueeNotFunded",
+      "id": "method.APIError.IsHostNotFunded",
       "kind": "method",
-      "signature": "func (e *APIError) IsMarqueeNotFunded() bool"
+      "signature": "func (e *APIError) IsHostNotFunded() bool"
     },
     {
       "id": "method.APIError.IsNotFound",
@@ -805,17 +805,17 @@
     {
       "id": "method.AgentService.StartChat",
       "kind": "method",
-      "signature": "func (s *AgentService) StartChat(ctx context.Context, id, marqueeID int64) (*AgentChatSession, error)"
+      "signature": "func (s *AgentService) StartChat(ctx context.Context, id, hostID int64) (*AgentChatSession, error)"
     },
     {
       "id": "method.AgentService.StartChatByAgentIdentifier",
       "kind": "method",
-      "signature": "func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIdentifier string, marqueeIdentifier string) (*AgentChatSession, error)"
+      "signature": "func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIdentifier string, hostIdentifier string) (*AgentChatSession, error)"
     },
     {
       "id": "method.AgentService.StartChatByIdentifier",
       "kind": "method",
-      "signature": "func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, marqueeIdentifier string) (*AgentChatSession, error)"
+      "signature": "func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, hostIdentifier string) (*AgentChatSession, error)"
     },
     {
       "id": "method.AgentService.Update",
@@ -1228,6 +1228,86 @@
       "signature": "func (s *GreenfieldService) Create(ctx context.Context, params *GreenfieldCreateParams) (*GreenfieldResult, error)"
     },
     {
+      "id": "method.HostCreateParams.MarshalJSON",
+      "kind": "method",
+      "signature": "func (p HostCreateParams) MarshalJSON() ([]byte, error)"
+    },
+    {
+      "id": "method.HostCreateParams.Validate",
+      "kind": "method",
+      "signature": "func (p *HostCreateParams) Validate() error"
+    },
+    {
+      "id": "method.HostService.AutoconnectToken",
+      "kind": "method",
+      "signature": "func (s *HostService) AutoconnectToken(ctx context.Context, params *AutoconnectTokenParams) (*AutoconnectTokenResult, error)"
+    },
+    {
+      "id": "method.HostService.Create",
+      "kind": "method",
+      "signature": "func (s *HostService) Create(ctx context.Context, params *HostCreateParams) (*Host, error)"
+    },
+    {
+      "id": "method.HostService.Delete",
+      "kind": "method",
+      "signature": "func (s *HostService) Delete(ctx context.Context, id int64) error"
+    },
+    {
+      "id": "method.HostService.DeleteByIdentifier",
+      "kind": "method",
+      "signature": "func (s *HostService) DeleteByIdentifier(ctx context.Context, identifier string) error"
+    },
+    {
+      "id": "method.HostService.GenerateSSHKey",
+      "kind": "method",
+      "signature": "func (s *HostService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyResult, error)"
+    },
+    {
+      "id": "method.HostService.GenerateSSHKeyByIdentifier",
+      "kind": "method",
+      "signature": "func (s *HostService) GenerateSSHKeyByIdentifier(ctx context.Context, identifier string) (*SSHKeyResult, error)"
+    },
+    {
+      "id": "method.HostService.Get",
+      "kind": "method",
+      "signature": "func (s *HostService) Get(ctx context.Context, id int64) (*Host, error)"
+    },
+    {
+      "id": "method.HostService.GetByIdentifier",
+      "kind": "method",
+      "signature": "func (s *HostService) GetByIdentifier(ctx context.Context, identifier string) (*Host, error)"
+    },
+    {
+      "id": "method.HostService.List",
+      "kind": "method",
+      "signature": "func (s *HostService) List(ctx context.Context, params *HostListParams) (*ListResult[Host], error)"
+    },
+    {
+      "id": "method.HostService.TestConnection",
+      "kind": "method",
+      "signature": "func (s *HostService) TestConnection(ctx context.Context, id int64) (*ConnectionTestResult, error)"
+    },
+    {
+      "id": "method.HostService.TestConnectionByIdentifier",
+      "kind": "method",
+      "signature": "func (s *HostService) TestConnectionByIdentifier(ctx context.Context, identifier string) (*ConnectionTestResult, error)"
+    },
+    {
+      "id": "method.HostService.Update",
+      "kind": "method",
+      "signature": "func (s *HostService) Update(ctx context.Context, id int64, params *HostUpdateParams) (*Host, error)"
+    },
+    {
+      "id": "method.HostService.UpdateByIdentifier",
+      "kind": "method",
+      "signature": "func (s *HostService) UpdateByIdentifier(ctx context.Context, identifier string, params *HostUpdateParams) (*Host, error)"
+    },
+    {
+      "id": "method.HostUpdateParams.MarshalJSON",
+      "kind": "method",
+      "signature": "func (p HostUpdateParams) MarshalJSON() ([]byte, error)"
+    },
+    {
       "id": "method.ImportTemplate.UnmarshalJSON",
       "kind": "method",
       "signature": "func (t *ImportTemplate) UnmarshalJSON(data []byte) error"
@@ -1408,14 +1488,14 @@
       "signature": "func (s *ImportTemplateService) UpdateByIdentifier(ctx context.Context, identifier string, params *ImportTemplateUpdateParams) (*ImportTemplate, error)"
     },
     {
-      "id": "method.ImportTemplateService.UpgradeLinkedPlayspecs",
+      "id": "method.ImportTemplateService.UpgradeLinkedSpecs",
       "kind": "method",
-      "signature": "func (s *ImportTemplateService) UpgradeLinkedPlayspecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error)"
+      "signature": "func (s *ImportTemplateService) UpgradeLinkedSpecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error)"
     },
     {
-      "id": "method.ImportTemplateService.UpgradeLinkedPlayspecsByIdentifier",
+      "id": "method.ImportTemplateService.UpgradeLinkedSpecsByIdentifier",
       "kind": "method",
-      "signature": "func (s *ImportTemplateService) UpgradeLinkedPlayspecsByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateUpgradeLinkedResult, error)"
+      "signature": "func (s *ImportTemplateService) UpgradeLinkedSpecsByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateUpgradeLinkedResult, error)"
     },
     {
       "id": "method.ImportTemplateService.UploadImage",
@@ -1561,86 +1641,6 @@
       "id": "method.LaunchService.Create",
       "kind": "method",
       "signature": "func (s *LaunchService) Create(ctx context.Context, params *LaunchParams) (*LaunchResult, error)"
-    },
-    {
-      "id": "method.MarqueeCreateParams.MarshalJSON",
-      "kind": "method",
-      "signature": "func (p MarqueeCreateParams) MarshalJSON() ([]byte, error)"
-    },
-    {
-      "id": "method.MarqueeCreateParams.Validate",
-      "kind": "method",
-      "signature": "func (p *MarqueeCreateParams) Validate() error"
-    },
-    {
-      "id": "method.MarqueeService.AutoconnectToken",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) AutoconnectToken(ctx context.Context, params *AutoconnectTokenParams) (*AutoconnectTokenResult, error)"
-    },
-    {
-      "id": "method.MarqueeService.Create",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) Create(ctx context.Context, params *MarqueeCreateParams) (*Marquee, error)"
-    },
-    {
-      "id": "method.MarqueeService.Delete",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) Delete(ctx context.Context, id int64) error"
-    },
-    {
-      "id": "method.MarqueeService.DeleteByIdentifier",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) DeleteByIdentifier(ctx context.Context, identifier string) error"
-    },
-    {
-      "id": "method.MarqueeService.GenerateSSHKey",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) GenerateSSHKey(ctx context.Context, id int64) (*SSHKeyResult, error)"
-    },
-    {
-      "id": "method.MarqueeService.GenerateSSHKeyByIdentifier",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) GenerateSSHKeyByIdentifier(ctx context.Context, identifier string) (*SSHKeyResult, error)"
-    },
-    {
-      "id": "method.MarqueeService.Get",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) Get(ctx context.Context, id int64) (*Marquee, error)"
-    },
-    {
-      "id": "method.MarqueeService.GetByIdentifier",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) GetByIdentifier(ctx context.Context, identifier string) (*Marquee, error)"
-    },
-    {
-      "id": "method.MarqueeService.List",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) List(ctx context.Context, params *MarqueeListParams) (*ListResult[Marquee], error)"
-    },
-    {
-      "id": "method.MarqueeService.TestConnection",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) TestConnection(ctx context.Context, id int64) (*ConnectionTestResult, error)"
-    },
-    {
-      "id": "method.MarqueeService.TestConnectionByIdentifier",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) TestConnectionByIdentifier(ctx context.Context, identifier string) (*ConnectionTestResult, error)"
-    },
-    {
-      "id": "method.MarqueeService.Update",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) Update(ctx context.Context, id int64, params *MarqueeUpdateParams) (*Marquee, error)"
-    },
-    {
-      "id": "method.MarqueeService.UpdateByIdentifier",
-      "kind": "method",
-      "signature": "func (s *MarqueeService) UpdateByIdentifier(ctx context.Context, identifier string, params *MarqueeUpdateParams) (*Marquee, error)"
-    },
-    {
-      "id": "method.MarqueeUpdateParams.MarshalJSON",
-      "kind": "method",
-      "signature": "func (p MarqueeUpdateParams) MarshalJSON() ([]byte, error)"
     },
     {
       "id": "method.MemoryService.Delete",
@@ -1913,249 +1913,104 @@
       "signature": "func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error)"
     },
     {
-      "id": "method.PlayspecCreateParams.Validate",
-      "kind": "method",
-      "signature": "func (p *PlayspecCreateParams) Validate() error"
-    },
-    {
-      "id": "method.PlayspecService.AddMountedFile",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) error"
-    },
-    {
-      "id": "method.PlayspecService.AddMountedFileByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) AddMountedFileByIdentifier(ctx context.Context, identifier string, file io.Reader, fileName string, params *MountedFileParams) error"
-    },
-    {
-      "id": "method.PlayspecService.AddRegistryCredential",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) AddRegistryCredential(ctx context.Context, id int64, params *RegistryCredentialParams) (*RegistryCredentialResult, error)"
-    },
-    {
-      "id": "method.PlayspecService.AddRegistryCredentialByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) AddRegistryCredentialByIdentifier(ctx context.Context, identifier string, params *RegistryCredentialParams) (*RegistryCredentialResult, error)"
-    },
-    {
-      "id": "method.PlayspecService.Create",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) Create(ctx context.Context, params *PlayspecCreateParams) (*Playspec, error)"
-    },
-    {
-      "id": "method.PlayspecService.Delete",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) Delete(ctx context.Context, id int64) error"
-    },
-    {
-      "id": "method.PlayspecService.DeleteByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) DeleteByIdentifier(ctx context.Context, identifier string) error"
-    },
-    {
-      "id": "method.PlayspecService.Get",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) Get(ctx context.Context, id int64) (*Playspec, error)"
-    },
-    {
-      "id": "method.PlayspecService.GetByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) GetByIdentifier(ctx context.Context, identifier string) (*Playspec, error)"
-    },
-    {
-      "id": "method.PlayspecService.List",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) List(ctx context.Context, params *PlayspecListParams) (*ListResult[Playspec], error)"
-    },
-    {
-      "id": "method.PlayspecService.PreviewTemplateVersionSwitch",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) PreviewTemplateVersionSwitch(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error)"
-    },
-    {
-      "id": "method.PlayspecService.PreviewTemplateVersionSwitchByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) PreviewTemplateVersionSwitchByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchPreview, error)"
-    },
-    {
-      "id": "method.PlayspecService.RemoveMountedFile",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) RemoveMountedFile(ctx context.Context, id int64, filename string) error"
-    },
-    {
-      "id": "method.PlayspecService.RemoveMountedFileByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) RemoveMountedFileByIdentifier(ctx context.Context, identifier string, filename string) error"
-    },
-    {
-      "id": "method.PlayspecService.RemoveRegistryCredential",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) RemoveRegistryCredential(ctx context.Context, id int64, credentialID string) error"
-    },
-    {
-      "id": "method.PlayspecService.RemoveRegistryCredentialByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) RemoveRegistryCredentialByIdentifier(ctx context.Context, identifier string, credentialID string) error"
-    },
-    {
-      "id": "method.PlayspecService.Services",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) Services(ctx context.Context, id int64) ([]any, error)"
-    },
-    {
-      "id": "method.PlayspecService.ServicesByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) ServicesByIdentifier(ctx context.Context, identifier string) ([]any, error)"
-    },
-    {
-      "id": "method.PlayspecService.SwitchTemplateVersion",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) SwitchTemplateVersion(ctx context.Context, id int64, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error)"
-    },
-    {
-      "id": "method.PlayspecService.SwitchTemplateVersionByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) SwitchTemplateVersionByIdentifier(ctx context.Context, identifier string, params *PlayspecTemplateVersionSwitchParams) (*PlayspecTemplateVersionSwitchResult, error)"
-    },
-    {
-      "id": "method.PlayspecService.Update",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) Update(ctx context.Context, id int64, params *PlayspecUpdateParams) (*Playspec, error)"
-    },
-    {
-      "id": "method.PlayspecService.UpdateByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) UpdateByIdentifier(ctx context.Context, identifier string, params *PlayspecUpdateParams) (*Playspec, error)"
-    },
-    {
-      "id": "method.PlayspecService.UpdateMountedFile",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) UpdateMountedFile(ctx context.Context, id int64, params *MountedFileUpdateParams) error"
-    },
-    {
-      "id": "method.PlayspecService.UpdateMountedFileByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) UpdateMountedFileByIdentifier(ctx context.Context, identifier string, params *MountedFileUpdateParams) error"
-    },
-    {
-      "id": "method.PlayspecService.ValidateCompose",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) ValidateCompose(ctx context.Context, composeYAML string) (*ComposeValidation, error)"
-    },
-    {
-      "id": "method.PlayspecService.ValidateComposeWithParams",
-      "kind": "method",
-      "signature": "func (s *PlayspecService) ValidateComposeWithParams(ctx context.Context, params *ComposeValidateParams) (*ComposeValidation, error)"
-    },
-    {
-      "id": "method.PlayspecServiceDef.MarshalJSON",
-      "kind": "method",
-      "signature": "func (p PlayspecServiceDef) MarshalJSON() ([]byte, error)"
-    },
-    {
-      "id": "method.PlayspecTemplateVersionSwitchParams.MarshalJSON",
-      "kind": "method",
-      "signature": "func (p PlayspecTemplateVersionSwitchParams) MarshalJSON() ([]byte, error)"
-    },
-    {
-      "id": "method.PropCreateParams.Validate",
-      "kind": "method",
-      "signature": "func (p *PropCreateParams) Validate() error"
-    },
-    {
-      "id": "method.PropService.Attach",
-      "kind": "method",
-      "signature": "func (s *PropService) Attach(ctx context.Context, repoFullName string) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.Branches",
-      "kind": "method",
-      "signature": "func (s *PropService) Branches(ctx context.Context, id int64, query string, limit int) (*PropBranches, error)"
-    },
-    {
-      "id": "method.PropService.BranchesByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) BranchesByIdentifier(ctx context.Context, identifier string, query string, limit int) (*PropBranches, error)"
-    },
-    {
-      "id": "method.PropService.Create",
-      "kind": "method",
-      "signature": "func (s *PropService) Create(ctx context.Context, params *PropCreateParams) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.Delete",
-      "kind": "method",
-      "signature": "func (s *PropService) Delete(ctx context.Context, id int64) error"
-    },
-    {
-      "id": "method.PropService.DeleteByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) DeleteByIdentifier(ctx context.Context, identifier string) error"
-    },
-    {
-      "id": "method.PropService.EnvDefaults",
-      "kind": "method",
-      "signature": "func (s *PropService) EnvDefaults(ctx context.Context, id int64, branch string, envFilePath string) (*PropEnvDefaults, error)"
-    },
-    {
-      "id": "method.PropService.EnvDefaultsByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) EnvDefaultsByIdentifier(ctx context.Context, identifier string, branch string, envFilePath string) (*PropEnvDefaults, error)"
-    },
-    {
-      "id": "method.PropService.Get",
-      "kind": "method",
-      "signature": "func (s *PropService) Get(ctx context.Context, id int64) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.GetByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) GetByIdentifier(ctx context.Context, identifier string) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.GetMirrorStateByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) GetMirrorStateByIdentifier(ctx context.Context, identifier string) (*PropMirrorState, error)"
-    },
-    {
-      "id": "method.PropService.List",
-      "kind": "method",
-      "signature": "func (s *PropService) List(ctx context.Context, params *PropListParams) (*ListResult[Prop], error)"
-    },
-    {
-      "id": "method.PropService.Mirror",
-      "kind": "method",
-      "signature": "func (s *PropService) Mirror(ctx context.Context, sourceURL string, name string) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.MirrorWithState",
-      "kind": "method",
-      "signature": "func (s *PropService) MirrorWithState(ctx context.Context, sourceURL, name string) (*PropMirrorState, error)"
-    },
-    {
-      "id": "method.PropService.Sync",
-      "kind": "method",
-      "signature": "func (s *PropService) Sync(ctx context.Context, id int64) error"
-    },
-    {
-      "id": "method.PropService.SyncByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) SyncByIdentifier(ctx context.Context, identifier string) error"
-    },
-    {
-      "id": "method.PropService.Update",
-      "kind": "method",
-      "signature": "func (s *PropService) Update(ctx context.Context, id int64, params *PropUpdateParams) (*Prop, error)"
-    },
-    {
-      "id": "method.PropService.UpdateByIdentifier",
-      "kind": "method",
-      "signature": "func (s *PropService) UpdateByIdentifier(ctx context.Context, identifier string, params *PropUpdateParams) (*Prop, error)"
-    },
-    {
       "id": "method.RepoStatusService.Check",
       "kind": "method",
       "signature": "func (s *RepoStatusService) Check(ctx context.Context, githubURLs []string) (*RepoStatus, error)"
+    },
+    {
+      "id": "method.RepositoryCreateParams.Validate",
+      "kind": "method",
+      "signature": "func (p *RepositoryCreateParams) Validate() error"
+    },
+    {
+      "id": "method.RepositoryService.Attach",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Attach(ctx context.Context, repoFullName string) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.Branches",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Branches(ctx context.Context, id int64, query string, limit int) (*RepositoryBranches, error)"
+    },
+    {
+      "id": "method.RepositoryService.BranchesByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) BranchesByIdentifier(ctx context.Context, identifier string, query string, limit int) (*RepositoryBranches, error)"
+    },
+    {
+      "id": "method.RepositoryService.Create",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Create(ctx context.Context, params *RepositoryCreateParams) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.Delete",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Delete(ctx context.Context, id int64) error"
+    },
+    {
+      "id": "method.RepositoryService.DeleteByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) DeleteByIdentifier(ctx context.Context, identifier string) error"
+    },
+    {
+      "id": "method.RepositoryService.EnvDefaults",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) EnvDefaults(ctx context.Context, id int64, branch string, envFilePath string) (*RepositoryEnvDefaults, error)"
+    },
+    {
+      "id": "method.RepositoryService.EnvDefaultsByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) EnvDefaultsByIdentifier(ctx context.Context, identifier string, branch string, envFilePath string) (*RepositoryEnvDefaults, error)"
+    },
+    {
+      "id": "method.RepositoryService.Get",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Get(ctx context.Context, id int64) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.GetByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) GetByIdentifier(ctx context.Context, identifier string) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.GetMirrorStateByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) GetMirrorStateByIdentifier(ctx context.Context, identifier string) (*RepositoryMirrorState, error)"
+    },
+    {
+      "id": "method.RepositoryService.List",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) List(ctx context.Context, params *RepositoryListParams) (*ListResult[Repository], error)"
+    },
+    {
+      "id": "method.RepositoryService.Mirror",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Mirror(ctx context.Context, sourceURL string, name string) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.MirrorWithState",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) MirrorWithState(ctx context.Context, sourceURL, name string) (*RepositoryMirrorState, error)"
+    },
+    {
+      "id": "method.RepositoryService.Sync",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Sync(ctx context.Context, id int64) error"
+    },
+    {
+      "id": "method.RepositoryService.SyncByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) SyncByIdentifier(ctx context.Context, identifier string) error"
+    },
+    {
+      "id": "method.RepositoryService.Update",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) Update(ctx context.Context, id int64, params *RepositoryUpdateParams) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.UpdateByIdentifier",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) UpdateByIdentifier(ctx context.Context, identifier string, params *RepositoryUpdateParams) (*Repository, error)"
     },
     {
       "id": "method.SecretCreateParams.Validate",
@@ -2208,9 +2063,234 @@
       "signature": "func (s *ServerInfoService) Get(ctx context.Context) (*ServerInfo, error)"
     },
     {
+      "id": "method.SpecCreateParams.Validate",
+      "kind": "method",
+      "signature": "func (p *SpecCreateParams) Validate() error"
+    },
+    {
+      "id": "method.SpecService.AddMountedFile",
+      "kind": "method",
+      "signature": "func (s *SpecService) AddMountedFile(ctx context.Context, id int64, file io.Reader, fileName string, params *MountedFileParams) error"
+    },
+    {
+      "id": "method.SpecService.AddMountedFileByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) AddMountedFileByIdentifier(ctx context.Context, identifier string, file io.Reader, fileName string, params *MountedFileParams) error"
+    },
+    {
+      "id": "method.SpecService.AddRegistryCredential",
+      "kind": "method",
+      "signature": "func (s *SpecService) AddRegistryCredential(ctx context.Context, id int64, params *RegistryCredentialParams) (*RegistryCredentialResult, error)"
+    },
+    {
+      "id": "method.SpecService.AddRegistryCredentialByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) AddRegistryCredentialByIdentifier(ctx context.Context, identifier string, params *RegistryCredentialParams) (*RegistryCredentialResult, error)"
+    },
+    {
+      "id": "method.SpecService.Create",
+      "kind": "method",
+      "signature": "func (s *SpecService) Create(ctx context.Context, params *SpecCreateParams) (*Spec, error)"
+    },
+    {
+      "id": "method.SpecService.Delete",
+      "kind": "method",
+      "signature": "func (s *SpecService) Delete(ctx context.Context, id int64) error"
+    },
+    {
+      "id": "method.SpecService.DeleteByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) DeleteByIdentifier(ctx context.Context, identifier string) error"
+    },
+    {
+      "id": "method.SpecService.Get",
+      "kind": "method",
+      "signature": "func (s *SpecService) Get(ctx context.Context, id int64) (*Spec, error)"
+    },
+    {
+      "id": "method.SpecService.GetByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) GetByIdentifier(ctx context.Context, identifier string) (*Spec, error)"
+    },
+    {
+      "id": "method.SpecService.List",
+      "kind": "method",
+      "signature": "func (s *SpecService) List(ctx context.Context, params *SpecListParams) (*ListResult[Spec], error)"
+    },
+    {
+      "id": "method.SpecService.PreviewTemplateVersionSwitch",
+      "kind": "method",
+      "signature": "func (s *SpecService) PreviewTemplateVersionSwitch(ctx context.Context, id int64, params *SpecTemplateVersionSwitchParams) (*SpecTemplateVersionSwitchPreview, error)"
+    },
+    {
+      "id": "method.SpecService.PreviewTemplateVersionSwitchByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) PreviewTemplateVersionSwitchByIdentifier(ctx context.Context, identifier string, params *SpecTemplateVersionSwitchParams) (*SpecTemplateVersionSwitchPreview, error)"
+    },
+    {
+      "id": "method.SpecService.RemoveMountedFile",
+      "kind": "method",
+      "signature": "func (s *SpecService) RemoveMountedFile(ctx context.Context, id int64, filename string) error"
+    },
+    {
+      "id": "method.SpecService.RemoveMountedFileByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) RemoveMountedFileByIdentifier(ctx context.Context, identifier string, filename string) error"
+    },
+    {
+      "id": "method.SpecService.RemoveRegistryCredential",
+      "kind": "method",
+      "signature": "func (s *SpecService) RemoveRegistryCredential(ctx context.Context, id int64, credentialID string) error"
+    },
+    {
+      "id": "method.SpecService.RemoveRegistryCredentialByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) RemoveRegistryCredentialByIdentifier(ctx context.Context, identifier string, credentialID string) error"
+    },
+    {
+      "id": "method.SpecService.Services",
+      "kind": "method",
+      "signature": "func (s *SpecService) Services(ctx context.Context, id int64) ([]any, error)"
+    },
+    {
+      "id": "method.SpecService.ServicesByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) ServicesByIdentifier(ctx context.Context, identifier string) ([]any, error)"
+    },
+    {
+      "id": "method.SpecService.SwitchTemplateVersion",
+      "kind": "method",
+      "signature": "func (s *SpecService) SwitchTemplateVersion(ctx context.Context, id int64, params *SpecTemplateVersionSwitchParams) (*SpecTemplateVersionSwitchResult, error)"
+    },
+    {
+      "id": "method.SpecService.SwitchTemplateVersionByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) SwitchTemplateVersionByIdentifier(ctx context.Context, identifier string, params *SpecTemplateVersionSwitchParams) (*SpecTemplateVersionSwitchResult, error)"
+    },
+    {
+      "id": "method.SpecService.Update",
+      "kind": "method",
+      "signature": "func (s *SpecService) Update(ctx context.Context, id int64, params *SpecUpdateParams) (*Spec, error)"
+    },
+    {
+      "id": "method.SpecService.UpdateByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) UpdateByIdentifier(ctx context.Context, identifier string, params *SpecUpdateParams) (*Spec, error)"
+    },
+    {
+      "id": "method.SpecService.UpdateMountedFile",
+      "kind": "method",
+      "signature": "func (s *SpecService) UpdateMountedFile(ctx context.Context, id int64, params *MountedFileUpdateParams) error"
+    },
+    {
+      "id": "method.SpecService.UpdateMountedFileByIdentifier",
+      "kind": "method",
+      "signature": "func (s *SpecService) UpdateMountedFileByIdentifier(ctx context.Context, identifier string, params *MountedFileUpdateParams) error"
+    },
+    {
+      "id": "method.SpecService.ValidateCompose",
+      "kind": "method",
+      "signature": "func (s *SpecService) ValidateCompose(ctx context.Context, composeYAML string) (*ComposeValidation, error)"
+    },
+    {
+      "id": "method.SpecService.ValidateComposeWithParams",
+      "kind": "method",
+      "signature": "func (s *SpecService) ValidateComposeWithParams(ctx context.Context, params *ComposeValidateParams) (*ComposeValidation, error)"
+    },
+    {
+      "id": "method.SpecServiceDef.MarshalJSON",
+      "kind": "method",
+      "signature": "func (p SpecServiceDef) MarshalJSON() ([]byte, error)"
+    },
+    {
+      "id": "method.SpecTemplateVersionSwitchParams.MarshalJSON",
+      "kind": "method",
+      "signature": "func (p SpecTemplateVersionSwitchParams) MarshalJSON() ([]byte, error)"
+    },
+    {
       "id": "method.StatusService.Get",
       "kind": "method",
       "signature": "func (s *StatusService) Get(ctx context.Context) (*Status, error)"
+    },
+    {
+      "id": "method.TaskService.Delete",
+      "kind": "method",
+      "signature": "func (s *TaskService) Delete(ctx context.Context, id int64) error"
+    },
+    {
+      "id": "method.TaskService.DeleteByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) DeleteByIdentifier(ctx context.Context, identifier string) error"
+    },
+    {
+      "id": "method.TaskService.Get",
+      "kind": "method",
+      "signature": "func (s *TaskService) Get(ctx context.Context, id int64) (*Playground, error)"
+    },
+    {
+      "id": "method.TaskService.GetByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) GetByIdentifier(ctx context.Context, identifier string) (*Playground, error)"
+    },
+    {
+      "id": "method.TaskService.List",
+      "kind": "method",
+      "signature": "func (s *TaskService) List(ctx context.Context, params *PlaygroundListParams) (*ListResult[Playground], error)"
+    },
+    {
+      "id": "method.TaskService.LogStream",
+      "kind": "method",
+      "signature": "func (s *TaskService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (\u003c-chan LogStreamEvent, \u003c-chan error)"
+    },
+    {
+      "id": "method.TaskService.LogStreamByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (\u003c-chan LogStreamEvent, \u003c-chan error)"
+    },
+    {
+      "id": "method.TaskService.Logs",
+      "kind": "method",
+      "signature": "func (s *TaskService) Logs(ctx context.Context, id int64, service string, tail *int) (*PlaygroundLogs, error)"
+    },
+    {
+      "id": "method.TaskService.LogsByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) LogsByIdentifier(ctx context.Context, identifier string, service string, tail *int) (*PlaygroundLogs, error)"
+    },
+    {
+      "id": "method.TaskService.LogsStream",
+      "kind": "method",
+      "signature": "func (s *TaskService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) \u003c-chan LogLine"
+    },
+    {
+      "id": "method.TaskService.LogsStreamByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) \u003c-chan LogLine"
+    },
+    {
+      "id": "method.TaskService.Rerun",
+      "kind": "method",
+      "signature": "func (s *TaskService) Rerun(ctx context.Context, sourceID int64) (*Playground, error)"
+    },
+    {
+      "id": "method.TaskService.RerunByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) RerunByIdentifier(ctx context.Context, sourceIdentifier string) (*Playground, error)"
+    },
+    {
+      "id": "method.TaskService.Status",
+      "kind": "method",
+      "signature": "func (s *TaskService) Status(ctx context.Context, id int64) (*PlaygroundStatus, error)"
+    },
+    {
+      "id": "method.TaskService.StatusByIdentifier",
+      "kind": "method",
+      "signature": "func (s *TaskService) StatusByIdentifier(ctx context.Context, identifier string) (*PlaygroundStatus, error)"
+    },
+    {
+      "id": "method.TaskService.Trigger",
+      "kind": "method",
+      "signature": "func (s *TaskService) Trigger(ctx context.Context, params *TaskTriggerParams) (*Playground, error)"
     },
     {
       "id": "method.TemplateCategoryService.List",
@@ -2221,86 +2301,6 @@
       "id": "method.TemplateVersionPatchParams.MarshalJSON",
       "kind": "method",
       "signature": "func (p TemplateVersionPatchParams) MarshalJSON() ([]byte, error)"
-    },
-    {
-      "id": "method.TrickService.Delete",
-      "kind": "method",
-      "signature": "func (s *TrickService) Delete(ctx context.Context, id int64) error"
-    },
-    {
-      "id": "method.TrickService.DeleteByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) DeleteByIdentifier(ctx context.Context, identifier string) error"
-    },
-    {
-      "id": "method.TrickService.Get",
-      "kind": "method",
-      "signature": "func (s *TrickService) Get(ctx context.Context, id int64) (*Playground, error)"
-    },
-    {
-      "id": "method.TrickService.GetByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) GetByIdentifier(ctx context.Context, identifier string) (*Playground, error)"
-    },
-    {
-      "id": "method.TrickService.List",
-      "kind": "method",
-      "signature": "func (s *TrickService) List(ctx context.Context, params *PlaygroundListParams) (*ListResult[Playground], error)"
-    },
-    {
-      "id": "method.TrickService.LogStream",
-      "kind": "method",
-      "signature": "func (s *TrickService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (\u003c-chan LogStreamEvent, \u003c-chan error)"
-    },
-    {
-      "id": "method.TrickService.LogStreamByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (\u003c-chan LogStreamEvent, \u003c-chan error)"
-    },
-    {
-      "id": "method.TrickService.Logs",
-      "kind": "method",
-      "signature": "func (s *TrickService) Logs(ctx context.Context, id int64, service string, tail *int) (*PlaygroundLogs, error)"
-    },
-    {
-      "id": "method.TrickService.LogsByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) LogsByIdentifier(ctx context.Context, identifier string, service string, tail *int) (*PlaygroundLogs, error)"
-    },
-    {
-      "id": "method.TrickService.LogsStream",
-      "kind": "method",
-      "signature": "func (s *TrickService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) \u003c-chan LogLine"
-    },
-    {
-      "id": "method.TrickService.LogsStreamByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) \u003c-chan LogLine"
-    },
-    {
-      "id": "method.TrickService.Rerun",
-      "kind": "method",
-      "signature": "func (s *TrickService) Rerun(ctx context.Context, sourceID int64) (*Playground, error)"
-    },
-    {
-      "id": "method.TrickService.RerunByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) RerunByIdentifier(ctx context.Context, sourceIdentifier string) (*Playground, error)"
-    },
-    {
-      "id": "method.TrickService.Status",
-      "kind": "method",
-      "signature": "func (s *TrickService) Status(ctx context.Context, id int64) (*PlaygroundStatus, error)"
-    },
-    {
-      "id": "method.TrickService.StatusByIdentifier",
-      "kind": "method",
-      "signature": "func (s *TrickService) StatusByIdentifier(ctx context.Context, identifier string) (*PlaygroundStatus, error)"
-    },
-    {
-      "id": "method.TrickService.Trigger",
-      "kind": "method",
-      "signature": "func (s *TrickService) Trigger(ctx context.Context, params *TrickTriggerParams) (*Playground, error)"
     },
     {
       "id": "method.ValidationErrors.Error",
@@ -2595,7 +2595,7 @@
     {
       "id": "type.Client",
       "kind": "type",
-      "signature": "type Client struct {\n\tPlaygrounds            *PlaygroundService\n\tTricks                 *TrickService\n\tAgents                 *AgentService\n\tCable                  *CableService\n\tAgentDefaults          *AgentDefaultsService\n\tArtefacts              *ArtefactService\n\tPlayspecs              *PlayspecService\n\tProps                  *PropService\n\tMarquees               *MarqueeService\n\tSecrets                *SecretService\n\tJobEnv                 *JobEnvService\n\tAPIKeys                *APIKeyService\n\tImportTemplates        *ImportTemplateService\n\tImportTemplateVersions *ImportTemplateVersionService\n\tWebhookEndpoints       *WebhookEndpointService\n\tFeedbacks              *FeedbackService\n\tMutters                *MutterService\n\tMemories               *MemoryService\n\tAuditLogs              *AuditLogService\n\tMonitor                *MonitorService\n\tGreenfield             *GreenfieldService\n\tGitHubApps             *GitHubAppService\n\tGitHubRepos            *GitHubRepoService\n\tGiteaRepos             *GiteaRepoService\n\tInstallations          *InstallationService\n\tLaunch                 *LaunchService\n\tRepoStatus             *RepoStatusService\n\tTemplateCategories     *TemplateCategoryService\n\tStatus                 *StatusService\n\tServerInfo             *ServerInfoService\n}"
+      "signature": "type Client struct {\n\tPlaygrounds            *PlaygroundService\n\tTasks                  *TaskService\n\tAgents                 *AgentService\n\tCable                  *CableService\n\tAgentDefaults          *AgentDefaultsService\n\tArtefacts              *ArtefactService\n\tSpecs                  *SpecService\n\tRepositories           *RepositoryService\n\tHosts                  *HostService\n\tSecrets                *SecretService\n\tJobEnv                 *JobEnvService\n\tAPIKeys                *APIKeyService\n\tImportTemplates        *ImportTemplateService\n\tImportTemplateVersions *ImportTemplateVersionService\n\tWebhookEndpoints       *WebhookEndpointService\n\tFeedbacks              *FeedbackService\n\tMutters                *MutterService\n\tMemories               *MemoryService\n\tAuditLogs              *AuditLogService\n\tMonitor                *MonitorService\n\tGreenfield             *GreenfieldService\n\tGitHubApps             *GitHubAppService\n\tGitHubRepos            *GitHubRepoService\n\tGiteaRepos             *GiteaRepoService\n\tInstallations          *InstallationService\n\tLaunch                 *LaunchService\n\tRepoStatus             *RepoStatusService\n\tTemplateCategories     *TemplateCategoryService\n\tStatus                 *StatusService\n\tServerInfo             *ServerInfoService\n}"
     },
     {
       "id": "type.ComposeValidateParams",
@@ -2700,7 +2700,7 @@
     {
       "id": "type.GiteaRepo",
       "kind": "type",
-      "signature": "type GiteaRepo struct {\n\tID            int64             `json:\"id\"`\n\tName          string            `json:\"name\"`\n\tFullName      string            `json:\"full_name\"`\n\tHTMLURL       string            `json:\"html_url\"`\n\tCloneURL      string            `json:\"clone_url\"`\n\tSSHURL        string            `json:\"ssh_url\"`\n\tPrivate       bool              `json:\"private\"`\n\tDescription   string            `json:\"description\"`\n\tDefaultBranch string            `json:\"default_branch,omitempty\"`\n\tRepo          *GiteaRepoSummary `json:\"repo,omitempty\"`\n\tPropID        int64             `json:\"prop_id,omitempty\"`\n\tProp          *Prop             `json:\"prop,omitempty\"`\n}"
+      "signature": "type GiteaRepo struct {\n\tID            int64             `json:\"id\"`\n\tName          string            `json:\"name\"`\n\tFullName      string            `json:\"full_name\"`\n\tHTMLURL       string            `json:\"html_url\"`\n\tCloneURL      string            `json:\"clone_url\"`\n\tSSHURL        string            `json:\"ssh_url\"`\n\tPrivate       bool              `json:\"private\"`\n\tDescription   string            `json:\"description\"`\n\tDefaultBranch string            `json:\"default_branch,omitempty\"`\n\tRepo          *GiteaRepoSummary `json:\"repo,omitempty\"`\n\tRepositoryID  int64             `json:\"repository_id,omitempty\"`\n\tRepository    *Repository       `json:\"repository,omitempty\"`\n}"
     },
     {
       "id": "type.GiteaRepoCreateParams",
@@ -2725,7 +2725,7 @@
     {
       "id": "type.GreenfieldCreateParams",
       "kind": "type",
-      "signature": "type GreenfieldCreateParams struct {\n\tName                 string            `json:\"name\"`\n\tTemplateID           *int64            `json:\"template_id,omitempty\"`\n\tTemplateIdentifier   string            `json:\"-\"`\n\tTemplateVersionID    *int64            `json:\"template_version_id,omitempty\"`\n\tVersion              string            `json:\"version,omitempty\"`\n\tTemplateBody         string            `json:\"template_body,omitempty\"`\n\tRepositoryURL        string            `json:\"repository_url,omitempty\"`\n\tConfigPath           string            `json:\"config_path,omitempty\"`\n\tGitHubRef            string            `json:\"github_ref,omitempty\"`\n\tGitHubInstallationID *int64            `json:\"github_installation_id,omitempty\"`\n\tGitHubAccount        string            `json:\"github_account,omitempty\"`\n\tGitProvider          string            `json:\"git_provider,omitempty\"`\n\tPrivate              *bool             `json:\"private,omitempty\"`\n\tMarqueeID            *int64            `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier    string            `json:\"-\"`\n\tPersistVolumes       *bool             `json:\"persist_volumes,omitempty\"`\n\tVariables            map[string]any    `json:\"variables,omitempty\"`\n\tEnvOverrides         map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains    map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices             map[string]any    `json:\"services,omitempty\"`\n}"
+      "signature": "type GreenfieldCreateParams struct {\n\tName                 string            `json:\"name\"`\n\tTemplateID           *int64            `json:\"template_id,omitempty\"`\n\tTemplateIdentifier   string            `json:\"-\"`\n\tTemplateVersionID    *int64            `json:\"template_version_id,omitempty\"`\n\tVersion              string            `json:\"version,omitempty\"`\n\tTemplateBody         string            `json:\"template_body,omitempty\"`\n\tRepositoryURL        string            `json:\"repository_url,omitempty\"`\n\tConfigPath           string            `json:\"config_path,omitempty\"`\n\tGitHubRef            string            `json:\"github_ref,omitempty\"`\n\tGitHubInstallationID *int64            `json:\"github_installation_id,omitempty\"`\n\tGitHubAccount        string            `json:\"github_account,omitempty\"`\n\tGitProvider          string            `json:\"git_provider,omitempty\"`\n\tPrivate              *bool             `json:\"private,omitempty\"`\n\tHostID               *int64            `json:\"host_id,omitempty\"`\n\tHostIdentifier       string            `json:\"-\"`\n\tPersistVolumes       *bool             `json:\"persist_volumes,omitempty\"`\n\tVariables            map[string]any    `json:\"variables,omitempty\"`\n\tEnvOverrides         map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains    map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices             map[string]any    `json:\"services,omitempty\"`\n}"
     },
     {
       "id": "type.GreenfieldIDName",
@@ -2740,7 +2740,7 @@
     {
       "id": "type.GreenfieldLinkedPath",
       "kind": "type",
-      "signature": "type GreenfieldLinkedPath struct {\n\tName    string `json:\"name\"`\n\tPath    string `json:\"path\"`\n\tTarget  string `json:\"target\"`\n\tService string `json:\"service,omitempty\"`\n\tProp    string `json:\"prop,omitempty\"`\n\tBranch  string `json:\"branch,omitempty\"`\n}"
+      "signature": "type GreenfieldLinkedPath struct {\n\tName       string `json:\"name\"`\n\tPath       string `json:\"path\"`\n\tTarget     string `json:\"target\"`\n\tService    string `json:\"service,omitempty\"`\n\tRepository string `json:\"repository,omitempty\"`\n\tBranch     string `json:\"branch,omitempty\"`\n}"
     },
     {
       "id": "type.GreenfieldRepo",
@@ -2750,7 +2750,7 @@
     {
       "id": "type.GreenfieldResult",
       "kind": "type",
-      "signature": "type GreenfieldResult struct {\n\tName                    string                 `json:\"name\"`\n\tGitProvider             string                 `json:\"git_provider\"`\n\tSourceTemplateVersionID *int64                 `json:\"source_template_version_id,omitempty\"`\n\tRepo                    *GreenfieldRepo        `json:\"repo,omitempty\"`\n\tRepos                   []GreenfieldRepo       `json:\"repos,omitempty\"`\n\tProp                    *Prop                  `json:\"prop,omitempty\"`\n\tProps                   []Prop                 `json:\"props,omitempty\"`\n\tImportTemplate          *ImportTemplate        `json:\"import_template,omitempty\"`\n\tImportTemplateVersion   *ImportTemplateVersion `json:\"import_template_version,omitempty\"`\n\tPlayspec                *GreenfieldIDName      `json:\"playspec,omitempty\"`\n\tPlayground              *Playground            `json:\"playground,omitempty\"`\n\tServiceURLs             []GreenfieldServiceURL `json:\"service_urls,omitempty\"`\n\tLink                    *GreenfieldLinkResult  `json:\"link,omitempty\"`\n}"
+      "signature": "type GreenfieldResult struct {\n\tName                    string                 `json:\"name\"`\n\tGitProvider             string                 `json:\"git_provider\"`\n\tSourceTemplateVersionID *int64                 `json:\"source_template_version_id,omitempty\"`\n\tRepo                    *GreenfieldRepo        `json:\"repo,omitempty\"`\n\tRepos                   []GreenfieldRepo       `json:\"repos,omitempty\"`\n\tRepository              *Repository            `json:\"repository,omitempty\"`\n\tRepositories            []Repository           `json:\"repositories,omitempty\"`\n\tImportTemplate          *ImportTemplate        `json:\"import_template,omitempty\"`\n\tImportTemplateVersion   *ImportTemplateVersion `json:\"import_template_version,omitempty\"`\n\tSpec                    *GreenfieldIDName      `json:\"spec,omitempty\"`\n\tPlayground              *Playground            `json:\"playground,omitempty\"`\n\tServiceURLs             []GreenfieldServiceURL `json:\"service_urls,omitempty\"`\n\tLink                    *GreenfieldLinkResult  `json:\"link,omitempty\"`\n}"
     },
     {
       "id": "type.GreenfieldService",
@@ -2761,6 +2761,31 @@
       "id": "type.GreenfieldServiceURL",
       "kind": "type",
       "signature": "type GreenfieldServiceURL struct {\n\tName         string `json:\"name\"`\n\tType         string `json:\"type\"`\n\tURL          string `json:\"url\"`\n\tVisibility   string `json:\"visibility\"`\n\tAuthRequired bool   `json:\"auth_required\"`\n}"
+    },
+    {
+      "id": "type.Host",
+      "kind": "type",
+      "signature": "type Host struct {\n\tID                    int64      `json:\"id\"`\n\tName                  string     `json:\"name\"`\n\tHost                  string     `json:\"host\"`\n\tPort                  int        `json:\"port\"`\n\tUser                  string     `json:\"user\"`\n\tStatus                string     `json:\"status\"`\n\tDomainsInput          *string    `json:\"domains_input\"`\n\tHttpsEnabled          *bool      `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource  *string    `json:\"tls_certificate_source,omitempty\"`\n\tAcmeEmail             *string    `json:\"acme_email\"`\n\tDockerhubAuthEnabled  *bool      `json:\"dockerhub_auth_enabled\"`\n\tBuildPlatform         *string    `json:\"build_platform\"`\n\tRepositoryID          *int64     `json:\"repository_id\"`\n\tPaidUntil             *time.Time `json:\"paid_until,omitempty\"`\n\tBillingRequestedUntil *time.Time `json:\"billing_requested_until,omitempty\"`\n\tBillingRuntimeActive  bool       `json:\"billing_runtime_active\"`\n\tChatLaunchable        bool       `json:\"chat_launchable\"`\n\tCreatedAt             time.Time  `json:\"created_at\"`\n\tUpdatedAt             time.Time  `json:\"updated_at\"`\n}"
+    },
+    {
+      "id": "type.HostCreateParams",
+      "kind": "type",
+      "signature": "type HostCreateParams struct {\n\tName                 string            `json:\"name\"`\n\tHost                 string            `json:\"host\"`\n\tPort                 int               `json:\"port\"`\n\tUser                 string            `json:\"user\"`\n\tSSHPrivateKey        string            `json:\"ssh_private_key\"`\n\tDomainsInput         *string           `json:\"domains_input,omitempty\"`\n\tHttpsEnabled         *bool             `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource *string           `json:\"tls_certificate_source,omitempty\"`\n\tTlsCertificatePEM    *string           `json:\"tls_certificate_pem,omitempty\"`\n\tTlsPrivateKeyPEM     *string           `json:\"tls_private_key_pem,omitempty\"`\n\tAcmeEmail            *string           `json:\"acme_email,omitempty\"`\n\tDockerhubAuthEnabled *bool             `json:\"dockerhub_auth_enabled,omitempty\"`\n\tDockerhubUsername    *string           `json:\"dockerhub_username,omitempty\"`\n\tDockerhubToken       *string           `json:\"dockerhub_token,omitempty\"`\n\tBuildPlatform        *string           `json:\"build_platform,omitempty\"`\n\tRepositoryID         *int64            `json:\"repository_id,omitempty\"`\n\tRepositoryIdentifier string            `json:\"-\"`\n\tStatus               *string           `json:\"status,omitempty\"`\n\tDnsProvider          *string           `json:\"dns_provider,omitempty\"`\n\tDnsCredentials       map[string]string `json:\"dns_credentials,omitempty\"`\n}"
+    },
+    {
+      "id": "type.HostListParams",
+      "kind": "type",
+      "signature": "type HostListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
+    },
+    {
+      "id": "type.HostService",
+      "kind": "type",
+      "signature": "type HostService struct {\n}"
+    },
+    {
+      "id": "type.HostUpdateParams",
+      "kind": "type",
+      "signature": "type HostUpdateParams struct {\n\tName                 *string           `json:\"name,omitempty\"`\n\tHost                 *string           `json:\"host,omitempty\"`\n\tPort                 *int              `json:\"port,omitempty\"`\n\tUser                 *string           `json:\"user,omitempty\"`\n\tSSHPrivateKey        *string           `json:\"ssh_private_key,omitempty\"`\n\tDomainsInput         *string           `json:\"domains_input,omitempty\"`\n\tHttpsEnabled         *bool             `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource *string           `json:\"tls_certificate_source,omitempty\"`\n\tTlsCertificatePEM    *string           `json:\"tls_certificate_pem,omitempty\"`\n\tTlsPrivateKeyPEM     *string           `json:\"tls_private_key_pem,omitempty\"`\n\tAcmeEmail            *string           `json:\"acme_email,omitempty\"`\n\tDockerhubAuthEnabled *bool             `json:\"dockerhub_auth_enabled,omitempty\"`\n\tDockerhubUsername    *string           `json:\"dockerhub_username,omitempty\"`\n\tDockerhubToken       *string           `json:\"dockerhub_token,omitempty\"`\n\tBuildPlatform        *string           `json:\"build_platform,omitempty\"`\n\tRepositoryID         *int64            `json:\"repository_id,omitempty\"`\n\tRepositoryIdentifier string            `json:\"-\"`\n\tStatus               *string           `json:\"status,omitempty\"`\n\tDnsProvider          *string           `json:\"dns_provider,omitempty\"`\n\tDnsCredentials       map[string]string `json:\"dns_credentials,omitempty\"`\n}"
     },
     {
       "id": "type.ImportTemplate",
@@ -2775,7 +2800,7 @@
     {
       "id": "type.ImportTemplateLaunchParams",
       "kind": "type",
-      "signature": "type ImportTemplateLaunchParams struct {\n\tMarqueeID         int64             `json:\"marquee_id\"`\n\tMarqueeIdentifier string            `json:\"-\"`\n\tVersion           *int64            `json:\"version,omitempty\"`\n\tName              string            `json:\"name,omitempty\"`\n\tPersistVolumes    *bool             `json:\"persist_volumes,omitempty\"`\n\tVariables         map[string]any    `json:\"variables,omitempty\"`\n\tEnvOverrides      map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices          map[string]any    `json:\"services,omitempty\"`\n}"
+      "signature": "type ImportTemplateLaunchParams struct {\n\tHostID            int64             `json:\"host_id\"`\n\tHostIdentifier    string            `json:\"-\"`\n\tVersion           *int64            `json:\"version,omitempty\"`\n\tName              string            `json:\"name,omitempty\"`\n\tPersistVolumes    *bool             `json:\"persist_volumes,omitempty\"`\n\tVariables         map[string]any    `json:\"variables,omitempty\"`\n\tEnvOverrides      map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices          map[string]any    `json:\"services,omitempty\"`\n}"
     },
     {
       "id": "type.ImportTemplateListParams",
@@ -2795,12 +2820,12 @@
     {
       "id": "type.ImportTemplateSource",
       "kind": "type",
-      "signature": "type ImportTemplateSource struct {\n\tID                *int64     `json:\"id,omitempty\"`\n\tPropID            *int64     `json:\"prop_id,omitempty\"`\n\tPropName          *string    `json:\"prop_name,omitempty\"`\n\tPropRepositoryURL *string    `json:\"prop_repository_url,omitempty\"`\n\tPath              string     `json:\"path\"`\n\tRef               string     `json:\"ref\"`\n\tAutoRefresh       *bool      `json:\"auto_refresh,omitempty\"`\n\tAutoUpgrade       *bool      `json:\"auto_upgrade,omitempty\"`\n\tCIEnabled         *bool      `json:\"ci_enabled,omitempty\"`\n\tCIMarqueeID       *int64     `json:\"ci_marquee_id,omitempty\"`\n\tCIMarqueeName     *string    `json:\"ci_marquee_name,omitempty\"`\n\tLastStatus        *string    `json:\"last_status,omitempty\"`\n\tLastCommitSHA     *string    `json:\"last_commit_sha,omitempty\"`\n\tLastContentSHA    *string    `json:\"last_content_sha,omitempty\"`\n\tLastRefreshedAt   *time.Time `json:\"last_refreshed_at,omitempty\"`\n\tLastError         *string    `json:\"last_error,omitempty\"`\n}"
+      "signature": "type ImportTemplateSource struct {\n\tID                      *int64     `json:\"id,omitempty\"`\n\tRepositoryID            *int64     `json:\"repository_id,omitempty\"`\n\tRepositoryName          *string    `json:\"repository_name,omitempty\"`\n\tRepositoryRepositoryURL *string    `json:\"repository_repository_url,omitempty\"`\n\tPath                    string     `json:\"path\"`\n\tRef                     string     `json:\"ref\"`\n\tAutoRefresh             *bool      `json:\"auto_refresh,omitempty\"`\n\tAutoUpgrade             *bool      `json:\"auto_upgrade,omitempty\"`\n\tCIEnabled               *bool      `json:\"ci_enabled,omitempty\"`\n\tCIHostID                *int64     `json:\"ci_host_id,omitempty\"`\n\tCIHostName              *string    `json:\"ci_host_name,omitempty\"`\n\tLastStatus              *string    `json:\"last_status,omitempty\"`\n\tLastCommitSHA           *string    `json:\"last_commit_sha,omitempty\"`\n\tLastContentSHA          *string    `json:\"last_content_sha,omitempty\"`\n\tLastRefreshedAt         *time.Time `json:\"last_refreshed_at,omitempty\"`\n\tLastError               *string    `json:\"last_error,omitempty\"`\n}"
     },
     {
       "id": "type.ImportTemplateSourceParams",
       "kind": "type",
-      "signature": "type ImportTemplateSourceParams struct {\n\tSourcePropID         int64  `json:\"source_prop_id\"`\n\tSourcePropIdentifier string `json:\"-\"`\n\tSourcePath           string `json:\"source_path\"`\n\tSourceRef            string `json:\"source_ref,omitempty\"`\n\tSourceAutoRefresh    *bool  `json:\"source_auto_refresh,omitempty\"`\n\tSourceAutoUpgrade    *bool  `json:\"source_auto_upgrade,omitempty\"`\n\tCIEnabled            *bool  `json:\"ci_enabled,omitempty\"`\n\tCIMarqueeID          *int64 `json:\"ci_marquee_id,omitempty\"`\n\tCIMarqueeIdentifier  string `json:\"-\"`\n\tMarqueeID            *int64 `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier    string `json:\"-\"`\n}"
+      "signature": "type ImportTemplateSourceParams struct {\n\tSourceRepositoryID         int64  `json:\"source_repository_id\"`\n\tSourceRepositoryIdentifier string `json:\"-\"`\n\tSourcePath                 string `json:\"source_path\"`\n\tSourceRef                  string `json:\"source_ref,omitempty\"`\n\tSourceAutoRefresh          *bool  `json:\"source_auto_refresh,omitempty\"`\n\tSourceAutoUpgrade          *bool  `json:\"source_auto_upgrade,omitempty\"`\n\tCIEnabled                  *bool  `json:\"ci_enabled,omitempty\"`\n\tCIHostID                   *int64 `json:\"ci_host_id,omitempty\"`\n\tCIHostIdentifier           string `json:\"-\"`\n\tHostID                     *int64 `json:\"host_id,omitempty\"`\n\tHostIdentifier             string `json:\"-\"`\n}"
     },
     {
       "id": "type.ImportTemplateSourceRefreshResult",
@@ -2835,7 +2860,7 @@
     {
       "id": "type.ImportTemplateVersionSource",
       "kind": "type",
-      "signature": "type ImportTemplateVersionSource struct {\n\tPropID            *int64  `json:\"prop_id,omitempty\"`\n\tPropName          *string `json:\"prop_name,omitempty\"`\n\tPropRepositoryURL *string `json:\"prop_repository_url,omitempty\"`\n\tPath              string  `json:\"path,omitempty\"`\n\tRef               string  `json:\"ref,omitempty\"`\n\tCommitSHA         *string `json:\"commit_sha,omitempty\"`\n\tContentSHA        *string `json:\"content_sha,omitempty\"`\n}"
+      "signature": "type ImportTemplateVersionSource struct {\n\tRepositoryID            *int64  `json:\"repository_id,omitempty\"`\n\tRepositoryName          *string `json:\"repository_name,omitempty\"`\n\tRepositoryRepositoryURL *string `json:\"repository_repository_url,omitempty\"`\n\tPath                    string  `json:\"path,omitempty\"`\n\tRef                     string  `json:\"ref,omitempty\"`\n\tCommitSHA               *string `json:\"commit_sha,omitempty\"`\n\tContentSHA              *string `json:\"content_sha,omitempty\"`\n}"
     },
     {
       "id": "type.Installation",
@@ -2865,12 +2890,12 @@
     {
       "id": "type.JobEnvEntry",
       "kind": "type",
-      "signature": "type JobEnvEntry struct {\n\tID          *int64     `json:\"id\"`\n\tPlayerID    *int64     `json:\"player_id,omitempty\"`\n\tPropID      *int64     `json:\"prop_id,omitempty\"`\n\tPropName    *string    `json:\"prop_name,omitempty\"`\n\tKey         string     `json:\"key\"`\n\tValue       *string    `json:\"value,omitempty\"`\n\tSecret      bool       `json:\"secret\"`\n\tEnabled     bool       `json:\"enabled\"`\n\tDescription *string    `json:\"description,omitempty\"`\n\tCreatedAt   *time.Time `json:\"created_at,omitempty\"`\n\tUpdatedAt   *time.Time `json:\"updated_at,omitempty\"`\n}"
+      "signature": "type JobEnvEntry struct {\n\tID             *int64     `json:\"id\"`\n\tPlayerID       *int64     `json:\"player_id,omitempty\"`\n\tRepositoryID   *int64     `json:\"repository_id,omitempty\"`\n\tRepositoryName *string    `json:\"repository_name,omitempty\"`\n\tKey            string     `json:\"key\"`\n\tValue          *string    `json:\"value,omitempty\"`\n\tSecret         bool       `json:\"secret\"`\n\tEnabled        bool       `json:\"enabled\"`\n\tDescription    *string    `json:\"description,omitempty\"`\n\tCreatedAt      *time.Time `json:\"created_at,omitempty\"`\n\tUpdatedAt      *time.Time `json:\"updated_at,omitempty\"`\n}"
     },
     {
       "id": "type.JobEnvListParams",
       "kind": "type",
-      "signature": "type JobEnvListParams struct {\n\tPropID         int64  `url:\"prop_id,omitempty\"`\n\tPropIdentifier string `url:\"prop_id,omitempty\"`\n\tSecret         *bool  `url:\"secret,omitempty\"`\n\tEnabled        *bool  `url:\"enabled,omitempty\"`\n\tQ              string `url:\"q,omitempty\"`\n\tPage           int    `url:\"page,omitempty\"`\n\tPerPage        int    `url:\"per_page,omitempty\"`\n}"
+      "signature": "type JobEnvListParams struct {\n\tRepositoryID         int64  `url:\"repository_id,omitempty\"`\n\tRepositoryIdentifier string `url:\"repository_id,omitempty\"`\n\tSecret               *bool  `url:\"secret,omitempty\"`\n\tEnabled              *bool  `url:\"enabled,omitempty\"`\n\tQ                    string `url:\"q,omitempty\"`\n\tPage                 int    `url:\"page,omitempty\"`\n\tPerPage              int    `url:\"per_page,omitempty\"`\n}"
     },
     {
       "id": "type.JobEnvService",
@@ -2880,7 +2905,7 @@
     {
       "id": "type.JobEnvSetParams",
       "kind": "type",
-      "signature": "type JobEnvSetParams struct {\n\tPropID         *int64  `json:\"prop_id,omitempty\"`\n\tPropIdentifier string  `json:\"-\"`\n\tKey            string  `json:\"key\"`\n\tValue          string  `json:\"value\"`\n\tSecret         bool    `json:\"secret,omitempty\"`\n\tEnabled        *bool   `json:\"enabled,omitempty\"`\n\tDescription    *string `json:\"description,omitempty\"`\n}"
+      "signature": "type JobEnvSetParams struct {\n\tRepositoryID         *int64  `json:\"repository_id,omitempty\"`\n\tRepositoryIdentifier string  `json:\"-\"`\n\tKey                  string  `json:\"key\"`\n\tValue                string  `json:\"value\"`\n\tSecret               bool    `json:\"secret,omitempty\"`\n\tEnabled              *bool   `json:\"enabled,omitempty\"`\n\tDescription          *string `json:\"description,omitempty\"`\n}"
     },
     {
       "id": "type.JobEnvUpdateParams",
@@ -2905,12 +2930,12 @@
     {
       "id": "type.LaunchParams",
       "kind": "type",
-      "signature": "type LaunchParams struct {\n\tComposeYAML            string            `json:\"compose_yaml\"`\n\tName                   string            `json:\"name\"`\n\tRepositoryURL          string            `json:\"repository_url,omitempty\"`\n\tConfigPath             string            `json:\"config_path,omitempty\"`\n\tGitHubRef              string            `json:\"github_ref,omitempty\"`\n\tGitHubInstallationID   *int64            `json:\"github_installation_id,omitempty\"`\n\tGitHubAccount          string            `json:\"github_account,omitempty\"`\n\tJobMode                *bool             `json:\"job_mode,omitempty\"`\n\tMarqueeID              *int64            `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier      string            `json:\"-\"`\n\tCreatePlayground       *bool             `json:\"create_playground,omitempty\"`\n\tPersistVolumes         *bool             `json:\"persist_volumes,omitempty\"`\n\tEnvOverrides           map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains      map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices               map[string]any    `json:\"services,omitempty\"`\n\tVariables              map[string]string `json:\"variables,omitempty\"`\n\tPropMappings           map[string]int64  `json:\"prop_mappings,omitempty\"`\n\tPropMappingIdentifiers map[string]string `json:\"-\"`\n}"
+      "signature": "type LaunchParams struct {\n\tComposeYAML                  string            `json:\"compose_yaml\"`\n\tName                         string            `json:\"name\"`\n\tRepositoryURL                string            `json:\"repository_url,omitempty\"`\n\tConfigPath                   string            `json:\"config_path,omitempty\"`\n\tGitHubRef                    string            `json:\"github_ref,omitempty\"`\n\tGitHubInstallationID         *int64            `json:\"github_installation_id,omitempty\"`\n\tGitHubAccount                string            `json:\"github_account,omitempty\"`\n\tJobMode                      *bool             `json:\"job_mode,omitempty\"`\n\tHostID                       *int64            `json:\"host_id,omitempty\"`\n\tHostIdentifier               string            `json:\"-\"`\n\tCreatePlayground             *bool             `json:\"create_playground,omitempty\"`\n\tPersistVolumes               *bool             `json:\"persist_volumes,omitempty\"`\n\tEnvOverrides                 map[string]string `json:\"env_overrides,omitempty\"`\n\tServiceSubdomains            map[string]string `json:\"service_subdomains,omitempty\"`\n\tServices                     map[string]any    `json:\"services,omitempty\"`\n\tVariables                    map[string]string `json:\"variables,omitempty\"`\n\tRepositoryMappings           map[string]int64  `json:\"repository_mappings,omitempty\"`\n\tRepositoryMappingIdentifiers map[string]string `json:\"-\"`\n}"
     },
     {
       "id": "type.LaunchResult",
       "kind": "type",
-      "signature": "type LaunchResult struct {\n\tPlayspecID   int64   `json:\"playspec_id,omitempty\"`\n\tPlaygroundID int64   `json:\"playground_id,omitempty\"`\n\tPropsCreated []int64 `json:\"props_created,omitempty\"`\n\n\tID     int64  `json:\"id,omitempty\"`\n\tStatus string `json:\"status,omitempty\"`\n\tName   string `json:\"name,omitempty\"`\n}"
+      "signature": "type LaunchResult struct {\n\tSpecID              int64   `json:\"spec_id,omitempty\"`\n\tPlaygroundID        int64   `json:\"playground_id,omitempty\"`\n\tRepositoriesCreated []int64 `json:\"repositories_created,omitempty\"`\n\n\tID     int64  `json:\"id,omitempty\"`\n\tStatus string `json:\"status,omitempty\"`\n\tName   string `json:\"name,omitempty\"`\n}"
     },
     {
       "id": "type.LaunchService",
@@ -2951,31 +2976,6 @@
       "id": "type.LogsStreamOptions",
       "kind": "type",
       "signature": "type LogsStreamOptions struct {\n\tTail int\n\n\tPollInterval time.Duration\n\n\tMaxLines int\n}"
-    },
-    {
-      "id": "type.Marquee",
-      "kind": "type",
-      "signature": "type Marquee struct {\n\tID                    int64      `json:\"id\"`\n\tName                  string     `json:\"name\"`\n\tHost                  string     `json:\"host\"`\n\tPort                  int        `json:\"port\"`\n\tUser                  string     `json:\"user\"`\n\tStatus                string     `json:\"status\"`\n\tDomainsInput          *string    `json:\"domains_input\"`\n\tHttpsEnabled          *bool      `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource  *string    `json:\"tls_certificate_source,omitempty\"`\n\tAcmeEmail             *string    `json:\"acme_email\"`\n\tDockerhubAuthEnabled  *bool      `json:\"dockerhub_auth_enabled\"`\n\tBuildPlatform         *string    `json:\"build_platform\"`\n\tPropID                *int64     `json:\"prop_id\"`\n\tPaidUntil             *time.Time `json:\"paid_until,omitempty\"`\n\tBillingRequestedUntil *time.Time `json:\"billing_requested_until,omitempty\"`\n\tBillingRuntimeActive  bool       `json:\"billing_runtime_active\"`\n\tChatLaunchable        bool       `json:\"chat_launchable\"`\n\tCreatedAt             time.Time  `json:\"created_at\"`\n\tUpdatedAt             time.Time  `json:\"updated_at\"`\n}"
-    },
-    {
-      "id": "type.MarqueeCreateParams",
-      "kind": "type",
-      "signature": "type MarqueeCreateParams struct {\n\tName                 string            `json:\"name\"`\n\tHost                 string            `json:\"host\"`\n\tPort                 int               `json:\"port\"`\n\tUser                 string            `json:\"user\"`\n\tSSHPrivateKey        string            `json:\"ssh_private_key\"`\n\tDomainsInput         *string           `json:\"domains_input,omitempty\"`\n\tHttpsEnabled         *bool             `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource *string           `json:\"tls_certificate_source,omitempty\"`\n\tTlsCertificatePEM    *string           `json:\"tls_certificate_pem,omitempty\"`\n\tTlsPrivateKeyPEM     *string           `json:\"tls_private_key_pem,omitempty\"`\n\tAcmeEmail            *string           `json:\"acme_email,omitempty\"`\n\tDockerhubAuthEnabled *bool             `json:\"dockerhub_auth_enabled,omitempty\"`\n\tDockerhubUsername    *string           `json:\"dockerhub_username,omitempty\"`\n\tDockerhubToken       *string           `json:\"dockerhub_token,omitempty\"`\n\tBuildPlatform        *string           `json:\"build_platform,omitempty\"`\n\tPropID               *int64            `json:\"prop_id,omitempty\"`\n\tPropIdentifier       string            `json:\"-\"`\n\tStatus               *string           `json:\"status,omitempty\"`\n\tDnsProvider          *string           `json:\"dns_provider,omitempty\"`\n\tDnsCredentials       map[string]string `json:\"dns_credentials,omitempty\"`\n}"
-    },
-    {
-      "id": "type.MarqueeListParams",
-      "kind": "type",
-      "signature": "type MarqueeListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
-    },
-    {
-      "id": "type.MarqueeService",
-      "kind": "type",
-      "signature": "type MarqueeService struct {\n}"
-    },
-    {
-      "id": "type.MarqueeUpdateParams",
-      "kind": "type",
-      "signature": "type MarqueeUpdateParams struct {\n\tName                 *string           `json:\"name,omitempty\"`\n\tHost                 *string           `json:\"host,omitempty\"`\n\tPort                 *int              `json:\"port,omitempty\"`\n\tUser                 *string           `json:\"user,omitempty\"`\n\tSSHPrivateKey        *string           `json:\"ssh_private_key,omitempty\"`\n\tDomainsInput         *string           `json:\"domains_input,omitempty\"`\n\tHttpsEnabled         *bool             `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource *string           `json:\"tls_certificate_source,omitempty\"`\n\tTlsCertificatePEM    *string           `json:\"tls_certificate_pem,omitempty\"`\n\tTlsPrivateKeyPEM     *string           `json:\"tls_private_key_pem,omitempty\"`\n\tAcmeEmail            *string           `json:\"acme_email,omitempty\"`\n\tDockerhubAuthEnabled *bool             `json:\"dockerhub_auth_enabled,omitempty\"`\n\tDockerhubUsername    *string           `json:\"dockerhub_username,omitempty\"`\n\tDockerhubToken       *string           `json:\"dockerhub_token,omitempty\"`\n\tBuildPlatform        *string           `json:\"build_platform,omitempty\"`\n\tPropID               *int64            `json:\"prop_id,omitempty\"`\n\tPropIdentifier       string            `json:\"-\"`\n\tStatus               *string           `json:\"status,omitempty\"`\n\tDnsProvider          *string           `json:\"dns_provider,omitempty\"`\n\tDnsCredentials       map[string]string `json:\"dns_credentials,omitempty\"`\n}"
     },
     {
       "id": "type.Memory",
@@ -3085,7 +3085,7 @@
     {
       "id": "type.Playground",
       "kind": "type",
-      "signature": "type Playground struct {\n\tID                 int64          `json:\"id\"`\n\tName               string         `json:\"name\"`\n\tStatus             string         `json:\"status\"`\n\tResultStatus       *string        `json:\"result_status,omitempty\"`\n\tMaintenanceEnabled bool           `json:\"maintenance_enabled\"`\n\tJobMode            bool           `json:\"job_mode\"`\n\tStateReason        *string        `json:\"state_reason,omitempty\"`\n\tStateReasons       []string       `json:\"state_reasons,omitempty\"`\n\tPlayspecID         *int64         `json:\"playspec_id\"`\n\tPlayspecName       *string        `json:\"playspec_name\"`\n\tMarqueeID          *int64         `json:\"marquee_id,omitempty\"`\n\tServiceBranches    map[string]any `json:\"service_branches\"`\n\tExpiresAt          *time.Time     `json:\"expires_at\"`\n\tCreatedAt          time.Time      `json:\"created_at\"`\n\n\tComposeProject           *string                 `json:\"compose_project,omitempty\"`\n\tMarqueeName              *string                 `json:\"marquee_name,omitempty\"`\n\tRootDomain               *string                 `json:\"root_domain,omitempty\"`\n\tRoutingScheme            *string                 `json:\"routing_scheme,omitempty\"`\n\tInternalPassword         *string                 `json:\"internal_password,omitempty\"`\n\tEnvOverrides             map[string]string       `json:\"env_overrides,omitempty\"`\n\tLastAppliedAt            *time.Time              `json:\"last_applied_at,omitempty\"`\n\tErrorMessage             *string                 `json:\"error_message,omitempty\"`\n\tPlayguardRepairReason    *string                 `json:\"playguard_repair_reason,omitempty\"`\n\tPlayguardRepairLockUntil *time.Time              `json:\"playguard_repair_lock_until,omitempty\"`\n\tNeedsRecreation          *bool                   `json:\"needs_recreation,omitempty\"`\n\tTimeRemaining            *float64                `json:\"time_remaining,omitempty\"`\n\tExpirationPercentage     *float64                `json:\"expiration_percentage,omitempty\"`\n\tBuildWarnings            []string                `json:\"build_warnings,omitempty\"`\n\tBuildStatuses            []PlaygroundBuildStatus `json:\"build_statuses,omitempty\"`\n\tPersistentVolumePrefix   *string                 `json:\"persistent_volume_prefix,omitempty\"`\n\tServiceURLs              []PlaygroundServiceURL  `json:\"service_urls,omitempty\"`\n\tServices                 []PlaygroundServiceInfo `json:\"services,omitempty\"`\n\tJobResult                *JobResult              `json:\"job_result,omitempty\"`\n\tRunOverrides             map[string]any          `json:\"run_overrides,omitempty\"`\n\tTeardown                 map[string]any          `json:\"teardown,omitempty\"`\n\tServiceSources           []map[string]any        `json:\"service_sources,omitempty\"`\n}"
+      "signature": "type Playground struct {\n\tID                 int64          `json:\"id\"`\n\tName               string         `json:\"name\"`\n\tStatus             string         `json:\"status\"`\n\tResultStatus       *string        `json:\"result_status,omitempty\"`\n\tMaintenanceEnabled bool           `json:\"maintenance_enabled\"`\n\tJobMode            bool           `json:\"job_mode\"`\n\tStateReason        *string        `json:\"state_reason,omitempty\"`\n\tStateReasons       []string       `json:\"state_reasons,omitempty\"`\n\tSpecID             *int64         `json:\"spec_id\"`\n\tSpecName           *string        `json:\"spec_name\"`\n\tHostID             *int64         `json:\"host_id,omitempty\"`\n\tServiceBranches    map[string]any `json:\"service_branches\"`\n\tExpiresAt          *time.Time     `json:\"expires_at\"`\n\tCreatedAt          time.Time      `json:\"created_at\"`\n\n\tComposeProject           *string                 `json:\"compose_project,omitempty\"`\n\tHostName                 *string                 `json:\"host_name,omitempty\"`\n\tRootDomain               *string                 `json:\"root_domain,omitempty\"`\n\tRoutingScheme            *string                 `json:\"routing_scheme,omitempty\"`\n\tInternalPassword         *string                 `json:\"internal_password,omitempty\"`\n\tEnvOverrides             map[string]string       `json:\"env_overrides,omitempty\"`\n\tLastAppliedAt            *time.Time              `json:\"last_applied_at,omitempty\"`\n\tErrorMessage             *string                 `json:\"error_message,omitempty\"`\n\tPlayguardRepairReason    *string                 `json:\"playguard_repair_reason,omitempty\"`\n\tPlayguardRepairLockUntil *time.Time              `json:\"playguard_repair_lock_until,omitempty\"`\n\tNeedsRecreation          *bool                   `json:\"needs_recreation,omitempty\"`\n\tTimeRemaining            *float64                `json:\"time_remaining,omitempty\"`\n\tExpirationPercentage     *float64                `json:\"expiration_percentage,omitempty\"`\n\tBuildWarnings            []string                `json:\"build_warnings,omitempty\"`\n\tBuildStatuses            []PlaygroundBuildStatus `json:\"build_statuses,omitempty\"`\n\tPersistentVolumePrefix   *string                 `json:\"persistent_volume_prefix,omitempty\"`\n\tServiceURLs              []PlaygroundServiceURL  `json:\"service_urls,omitempty\"`\n\tServices                 []PlaygroundServiceInfo `json:\"services,omitempty\"`\n\tJobResult                *JobResult              `json:\"job_result,omitempty\"`\n\tRunOverrides             map[string]any          `json:\"run_overrides,omitempty\"`\n\tTeardown                 map[string]any          `json:\"teardown,omitempty\"`\n\tServiceSources           []map[string]any        `json:\"service_sources,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundActionParams",
@@ -3105,7 +3105,7 @@
     {
       "id": "type.PlaygroundBuildStatus",
       "kind": "type",
-      "signature": "type PlaygroundBuildStatus struct {\n\tServiceName string                         `json:\"service_name\"`\n\tPropID      int64                          `json:\"prop_id,omitempty\"`\n\tPropName    string                         `json:\"prop_name,omitempty\"`\n\tBranch      string                         `json:\"branch,omitempty\"`\n\tRunning     *PlaygroundBuildRecordSnapshot `json:\"running,omitempty\"`\n\tLatest      *PlaygroundBuildRecordSnapshot `json:\"latest,omitempty\"`\n\tActive      *PlaygroundBuildRecordSnapshot `json:\"active,omitempty\"`\n}"
+      "signature": "type PlaygroundBuildStatus struct {\n\tServiceName    string                         `json:\"service_name\"`\n\tRepositoryID   int64                          `json:\"repository_id,omitempty\"`\n\tRepositoryName string                         `json:\"repository_name,omitempty\"`\n\tBranch         string                         `json:\"branch,omitempty\"`\n\tRunning        *PlaygroundBuildRecordSnapshot `json:\"running,omitempty\"`\n\tLatest         *PlaygroundBuildRecordSnapshot `json:\"latest,omitempty\"`\n\tActive         *PlaygroundBuildRecordSnapshot `json:\"active,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundCompose",
@@ -3115,7 +3115,7 @@
     {
       "id": "type.PlaygroundCreateParams",
       "kind": "type",
-      "signature": "type PlaygroundCreateParams struct {\n\tName               string                    `json:\"name\"`\n\tPlayspecID         int64                     `json:\"playspec_id\"`\n\tPlayspecIdentifier string                    `json:\"-\"`\n\tMarqueeID          *int64                    `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier  string                    `json:\"-\"`\n\tExpiresAt          *time.Time                `json:\"expires_at,omitempty\"`\n\tNeverExpire        *bool                     `json:\"never_expire,omitempty\"`\n\tServices           map[string]*ServiceConfig `json:\"services,omitempty\"`\n\tBuildOverridesYAML map[string]any            `json:\"build_overrides_yaml,omitempty\"`\n\tEnvOverrides       map[string]string         `json:\"env_overrides,omitempty\"`\n\tOnlyServices       []string                  `json:\"only_services,omitempty\"`\n\tExceptServices     []string                  `json:\"except_services,omitempty\"`\n}"
+      "signature": "type PlaygroundCreateParams struct {\n\tName               string                    `json:\"name\"`\n\tSpecID             int64                     `json:\"spec_id\"`\n\tSpecIdentifier     string                    `json:\"-\"`\n\tHostID             *int64                    `json:\"host_id,omitempty\"`\n\tHostIdentifier     string                    `json:\"-\"`\n\tExpiresAt          *time.Time                `json:\"expires_at,omitempty\"`\n\tNeverExpire        *bool                     `json:\"never_expire,omitempty\"`\n\tServices           map[string]*ServiceConfig `json:\"services,omitempty\"`\n\tBuildOverridesYAML map[string]any            `json:\"build_overrides_yaml,omitempty\"`\n\tEnvOverrides       map[string]string         `json:\"env_overrides,omitempty\"`\n\tOnlyServices       []string                  `json:\"only_services,omitempty\"`\n\tExceptServices     []string                  `json:\"except_services,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundDebugParams",
@@ -3135,7 +3135,7 @@
     {
       "id": "type.PlaygroundListParams",
       "kind": "type",
-      "signature": "type PlaygroundListParams struct {\n\tQ                  string `url:\"q,omitempty\"`\n\tStatus             string `url:\"status,omitempty\"`\n\tJobMode            *bool  `url:\"job_mode,omitempty\"`\n\tPlayspecID         int64  `url:\"playspec_id,omitempty\"`\n\tPlayspecIdentifier string `url:\"playspec_id,omitempty\"`\n\tMarqueeID          int64  `url:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier  string `url:\"marquee_id,omitempty\"`\n\tName               string `url:\"name,omitempty\"`\n\tResultStatus       string `url:\"result_status,omitempty\"`\n\tCreatedAfter       string `url:\"created_after,omitempty\"`\n\tCreatedBefore      string `url:\"created_before,omitempty\"`\n\tSort               string `url:\"sort,omitempty\"`\n\tPage               int    `url:\"page,omitempty\"`\n\tPerPage            int    `url:\"per_page,omitempty\"`\n}"
+      "signature": "type PlaygroundListParams struct {\n\tQ              string `url:\"q,omitempty\"`\n\tStatus         string `url:\"status,omitempty\"`\n\tJobMode        *bool  `url:\"job_mode,omitempty\"`\n\tSpecID         int64  `url:\"spec_id,omitempty\"`\n\tSpecIdentifier string `url:\"spec_id,omitempty\"`\n\tHostID         int64  `url:\"host_id,omitempty\"`\n\tHostIdentifier string `url:\"host_id,omitempty\"`\n\tName           string `url:\"name,omitempty\"`\n\tResultStatus   string `url:\"result_status,omitempty\"`\n\tCreatedAfter   string `url:\"created_after,omitempty\"`\n\tCreatedBefore  string `url:\"created_before,omitempty\"`\n\tSort           string `url:\"sort,omitempty\"`\n\tPage           int    `url:\"page,omitempty\"`\n\tPerPage        int    `url:\"per_page,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundLogs",
@@ -3185,12 +3185,12 @@
     {
       "id": "type.PlaygroundTemplateSwitchParams",
       "kind": "type",
-      "signature": "type PlaygroundTemplateSwitchParams struct {\n\tPlaygroundID          int64                `json:\"playground_id\"`\n\tPlaygroundIdentifier  string               `json:\"playground_identifier,omitempty\"`\n\tMode                  string               `json:\"mode,omitempty\"`\n\tTemplateBody          string               `json:\"template_body,omitempty\"`\n\tTemplateID            int64                `json:\"template_id,omitempty\"`\n\tTemplateIdentifier    string               `json:\"template_identifier,omitempty\"`\n\tTemplateVersionID     int64                `json:\"template_version_id,omitempty\"`\n\tTemplateName          string               `json:\"template_name,omitempty\"`\n\tVariables             map[string]any       `json:\"variables,omitempty\"`\n\tRegenerateVariables   []string             `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings       bool                 `json:\"confirm_warnings,omitempty\"`\n\tProvisionMissingProps string               `json:\"provision_missing_props,omitempty\"`\n\tProvisionPrivate      *bool                `json:\"provision_private,omitempty\"`\n\tProvisionInputs       []ProvisionPropInput `json:\"provision_inputs,omitempty\"`\n\tReuseExistingProps    bool                 `json:\"reuse_existing_props,omitempty\"`\n\tWait                  bool                 `json:\"wait,omitempty\"`\n\tWaitTimeoutSeconds    int64                `json:\"wait_timeout_seconds,omitempty\"`\n\tDiagnoseOnFailure     *bool                `json:\"diagnose_on_failure,omitempty\"`\n\tResponseMode          string               `json:\"response_mode,omitempty\"`\n\tChangelog             string               `json:\"changelog,omitempty\"`\n}"
+      "signature": "type PlaygroundTemplateSwitchParams struct {\n\tPlaygroundID                 int64                      `json:\"playground_id\"`\n\tPlaygroundIdentifier         string                     `json:\"playground_identifier,omitempty\"`\n\tMode                         string                     `json:\"mode,omitempty\"`\n\tTemplateBody                 string                     `json:\"template_body,omitempty\"`\n\tTemplateID                   int64                      `json:\"template_id,omitempty\"`\n\tTemplateIdentifier           string                     `json:\"template_identifier,omitempty\"`\n\tTemplateVersionID            int64                      `json:\"template_version_id,omitempty\"`\n\tTemplateName                 string                     `json:\"template_name,omitempty\"`\n\tVariables                    map[string]any             `json:\"variables,omitempty\"`\n\tRegenerateVariables          []string                   `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings              bool                       `json:\"confirm_warnings,omitempty\"`\n\tProvisionMissingRepositories string                     `json:\"provision_missing_repositories,omitempty\"`\n\tProvisionPrivate             *bool                      `json:\"provision_private,omitempty\"`\n\tProvisionInputs              []ProvisionRepositoryInput `json:\"provision_inputs,omitempty\"`\n\tReuseExistingRepositories    bool                       `json:\"reuse_existing_repositories,omitempty\"`\n\tWait                         bool                       `json:\"wait,omitempty\"`\n\tWaitTimeoutSeconds           int64                      `json:\"wait_timeout_seconds,omitempty\"`\n\tDiagnoseOnFailure            *bool                      `json:\"diagnose_on_failure,omitempty\"`\n\tResponseMode                 string                     `json:\"response_mode,omitempty\"`\n\tChangelog                    string                     `json:\"changelog,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundTemplateSwitchResult",
       "kind": "type",
-      "signature": "type PlaygroundTemplateSwitchResult struct {\n\tMode             string                               `json:\"mode\"`\n\tPlayground       *Playground                          `json:\"playground,omitempty\"`\n\tTemplate         *ImportTemplate                      `json:\"template,omitempty\"`\n\tTemplateVersion  *ImportTemplateVersion               `json:\"template_version,omitempty\"`\n\tSwitchResult     *PlayspecTemplateVersionSwitchResult `json:\"switch_result,omitempty\"`\n\tProvisionedProps []ProvisionedPropResult              `json:\"provisioned_props,omitempty\"`\n\tWaitResults      []map[string]any                     `json:\"wait_results,omitempty\"`\n\tDiagnostics      map[string]any                       `json:\"diagnostics,omitempty\"`\n}"
+      "signature": "type PlaygroundTemplateSwitchResult struct {\n\tMode                    string                           `json:\"mode\"`\n\tPlayground              *Playground                      `json:\"playground,omitempty\"`\n\tTemplate                *ImportTemplate                  `json:\"template,omitempty\"`\n\tTemplateVersion         *ImportTemplateVersion           `json:\"template_version,omitempty\"`\n\tSwitchResult            *SpecTemplateVersionSwitchResult `json:\"switch_result,omitempty\"`\n\tProvisionedRepositories []ProvisionedRepositoryResult    `json:\"provisioned_repositories,omitempty\"`\n\tWaitResults             []map[string]any                 `json:\"wait_results,omitempty\"`\n\tDiagnostics             map[string]any                   `json:\"diagnostics,omitempty\"`\n}"
     },
     {
       "id": "type.PlaygroundTerminalError",
@@ -3200,52 +3200,7 @@
     {
       "id": "type.PlaygroundUpdateParams",
       "kind": "type",
-      "signature": "type PlaygroundUpdateParams struct {\n\tName               *string                   `json:\"name,omitempty\"`\n\tPlayspecID         *int64                    `json:\"playspec_id,omitempty\"`\n\tPlayspecIdentifier string                    `json:\"-\"`\n\tMarqueeID          *int64                    `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier  string                    `json:\"-\"`\n\tExpiresAt          *time.Time                `json:\"expires_at,omitempty\"`\n\tNeverExpire        *bool                     `json:\"never_expire,omitempty\"`\n\tServices           map[string]*ServiceConfig `json:\"services,omitempty\"`\n\tBuildOverridesYAML map[string]any            `json:\"build_overrides_yaml,omitempty\"`\n}"
-    },
-    {
-      "id": "type.Playspec",
-      "kind": "type",
-      "signature": "type Playspec struct {\n\tID                        *int64              `json:\"id\"`\n\tName                      string              `json:\"name\"`\n\tDescription               *string             `json:\"description\"`\n\tLocked                    *bool               `json:\"locked\"`\n\tPersistVolumes            *bool               `json:\"persist_volumes\"`\n\tJobMode                   *bool               `json:\"job_mode\"`\n\tPlaygroundCount           *int64              `json:\"playground_count\"`\n\tTriggerEnabled            *bool               `json:\"trigger_enabled\"`\n\tMutiMode                  *bool               `json:\"muti_mode\"`\n\tCreatedAt                 *time.Time          `json:\"created_at\"`\n\tUpdatedAt                 *time.Time          `json:\"updated_at\"`\n\tSourceTemplateVersionID   *int64              `json:\"source_template_version_id\"`\n\tSourceTemplateVersion     *TemplateVersionRef `json:\"source_template_version\"`\n\tSourceTemplate            *TemplateRef        `json:\"source_template\"`\n\tTemplateVersionSwitchable *bool               `json:\"template_version_switchable\"`\n\tSuggestedTemplateVersion  *TemplateVersionRef `json:\"suggested_template_version\"`\n\n\tServices       []any             `json:\"services,omitempty\"`\n\tMountedFiles   []MountedFileInfo `json:\"mounted_files,omitempty\"`\n\tCredentials    any               `json:\"credentials,omitempty\"`\n\tTriggerConfig  map[string]any    `json:\"trigger_config,omitempty\"`\n\tMutiConfig     map[string]any    `json:\"muti_config,omitempty\"`\n\tScheduleConfig map[string]any    `json:\"schedule_config,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecCreateParams",
-      "kind": "type",
-      "signature": "type PlayspecCreateParams struct {\n\tName            string               `json:\"name\"`\n\tDescription     *string              `json:\"description,omitempty\"`\n\tBaseComposeYAML string               `json:\"base_compose_yaml\"`\n\tPersistVolumes  *bool                `json:\"persist_volumes,omitempty\"`\n\tJobMode         *bool                `json:\"job_mode,omitempty\"`\n\tServices        []PlayspecServiceDef `json:\"services,omitempty\"`\n\tTriggerConfig   map[string]any       `json:\"trigger_config,omitempty\"`\n\tMutiConfig      map[string]any       `json:\"muti_config,omitempty\"`\n\tScheduleConfig  map[string]any       `json:\"schedule_config,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecListParams",
-      "kind": "type",
-      "signature": "type PlayspecListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tJobMode       *bool  `url:\"job_mode,omitempty\"`\n\tLocked        *bool  `url:\"locked,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecService",
-      "kind": "type",
-      "signature": "type PlayspecService struct {\n}"
-    },
-    {
-      "id": "type.PlayspecServiceDef",
-      "kind": "type",
-      "signature": "type PlayspecServiceDef struct {\n\tName           string           `json:\"name\"`\n\tType           string           `json:\"type\"`\n\tPropID         *int64           `json:\"prop_id,omitempty\"`\n\tPropIdentifier string           `json:\"-\"`\n\tWorkdir        string           `json:\"workdir,omitempty\"`\n\tWorkflow       string           `json:\"workflow,omitempty\"`\n\tEnvFilePath    string           `json:\"env_file_path,omitempty\"`\n\tDockerfilePath string           `json:\"dockerfile_path,omitempty\"`\n\tImage          string           `json:\"image,omitempty\"`\n\tExposure       *ServiceExposure `json:\"exposure,omitempty\"`\n\tJobWatch       *bool            `json:\"job_watch,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecTemplateVersionSwitchParams",
-      "kind": "type",
-      "signature": "type PlayspecTemplateVersionSwitchParams struct {\n\tTargetTemplateVersionID    int64                `json:\"target_template_version_id\"`\n\tVariables                  map[string]any       `json:\"variables,omitempty\"`\n\tRegenerateVariables        []string             `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings            bool                 `json:\"confirm_warnings,omitempty\"`\n\tRolloutMode                string               `json:\"rollout_mode,omitempty\"`\n\tTargetPlaygroundID         *int64               `json:\"target_playground_id,omitempty\"`\n\tTargetPlaygroundIdentifier string               `json:\"-\"`\n\tResponseMode               string               `json:\"response_mode,omitempty\"`\n\tSummary                    bool                 `json:\"summary,omitempty\"`\n\tProvisionMissingProps      string               `json:\"provision_missing_props,omitempty\"`\n\tProvisionPrivate           *bool                `json:\"provision_private,omitempty\"`\n\tProvisionInputs            []ProvisionPropInput `json:\"provision_inputs,omitempty\"`\n\tReuseExistingProps         bool                 `json:\"reuse_existing_props,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecTemplateVersionSwitchPreview",
-      "kind": "type",
-      "signature": "type PlayspecTemplateVersionSwitchPreview = PlayspecTemplateVersionSwitchResult"
-    },
-    {
-      "id": "type.PlayspecTemplateVersionSwitchResult",
-      "kind": "type",
-      "signature": "type PlayspecTemplateVersionSwitchResult struct {\n\tFromTemplateVersion   *TemplateVersionRef          `json:\"from_template_version\"`\n\tTargetTemplateVersion *TemplateVersionRef          `json:\"target_template_version\"`\n\tSuggestedUpgrade      bool                         `json:\"suggested_upgrade\"`\n\tRequiredVariables     []TemplateSwitchVariable     `json:\"required_variables\"`\n\tTargetVariables       []TemplateSwitchVariable     `json:\"target_variables\"`\n\tWarnings              []TemplateSwitchWarning      `json:\"warnings\"`\n\tDiff                  map[string]any               `json:\"diff\"`\n\tPlaygroundRolloutPlan TemplateSwitchPlaygroundPlan `json:\"playground_rollout_plan\"`\n\tNoOp                  bool                         `json:\"no_op\"`\n\tPlayspec              *Playspec                    `json:\"playspec\"`\n\tProvisionedProps      []ProvisionedPropResult      `json:\"provisioned_props,omitempty\"`\n\tPropReusePlan         map[string]any               `json:\"prop_reuse_plan,omitempty\"`\n\tPropResolutionPreview *PropResolutionPreview       `json:\"prop_resolution_preview,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PlayspecUpdateParams",
-      "kind": "type",
-      "signature": "type PlayspecUpdateParams struct {\n\tName            *string              `json:\"name,omitempty\"`\n\tDescription     *string              `json:\"description,omitempty\"`\n\tBaseComposeYAML *string              `json:\"base_compose_yaml,omitempty\"`\n\tPersistVolumes  *bool                `json:\"persist_volumes,omitempty\"`\n\tJobMode         *bool                `json:\"job_mode,omitempty\"`\n\tServices        []PlayspecServiceDef `json:\"services,omitempty\"`\n\tTriggerConfig   map[string]any       `json:\"trigger_config,omitempty\"`\n\tMutiConfig      map[string]any       `json:\"muti_config,omitempty\"`\n\tScheduleConfig  map[string]any       `json:\"schedule_config,omitempty\"`\n}"
+      "signature": "type PlaygroundUpdateParams struct {\n\tName               *string                   `json:\"name,omitempty\"`\n\tSpecID             *int64                    `json:\"spec_id,omitempty\"`\n\tSpecIdentifier     string                    `json:\"-\"`\n\tHostID             *int64                    `json:\"host_id,omitempty\"`\n\tHostIdentifier     string                    `json:\"-\"`\n\tExpiresAt          *time.Time                `json:\"expires_at,omitempty\"`\n\tNeverExpire        *bool                     `json:\"never_expire,omitempty\"`\n\tServices           map[string]*ServiceConfig `json:\"services,omitempty\"`\n\tBuildOverridesYAML map[string]any            `json:\"build_overrides_yaml,omitempty\"`\n}"
     },
     {
       "id": "type.PortMapping",
@@ -3263,69 +3218,14 @@
       "signature": "type ProgressFunc func(context.Context, ProgressEvent)"
     },
     {
-      "id": "type.Prop",
+      "id": "type.ProvisionRepositoryInput",
       "kind": "type",
-      "signature": "type Prop struct {\n\tID            int64      `json:\"id\"`\n\tName          string     `json:\"name\"`\n\tRepositoryURL string     `json:\"repository_url\"`\n\tPrivate       bool       `json:\"private\"`\n\tDefaultBranch string     `json:\"default_branch\"`\n\tStatus        string     `json:\"status\"`\n\tProvider      string     `json:\"provider\"`\n\tLastSyncedAt  *time.Time `json:\"last_synced_at\"`\n\tCreatedAt     time.Time  `json:\"created_at\"`\n\tUpdatedAt     time.Time  `json:\"updated_at\"`\n\n\tBranches              []string `json:\"branches,omitempty\"`\n\tOriginalRepositoryURL *string  `json:\"original_repository_url,omitempty\"`\n\tHasCredentials        *bool    `json:\"has_credentials,omitempty\"`\n\tServiceNames          []string `json:\"service_names,omitempty\"`\n}"
+      "signature": "type ProvisionRepositoryInput struct {\n\tSourceRepoURL string  `json:\"source_repo_url\"`\n\tNameOverride  *string `json:\"name_override,omitempty\"`\n\tDefaultBranch *string `json:\"default_branch,omitempty\"`\n\tDescription   *string `json:\"description,omitempty\"`\n\tAutoInit      *bool   `json:\"auto_init,omitempty\"`\n}"
     },
     {
-      "id": "type.PropBranch",
+      "id": "type.ProvisionedRepositoryResult",
       "kind": "type",
-      "signature": "type PropBranch struct {\n\tName    string         `json:\"name\"`\n\tDefault bool           `json:\"default\"`\n\tExtra   map[string]any `json:\"-\"`\n}"
-    },
-    {
-      "id": "type.PropBranches",
-      "kind": "type",
-      "signature": "type PropBranches struct {\n\tBranches []PropBranch `json:\"branches\"`\n}"
-    },
-    {
-      "id": "type.PropCreateParams",
-      "kind": "type",
-      "signature": "type PropCreateParams struct {\n\tRepositoryURL string         `json:\"repository_url\"`\n\tName          *string        `json:\"name,omitempty\"`\n\tPrivate       *bool          `json:\"private,omitempty\"`\n\tDefaultBranch *string        `json:\"default_branch,omitempty\"`\n\tProvider      *string        `json:\"provider,omitempty\"`\n\tCredentials   map[string]any `json:\"credentials,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PropEnvDefaults",
-      "kind": "type",
-      "signature": "type PropEnvDefaults struct {\n\tDefaults map[string]string `json:\"defaults\"`\n}"
-    },
-    {
-      "id": "type.PropListParams",
-      "kind": "type",
-      "signature": "type PropListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tProvider      string `url:\"provider,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tPrivate       *bool  `url:\"private,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PropMirrorState",
-      "kind": "type",
-      "signature": "type PropMirrorState struct {\n\tProp\n\tMirrorStatus string `json:\"mirror_status,omitempty\"`\n\tMirrorError  string `json:\"mirror_error,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PropResolutionEntry",
-      "kind": "type",
-      "signature": "type PropResolutionEntry struct {\n\tURL                  string `json:\"url\"`\n\tNormalizedURL        string `json:\"normalized_url,omitempty\"`\n\tServiceName          string `json:\"service_name,omitempty\"`\n\tPropID               int64  `json:\"prop_id,omitempty\"`\n\tProvisionProvider    string `json:\"provision_provider,omitempty\"`\n\tRuntimeWritable      *bool  `json:\"runtime_writable,omitempty\"`\n\tRuntimeAccessSource  string `json:\"runtime_access_source,omitempty\"`\n\tRuntimeAccessMessage string `json:\"runtime_access_message,omitempty\"`\n\tRequiresFork         bool   `json:\"requires_fork,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PropResolutionPreview",
-      "kind": "type",
-      "signature": "type PropResolutionPreview struct {\n\tExisting          []PropResolutionEntry `json:\"existing,omitempty\"`\n\tExistingForks     []PropResolutionEntry `json:\"existing_forks,omitempty\"`\n\tWouldCreatePublic []PropResolutionEntry `json:\"would_create_public,omitempty\"`\n\tWouldProvision    []PropResolutionEntry `json:\"would_provision,omitempty\"`\n\tMissingPrivate    []PropResolutionEntry `json:\"missing_private,omitempty\"`\n}"
-    },
-    {
-      "id": "type.PropService",
-      "kind": "type",
-      "signature": "type PropService struct {\n}"
-    },
-    {
-      "id": "type.PropUpdateParams",
-      "kind": "type",
-      "signature": "type PropUpdateParams struct {\n\tName          *string        `json:\"name,omitempty\"`\n\tRepositoryURL *string        `json:\"repository_url,omitempty\"`\n\tPrivate       *bool          `json:\"private,omitempty\"`\n\tDefaultBranch *string        `json:\"default_branch,omitempty\"`\n\tProvider      *string        `json:\"provider,omitempty\"`\n\tCredentials   map[string]any `json:\"credentials,omitempty\"`\n}"
-    },
-    {
-      "id": "type.ProvisionPropInput",
-      "kind": "type",
-      "signature": "type ProvisionPropInput struct {\n\tSourceRepoURL string  `json:\"source_repo_url\"`\n\tNameOverride  *string `json:\"name_override,omitempty\"`\n\tDefaultBranch *string `json:\"default_branch,omitempty\"`\n\tDescription   *string `json:\"description,omitempty\"`\n\tAutoInit      *bool   `json:\"auto_init,omitempty\"`\n}"
-    },
-    {
-      "id": "type.ProvisionedPropResult",
-      "kind": "type",
-      "signature": "type ProvisionedPropResult struct {\n\tSourceRepoURL string         `json:\"source_repo_url,omitempty\"`\n\tServiceName   string         `json:\"service_name,omitempty\"`\n\tProvider      string         `json:\"provider,omitempty\"`\n\tRepo          map[string]any `json:\"repo,omitempty\"`\n\tPropID        int64          `json:\"prop_id,omitempty\"`\n\tDefaultBranch string         `json:\"default_branch,omitempty\"`\n}"
+      "signature": "type ProvisionedRepositoryResult struct {\n\tSourceRepoURL string         `json:\"source_repo_url,omitempty\"`\n\tServiceName   string         `json:\"service_name,omitempty\"`\n\tProvider      string         `json:\"provider,omitempty\"`\n\tRepo          map[string]any `json:\"repo,omitempty\"`\n\tRepositoryID  int64          `json:\"repository_id,omitempty\"`\n\tDefaultBranch string         `json:\"default_branch,omitempty\"`\n}"
     },
     {
       "id": "type.RateLimit",
@@ -3365,12 +3265,67 @@
     {
       "id": "type.RepoStatusEntry",
       "kind": "type",
-      "signature": "type RepoStatusEntry struct {\n\tURL                  string `json:\"url\"`\n\tStatus               string `json:\"status\"`\n\tError                string `json:\"error,omitempty\"`\n\tPropID               int64  `json:\"prop_id,omitempty\"`\n\tPropName             string `json:\"prop_name,omitempty\"`\n\tGitHubURL            string `json:\"github_url,omitempty\"`\n\tPlayerRepo           string `json:\"player_repo,omitempty\"`\n\tPlayerRepoURL        string `json:\"player_repo_url,omitempty\"`\n\tDefaultBranch        string `json:\"default_branch,omitempty\"`\n\tForkURL              string `json:\"fork_url,omitempty\"`\n\tSourceFullName       string `json:\"source_full_name,omitempty\"`\n\tMirrorable           bool   `json:\"mirrorable,omitempty\"`\n\tRuntimeWritable      *bool  `json:\"runtime_writable,omitempty\"`\n\tRuntimeAccessSource  string `json:\"runtime_access_source,omitempty\"`\n\tRuntimeAccessMessage string `json:\"runtime_access_message,omitempty\"`\n\tGitHubAppInstalled   bool   `json:\"github_app_installed,omitempty\"`\n\tOAuthAccessible      bool   `json:\"oauth_accessible,omitempty\"`\n\tRequiresFork         bool   `json:\"requires_fork,omitempty\"`\n}"
+      "signature": "type RepoStatusEntry struct {\n\tURL                  string `json:\"url\"`\n\tStatus               string `json:\"status\"`\n\tError                string `json:\"error,omitempty\"`\n\tRepositoryID         int64  `json:\"repository_id,omitempty\"`\n\tRepositoryName       string `json:\"repository_name,omitempty\"`\n\tGitHubURL            string `json:\"github_url,omitempty\"`\n\tPlayerRepo           string `json:\"player_repo,omitempty\"`\n\tPlayerRepoURL        string `json:\"player_repo_url,omitempty\"`\n\tDefaultBranch        string `json:\"default_branch,omitempty\"`\n\tForkURL              string `json:\"fork_url,omitempty\"`\n\tSourceFullName       string `json:\"source_full_name,omitempty\"`\n\tMirrorable           bool   `json:\"mirrorable,omitempty\"`\n\tRuntimeWritable      *bool  `json:\"runtime_writable,omitempty\"`\n\tRuntimeAccessSource  string `json:\"runtime_access_source,omitempty\"`\n\tRuntimeAccessMessage string `json:\"runtime_access_message,omitempty\"`\n\tGitHubAppInstalled   bool   `json:\"github_app_installed,omitempty\"`\n\tOAuthAccessible      bool   `json:\"oauth_accessible,omitempty\"`\n\tRequiresFork         bool   `json:\"requires_fork,omitempty\"`\n}"
     },
     {
       "id": "type.RepoStatusService",
       "kind": "type",
       "signature": "type RepoStatusService struct {\n}"
+    },
+    {
+      "id": "type.Repository",
+      "kind": "type",
+      "signature": "type Repository struct {\n\tID            int64      `json:\"id\"`\n\tName          string     `json:\"name\"`\n\tRepositoryURL string     `json:\"repository_url\"`\n\tPrivate       bool       `json:\"private\"`\n\tDefaultBranch string     `json:\"default_branch\"`\n\tStatus        string     `json:\"status\"`\n\tProvider      string     `json:\"provider\"`\n\tLastSyncedAt  *time.Time `json:\"last_synced_at\"`\n\tCreatedAt     time.Time  `json:\"created_at\"`\n\tUpdatedAt     time.Time  `json:\"updated_at\"`\n\n\tBranches              []string `json:\"branches,omitempty\"`\n\tOriginalRepositoryURL *string  `json:\"original_repository_url,omitempty\"`\n\tHasCredentials        *bool    `json:\"has_credentials,omitempty\"`\n\tServiceNames          []string `json:\"service_names,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryBranch",
+      "kind": "type",
+      "signature": "type RepositoryBranch struct {\n\tName    string         `json:\"name\"`\n\tDefault bool           `json:\"default\"`\n\tExtra   map[string]any `json:\"-\"`\n}"
+    },
+    {
+      "id": "type.RepositoryBranches",
+      "kind": "type",
+      "signature": "type RepositoryBranches struct {\n\tBranches []RepositoryBranch `json:\"branches\"`\n}"
+    },
+    {
+      "id": "type.RepositoryCreateParams",
+      "kind": "type",
+      "signature": "type RepositoryCreateParams struct {\n\tRepositoryURL string         `json:\"repository_url\"`\n\tName          *string        `json:\"name,omitempty\"`\n\tPrivate       *bool          `json:\"private,omitempty\"`\n\tDefaultBranch *string        `json:\"default_branch,omitempty\"`\n\tProvider      *string        `json:\"provider,omitempty\"`\n\tCredentials   map[string]any `json:\"credentials,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryEnvDefaults",
+      "kind": "type",
+      "signature": "type RepositoryEnvDefaults struct {\n\tDefaults map[string]string `json:\"defaults\"`\n}"
+    },
+    {
+      "id": "type.RepositoryListParams",
+      "kind": "type",
+      "signature": "type RepositoryListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tProvider      string `url:\"provider,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tPrivate       *bool  `url:\"private,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryMirrorState",
+      "kind": "type",
+      "signature": "type RepositoryMirrorState struct {\n\tRepository\n\tMirrorStatus string `json:\"mirror_status,omitempty\"`\n\tMirrorError  string `json:\"mirror_error,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryResolutionEntry",
+      "kind": "type",
+      "signature": "type RepositoryResolutionEntry struct {\n\tURL                  string `json:\"url\"`\n\tNormalizedURL        string `json:\"normalized_url,omitempty\"`\n\tServiceName          string `json:\"service_name,omitempty\"`\n\tRepositoryID         int64  `json:\"repository_id,omitempty\"`\n\tProvisionProvider    string `json:\"provision_provider,omitempty\"`\n\tRuntimeWritable      *bool  `json:\"runtime_writable,omitempty\"`\n\tRuntimeAccessSource  string `json:\"runtime_access_source,omitempty\"`\n\tRuntimeAccessMessage string `json:\"runtime_access_message,omitempty\"`\n\tRequiresFork         bool   `json:\"requires_fork,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryResolutionPreview",
+      "kind": "type",
+      "signature": "type RepositoryResolutionPreview struct {\n\tExisting          []RepositoryResolutionEntry `json:\"existing,omitempty\"`\n\tExistingForks     []RepositoryResolutionEntry `json:\"existing_forks,omitempty\"`\n\tWouldCreatePublic []RepositoryResolutionEntry `json:\"would_create_public,omitempty\"`\n\tWouldProvision    []RepositoryResolutionEntry `json:\"would_provision,omitempty\"`\n\tMissingPrivate    []RepositoryResolutionEntry `json:\"missing_private,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryService",
+      "kind": "type",
+      "signature": "type RepositoryService struct {\n}"
+    },
+    {
+      "id": "type.RepositoryUpdateParams",
+      "kind": "type",
+      "signature": "type RepositoryUpdateParams struct {\n\tName          *string        `json:\"name,omitempty\"`\n\tRepositoryURL *string        `json:\"repository_url,omitempty\"`\n\tPrivate       *bool          `json:\"private,omitempty\"`\n\tDefaultBranch *string        `json:\"default_branch,omitempty\"`\n\tProvider      *string        `json:\"provider,omitempty\"`\n\tCredentials   map[string]any `json:\"credentials,omitempty\"`\n}"
     },
     {
       "id": "type.ResourceQuotaEntry",
@@ -3428,14 +3383,69 @@
       "signature": "type ServiceExposure struct {\n\tEnabled    bool   `json:\"enabled\"`\n\tPort       int    `json:\"port,omitempty\"`\n\tSubdomain  string `json:\"subdomain,omitempty\"`\n\tVisibility string `json:\"visibility,omitempty\"`\n\tPathRule   string `json:\"path_rule,omitempty\"`\n}"
     },
     {
+      "id": "type.Spec",
+      "kind": "type",
+      "signature": "type Spec struct {\n\tID                        *int64              `json:\"id\"`\n\tName                      string              `json:\"name\"`\n\tDescription               *string             `json:\"description\"`\n\tLocked                    *bool               `json:\"locked\"`\n\tPersistVolumes            *bool               `json:\"persist_volumes\"`\n\tJobMode                   *bool               `json:\"job_mode\"`\n\tPlaygroundCount           *int64              `json:\"playground_count\"`\n\tTriggerEnabled            *bool               `json:\"trigger_enabled\"`\n\tMutiMode                  *bool               `json:\"muti_mode\"`\n\tCreatedAt                 *time.Time          `json:\"created_at\"`\n\tUpdatedAt                 *time.Time          `json:\"updated_at\"`\n\tSourceTemplateVersionID   *int64              `json:\"source_template_version_id\"`\n\tSourceTemplateVersion     *TemplateVersionRef `json:\"source_template_version\"`\n\tSourceTemplate            *TemplateRef        `json:\"source_template\"`\n\tTemplateVersionSwitchable *bool               `json:\"template_version_switchable\"`\n\tSuggestedTemplateVersion  *TemplateVersionRef `json:\"suggested_template_version\"`\n\n\tServices       []any             `json:\"services,omitempty\"`\n\tMountedFiles   []MountedFileInfo `json:\"mounted_files,omitempty\"`\n\tCredentials    any               `json:\"credentials,omitempty\"`\n\tTriggerConfig  map[string]any    `json:\"trigger_config,omitempty\"`\n\tMutiConfig     map[string]any    `json:\"muti_config,omitempty\"`\n\tScheduleConfig map[string]any    `json:\"schedule_config,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecCreateParams",
+      "kind": "type",
+      "signature": "type SpecCreateParams struct {\n\tName            string           `json:\"name\"`\n\tDescription     *string          `json:\"description,omitempty\"`\n\tBaseComposeYAML string           `json:\"base_compose_yaml\"`\n\tPersistVolumes  *bool            `json:\"persist_volumes,omitempty\"`\n\tJobMode         *bool            `json:\"job_mode,omitempty\"`\n\tServices        []SpecServiceDef `json:\"services,omitempty\"`\n\tTriggerConfig   map[string]any   `json:\"trigger_config,omitempty\"`\n\tMutiConfig      map[string]any   `json:\"muti_config,omitempty\"`\n\tScheduleConfig  map[string]any   `json:\"schedule_config,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecListParams",
+      "kind": "type",
+      "signature": "type SpecListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tJobMode       *bool  `url:\"job_mode,omitempty\"`\n\tLocked        *bool  `url:\"locked,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecService",
+      "kind": "type",
+      "signature": "type SpecService struct {\n}"
+    },
+    {
+      "id": "type.SpecServiceDef",
+      "kind": "type",
+      "signature": "type SpecServiceDef struct {\n\tName                 string           `json:\"name\"`\n\tType                 string           `json:\"type\"`\n\tRepositoryID         *int64           `json:\"repository_id,omitempty\"`\n\tRepositoryIdentifier string           `json:\"-\"`\n\tWorkdir              string           `json:\"workdir,omitempty\"`\n\tWorkflow             string           `json:\"workflow,omitempty\"`\n\tEnvFilePath          string           `json:\"env_file_path,omitempty\"`\n\tDockerfilePath       string           `json:\"dockerfile_path,omitempty\"`\n\tImage                string           `json:\"image,omitempty\"`\n\tExposure             *ServiceExposure `json:\"exposure,omitempty\"`\n\tJobWatch             *bool            `json:\"job_watch,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecTemplateVersionSwitchParams",
+      "kind": "type",
+      "signature": "type SpecTemplateVersionSwitchParams struct {\n\tTargetTemplateVersionID      int64                      `json:\"target_template_version_id\"`\n\tVariables                    map[string]any             `json:\"variables,omitempty\"`\n\tRegenerateVariables          []string                   `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings              bool                       `json:\"confirm_warnings,omitempty\"`\n\tRolloutMode                  string                     `json:\"rollout_mode,omitempty\"`\n\tTargetPlaygroundID           *int64                     `json:\"target_playground_id,omitempty\"`\n\tTargetPlaygroundIdentifier   string                     `json:\"-\"`\n\tResponseMode                 string                     `json:\"response_mode,omitempty\"`\n\tSummary                      bool                       `json:\"summary,omitempty\"`\n\tProvisionMissingRepositories string                     `json:\"provision_missing_repositories,omitempty\"`\n\tProvisionPrivate             *bool                      `json:\"provision_private,omitempty\"`\n\tProvisionInputs              []ProvisionRepositoryInput `json:\"provision_inputs,omitempty\"`\n\tReuseExistingRepositories    bool                       `json:\"reuse_existing_repositories,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecTemplateVersionSwitchPreview",
+      "kind": "type",
+      "signature": "type SpecTemplateVersionSwitchPreview = SpecTemplateVersionSwitchResult"
+    },
+    {
+      "id": "type.SpecTemplateVersionSwitchResult",
+      "kind": "type",
+      "signature": "type SpecTemplateVersionSwitchResult struct {\n\tFromTemplateVersion         *TemplateVersionRef           `json:\"from_template_version\"`\n\tTargetTemplateVersion       *TemplateVersionRef           `json:\"target_template_version\"`\n\tSuggestedUpgrade            bool                          `json:\"suggested_upgrade\"`\n\tRequiredVariables           []TemplateSwitchVariable      `json:\"required_variables\"`\n\tTargetVariables             []TemplateSwitchVariable      `json:\"target_variables\"`\n\tWarnings                    []TemplateSwitchWarning       `json:\"warnings\"`\n\tDiff                        map[string]any                `json:\"diff\"`\n\tPlaygroundRolloutPlan       TemplateSwitchPlaygroundPlan  `json:\"playground_rollout_plan\"`\n\tNoOp                        bool                          `json:\"no_op\"`\n\tSpec                        *Spec                         `json:\"spec\"`\n\tProvisionedRepositories     []ProvisionedRepositoryResult `json:\"provisioned_repositories,omitempty\"`\n\tRepositoryReusePlan         map[string]any                `json:\"repository_reuse_plan,omitempty\"`\n\tRepositoryResolutionPreview *RepositoryResolutionPreview  `json:\"repository_resolution_preview,omitempty\"`\n}"
+    },
+    {
+      "id": "type.SpecUpdateParams",
+      "kind": "type",
+      "signature": "type SpecUpdateParams struct {\n\tName            *string          `json:\"name,omitempty\"`\n\tDescription     *string          `json:\"description,omitempty\"`\n\tBaseComposeYAML *string          `json:\"base_compose_yaml,omitempty\"`\n\tPersistVolumes  *bool            `json:\"persist_volumes,omitempty\"`\n\tJobMode         *bool            `json:\"job_mode,omitempty\"`\n\tServices        []SpecServiceDef `json:\"services,omitempty\"`\n\tTriggerConfig   map[string]any   `json:\"trigger_config,omitempty\"`\n\tMutiConfig      map[string]any   `json:\"muti_config,omitempty\"`\n\tScheduleConfig  map[string]any   `json:\"schedule_config,omitempty\"`\n}"
+    },
+    {
       "id": "type.Status",
       "kind": "type",
-      "signature": "type Status struct {\n\tPlaygrounds struct {\n\t\tTotal   int `json:\"total\"`\n\t\tActive  int `json:\"active\"`\n\t\tStopped int `json:\"stopped\"`\n\t} `json:\"playgrounds\"`\n\tAgents struct {\n\t\tTotal         int `json:\"total\"`\n\t\tAuthenticated int `json:\"authenticated\"`\n\t} `json:\"agents\"`\n\tProps        int `json:\"props\"`\n\tPlayspecs    int `json:\"playspecs\"`\n\tMarquees     int `json:\"marquees\"`\n\tSecrets      int `json:\"secrets\"`\n\tAPIKeys      int `json:\"api_keys\"`\n\tSubscription struct {\n\t\tPlan            string `json:\"plan\"`\n\t\tPlaygroundLimit int    `json:\"playground_limit\"`\n\t} `json:\"subscription\"`\n\n\tResourceQuotas map[string]ResourceQuotaEntry `json:\"resource_quotas,omitempty\"`\n\tPerParentCaps  map[string]*int               `json:\"per_parent_caps,omitempty\"`\n\tRateLimits     *RateLimitsSection            `json:\"rate_limits,omitempty\"`\n}"
+      "signature": "type Status struct {\n\tPlaygrounds struct {\n\t\tTotal   int `json:\"total\"`\n\t\tActive  int `json:\"active\"`\n\t\tStopped int `json:\"stopped\"`\n\t} `json:\"playgrounds\"`\n\tAgents struct {\n\t\tTotal         int `json:\"total\"`\n\t\tAuthenticated int `json:\"authenticated\"`\n\t} `json:\"agents\"`\n\tRepositories int `json:\"repositories\"`\n\tSpecs        int `json:\"specs\"`\n\tHosts        int `json:\"hosts\"`\n\tSecrets      int `json:\"secrets\"`\n\tAPIKeys      int `json:\"api_keys\"`\n\tSubscription struct {\n\t\tPlan            string `json:\"plan\"`\n\t\tPlaygroundLimit int    `json:\"playground_limit\"`\n\t} `json:\"subscription\"`\n\n\tResourceQuotas map[string]ResourceQuotaEntry `json:\"resource_quotas,omitempty\"`\n\tPerParentCaps  map[string]*int               `json:\"per_parent_caps,omitempty\"`\n\tRateLimits     *RateLimitsSection            `json:\"rate_limits,omitempty\"`\n}"
     },
     {
       "id": "type.StatusService",
       "kind": "type",
       "signature": "type StatusService struct {\n}"
+    },
+    {
+      "id": "type.TaskService",
+      "kind": "type",
+      "signature": "type TaskService struct {\n}"
+    },
+    {
+      "id": "type.TaskTriggerParams",
+      "kind": "type",
+      "signature": "type TaskTriggerParams struct {\n\tSpecID         int64             `json:\"spec_id\"`\n\tSpecIdentifier string            `json:\"-\"`\n\tHostID         *int64            `json:\"host_id,omitempty\"`\n\tHostIdentifier string            `json:\"-\"`\n\tName           string            `json:\"name,omitempty\"`\n\tEnvOverrides   map[string]string `json:\"env_overrides,omitempty\"`\n\tOnlyServices   []string          `json:\"only_services,omitempty\"`\n\tExceptServices []string          `json:\"except_services,omitempty\"`\n}"
     },
     {
       "id": "type.TemplateCategory",
@@ -3475,7 +3485,7 @@
     {
       "id": "type.TemplateVersionPatchParams",
       "kind": "type",
-      "signature": "type TemplateVersionPatchParams struct {\n\tBaseVersionID              int64               `json:\"base_version_id\"`\n\tTemplateBody               string              `json:\"template_body,omitempty\"`\n\tPatches                    []TemplatePatchEdit `json:\"patches,omitempty\"`\n\tEdits                      []TemplatePatchEdit `json:\"edits,omitempty\"`\n\tPublic                     *bool               `json:\"public,omitempty\"`\n\tChangelog                  *string             `json:\"changelog,omitempty\"`\n\tTargetPlayspecID           *int64              `json:\"target_playspec_id,omitempty\"`\n\tTargetPlayspecIdentifier   string              `json:\"-\"`\n\tRolloutMode                string              `json:\"rollout_mode,omitempty\"`\n\tTargetPlaygroundID         *int64              `json:\"target_playground_id,omitempty\"`\n\tTargetPlaygroundIdentifier string              `json:\"-\"`\n\tSwitchVariables            map[string]any      `json:\"switch_variables,omitempty\"`\n\tRegenerateVariables        []string            `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings            *bool               `json:\"confirm_warnings,omitempty\"`\n\tAutoSwitch                 *bool               `json:\"auto_switch,omitempty\"`\n\tResponseMode               string              `json:\"response_mode,omitempty\"`\n}"
+      "signature": "type TemplateVersionPatchParams struct {\n\tBaseVersionID              int64               `json:\"base_version_id\"`\n\tTemplateBody               string              `json:\"template_body,omitempty\"`\n\tPatches                    []TemplatePatchEdit `json:\"patches,omitempty\"`\n\tEdits                      []TemplatePatchEdit `json:\"edits,omitempty\"`\n\tPublic                     *bool               `json:\"public,omitempty\"`\n\tChangelog                  *string             `json:\"changelog,omitempty\"`\n\tTargetSpecID               *int64              `json:\"target_spec_id,omitempty\"`\n\tTargetSpecIdentifier       string              `json:\"-\"`\n\tRolloutMode                string              `json:\"rollout_mode,omitempty\"`\n\tTargetPlaygroundID         *int64              `json:\"target_playground_id,omitempty\"`\n\tTargetPlaygroundIdentifier string              `json:\"-\"`\n\tSwitchVariables            map[string]any      `json:\"switch_variables,omitempty\"`\n\tRegenerateVariables        []string            `json:\"regenerate_variables,omitempty\"`\n\tConfirmWarnings            *bool               `json:\"confirm_warnings,omitempty\"`\n\tAutoSwitch                 *bool               `json:\"auto_switch,omitempty\"`\n\tResponseMode               string              `json:\"response_mode,omitempty\"`\n}"
     },
     {
       "id": "type.TemplateVersionPatchResult",
@@ -3486,16 +3496,6 @@
       "id": "type.TemplateVersionRef",
       "kind": "type",
       "signature": "type TemplateVersionRef struct {\n\tID        *int64       `json:\"id\"`\n\tVersion   *int64       `json:\"version\"`\n\tPublic    *bool        `json:\"public\"`\n\tApproved  *bool        `json:\"approved\"`\n\tCreatedAt *time.Time   `json:\"created_at,omitempty\"`\n\tTemplate  *TemplateRef `json:\"template,omitempty\"`\n}"
-    },
-    {
-      "id": "type.TrickService",
-      "kind": "type",
-      "signature": "type TrickService struct {\n}"
-    },
-    {
-      "id": "type.TrickTriggerParams",
-      "kind": "type",
-      "signature": "type TrickTriggerParams struct {\n\tPlayspecID         int64             `json:\"playspec_id\"`\n\tPlayspecIdentifier string            `json:\"-\"`\n\tMarqueeID          *int64            `json:\"marquee_id,omitempty\"`\n\tMarqueeIdentifier  string            `json:\"-\"`\n\tName               string            `json:\"name,omitempty\"`\n\tEnvOverrides       map[string]string `json:\"env_overrides,omitempty\"`\n\tOnlyServices       []string          `json:\"only_services,omitempty\"`\n\tExceptServices     []string          `json:\"except_services,omitempty\"`\n}"
     },
     {
       "id": "type.UploadImageParams",
@@ -3575,7 +3575,7 @@
     {
       "id": "var.WebhookKnownEvents",
       "kind": "var",
-      "signature": "var WebhookKnownEvents = []string{\n\t\"playground.created\",\n\t\"playground.updated\",\n\t\"playground.destroyed\",\n\t\"playground.player.created\",\n\t\"playground.player.deleted\",\n\t\"playground.player.recreated\",\n\t\"playground.player.extended\",\n\t\"playground.player.retried\",\n\t\"playground.player.committed\",\n\t\"playground.status.changed\",\n\t\"playground.error\",\n\t\"playground.creation.started\",\n\t\"playground.creation.completed\",\n\t\"playground.creation.failed\",\n\t\"playground.recreated\",\n\t\"playground.recovered\",\n\t\"playground.completed\",\n\t\"playground.drift.detected\",\n\t\"playground.drift.recreated\",\n\t\"playground.drift.skipped_dirty\",\n\t\"playground.playguard.recovered\",\n\t\"playground.playguard.deleted\",\n\t\"playground.expired\",\n\t\"playground.expiration.extended\",\n\t\"playground.expiration.skipped_dirty\",\n\t\"playground.build_drift.detected\",\n\t\"marquee.created\",\n\t\"marquee.updated\",\n\t\"marquee.destroyed\",\n\t\"prop.created\",\n\t\"prop.updated\",\n\t\"prop.destroyed\",\n\t\"playspec.created\",\n\t\"playspec.updated\",\n\t\"playspec.destroyed\",\n\t\"agent.created\",\n\t\"agent.updated\",\n\t\"agent.destroyed\",\n\t\"agent.authenticated\",\n\t\"agent.revoked\",\n\t\"template.created\",\n\t\"template.updated\",\n\t\"template.destroyed\",\n\t\"artefact.created\",\n\t\"artefact.destroyed\",\n\t\"feedback.created\",\n\t\"feedback.updated\",\n\t\"feedback.destroyed\",\n\t\"mutter.created\",\n\t\"mutter.updated\",\n\t\"api_key.created\",\n\t\"api_key.destroyed\",\n\t\"secret.created\",\n\t\"secret.updated\",\n\t\"secret.destroyed\",\n\t\"webhook_endpoint.created\",\n\t\"webhook_endpoint.updated\",\n\t\"webhook_endpoint.destroyed\",\n\t\"webhook.test\",\n}"
+      "signature": "var WebhookKnownEvents = []string{\n\t\"playground.created\",\n\t\"playground.updated\",\n\t\"playground.destroyed\",\n\t\"playground.player.created\",\n\t\"playground.player.deleted\",\n\t\"playground.player.recreated\",\n\t\"playground.player.extended\",\n\t\"playground.player.retried\",\n\t\"playground.player.committed\",\n\t\"playground.status.changed\",\n\t\"playground.error\",\n\t\"playground.creation.started\",\n\t\"playground.creation.completed\",\n\t\"playground.creation.failed\",\n\t\"playground.recreated\",\n\t\"playground.recovered\",\n\t\"playground.completed\",\n\t\"playground.drift.detected\",\n\t\"playground.drift.recreated\",\n\t\"playground.drift.skipped_dirty\",\n\t\"playground.playguard.recovered\",\n\t\"playground.playguard.deleted\",\n\t\"playground.expired\",\n\t\"playground.expiration.extended\",\n\t\"playground.expiration.skipped_dirty\",\n\t\"playground.build_drift.detected\",\n\t\"host.created\",\n\t\"host.updated\",\n\t\"host.destroyed\",\n\t\"repository.created\",\n\t\"repository.updated\",\n\t\"repository.destroyed\",\n\t\"spec.created\",\n\t\"spec.updated\",\n\t\"spec.destroyed\",\n\t\"agent.created\",\n\t\"agent.updated\",\n\t\"agent.destroyed\",\n\t\"agent.authenticated\",\n\t\"agent.revoked\",\n\t\"template.created\",\n\t\"template.updated\",\n\t\"template.destroyed\",\n\t\"artefact.created\",\n\t\"artefact.destroyed\",\n\t\"feedback.created\",\n\t\"feedback.updated\",\n\t\"feedback.destroyed\",\n\t\"mutter.created\",\n\t\"mutter.updated\",\n\t\"api_key.created\",\n\t\"api_key.destroyed\",\n\t\"secret.created\",\n\t\"secret.updated\",\n\t\"secret.destroyed\",\n\t\"webhook_endpoint.created\",\n\t\"webhook_endpoint.updated\",\n\t\"webhook_endpoint.destroyed\",\n\t\"webhook.test\",\n}"
     }
   ]
 }

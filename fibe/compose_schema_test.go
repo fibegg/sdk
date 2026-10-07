@@ -82,7 +82,7 @@ func TestValidateComposeWithParamsHonorsFIBESchemaURL(t *testing.T) {
 	defer apiServer.Close()
 
 	client := NewClient(WithAPIKey("test"), WithBaseURL(apiServer.URL), WithMaxRetries(0))
-	result, err := client.Playspecs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n")
+	result, err := client.Specs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n")
 	if err != nil {
 		t.Fatalf("ValidateCompose returned error: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestComposeSchemaURLAndBodyAreStrictlyValidated(t *testing.T) {
 	} {
 		t.Run(raw, func(t *testing.T) {
 			t.Setenv("FIBE_SCHEMA_URL", raw)
-			if _, _, err := client.Playspecs.fetchComposeSchema(context.Background()); err == nil {
+			if _, _, err := client.Specs.fetchComposeSchema(context.Background()); err == nil {
 				t.Fatal("invalid schema URL accepted")
 			}
 		})
@@ -126,7 +126,7 @@ func TestComposeSchemaURLAndBodyAreStrictlyValidated(t *testing.T) {
 			}))
 			defer schemaServer.Close()
 			t.Setenv("FIBE_SCHEMA_URL", schemaServer.URL)
-			if _, _, err := client.Playspecs.fetchComposeSchema(context.Background()); err == nil {
+			if _, _, err := client.Specs.fetchComposeSchema(context.Background()); err == nil {
 				t.Fatal("invalid schema body accepted")
 			}
 		})
@@ -144,7 +144,7 @@ func TestComposeSchemaIsFetchedEveryTimeAndCompiledByDigest(t *testing.T) {
 	t.Setenv("FIBE_SCHEMA_URL", server.URL)
 	client := NewClient(WithAPIKey("test"), WithBaseURL("https://fibe.gg"), WithMaxRetries(0))
 	for i := 0; i < 2; i++ {
-		data, schemaURL, err := client.Playspecs.fetchComposeSchema(context.Background())
+		data, schemaURL, err := client.Specs.fetchComposeSchema(context.Background())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,7 +178,7 @@ func TestValidateComposeWithParamsStopsBeforeServerOnSchemaFailure(t *testing.T)
 	defer apiServer.Close()
 
 	client := NewClient(WithAPIKey("test"), WithBaseURL(apiServer.URL), WithMaxRetries(0))
-	result, err := client.Playspecs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n    labels:\n      fibe.gg/unknown: nope\n")
+	result, err := client.Specs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n    labels:\n      fibe.gg/unknown: nope\n")
 	if err != nil {
 		t.Fatalf("ValidateCompose returned error: %v", err)
 	}

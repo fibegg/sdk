@@ -103,16 +103,16 @@ func ParseWebhookData(payload *WebhookPayload) (any, error) {
 		var p Playground
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
-	case "marquee":
-		var m Marquee
+	case "host":
+		var m Host
 		err = json.Unmarshal(dataBytes, &m)
 		return &m, err
-	case "prop":
-		var p Prop
+	case "repository":
+		var p Repository
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
-	case "playspec":
-		var p Playspec
+	case "spec":
+		var p Spec
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
 	case "agent", "mutter":

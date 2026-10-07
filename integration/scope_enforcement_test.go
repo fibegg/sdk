@@ -10,17 +10,17 @@ import (
 func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	readOnly := createScopedKey(t, c, "readonly-enforcement", []string{"marquees:read"})
+	readOnly := createScopedKey(t, c, "readonly-enforcement", []string{"hosts:read"})
 
-	t.Run("can list marquees", func(t *testing.T) {
+	t.Run("can list hosts", func(t *testing.T) {
 		t.Parallel()
-		_, err := readOnly.Marquees.List(ctx(), nil)
+		_, err := readOnly.Hosts.List(ctx(), nil)
 		requireNoError(t, err)
 	})
 
-	t.Run("denied write to marquees", func(t *testing.T) {
+	t.Run("denied write to hosts", func(t *testing.T) {
 		t.Parallel()
-		_, err := readOnly.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		_, err := readOnly.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: "nope", Host: "1.2.3.4", Port: 22, User: "root", SSHPrivateKey: "key",
 		})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
@@ -31,8 +31,8 @@ func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 			name string
 			fn   func() error
 		}{
-			{"playspecs", func() error { _, e := readOnly.Playspecs.List(ctx(), nil); return e }},
-			{"props", func() error { _, e := readOnly.Props.List(ctx(), nil); return e }},
+			{"specs", func() error { _, e := readOnly.Specs.List(ctx(), nil); return e }},
+			{"repositories", func() error { _, e := readOnly.Repositories.List(ctx(), nil); return e }},
 			{"playgrounds", func() error { _, e := readOnly.Playgrounds.List(ctx(), nil); return e }},
 			{"templates", func() error { _, e := readOnly.ImportTemplates.List(ctx(), nil); return e }},
 			{"keys", func() error { _, e := readOnly.APIKeys.List(ctx(), nil); return e }},
@@ -58,9 +58,9 @@ func TestScopeEnforcement_AdminWildcardKey(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"marquees", func() error { _, e := wildcard.Marquees.List(ctx(), nil); return e }},
-		{"playspecs", func() error { _, e := wildcard.Playspecs.List(ctx(), nil); return e }},
-		{"props", func() error { _, e := wildcard.Props.List(ctx(), nil); return e }},
+		{"hosts", func() error { _, e := wildcard.Hosts.List(ctx(), nil); return e }},
+		{"specs", func() error { _, e := wildcard.Specs.List(ctx(), nil); return e }},
+		{"repositories", func() error { _, e := wildcard.Repositories.List(ctx(), nil); return e }},
 		{"playgrounds", func() error { _, e := wildcard.Playgrounds.List(ctx(), nil); return e }},
 		{"templates", func() error { _, e := wildcard.ImportTemplates.List(ctx(), nil); return e }},
 		{"keys", func() error { _, e := wildcard.APIKeys.List(ctx(), nil); return e }},

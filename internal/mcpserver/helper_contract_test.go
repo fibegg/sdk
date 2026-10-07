@@ -60,12 +60,12 @@ func TestArgumentBindingAndIdentifierContract(t *testing.T) {
 	}
 	type destination struct {
 		Embedded
-		Count              uint64            `json:"count"`
-		Ratio              float64           `json:"ratio"`
-		Labels             map[string]string `json:"labels"`
-		Items              []int64           `json:"items"`
-		Ignored            string            `json:"-"`
-		PlayspecIdentifier string
+		Count          uint64            `json:"count"`
+		Ratio          float64           `json:"ratio"`
+		Labels         map[string]string `json:"labels"`
+		Items          []int64           `json:"items"`
+		Ignored        string            `json:"-"`
+		SpecIdentifier string
 	}
 	var got destination
 	err := bindArgs(map[string]any{
@@ -82,22 +82,22 @@ func TestArgumentBindingAndIdentifierContract(t *testing.T) {
 	if !got.Enabled || got.Count != 7 || got.Ratio != 1.5 || got.Labels["env"] != "42" || !reflect.DeepEqual(got.Items, []int64{2, 3}) {
 		t.Fatalf("bound destination = %#v", got)
 	}
-	if err := bindIdentifierArgs(map[string]any{"playspec_id": "starter"}, &got, "playspec_id"); err != nil {
+	if err := bindIdentifierArgs(map[string]any{"spec_id": "starter"}, &got, "spec_id"); err != nil {
 		t.Fatal(err)
 	}
-	if got.PlayspecIdentifier != "starter" {
-		t.Fatalf("identifier = %q", got.PlayspecIdentifier)
+	if got.SpecIdentifier != "starter" {
+		t.Fatalf("identifier = %q", got.SpecIdentifier)
 	}
-	if err := setIdentifierField(nil, "playspec_id", "fixture"); err == nil {
+	if err := setIdentifierField(nil, "spec_id", "fixture"); err == nil {
 		t.Fatal("nil identifier destination accepted")
 	}
-	if err := setIdentifierField(new(string), "playspec_id", "fixture"); err == nil {
+	if err := setIdentifierField(new(string), "spec_id", "fixture"); err == nil {
 		t.Fatal("non-struct identifier destination accepted")
 	}
 	for field := range map[string]bool{
-		"build_in_public_playground_id": true, "ci_marquee_id": true, "marquee_id": true,
-		"playground_id": true, "playspec_id": true, "prop_id": true, "source_prop_id": true,
-		"target_playground_id": true, "target_playspec_id": true,
+		"build_in_public_playground_id": true, "ci_host_id": true, "host_id": true,
+		"playground_id": true, "spec_id": true, "repository_id": true, "source_repository_id": true,
+		"target_playground_id": true, "target_spec_id": true,
 	} {
 		if _, ok := identifierStructField(field); !ok {
 			t.Fatalf("identifier field %q missing", field)
@@ -133,7 +133,7 @@ func TestLocalFileAndLaunchHelperContract(t *testing.T) {
 	for source, args := range map[string]map[string]any{
 		"template":         {"template_id_or_name": "starter"},
 		"template_version": {"template_version_id": float64(3)},
-		"playspec":         {"playspec_id_or_name": "starter"},
+		"spec":             {"spec_id_or_name": "starter"},
 		"compose":          {"compose_yaml": "services: {}"},
 		"repo":             {"repository_url": "owner/repo"},
 	} {
@@ -159,15 +159,15 @@ func TestLocalFileAndLaunchHelperContract(t *testing.T) {
 	if got := launchVariables(map[string]any{" app-url ": " value ", "empty": " "}); got["app-url"] != "value" || len(got) != 1 {
 		t.Fatalf("launch variables=%v", got)
 	}
-	params := &fibe.LaunchParams{PropMappings: map[string]int64{}, PropMappingIdentifiers: map[string]string{}}
-	applyLaunchPropMappings(params, map[string]any{"owner/one": "42", "owner/two": "backend", "empty": " "})
-	if params.PropMappings["owner/one"] != 42 || params.PropMappingIdentifiers["owner/two"] != "backend" {
-		t.Fatalf("prop mappings=%v identifiers=%v", params.PropMappings, params.PropMappingIdentifiers)
+	params := &fibe.LaunchParams{RepositoryMappings: map[string]int64{}, RepositoryMappingIdentifiers: map[string]string{}}
+	applyLaunchRepositoryMappings(params, map[string]any{"owner/one": "42", "owner/two": "backend", "empty": " "})
+	if params.RepositoryMappings["owner/one"] != 42 || params.RepositoryMappingIdentifiers["owner/two"] != "backend" {
+		t.Fatalf("repository mappings=%v identifiers=%v", params.RepositoryMappings, params.RepositoryMappingIdentifiers)
 	}
 }
 
 func TestTemplateChangeHelperContract(t *testing.T) {
-	in := &templateChangeArgs{TargetType: "playspec", TargetIdentifier: " starter ", Mode: "preview", ChangeType: "patch"}
+	in := &templateChangeArgs{TargetType: "spec", TargetIdentifier: " starter ", Mode: "preview", ChangeType: "patch"}
 	if err := normalizeTemplateChangeArgs(in); err != nil {
 		t.Fatal(err)
 	}
@@ -218,9 +218,9 @@ func TestTemplateChangeWorkflowVariants(t *testing.T) {
 			"source_template":{"id":1},
 			"source_template_version":{"template":{"id":1}},
 			"target_template_version":{"id":3},
-			"playspec":{"id":1,"source_template_version_id":3},
-			"playspec_id":1,
-			"marquee_id":1,
+			"spec":{"id":1,"source_template_version_id":3},
+			"spec_id":1,
+			"host_id":1,
 			"job_mode":false,
 			"status":"running",
 			"playground_rollout_plan":{"rollout":[1]}
@@ -237,8 +237,8 @@ func TestTemplateChangeWorkflowVariants(t *testing.T) {
 	cases := []templateChangeArgs{
 		{TargetType: "template", TargetIdentifier: "fixture", Mode: "preview", ChangeType: "patch", Patches: patch},
 		{TargetType: "template", TargetIdentifier: "fixture", Mode: "apply", ChangeType: "overwrite", TemplateBody: "services: {}"},
-		{TargetType: "playspec", TargetIdentifier: "fixture", Mode: "preview", ChangeType: "switch_existing", TargetTemplateVersionID: 3},
-		{TargetType: "playspec", TargetIdentifier: "fixture", Mode: "apply", ChangeType: "switch_existing", TargetTemplateVersionID: 3},
+		{TargetType: "spec", TargetIdentifier: "fixture", Mode: "preview", ChangeType: "switch_existing", TargetTemplateVersionID: 3},
+		{TargetType: "spec", TargetIdentifier: "fixture", Mode: "apply", ChangeType: "switch_existing", TargetTemplateVersionID: 3},
 		{TargetType: "playground", TargetIdentifier: "fixture", Mode: "preview", ChangeType: "patch", Patches: patch},
 	}
 	for _, input := range cases {
@@ -252,10 +252,10 @@ func TestTemplateChangeWorkflowVariants(t *testing.T) {
 
 	validTarget := &templateChangeTarget{templateID: 1, baseVersion: 2}
 	for name, input := range map[string]templateChangeArgs{
-		"post_apply":       {TargetType: "playspec", PostApply: "invalid", ChangeType: "patch", Patches: patch},
+		"post_apply":       {TargetType: "spec", PostApply: "invalid", ChangeType: "patch", Patches: patch},
 		"template_rollout": {TargetType: "template", PostApply: "rollout_all", ChangeType: "patch", Patches: patch},
-		"switch_version":   {TargetType: "playspec", PostApply: "none", ChangeType: "switch_existing"},
-		"overwrite_body":   {TargetType: "playspec", PostApply: "none", ChangeType: "overwrite"},
+		"switch_version":   {TargetType: "spec", PostApply: "none", ChangeType: "switch_existing"},
+		"overwrite_body":   {TargetType: "spec", PostApply: "none", ChangeType: "overwrite"},
 	} {
 		input := input
 		t.Run("reject/"+name, func(t *testing.T) {
@@ -281,20 +281,20 @@ func TestLaunchWorkflowVariants(t *testing.T) {
 	server := New(DefaultConfig())
 	cases := map[string]map[string]any{
 		"template": {
-			"template_id_or_name": "starter", "marquee_id_or_name": float64(1), "version": "2",
+			"template_id_or_name": "starter", "host_id_or_name": float64(1), "version": "2",
 			"variables": map[string]any{"NAME": "demo"}, "persist_volumes": true,
 		},
 		"template_version": {
-			"name": "fixture", "template_version_id": float64(2), "marquee_id_or_name": "primary",
+			"name": "fixture", "template_version_id": float64(2), "host_id_or_name": "primary",
 			"env_overrides": map[string]any{"APP_ENV": "test"},
 		},
-		"playspec": {
-			"name": "fixture", "playspec_id_or_name": "starter", "marquee_id_or_name": float64(1),
+		"spec": {
+			"name": "fixture", "spec_id_or_name": "starter", "host_id_or_name": float64(1),
 			"services": map[string]any{"web": map[string]any{"subdomain": "app"}},
 		},
 		"compose": {
 			"name": "fixture", "compose_yaml": "services: {}", "create_playground": false,
-			"prop_mappings": map[string]any{"owner/repo": "backend"},
+			"repository_mappings": map[string]any{"owner/repo": "backend"},
 		},
 	}
 	for name, args := range cases {
@@ -306,16 +306,16 @@ func TestLaunchWorkflowVariants(t *testing.T) {
 		})
 	}
 
-	if id, identifier := explicitMCPMarquee(map[string]any{"marquee_id": "7"}); id == nil || *id != 7 || identifier != "" {
-		t.Fatalf("explicit marquee id=%v identifier=%q", id, identifier)
+	if id, identifier := explicitMCPHost(map[string]any{"host_id": "7"}); id == nil || *id != 7 || identifier != "" {
+		t.Fatalf("explicit host id=%v identifier=%q", id, identifier)
 	}
-	if id, identifier := explicitMCPMarquee(map[string]any{"marquee_id_or_name": "primary"}); id != nil || identifier != "primary" {
-		t.Fatalf("explicit marquee id=%v identifier=%q", id, identifier)
+	if id, identifier := explicitMCPHost(map[string]any{"host_id_or_name": "primary"}); id != nil || identifier != "primary" {
+		t.Fatalf("explicit host id=%v identifier=%q", id, identifier)
 	}
-	if got := mcpMarqueeCandidateNames([]fibe.Marquee{{ID: 2}, {ID: 1, Name: "alpha"}}); got != "2, alpha" {
+	if got := mcpHostCandidateNames([]fibe.Host{{ID: 2}, {ID: 1, Name: "alpha"}}); got != "2, alpha" {
 		t.Fatalf("candidate names=%q", got)
 	}
-	if _, _, err := resolveMCPMarquee(context.Background(), nil, nil); err == nil {
-		t.Fatal("missing marquee accepted")
+	if _, _, err := resolveMCPHost(context.Background(), nil, nil); err == nil {
+		t.Fatal("missing host accepted")
 	}
 }

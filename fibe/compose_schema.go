@@ -21,7 +21,7 @@ var compiledComposeSchemas = struct {
 	values map[[sha256.Size]byte]*jsonschema.Schema
 }{values: make(map[[sha256.Size]byte]*jsonschema.Schema)}
 
-func (s *PlayspecService) validateComposeSchema(ctx context.Context, composeYAML string) ([]string, error) {
+func (s *SpecService) validateComposeSchema(ctx context.Context, composeYAML string) ([]string, error) {
 	var body any
 	if err := yaml.Unmarshal([]byte(composeYAML), &body); err != nil {
 		return []string{fmt.Sprintf("Invalid YAML: %v", err)}, nil
@@ -42,7 +42,7 @@ func (s *PlayspecService) validateComposeSchema(ctx context.Context, composeYAML
 	return nil, nil
 }
 
-func (s *PlayspecService) fetchComposeSchema(ctx context.Context) ([]byte, string, error) {
+func (s *SpecService) fetchComposeSchema(ctx context.Context) ([]byte, string, error) {
 	schemaURL := os.Getenv("FIBE_SCHEMA_URL")
 	if schemaURL == "" {
 		schemaURL = s.client.cfg.baseURL() + "/schema.json"

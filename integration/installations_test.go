@@ -33,7 +33,7 @@ func TestInstallations_List(t *testing.T) {
 
 	t.Run("list requires the explicit personal Git credential grant", func(t *testing.T) {
 		t.Parallel()
-		read := createScopedKey(t, c, "inst-read", []string{"props:read"})
+		read := createScopedKey(t, c, "inst-read", []string{"repositories:read"})
 		_, err := read.Installations.List(ctx())
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 

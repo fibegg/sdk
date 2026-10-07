@@ -137,7 +137,7 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	spec := seedPlayspec(t, c)
+	spec := seedSpec(t, c)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
 		URL:    "https://sdk-webhook-filter.invalid/hook-" + uniqueName(""),
@@ -198,7 +198,7 @@ func TestWebhook_EventTypesEndpoint(t *testing.T) {
 	if len(types) == 0 {
 		t.Error("expected non-empty list of event types")
 	}
-	knownEvents := []string{"playground.created", "marquee.created", "agent.created"}
+	knownEvents := []string{"playground.created", "host.created", "agent.created"}
 	foundAny := false
 	for _, want := range knownEvents {
 		for _, got := range types {

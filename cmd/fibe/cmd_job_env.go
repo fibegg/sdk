@@ -14,7 +14,7 @@ func jobEnvCmd() *cobra.Command {
 		Use:     "job-env",
 		Aliases: []string{"je"},
 		Short:   "Manage job-mode environment variables and secrets",
-		Long: `Manage global and Prop-scoped ENV entries injected into job-mode Tricks.
+		Long: `Manage global and Repository-scoped ENV entries injected into job-mode Tasks.
 
 Keys must be uppercase letters, numbers, and underscores, and may not use the reserved FIBE_ prefix.`,
 	}
@@ -23,7 +23,7 @@ Keys must be uppercase letters, numbers, and underscores, and may not use the re
 }
 
 func jobEnvListCmd() *cobra.Command {
-	var propID string
+	var repositoryID string
 	var query string
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -31,8 +31,8 @@ func jobEnvListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.JobEnvListParams{}
-			if propID != "" {
-				params.PropIdentifier = propID
+			if repositoryID != "" {
+				params.RepositoryIdentifier = repositoryID
 			}
 			if query != "" {
 				params.Q = query
@@ -55,8 +55,8 @@ func jobEnvListCmd() *cobra.Command {
 			rows := make([][]string, len(result.Data))
 			for i, entry := range result.Data {
 				scope := "global"
-				if entry.PropID != nil {
-					scope = fmt.Sprintf("prop:%d", *entry.PropID)
+				if entry.RepositoryID != nil {
+					scope = fmt.Sprintf("repository:%d", *entry.RepositoryID)
 				}
 				kind := "variable"
 				if entry.Secret {
@@ -68,7 +68,7 @@ func jobEnvListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop", "", "Filter by Prop ID or name")
+	cmd.Flags().StringVar(&repositoryID, "repository", "", "Filter by Repository ID or name")
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search key/description")
 	return cmd
 }
@@ -91,8 +91,8 @@ func jobEnvGetCmd() *cobra.Command {
 				return nil
 			}
 			scope := "global"
-			if entry.PropID != nil {
-				scope = fmt.Sprintf("prop:%d", *entry.PropID)
+			if entry.RepositoryID != nil {
+				scope = fmt.Sprintf("repository:%d", *entry.RepositoryID)
 			}
 			kind := "variable"
 			if entry.Secret {
@@ -111,7 +111,7 @@ func jobEnvGetCmd() *cobra.Command {
 }
 
 func jobEnvSetCmd() *cobra.Command {
-	var propID string
+	var repositoryID string
 	var secret bool
 	var desc string
 	cmd := &cobra.Command{
@@ -125,8 +125,8 @@ func jobEnvSetCmd() *cobra.Command {
 			}
 			c := newClient()
 			params := &fibe.JobEnvSetParams{Key: key, Value: value, Secret: secret}
-			if propID != "" {
-				params.PropIdentifier = propID
+			if repositoryID != "" {
+				params.RepositoryIdentifier = repositoryID
 			}
 			if desc != "" {
 				params.Description = &desc
@@ -139,7 +139,7 @@ func jobEnvSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop", "", "Scope to a Prop ID or name instead of global")
+	cmd.Flags().StringVar(&repositoryID, "repository", "", "Scope to a Repository ID or name instead of global")
 	cmd.Flags().BoolVar(&secret, "secret", false, "Store as secret and mask in list responses")
 	cmd.Flags().StringVar(&desc, "description", "", "Optional description")
 	return cmd

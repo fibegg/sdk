@@ -44,9 +44,9 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "agents created_at_desc", times, false)
 	})
 
-	t.Run("playspecs created_at_asc", func(t *testing.T) {
+	t.Run("specs created_at_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Sort: "created_at_asc", PerPage: 50})
+		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
 		times := []time.Time{}
 		for _, p := range r.Data {
@@ -54,29 +54,29 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 				times = append(times, *p.CreatedAt)
 			}
 		}
-		requireSortedByTime(t, "playspecs created_at_asc", times, true)
+		requireSortedByTime(t, "specs created_at_asc", times, true)
 	})
 
-	t.Run("props created_at_desc", func(t *testing.T) {
+	t.Run("repositories created_at_desc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Props.List(ctx(), &fibe.PropListParams{Sort: "created_at_desc", PerPage: 50})
+		r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
 		times := []time.Time{}
 		for _, p := range r.Data {
 			times = append(times, p.CreatedAt)
 		}
-		requireSortedByTime(t, "props created_at_desc", times, false)
+		requireSortedByTime(t, "repositories created_at_desc", times, false)
 	})
 
-	t.Run("marquees created_at_asc", func(t *testing.T) {
+	t.Run("hosts created_at_asc", func(t *testing.T) {
 		t.Parallel()
-		r, err := c.Marquees.List(ctx(), &fibe.MarqueeListParams{Sort: "created_at_asc", PerPage: 50})
+		r, err := c.Hosts.List(ctx(), &fibe.HostListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
 		times := []time.Time{}
 		for _, m := range r.Data {
 			times = append(times, m.CreatedAt)
 		}
-		requireSortedByTime(t, "marquees created_at_asc", times, true)
+		requireSortedByTime(t, "hosts created_at_asc", times, true)
 	})
 
 	t.Run("secrets created_at_desc", func(t *testing.T) {

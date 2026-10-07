@@ -24,8 +24,8 @@ func main() {
 	ctxWithIdemp := fibe.WithIdempotencyKey(ctx, fibe.NewIdempotencyKey())
 
 	pg, err := client.Playgrounds.Create(ctxWithIdemp, &fibe.PlaygroundCreateParams{
-		Name:       "example-python-lifecycle",
-		PlayspecID: 1,
+		Name:   "example-python-lifecycle",
+		SpecID: 1,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create playground: %v", err)

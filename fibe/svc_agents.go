@@ -181,20 +181,20 @@ func (s *AgentService) AuthenticateByIdentifierWithParams(ctx context.Context, i
 	return &result, err
 }
 
-func (s *AgentService) StartChat(ctx context.Context, id, marqueeID int64) (*AgentChatSession, error) {
+func (s *AgentService) StartChat(ctx context.Context, id, hostID int64) (*AgentChatSession, error) {
 	var result AgentChatSession
-	body := map[string]any{"marquee_id": marqueeID}
+	body := map[string]any{"host_id": hostID}
 	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/agents/%d/chats", id), body, &result)
 	return &result, err
 }
 
-func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, marqueeIdentifier string) (*AgentChatSession, error) {
-	return s.StartChatByAgentIdentifier(ctx, int64Identifier(id), marqueeIdentifier)
+func (s *AgentService) StartChatByIdentifier(ctx context.Context, id int64, hostIdentifier string) (*AgentChatSession, error) {
+	return s.StartChatByAgentIdentifier(ctx, int64Identifier(id), hostIdentifier)
 }
 
-func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIdentifier string, marqueeIdentifier string) (*AgentChatSession, error) {
+func (s *AgentService) StartChatByAgentIdentifier(ctx context.Context, agentIdentifier string, hostIdentifier string) (*AgentChatSession, error) {
 	var result AgentChatSession
-	body := map[string]any{"marquee_id": marqueeIdentifier}
+	body := map[string]any{"host_id": hostIdentifier}
 	err := s.client.do(ctx, http.MethodPost, identifierPath("/api/agents", agentIdentifier)+"/chats", body, &result)
 	return &result, err
 }

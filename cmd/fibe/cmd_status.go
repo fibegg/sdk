@@ -13,7 +13,7 @@ func statusCmd() *cobra.Command {
 		Long: `Show a summary of all your resources in a single request.
 
 Returns counts for playgrounds (total/active/stopped), agents,
-props, playspecs, marquees, secrets, and API keys. Enterprise servers also
+repositories, specs, hosts, secrets, and API keys. Enterprise servers also
 include subscription information.
 
 Designed for LLM agents to gather full context efficiently:
@@ -32,9 +32,9 @@ Designed for LLM agents to gather full context efficiently:
 					status.Playgrounds.Total, status.Playgrounds.Active, status.Playgrounds.Stopped)
 				fmt.Printf("Agents:       %d total, %d authenticated\n",
 					status.Agents.Total, status.Agents.Authenticated)
-				fmt.Printf("Props:        %d\n", status.Props)
-				fmt.Printf("Playspecs:    %d\n", status.Playspecs)
-				fmt.Printf("Marquees:     %d\n", status.Marquees)
+				fmt.Printf("Repositories:        %d\n", status.Repositories)
+				fmt.Printf("Specs:    %d\n", status.Specs)
+				fmt.Printf("Hosts:     %d\n", status.Hosts)
 				fmt.Printf("Secrets:      %d\n", status.Secrets)
 				fmt.Printf("API Keys:     %d\n", status.APIKeys)
 				if status.Subscription.Plan != "" {

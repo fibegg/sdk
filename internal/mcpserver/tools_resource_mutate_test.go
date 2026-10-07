@@ -84,7 +84,7 @@ func TestResourceMutateDryRunValidatesWithoutAPI(t *testing.T) {
 	}
 
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
-		"resource":  "props",
+		"resource":  "repositories",
 		"operation": "attach",
 		"dry_run":   true,
 		"payload": map[string]any{
@@ -95,7 +95,7 @@ func TestResourceMutateDryRunValidatesWithoutAPI(t *testing.T) {
 		t.Fatalf("dry run dispatch: %v", err)
 	}
 	result := out.(map[string]any)
-	if result["resource"] != "prop" || result["operation"] != "attach" || result["dry_run"] != true || result["valid"] != true {
+	if result["resource"] != "repository" || result["operation"] != "attach" || result["dry_run"] != true || result["valid"] != true {
 		t.Fatalf("unexpected dry run result: %#v", result)
 	}
 
@@ -298,19 +298,19 @@ func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 		payload   map[string]any
 	}{
 		{resource: "agent", operation: "restart_chat", payload: map[string]any{"id_or_name": 3}},
-		{resource: "marquee", operation: "autoconnect_token", payload: map[string]any{"ssl_mode": "http"}},
-		{resource: "marquee", operation: "generate_ssh_key", payload: map[string]any{"id_or_name": 3}},
-		{resource: "marquee", operation: "test_connection", payload: map[string]any{"id_or_name": 3}},
-		{resource: "prop", operation: "attach", payload: map[string]any{"repo_full_name": "octocat/Hello-World"}},
-		{resource: "prop", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/octocat/Hello-World", "name": "mirror"}},
-		{resource: "prop", operation: "sync", payload: map[string]any{"id_or_name": 3}},
+		{resource: "host", operation: "autoconnect_token", payload: map[string]any{"ssl_mode": "http"}},
+		{resource: "host", operation: "generate_ssh_key", payload: map[string]any{"id_or_name": 3}},
+		{resource: "host", operation: "test_connection", payload: map[string]any{"id_or_name": 3}},
+		{resource: "repository", operation: "attach", payload: map[string]any{"repo_full_name": "octocat/Hello-World"}},
+		{resource: "repository", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/octocat/Hello-World", "name": "mirror"}},
+		{resource: "repository", operation: "sync", payload: map[string]any{"id_or_name": 3}},
 		{resource: "template", operation: "fork", payload: map[string]any{"id_or_name": 4}},
 		{resource: "template", operation: "source_refresh", payload: map[string]any{"id_or_name": 4}},
-		{resource: "template", operation: "source_set", payload: map[string]any{"template_id_or_name": 4, "source_prop_id_or_name": 3, "source_path": "template.yml", "ci_marquee_id_or_name": 3}},
-		{resource: "template", operation: "upgrade_playspecs", payload: map[string]any{"template_id_or_name": 4, "version_id": 5}},
+		{resource: "template", operation: "source_set", payload: map[string]any{"template_id_or_name": 4, "source_repository_id_or_name": 3, "source_path": "template.yml", "ci_host_id_or_name": 3}},
+		{resource: "template", operation: "upgrade_specs", payload: map[string]any{"template_id_or_name": 4, "version_id": 5}},
 		{resource: "template_version", operation: "toggle_public", payload: map[string]any{"template_id_or_name": 4, "version_id": 5}},
-		{resource: "trick", operation: "trigger", payload: map[string]any{"playspec_id_or_name": 7, "marquee_id_or_name": 3, "name": "trick"}},
-		{resource: "trick", operation: "rerun", payload: map[string]any{"id_or_name": 8}},
+		{resource: "task", operation: "trigger", payload: map[string]any{"spec_id_or_name": 7, "host_id_or_name": 3, "name": "task"}},
+		{resource: "task", operation: "rerun", payload: map[string]any{"id_or_name": 8}},
 		{resource: "webhook", operation: "test", payload: map[string]any{"webhook_id": 9}},
 	}
 
@@ -342,9 +342,9 @@ func TestResourceMutateScopedActionValidationBeforeAPI(t *testing.T) {
 		want      string
 	}{
 		{name: "bad id", resource: "template", operation: "source_refresh", payload: map[string]any{"id_or_name": 0}, want: "greater than or equal to 1"},
-		{name: "unknown field", resource: "prop", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/o/r", "extra": true}, want: "unsupported field"},
-		{name: "old prop alias rejected", resource: "prop", operation: "attach", payload: map[string]any{"repository_url": "https://github.com/o/r"}, want: "repo_full_name is required"},
-		{name: "old template id alias rejected", resource: "template", operation: "source_set", payload: map[string]any{"id": 1, "source_prop_id": 2, "source_path": "template.yml"}, want: "template_id_or_name is required"},
+		{name: "unknown field", resource: "repository", operation: "mirror", payload: map[string]any{"source_url": "https://github.com/o/r", "extra": true}, want: "unsupported field"},
+		{name: "old repository alias rejected", resource: "repository", operation: "attach", payload: map[string]any{"repository_url": "https://github.com/o/r"}, want: "repo_full_name is required"},
+		{name: "old template id alias rejected", resource: "template", operation: "source_set", payload: map[string]any{"id": 1, "source_repository_id": 2, "source_path": "template.yml"}, want: "template_id_or_name is required"},
 		{name: "unsupported pair", resource: "webhook", operation: "source_set", payload: map[string]any{"webhook_id": 1}, want: "does not support operation"},
 		{name: "dedicated mutter tool", resource: "mutter", operation: "create", payload: map[string]any{"type": "proof", "body": "done"}, want: "does not support mutation operations"},
 	} {
@@ -368,26 +368,26 @@ func TestResourceMutateListedConcreteToolsRemoved(t *testing.T) {
 	}
 
 	for _, name := range []string{
-		"fibe_marquees_autoconnect_token",
-		"fibe_marquees_generate_ssh_key",
-		"fibe_marquees_test_connection",
-		"fibe_props_attach",
-		"fibe_props_mirror",
-		"fibe_props_sync",
+		"fibe_hosts_autoconnect_token",
+		"fibe_hosts_generate_ssh_key",
+		"fibe_hosts_test_connection",
+		"fibe_repositories_attach",
+		"fibe_repositories_mirror",
+		"fibe_repositories_sync",
 		"fibe_templates_fork",
 		"fibe_templates_source_refresh",
 		"fibe_templates_source_set",
-		"fibe_templates_upgrade_playspecs",
+		"fibe_templates_upgrade_specs",
 		"fibe_templates_versions_toggle_public",
-		"fibe_tricks_rerun",
-		"fibe_tricks_trigger",
+		"fibe_tasks_rerun",
+		"fibe_tasks_trigger",
 		"fibe_webhooks_test",
 		"fibe_job_env_set",
 		"fibe_agents_raw_providers_get",
 		"fibe_agents_raw_providers_update",
 		"fibe_templates_lineage",
-		"fibe_marquees_generate_ssh_key_status",
-		"fibe_marquees_test_connection_status",
+		"fibe_hosts_generate_ssh_key_status",
+		"fibe_hosts_test_connection_status",
 		"fibe_feedbacks_create",
 		"fibe_feedbacks_delete",
 		"fibe_feedbacks_update",

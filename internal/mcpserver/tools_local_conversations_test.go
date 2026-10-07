@@ -252,27 +252,27 @@ func TestLocalConversationToolSchemasAreAgentFocused(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	listProps := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_list"])
+	listRepositories := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_list"])
 	for _, want := range []string{"query", "limit", "cursor", "only", "output_path"} {
-		if _, ok := listProps[want]; !ok {
-			t.Fatalf("list schema missing %q: %#v", want, listProps)
+		if _, ok := listRepositories[want]; !ok {
+			t.Fatalf("list schema missing %q: %#v", want, listRepositories)
 		}
 	}
 	for _, forbidden := range []string{"provider", "providers", "home_dir", "include_metadata_only", "paths", "path", "search_roots", "message_limit", "raw_event_limit"} {
-		if _, ok := listProps[forbidden]; ok {
-			t.Fatalf("list schema should not expose %q: %#v", forbidden, listProps)
+		if _, ok := listRepositories[forbidden]; ok {
+			t.Fatalf("list schema should not expose %q: %#v", forbidden, listRepositories)
 		}
 	}
 
-	getProps := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_get"])
+	getRepositories := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_get"])
 	for _, want := range []string{"uuid", "view", "user_message_limit", "assistant_message_limit", "only", "output_path"} {
-		if _, ok := getProps[want]; !ok {
-			t.Fatalf("get schema missing %q: %#v", want, getProps)
+		if _, ok := getRepositories[want]; !ok {
+			t.Fatalf("get schema missing %q: %#v", want, getRepositories)
 		}
 	}
 	for _, forbidden := range []string{"provider", "providers", "home_dir", "include_metadata_only", "paths", "path", "search_roots", "message_limit", "raw_event_limit"} {
-		if _, ok := getProps[forbidden]; ok {
-			t.Fatalf("get schema should not expose %q: %#v", forbidden, getProps)
+		if _, ok := getRepositories[forbidden]; ok {
+			t.Fatalf("get schema should not expose %q: %#v", forbidden, getRepositories)
 		}
 	}
 	views := schemaPropertyEnum(t, srv.toolSchemas["fibe_local_conversations_get"], "view")
@@ -285,27 +285,27 @@ func TestLocalConversationToolSchemasAreAgentFocused(t *testing.T) {
 		t.Fatalf("view enum should not include summary: %#v", views)
 	}
 
-	getMessageProps := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_get_message"])
+	getMessageRepositories := schemaProperties(t, srv.toolSchemas["fibe_local_conversations_get_message"])
 	for _, want := range []string{"uuid", "message_id", "only"} {
-		if _, ok := getMessageProps[want]; !ok {
-			t.Fatalf("get_message schema missing %q: %#v", want, getMessageProps)
+		if _, ok := getMessageRepositories[want]; !ok {
+			t.Fatalf("get_message schema missing %q: %#v", want, getMessageRepositories)
 		}
 	}
-	if _, ok := getMessageProps["search_roots"]; ok {
-		t.Fatalf("get_message schema should not expose search_roots: %#v", getMessageProps)
+	if _, ok := getMessageRepositories["search_roots"]; ok {
+		t.Fatalf("get_message schema should not expose search_roots: %#v", getMessageRepositories)
 	}
-	if _, ok := getMessageProps["output_path"]; ok {
-		t.Fatalf("get_message schema should not expose output_path: %#v", getMessageProps)
+	if _, ok := getMessageRepositories["output_path"]; ok {
+		t.Fatalf("get_message schema should not expose output_path: %#v", getMessageRepositories)
 	}
 }
 
 func schemaProperties(t *testing.T, schema map[string]any) map[string]any {
 	t.Helper()
-	props, ok := schema["properties"].(map[string]any)
+	repositories, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties is %T", schema["properties"])
 	}
-	return props
+	return repositories
 }
 
 func writeLocalConversationTestFile(t *testing.T, path, content string) {

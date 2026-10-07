@@ -63,7 +63,7 @@ func TestPlaygroundLogsFollowAliasStreamsAllServices(t *testing.T) {
 	}
 }
 
-func TestMonitorLogsTargetTrickStreamsNDJSON(t *testing.T) {
+func TestMonitorLogsTargetTaskStreamsNDJSON(t *testing.T) {
 	setupAuthTest(t)
 	srv := monitorLogsTestServer(t, func(identifier map[string]any) {
 		if identifier["channel"] != "ContainerLogsChannel" || identifier["playground_id"] != float64(42) || identifier["service_name"] != "worker" {
@@ -78,7 +78,7 @@ func TestMonitorLogsTargetTrickStreamsNDJSON(t *testing.T) {
 	cmd := RootCmd()
 	var out bytes.Buffer
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"--output", "json", "monitor", "logs", "demo", "--target", "trick", "--service", "worker", "--max-lines", "1"})
+	cmd.SetArgs([]string{"--output", "json", "monitor", "logs", "demo", "--target", "task", "--service", "worker", "--max-lines", "1"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestMonitorLogsTargetTrickStreamsNDJSON(t *testing.T) {
 	}
 }
 
-func TestTricksLogsFollowAliasStreamsService(t *testing.T) {
+func TestTasksLogsFollowAliasStreamsService(t *testing.T) {
 	setupAuthTest(t)
 	srv := monitorLogsTestServer(t, func(identifier map[string]any) {
 		if identifier["channel"] != "ContainerLogsChannel" || identifier["playground_id"] != float64(42) || identifier["service_name"] != "worker" {
@@ -103,7 +103,7 @@ func TestTricksLogsFollowAliasStreamsService(t *testing.T) {
 	cmd := RootCmd()
 	var out bytes.Buffer
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"--output", "json", "tricks", "logs", "demo", "--service", "worker", "--follow", "--max-lines", "1"})
+	cmd.SetArgs([]string{"--output", "json", "tasks", "logs", "demo", "--service", "worker", "--follow", "--max-lines", "1"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestTricksLogsFollowAliasStreamsService(t *testing.T) {
 func TestLogsSnapshotJSONOutput(t *testing.T) {
 	for name, args := range map[string][]string{
 		"playgrounds": {"--output", "json", "playgrounds", "logs", "demo", "--service", "web", "--tail", "12"},
-		"tricks":      {"--output", "json", "tricks", "logs", "demo", "--service", "web", "--tail", "12"},
+		"tasks":       {"--output", "json", "tasks", "logs", "demo", "--service", "web", "--tail", "12"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			setupAuthTest(t)
@@ -165,7 +165,7 @@ func TestLogsSnapshotJSONOutput(t *testing.T) {
 func TestLogsSnapshotJSONOutputAllServices(t *testing.T) {
 	for name, args := range map[string][]string{
 		"playgrounds": {"--output", "json", "playgrounds", "logs", "demo", "--tail", "12"},
-		"tricks":      {"--output", "json", "tricks", "logs", "demo", "--tail", "12"},
+		"tasks":       {"--output", "json", "tasks", "logs", "demo", "--tail", "12"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			setupAuthTest(t)
@@ -218,7 +218,7 @@ func TestLogsSnapshotJSONOutputAllServices(t *testing.T) {
 	}
 }
 
-func TestTricksLogsSnapshotDefaultsToAllCachedLogs(t *testing.T) {
+func TestTasksLogsSnapshotDefaultsToAllCachedLogs(t *testing.T) {
 	setupAuthTest(t)
 	var body map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +241,7 @@ func TestTricksLogsSnapshotDefaultsToAllCachedLogs(t *testing.T) {
 
 	out, err := captureStdout(func() error {
 		cmd := RootCmd()
-		cmd.SetArgs([]string{"tricks", "logs", "demo", "--service", "results"})
+		cmd.SetArgs([]string{"tasks", "logs", "demo", "--service", "results"})
 		return cmd.Execute()
 	})
 	if err != nil {

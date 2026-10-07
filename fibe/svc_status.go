@@ -21,9 +21,9 @@ type Status struct {
 		Total         int `json:"total"`
 		Authenticated int `json:"authenticated"`
 	} `json:"agents"`
-	Props        int `json:"props"`
-	Playspecs    int `json:"playspecs"`
-	Marquees     int `json:"marquees"`
+	Repositories int `json:"repositories"`
+	Specs        int `json:"specs"`
+	Hosts        int `json:"hosts"`
 	Secrets      int `json:"secrets"`
 	APIKeys      int `json:"api_keys"`
 	Subscription struct {

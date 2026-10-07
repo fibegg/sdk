@@ -15,16 +15,16 @@ type Playground struct {
 	JobMode            bool           `json:"job_mode"`
 	StateReason        *string        `json:"state_reason,omitempty"`
 	StateReasons       []string       `json:"state_reasons,omitempty"`
-	PlayspecID         *int64         `json:"playspec_id"`
-	PlayspecName       *string        `json:"playspec_name"`
-	MarqueeID          *int64         `json:"marquee_id,omitempty"`
+	SpecID             *int64         `json:"spec_id"`
+	SpecName           *string        `json:"spec_name"`
+	HostID             *int64         `json:"host_id,omitempty"`
 	ServiceBranches    map[string]any `json:"service_branches"`
 	ExpiresAt          *time.Time     `json:"expires_at"`
 	CreatedAt          time.Time      `json:"created_at"`
 
 	// Detail fields (only present on Get, not List)
 	ComposeProject           *string                 `json:"compose_project,omitempty"`
-	MarqueeName              *string                 `json:"marquee_name,omitempty"`
+	HostName                 *string                 `json:"host_name,omitempty"`
 	RootDomain               *string                 `json:"root_domain,omitempty"`
 	RoutingScheme            *string                 `json:"routing_scheme,omitempty"`
 	InternalPassword         *string                 `json:"internal_password,omitempty"`
@@ -69,13 +69,13 @@ type PlaygroundServiceInfo struct {
 }
 
 type PlaygroundBuildStatus struct {
-	ServiceName string                         `json:"service_name"`
-	PropID      int64                          `json:"prop_id,omitempty"`
-	PropName    string                         `json:"prop_name,omitempty"`
-	Branch      string                         `json:"branch,omitempty"`
-	Running     *PlaygroundBuildRecordSnapshot `json:"running,omitempty"`
-	Latest      *PlaygroundBuildRecordSnapshot `json:"latest,omitempty"`
-	Active      *PlaygroundBuildRecordSnapshot `json:"active,omitempty"`
+	ServiceName    string                         `json:"service_name"`
+	RepositoryID   int64                          `json:"repository_id,omitempty"`
+	RepositoryName string                         `json:"repository_name,omitempty"`
+	Branch         string                         `json:"branch,omitempty"`
+	Running        *PlaygroundBuildRecordSnapshot `json:"running,omitempty"`
+	Latest         *PlaygroundBuildRecordSnapshot `json:"latest,omitempty"`
+	Active         *PlaygroundBuildRecordSnapshot `json:"active,omitempty"`
 }
 
 type PlaygroundBuildRecordSnapshot struct {
@@ -121,10 +121,10 @@ type JobResultSummaryRow struct {
 
 type PlaygroundCreateParams struct {
 	Name               string                    `json:"name"`
-	PlayspecID         int64                     `json:"playspec_id"`
-	PlayspecIdentifier string                    `json:"-"`
-	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
-	MarqueeIdentifier  string                    `json:"-"`
+	SpecID             int64                     `json:"spec_id"`
+	SpecIdentifier     string                    `json:"-"`
+	HostID             *int64                    `json:"host_id,omitempty"`
+	HostIdentifier     string                    `json:"-"`
 	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
 	NeverExpire        *bool                     `json:"never_expire,omitempty"`
 	Services           map[string]*ServiceConfig `json:"services,omitempty"`
@@ -137,7 +137,7 @@ type PlaygroundCreateParams struct {
 func (p *PlaygroundCreateParams) Validate() error {
 	v := &validator{}
 	v.required("name", p.Name)
-	v.requiredIDOrIdentifier("playspec_id", p.PlayspecID, p.PlayspecIdentifier)
+	v.requiredIDOrIdentifier("spec_id", p.SpecID, p.SpecIdentifier)
 	for name, svc := range p.Services {
 		if svc != nil && svc.Exposure != nil {
 			v.subdomain(name+".exposure.subdomain", svc.Exposure.Subdomain)
@@ -157,11 +157,11 @@ func (p PlaygroundCreateParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.PlayspecIdentifier != "" {
-		body["playspec_id"] = p.PlayspecIdentifier
+	if p.SpecIdentifier != "" {
+		body["spec_id"] = p.SpecIdentifier
 	}
-	if p.MarqueeIdentifier != "" {
-		body["marquee_id"] = p.MarqueeIdentifier
+	if p.HostIdentifier != "" {
+		body["host_id"] = p.HostIdentifier
 	}
 	return json.Marshal(body)
 }
@@ -204,28 +204,28 @@ type PortMapping struct {
 
 // PlaygroundListParams controls filtering and pagination for playground list.
 type PlaygroundListParams struct {
-	Q                  string `url:"q,omitempty"`
-	Status             string `url:"status,omitempty"`
-	JobMode            *bool  `url:"job_mode,omitempty"`
-	PlayspecID         int64  `url:"playspec_id,omitempty"`
-	PlayspecIdentifier string `url:"playspec_id,omitempty"`
-	MarqueeID          int64  `url:"marquee_id,omitempty"`
-	MarqueeIdentifier  string `url:"marquee_id,omitempty"`
-	Name               string `url:"name,omitempty"`
-	ResultStatus       string `url:"result_status,omitempty"`
-	CreatedAfter       string `url:"created_after,omitempty"`
-	CreatedBefore      string `url:"created_before,omitempty"`
-	Sort               string `url:"sort,omitempty"`
-	Page               int    `url:"page,omitempty"`
-	PerPage            int    `url:"per_page,omitempty"`
+	Q              string `url:"q,omitempty"`
+	Status         string `url:"status,omitempty"`
+	JobMode        *bool  `url:"job_mode,omitempty"`
+	SpecID         int64  `url:"spec_id,omitempty"`
+	SpecIdentifier string `url:"spec_id,omitempty"`
+	HostID         int64  `url:"host_id,omitempty"`
+	HostIdentifier string `url:"host_id,omitempty"`
+	Name           string `url:"name,omitempty"`
+	ResultStatus   string `url:"result_status,omitempty"`
+	CreatedAfter   string `url:"created_after,omitempty"`
+	CreatedBefore  string `url:"created_before,omitempty"`
+	Sort           string `url:"sort,omitempty"`
+	Page           int    `url:"page,omitempty"`
+	PerPage        int    `url:"per_page,omitempty"`
 }
 
 type PlaygroundUpdateParams struct {
 	Name               *string                   `json:"name,omitempty"`
-	PlayspecID         *int64                    `json:"playspec_id,omitempty"`
-	PlayspecIdentifier string                    `json:"-"`
-	MarqueeID          *int64                    `json:"marquee_id,omitempty"`
-	MarqueeIdentifier  string                    `json:"-"`
+	SpecID             *int64                    `json:"spec_id,omitempty"`
+	SpecIdentifier     string                    `json:"-"`
+	HostID             *int64                    `json:"host_id,omitempty"`
+	HostIdentifier     string                    `json:"-"`
 	ExpiresAt          *time.Time                `json:"expires_at,omitempty"`
 	NeverExpire        *bool                     `json:"never_expire,omitempty"`
 	Services           map[string]*ServiceConfig `json:"services,omitempty"`
@@ -242,11 +242,11 @@ func (p PlaygroundUpdateParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.PlayspecIdentifier != "" {
-		body["playspec_id"] = p.PlayspecIdentifier
+	if p.SpecIdentifier != "" {
+		body["spec_id"] = p.SpecIdentifier
 	}
-	if p.MarqueeIdentifier != "" {
-		body["marquee_id"] = p.MarqueeIdentifier
+	if p.HostIdentifier != "" {
+		body["host_id"] = p.HostIdentifier
 	}
 	return json.Marshal(body)
 }
@@ -368,20 +368,20 @@ type PlaygroundExtendResult struct {
 	TimeRemaining float64   `json:"time_remaining"`
 }
 
-type TrickTriggerParams struct {
-	PlayspecID         int64             `json:"playspec_id"`
-	PlayspecIdentifier string            `json:"-"`
-	MarqueeID          *int64            `json:"marquee_id,omitempty"`
-	MarqueeIdentifier  string            `json:"-"`
-	Name               string            `json:"name,omitempty"` // auto-generated if empty
-	EnvOverrides       map[string]string `json:"env_overrides,omitempty"`
-	OnlyServices       []string          `json:"only_services,omitempty"`
-	ExceptServices     []string          `json:"except_services,omitempty"`
+type TaskTriggerParams struct {
+	SpecID         int64             `json:"spec_id"`
+	SpecIdentifier string            `json:"-"`
+	HostID         *int64            `json:"host_id,omitempty"`
+	HostIdentifier string            `json:"-"`
+	Name           string            `json:"name,omitempty"` // auto-generated if empty
+	EnvOverrides   map[string]string `json:"env_overrides,omitempty"`
+	OnlyServices   []string          `json:"only_services,omitempty"`
+	ExceptServices []string          `json:"except_services,omitempty"`
 }
 
-func (p *TrickTriggerParams) playspecIdentifier() string {
-	if p.PlayspecIdentifier != "" {
-		return p.PlayspecIdentifier
+func (p *TaskTriggerParams) specIdentifier() string {
+	if p.SpecIdentifier != "" {
+		return p.SpecIdentifier
 	}
-	return int64Identifier(p.PlayspecID)
+	return int64Identifier(p.SpecID)
 }

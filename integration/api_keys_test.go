@@ -78,8 +78,8 @@ func TestAPIKeys_ScopeEnforcement(t *testing.T) {
 		readOnly := createScopedKey(t, c, "read-only", []string{"playgrounds:read"})
 
 		_, err := readOnly.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("should-fail"),
-			PlayspecID: 99999,
+			Name:   uniqueName("should-fail"),
+			SpecID: 99999,
 		})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})

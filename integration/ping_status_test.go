@@ -43,11 +43,11 @@ func TestStatus_Get(t *testing.T) {
 		if s.Agents.Total < 0 {
 			t.Errorf("expected Agents.Total >= 0, got %d", s.Agents.Total)
 		}
-		if s.Props < 0 {
-			t.Errorf("expected Props >= 0, got %d", s.Props)
+		if s.Repositories < 0 {
+			t.Errorf("expected Repositories >= 0, got %d", s.Repositories)
 		}
-		if s.Playspecs < 0 {
-			t.Errorf("expected Playspecs >= 0, got %d", s.Playspecs)
+		if s.Specs < 0 {
+			t.Errorf("expected Specs >= 0, got %d", s.Specs)
 		}
 		if s.APIKeys < 0 {
 			t.Errorf("expected APIKeys >= 0, got %d", s.APIKeys)

@@ -53,9 +53,9 @@ func TestEmptyUpdateRejected(t *testing.T) {
 		"resource":  "playground",
 		"operation": "update",
 		"payload": map[string]any{
-			"id_or_name":          42,
-			"name":                "",
-			"playspec_id_or_name": nil,
+			"id_or_name":      42,
+			"name":            "",
+			"spec_id_or_name": nil,
 		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "at least one field") {
@@ -183,8 +183,8 @@ func TestWebhookEnumHintInSchemaRegistry(t *testing.T) {
 	if !ok {
 		t.Fatal("webhook.create entry malformed")
 	}
-	props := create["properties"].(map[string]any)
-	events := props["events"].(map[string]any)
+	repositories := create["properties"].(map[string]any)
+	events := repositories["events"].(map[string]any)
 	desc := events["description"].(string)
 	if !strings.Contains(desc, "fibe_schema") {
 		t.Errorf("events description should point to fibe_schema event_types, got: %s", desc)

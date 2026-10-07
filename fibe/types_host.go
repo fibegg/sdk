@@ -1,0 +1,162 @@
+package fibe
+
+import (
+	"encoding/json"
+	"time"
+)
+
+type Host struct {
+	ID                    int64      `json:"id"`
+	Name                  string     `json:"name"`
+	Host                  string     `json:"host"`
+	Port                  int        `json:"port"`
+	User                  string     `json:"user"`
+	Status                string     `json:"status"`
+	DomainsInput          *string    `json:"domains_input"`
+	HttpsEnabled          *bool      `json:"https_enabled,omitempty"`
+	TlsCertificateSource  *string    `json:"tls_certificate_source,omitempty"`
+	AcmeEmail             *string    `json:"acme_email"`
+	DockerhubAuthEnabled  *bool      `json:"dockerhub_auth_enabled"`
+	BuildPlatform         *string    `json:"build_platform"`
+	RepositoryID          *int64     `json:"repository_id"`
+	PaidUntil             *time.Time `json:"paid_until,omitempty"`
+	BillingRequestedUntil *time.Time `json:"billing_requested_until,omitempty"`
+	BillingRuntimeActive  bool       `json:"billing_runtime_active"`
+	ChatLaunchable        bool       `json:"chat_launchable"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
+}
+
+type HostCreateParams struct {
+	Name                 string            `json:"name"`
+	Host                 string            `json:"host"`
+	Port                 int               `json:"port"`
+	User                 string            `json:"user"`
+	SSHPrivateKey        string            `json:"ssh_private_key"`
+	DomainsInput         *string           `json:"domains_input,omitempty"`
+	HttpsEnabled         *bool             `json:"https_enabled,omitempty"`
+	TlsCertificateSource *string           `json:"tls_certificate_source,omitempty"`
+	TlsCertificatePEM    *string           `json:"tls_certificate_pem,omitempty"`
+	TlsPrivateKeyPEM     *string           `json:"tls_private_key_pem,omitempty"`
+	AcmeEmail            *string           `json:"acme_email,omitempty"`
+	DockerhubAuthEnabled *bool             `json:"dockerhub_auth_enabled,omitempty"`
+	DockerhubUsername    *string           `json:"dockerhub_username,omitempty"`
+	DockerhubToken       *string           `json:"dockerhub_token,omitempty"`
+	BuildPlatform        *string           `json:"build_platform,omitempty"`
+	RepositoryID         *int64            `json:"repository_id,omitempty"`
+	RepositoryIdentifier string            `json:"-"`
+	Status               *string           `json:"status,omitempty"`
+	DnsProvider          *string           `json:"dns_provider,omitempty"`
+	DnsCredentials       map[string]string `json:"dns_credentials,omitempty"`
+}
+
+func (p *HostCreateParams) Validate() error {
+	v := &validator{}
+	v.required("name", p.Name)
+	v.required("host", p.Host)
+	v.required("user", p.User)
+	v.required("ssh_private_key", p.SSHPrivateKey)
+	v.port("port", p.Port)
+	if p.DockerhubAuthEnabled != nil && *p.DockerhubAuthEnabled {
+		if p.DockerhubUsername == nil || *p.DockerhubUsername == "" {
+			v.errors = append(v.errors, ValidationError{Field: "dockerhub_username", Message: "required when dockerhub_auth_enabled is true"})
+		}
+		if p.DockerhubToken == nil || *p.DockerhubToken == "" {
+			v.errors = append(v.errors, ValidationError{Field: "dockerhub_token", Message: "required when dockerhub_auth_enabled is true"})
+		}
+	}
+	if p.TlsCertificateSource != nil && *p.TlsCertificateSource != "automatic" && *p.TlsCertificateSource != "provided" {
+		v.errors = append(v.errors, ValidationError{Field: "tls_certificate_source", Message: "must be automatic or provided"})
+	}
+	return v.err()
+}
+
+type HostUpdateParams struct {
+	Name                 *string           `json:"name,omitempty"`
+	Host                 *string           `json:"host,omitempty"`
+	Port                 *int              `json:"port,omitempty"`
+	User                 *string           `json:"user,omitempty"`
+	SSHPrivateKey        *string           `json:"ssh_private_key,omitempty"`
+	DomainsInput         *string           `json:"domains_input,omitempty"`
+	HttpsEnabled         *bool             `json:"https_enabled,omitempty"`
+	TlsCertificateSource *string           `json:"tls_certificate_source,omitempty"`
+	TlsCertificatePEM    *string           `json:"tls_certificate_pem,omitempty"`
+	TlsPrivateKeyPEM     *string           `json:"tls_private_key_pem,omitempty"`
+	AcmeEmail            *string           `json:"acme_email,omitempty"`
+	DockerhubAuthEnabled *bool             `json:"dockerhub_auth_enabled,omitempty"`
+	DockerhubUsername    *string           `json:"dockerhub_username,omitempty"`
+	DockerhubToken       *string           `json:"dockerhub_token,omitempty"`
+	BuildPlatform        *string           `json:"build_platform,omitempty"`
+	RepositoryID         *int64            `json:"repository_id,omitempty"`
+	RepositoryIdentifier string            `json:"-"`
+	Status               *string           `json:"status,omitempty"`
+	DnsProvider          *string           `json:"dns_provider,omitempty"`
+	DnsCredentials       map[string]string `json:"dns_credentials,omitempty"`
+}
+
+func (p HostCreateParams) MarshalJSON() ([]byte, error) {
+	type alias HostCreateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.RepositoryIdentifier != "" {
+		body["repository_id"] = p.RepositoryIdentifier
+	}
+	return json.Marshal(body)
+}
+
+func (p HostUpdateParams) MarshalJSON() ([]byte, error) {
+	type alias HostUpdateParams
+	data, err := json.Marshal(alias(p))
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]any
+	if err := json.Unmarshal(data, &body); err != nil {
+		return nil, err
+	}
+	if p.RepositoryIdentifier != "" {
+		body["repository_id"] = p.RepositoryIdentifier
+	}
+	return json.Marshal(body)
+}
+
+// AutoconnectTokenParams for generating a host autoconnect token.
+type AutoconnectTokenParams struct {
+	Email          string            `json:"email,omitempty"`
+	Domain         string            `json:"domain,omitempty"`
+	IP             string            `json:"ip,omitempty"`
+	SSLMode        string            `json:"ssl_mode,omitempty"`
+	DnsProvider    string            `json:"dns_provider,omitempty"`
+	DnsCredentials map[string]string `json:"dns_credentials,omitempty"`
+}
+
+type AutoconnectTokenResult struct {
+	Token string `json:"token"`
+}
+
+type SSHKeyResult struct {
+	PublicKey string `json:"public_key"`
+}
+
+type ConnectionTestResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
+type HostListParams struct {
+	Q             string `url:"q,omitempty"`
+	Status        string `url:"status,omitempty"`
+	Name          string `url:"name,omitempty"`
+	CreatedAfter  string `url:"created_after,omitempty"`
+	CreatedBefore string `url:"created_before,omitempty"`
+	Sort          string `url:"sort,omitempty"`
+	Page          int    `url:"page,omitempty"`
+	PerPage       int    `url:"per_page,omitempty"`
+}

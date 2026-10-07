@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"os"
 	"path/filepath"
@@ -44,15 +45,15 @@ func RootCmd() *cobra.Command {
 		Short: "Fibe CLI: manage playgrounds, agents, and infrastructure",
 		Long: `Fibe CLI is the official command-line interface for the Fibe platform API.
 
-It provides complete access to all Fibe resources: playgrounds, tricks, agents,
-playspecs, props (repositories), marquees (servers), secrets, templates,
+It provides complete access to all Fibe resources: playgrounds, tasks, agents,
+specs, repositories, hosts (servers), secrets, templates,
 webhooks, and more.
 
 CORE ARCHITECTURE:
-  - Blueprints (Playspecs) combine services & Source Code (Props).
-  - Servers (Marquees) host live environments.
-  - Playgrounds are long-running environments from Playspecs on a Marquee.
-  - Tricks are ad-hoc job workloads (job-mode Playspecs) that run to completion.
+  - Blueprints (Specs) combine services & Source Code (Repositories).
+  - Servers (Hosts) host live environments.
+  - Playgrounds are long-running environments from Specs on a Host.
+  - Tasks are ad-hoc job workloads (job-mode Specs) that run to completion.
 
 AUTHENTICATION:
   Run 'fibe login --api-key <key>' or 'fibe auth login' to configure the
@@ -61,8 +62,8 @@ AUTHENTICATION:
 
 EXAMPLES:
   fibe playgrounds list                      List all playgrounds
-  fibe tricks list                           List all tricks (jobs)
-  fibe tricks trigger --playspec 12          Run a trick
+  fibe tasks list                           List all tasks (jobs)
+  fibe tasks trigger --spec 12          Run a task
   fibe agents list                           List all agents
   fibe playgrounds logs 42 --service web     Stream logs for a service
   fibe doctor                                  Check auth and show user info
@@ -95,8 +96,12 @@ DOCUMENTATION:
   Run any command with --help for detailed usage information.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := domainnames.CheckEnvironment(); err != nil {
+				return err
+			}
 			setCommandContext(cmd.Context())
+			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			setCommandContext(context.Background())
@@ -117,11 +122,11 @@ DOCUMENTATION:
 
 	cmd.AddCommand(
 		playgroundsCmd(),
-		tricksCmd(),
+		tasksCmd(),
 		agentsCmd(),
-		playspecsCmd(),
-		propsCmd(),
-		marqueesCmd(),
+		specsCmd(),
+		repositoriesCmd(),
+		hostsCmd(),
 		secretsCmd(),
 		jobEnvCmd(),
 		apiKeysCmd(),
@@ -199,6 +204,7 @@ DOCUMENTATION:
 	})
 
 	cmd.SetUsageTemplate(usageTemplateWithAliases)
+	installRemovedNameErrors(cmd)
 	annotateCommandSafety(cmd)
 
 	return cmd

@@ -11,7 +11,7 @@
   "serialization": {
     "request_content_type": "application/json",
     "response_content_type": "application/json",
-    "unknown_fields": "accepted",
+    "unknown_fields": "accepted except removed FIBE naming fields; application-owned extension maps retain their properties",
     "trailing_json": "rejected",
     "query_encoding": "RFC 3986 via net/url.Values.Encode",
     "success_body_limit_bytes": 10485760,
@@ -867,6 +867,102 @@
       "response_type": "*GreenfieldResult, error"
     },
     {
+      "name": "HostService.AutoconnectToken",
+      "http_method": "POST",
+      "path_template": "/api/autoconnect_tokens",
+      "path_expression": "\"/api/autoconnect_tokens\"",
+      "codec": "json",
+      "request_type": "*AutoconnectTokenParams",
+      "response_type": "*AutoconnectTokenResult, error"
+    },
+    {
+      "name": "HostService.Create",
+      "http_method": "POST",
+      "path_template": "/api/hosts",
+      "path_expression": "\"/api/hosts\"",
+      "codec": "json",
+      "request_type": "*HostCreateParams",
+      "response_type": "*Host, error"
+    },
+    {
+      "name": "HostService.Delete",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "HostService.DeleteByIdentifier"
+    },
+    {
+      "name": "HostService.DeleteByIdentifier",
+      "http_method": "DELETE",
+      "path_template": "/api/hosts/{identifier}",
+      "path_expression": "identifierPath(\"/api/hosts\", identifier)",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "HostService.GenerateSSHKey",
+      "codec": "delegated",
+      "response_type": "*SSHKeyResult, error",
+      "delegates_to": "HostService.GenerateSSHKeyByIdentifier"
+    },
+    {
+      "name": "HostService.GenerateSSHKeyByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/hosts/{identifier}/ssh_keys",
+      "path_expression": "path + \"/ssh_keys\"",
+      "codec": "async-json",
+      "response_type": "*SSHKeyResult, error"
+    },
+    {
+      "name": "HostService.Get",
+      "codec": "delegated",
+      "response_type": "*Host, error",
+      "delegates_to": "HostService.GetByIdentifier"
+    },
+    {
+      "name": "HostService.GetByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/hosts/{identifier}",
+      "path_expression": "identifierPath(\"/api/hosts\", identifier)",
+      "codec": "json",
+      "response_type": "*Host, error"
+    },
+    {
+      "name": "HostService.List",
+      "codec": "delegated",
+      "request_type": "*HostListParams",
+      "response_type": "*ListResult[Host], error"
+    },
+    {
+      "name": "HostService.TestConnection",
+      "codec": "delegated",
+      "response_type": "*ConnectionTestResult, error",
+      "delegates_to": "HostService.TestConnectionByIdentifier"
+    },
+    {
+      "name": "HostService.TestConnectionByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/hosts/{identifier}/connection_tests",
+      "path_expression": "path + \"/connection_tests\"",
+      "codec": "async-json",
+      "response_type": "*ConnectionTestResult, error"
+    },
+    {
+      "name": "HostService.Update",
+      "codec": "delegated",
+      "request_type": "*HostUpdateParams",
+      "response_type": "*Host, error",
+      "delegates_to": "HostService.UpdateByIdentifier"
+    },
+    {
+      "name": "HostService.UpdateByIdentifier",
+      "http_method": "PATCH",
+      "path_template": "/api/hosts/{identifier}",
+      "path_expression": "identifierPath(\"/api/hosts\", identifier)",
+      "codec": "json",
+      "request_type": "*HostUpdateParams",
+      "response_type": "*Host, error"
+    },
+    {
       "name": "ImportTemplateService.ClearSource",
       "codec": "delegated",
       "response_type": "*ImportTemplate, error",
@@ -1108,13 +1204,13 @@
       "response_type": "*ImportTemplate, error"
     },
     {
-      "name": "ImportTemplateService.UpgradeLinkedPlayspecs",
+      "name": "ImportTemplateService.UpgradeLinkedSpecs",
       "codec": "delegated",
       "response_type": "*ImportTemplateUpgradeLinkedResult, error",
-      "delegates_to": "ImportTemplateService.UpgradeLinkedPlayspecsByIdentifier"
+      "delegates_to": "ImportTemplateService.UpgradeLinkedSpecsByIdentifier"
     },
     {
-      "name": "ImportTemplateService.UpgradeLinkedPlayspecsByIdentifier",
+      "name": "ImportTemplateService.UpgradeLinkedSpecsByIdentifier",
       "http_method": "POST",
       "path_template": "{value}/versions/{versionID}/upgrades",
       "path_expression": "path",
@@ -1232,102 +1328,6 @@
       "codec": "json",
       "request_type": "*LaunchParams",
       "response_type": "*LaunchResult, error"
-    },
-    {
-      "name": "MarqueeService.AutoconnectToken",
-      "http_method": "POST",
-      "path_template": "/api/autoconnect_tokens",
-      "path_expression": "\"/api/autoconnect_tokens\"",
-      "codec": "json",
-      "request_type": "*AutoconnectTokenParams",
-      "response_type": "*AutoconnectTokenResult, error"
-    },
-    {
-      "name": "MarqueeService.Create",
-      "http_method": "POST",
-      "path_template": "/api/marquees",
-      "path_expression": "\"/api/marquees\"",
-      "codec": "json",
-      "request_type": "*MarqueeCreateParams",
-      "response_type": "*Marquee, error"
-    },
-    {
-      "name": "MarqueeService.Delete",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "MarqueeService.DeleteByIdentifier"
-    },
-    {
-      "name": "MarqueeService.DeleteByIdentifier",
-      "http_method": "DELETE",
-      "path_template": "/api/marquees/{identifier}",
-      "path_expression": "identifierPath(\"/api/marquees\", identifier)",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "MarqueeService.GenerateSSHKey",
-      "codec": "delegated",
-      "response_type": "*SSHKeyResult, error",
-      "delegates_to": "MarqueeService.GenerateSSHKeyByIdentifier"
-    },
-    {
-      "name": "MarqueeService.GenerateSSHKeyByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/marquees/{identifier}/ssh_keys",
-      "path_expression": "path + \"/ssh_keys\"",
-      "codec": "async-json",
-      "response_type": "*SSHKeyResult, error"
-    },
-    {
-      "name": "MarqueeService.Get",
-      "codec": "delegated",
-      "response_type": "*Marquee, error",
-      "delegates_to": "MarqueeService.GetByIdentifier"
-    },
-    {
-      "name": "MarqueeService.GetByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/marquees/{identifier}",
-      "path_expression": "identifierPath(\"/api/marquees\", identifier)",
-      "codec": "json",
-      "response_type": "*Marquee, error"
-    },
-    {
-      "name": "MarqueeService.List",
-      "codec": "delegated",
-      "request_type": "*MarqueeListParams",
-      "response_type": "*ListResult[Marquee], error"
-    },
-    {
-      "name": "MarqueeService.TestConnection",
-      "codec": "delegated",
-      "response_type": "*ConnectionTestResult, error",
-      "delegates_to": "MarqueeService.TestConnectionByIdentifier"
-    },
-    {
-      "name": "MarqueeService.TestConnectionByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/marquees/{identifier}/connection_tests",
-      "path_expression": "path + \"/connection_tests\"",
-      "codec": "async-json",
-      "response_type": "*ConnectionTestResult, error"
-    },
-    {
-      "name": "MarqueeService.Update",
-      "codec": "delegated",
-      "request_type": "*MarqueeUpdateParams",
-      "response_type": "*Marquee, error",
-      "delegates_to": "MarqueeService.UpdateByIdentifier"
-    },
-    {
-      "name": "MarqueeService.UpdateByIdentifier",
-      "http_method": "PATCH",
-      "path_template": "/api/marquees/{identifier}",
-      "path_expression": "identifierPath(\"/api/marquees\", identifier)",
-      "codec": "json",
-      "request_type": "*MarqueeUpdateParams",
-      "response_type": "*Marquee, error"
     },
     {
       "name": "MemoryService.Delete",
@@ -1662,335 +1662,6 @@
       "delegates_to": "PlaygroundService.RuntimeStatusByIdentifier"
     },
     {
-      "name": "PlayspecService.AddMountedFile",
-      "codec": "delegated",
-      "request_type": "*MountedFileParams",
-      "response_type": "error",
-      "delegates_to": "PlayspecService.AddMountedFileByIdentifier"
-    },
-    {
-      "name": "PlayspecService.AddMountedFileByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/playspecs/{identifier}/mounts",
-      "path_expression": "path",
-      "codec": "multipart",
-      "request_type": "*MountedFileParams",
-      "response_type": "error"
-    },
-    {
-      "name": "PlayspecService.AddRegistryCredential",
-      "codec": "delegated",
-      "request_type": "*RegistryCredentialParams",
-      "response_type": "*RegistryCredentialResult, error",
-      "delegates_to": "PlayspecService.AddRegistryCredentialByIdentifier"
-    },
-    {
-      "name": "PlayspecService.AddRegistryCredentialByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/playspecs/{identifier}/registry_credentials",
-      "path_expression": "path",
-      "codec": "json",
-      "request_type": "*RegistryCredentialParams",
-      "response_type": "*RegistryCredentialResult, error"
-    },
-    {
-      "name": "PlayspecService.Create",
-      "http_method": "POST",
-      "path_template": "/api/playspecs",
-      "path_expression": "\"/api/playspecs\"",
-      "codec": "json",
-      "request_type": "*PlayspecCreateParams",
-      "response_type": "*Playspec, error"
-    },
-    {
-      "name": "PlayspecService.Delete",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "PlayspecService.DeleteByIdentifier"
-    },
-    {
-      "name": "PlayspecService.DeleteByIdentifier",
-      "http_method": "DELETE",
-      "path_template": "/api/playspecs/{identifier}",
-      "path_expression": "identifierPath(\"/api/playspecs\", identifier)",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "PlayspecService.Get",
-      "codec": "delegated",
-      "response_type": "*Playspec, error",
-      "delegates_to": "PlayspecService.GetByIdentifier"
-    },
-    {
-      "name": "PlayspecService.GetByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/playspecs/{identifier}",
-      "path_expression": "identifierPath(\"/api/playspecs\", identifier)",
-      "codec": "json",
-      "response_type": "*Playspec, error"
-    },
-    {
-      "name": "PlayspecService.List",
-      "codec": "delegated",
-      "request_type": "*PlayspecListParams",
-      "response_type": "*ListResult[Playspec], error"
-    },
-    {
-      "name": "PlayspecService.PreviewTemplateVersionSwitch",
-      "codec": "delegated",
-      "request_type": "*PlayspecTemplateVersionSwitchParams",
-      "response_type": "*PlayspecTemplateVersionSwitchPreview, error",
-      "delegates_to": "PlayspecService.PreviewTemplateVersionSwitchByIdentifier"
-    },
-    {
-      "name": "PlayspecService.PreviewTemplateVersionSwitchByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/playspecs/{identifier}/template_switch_previews",
-      "path_expression": "path",
-      "codec": "json",
-      "request_type": "*PlayspecTemplateVersionSwitchParams",
-      "response_type": "*PlayspecTemplateVersionSwitchPreview, error"
-    },
-    {
-      "name": "PlayspecService.RemoveMountedFile",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "PlayspecService.RemoveMountedFileByIdentifier"
-    },
-    {
-      "name": "PlayspecService.RemoveMountedFileByIdentifier",
-      "http_method": "DELETE",
-      "path_template": "/api/playspecs/{identifier}/mounts",
-      "path_expression": "path",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "PlayspecService.RemoveRegistryCredential",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "PlayspecService.RemoveRegistryCredentialByIdentifier"
-    },
-    {
-      "name": "PlayspecService.RemoveRegistryCredentialByIdentifier",
-      "http_method": "DELETE",
-      "path_template": "/api/playspecs/{identifier}/registry_credentials",
-      "path_expression": "path",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "PlayspecService.Services",
-      "codec": "delegated",
-      "response_type": "[]any, error",
-      "delegates_to": "PlayspecService.ServicesByIdentifier"
-    },
-    {
-      "name": "PlayspecService.ServicesByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/playspecs/{identifier}/services",
-      "path_expression": "identifierPath(\"/api/playspecs\", identifier) + \"/services\"",
-      "codec": "json",
-      "response_type": "[]any, error"
-    },
-    {
-      "name": "PlayspecService.SwitchTemplateVersion",
-      "codec": "delegated",
-      "request_type": "*PlayspecTemplateVersionSwitchParams",
-      "response_type": "*PlayspecTemplateVersionSwitchResult, error",
-      "delegates_to": "PlayspecService.SwitchTemplateVersionByIdentifier"
-    },
-    {
-      "name": "PlayspecService.SwitchTemplateVersionByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/playspecs/{identifier}/template_switches",
-      "path_expression": "path",
-      "codec": "async-json",
-      "request_type": "*PlayspecTemplateVersionSwitchParams",
-      "response_type": "*PlayspecTemplateVersionSwitchResult, error"
-    },
-    {
-      "name": "PlayspecService.Update",
-      "codec": "delegated",
-      "request_type": "*PlayspecUpdateParams",
-      "response_type": "*Playspec, error",
-      "delegates_to": "PlayspecService.UpdateByIdentifier"
-    },
-    {
-      "name": "PlayspecService.UpdateByIdentifier",
-      "http_method": "PATCH",
-      "path_template": "/api/playspecs/{identifier}",
-      "path_expression": "identifierPath(\"/api/playspecs\", identifier)",
-      "codec": "json",
-      "request_type": "*PlayspecUpdateParams",
-      "response_type": "*Playspec, error"
-    },
-    {
-      "name": "PlayspecService.UpdateMountedFile",
-      "codec": "delegated",
-      "request_type": "*MountedFileUpdateParams",
-      "response_type": "error",
-      "delegates_to": "PlayspecService.UpdateMountedFileByIdentifier"
-    },
-    {
-      "name": "PlayspecService.UpdateMountedFileByIdentifier",
-      "http_method": "PATCH",
-      "path_template": "/api/playspecs/{identifier}/mounts",
-      "path_expression": "path",
-      "codec": "json",
-      "request_type": "*MountedFileUpdateParams",
-      "response_type": "error"
-    },
-    {
-      "name": "PlayspecService.ValidateCompose",
-      "codec": "delegated",
-      "response_type": "*ComposeValidation, error",
-      "delegates_to": "PlayspecService.ValidateComposeWithParams"
-    },
-    {
-      "name": "PlayspecService.ValidateComposeWithParams",
-      "http_method": "POST",
-      "path_template": "/api/compose_validations",
-      "path_expression": "\"/api/compose_validations\"",
-      "codec": "json",
-      "request_type": "*ComposeValidateParams",
-      "response_type": "*ComposeValidation, error"
-    },
-    {
-      "name": "PropService.Attach",
-      "http_method": "POST",
-      "path_template": "/api/props/attachments",
-      "path_expression": "\"/api/props/attachments\"",
-      "codec": "json",
-      "response_type": "*Prop, error"
-    },
-    {
-      "name": "PropService.Branches",
-      "codec": "delegated",
-      "response_type": "*PropBranches, error",
-      "delegates_to": "PropService.BranchesByIdentifier"
-    },
-    {
-      "name": "PropService.BranchesByIdentifier",
-      "http_method": "GET",
-      "path_template": "?{values.Encode()}",
-      "path_expression": "path",
-      "codec": "json",
-      "response_type": "*PropBranches, error"
-    },
-    {
-      "name": "PropService.Create",
-      "http_method": "POST",
-      "path_template": "/api/props",
-      "path_expression": "\"/api/props\"",
-      "codec": "json",
-      "request_type": "*PropCreateParams",
-      "response_type": "*Prop, error"
-    },
-    {
-      "name": "PropService.Delete",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "PropService.DeleteByIdentifier"
-    },
-    {
-      "name": "PropService.DeleteByIdentifier",
-      "http_method": "DELETE",
-      "path_template": "/api/props/{identifier}",
-      "path_expression": "identifierPath(\"/api/props\", identifier)",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "PropService.EnvDefaults",
-      "codec": "delegated",
-      "response_type": "*PropEnvDefaults, error",
-      "delegates_to": "PropService.EnvDefaultsByIdentifier"
-    },
-    {
-      "name": "PropService.EnvDefaultsByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/props/{identifier}/env_defaults?{values.Encode()}",
-      "path_expression": "path",
-      "codec": "json",
-      "response_type": "*PropEnvDefaults, error"
-    },
-    {
-      "name": "PropService.Get",
-      "codec": "delegated",
-      "response_type": "*Prop, error",
-      "delegates_to": "PropService.GetByIdentifier"
-    },
-    {
-      "name": "PropService.GetByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/props/{identifier}",
-      "path_expression": "identifierPath(\"/api/props\", identifier)",
-      "codec": "json",
-      "response_type": "*Prop, error"
-    },
-    {
-      "name": "PropService.GetMirrorStateByIdentifier",
-      "http_method": "GET",
-      "path_template": "/api/props/{identifier}",
-      "path_expression": "identifierPath(\"/api/props\", identifier)",
-      "codec": "json",
-      "response_type": "*PropMirrorState, error"
-    },
-    {
-      "name": "PropService.List",
-      "codec": "delegated",
-      "request_type": "*PropListParams",
-      "response_type": "*ListResult[Prop], error"
-    },
-    {
-      "name": "PropService.Mirror",
-      "http_method": "POST",
-      "path_template": "/api/props/mirrors",
-      "path_expression": "\"/api/props/mirrors\"",
-      "codec": "json",
-      "response_type": "*Prop, error"
-    },
-    {
-      "name": "PropService.MirrorWithState",
-      "http_method": "POST",
-      "path_template": "/api/props/mirrors",
-      "path_expression": "\"/api/props/mirrors\"",
-      "codec": "json",
-      "response_type": "*PropMirrorState, error"
-    },
-    {
-      "name": "PropService.Sync",
-      "codec": "delegated",
-      "response_type": "error",
-      "delegates_to": "PropService.SyncByIdentifier"
-    },
-    {
-      "name": "PropService.SyncByIdentifier",
-      "http_method": "POST",
-      "path_template": "/api/props/{identifier}/syncs",
-      "path_expression": "identifierPath(\"/api/props\", identifier) + \"/syncs\"",
-      "codec": "json",
-      "response_type": "error"
-    },
-    {
-      "name": "PropService.Update",
-      "codec": "delegated",
-      "request_type": "*PropUpdateParams",
-      "response_type": "*Prop, error",
-      "delegates_to": "PropService.UpdateByIdentifier"
-    },
-    {
-      "name": "PropService.UpdateByIdentifier",
-      "http_method": "PATCH",
-      "path_template": "/api/props/{identifier}",
-      "path_expression": "identifierPath(\"/api/props\", identifier)",
-      "codec": "json",
-      "request_type": "*PropUpdateParams",
-      "response_type": "*Prop, error"
-    },
-    {
       "name": "RepoStatusService.Check",
       "http_method": "POST",
       "path_template": "/api/repo_status_checks",
@@ -1998,6 +1669,139 @@
       "codec": "json",
       "request_type": "[]string",
       "response_type": "*RepoStatus, error"
+    },
+    {
+      "name": "RepositoryService.Attach",
+      "http_method": "POST",
+      "path_template": "/api/repositories/attachments",
+      "path_expression": "\"/api/repositories/attachments\"",
+      "codec": "json",
+      "response_type": "*Repository, error"
+    },
+    {
+      "name": "RepositoryService.Branches",
+      "codec": "delegated",
+      "response_type": "*RepositoryBranches, error",
+      "delegates_to": "RepositoryService.BranchesByIdentifier"
+    },
+    {
+      "name": "RepositoryService.BranchesByIdentifier",
+      "http_method": "GET",
+      "path_template": "?{values.Encode()}",
+      "path_expression": "path",
+      "codec": "json",
+      "response_type": "*RepositoryBranches, error"
+    },
+    {
+      "name": "RepositoryService.Create",
+      "http_method": "POST",
+      "path_template": "/api/repositories",
+      "path_expression": "\"/api/repositories\"",
+      "codec": "json",
+      "request_type": "*RepositoryCreateParams",
+      "response_type": "*Repository, error"
+    },
+    {
+      "name": "RepositoryService.Delete",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "RepositoryService.DeleteByIdentifier"
+    },
+    {
+      "name": "RepositoryService.DeleteByIdentifier",
+      "http_method": "DELETE",
+      "path_template": "/api/repositories/{identifier}",
+      "path_expression": "identifierPath(\"/api/repositories\", identifier)",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "RepositoryService.EnvDefaults",
+      "codec": "delegated",
+      "response_type": "*RepositoryEnvDefaults, error",
+      "delegates_to": "RepositoryService.EnvDefaultsByIdentifier"
+    },
+    {
+      "name": "RepositoryService.EnvDefaultsByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/repositories/{identifier}/env_defaults?{values.Encode()}",
+      "path_expression": "path",
+      "codec": "json",
+      "response_type": "*RepositoryEnvDefaults, error"
+    },
+    {
+      "name": "RepositoryService.Get",
+      "codec": "delegated",
+      "response_type": "*Repository, error",
+      "delegates_to": "RepositoryService.GetByIdentifier"
+    },
+    {
+      "name": "RepositoryService.GetByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/repositories/{identifier}",
+      "path_expression": "identifierPath(\"/api/repositories\", identifier)",
+      "codec": "json",
+      "response_type": "*Repository, error"
+    },
+    {
+      "name": "RepositoryService.GetMirrorStateByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/repositories/{identifier}",
+      "path_expression": "identifierPath(\"/api/repositories\", identifier)",
+      "codec": "json",
+      "response_type": "*RepositoryMirrorState, error"
+    },
+    {
+      "name": "RepositoryService.List",
+      "codec": "delegated",
+      "request_type": "*RepositoryListParams",
+      "response_type": "*ListResult[Repository], error"
+    },
+    {
+      "name": "RepositoryService.Mirror",
+      "http_method": "POST",
+      "path_template": "/api/repositories/mirrors",
+      "path_expression": "\"/api/repositories/mirrors\"",
+      "codec": "json",
+      "response_type": "*Repository, error"
+    },
+    {
+      "name": "RepositoryService.MirrorWithState",
+      "http_method": "POST",
+      "path_template": "/api/repositories/mirrors",
+      "path_expression": "\"/api/repositories/mirrors\"",
+      "codec": "json",
+      "response_type": "*RepositoryMirrorState, error"
+    },
+    {
+      "name": "RepositoryService.Sync",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "RepositoryService.SyncByIdentifier"
+    },
+    {
+      "name": "RepositoryService.SyncByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/repositories/{identifier}/syncs",
+      "path_expression": "identifierPath(\"/api/repositories\", identifier) + \"/syncs\"",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "RepositoryService.Update",
+      "codec": "delegated",
+      "request_type": "*RepositoryUpdateParams",
+      "response_type": "*Repository, error",
+      "delegates_to": "RepositoryService.UpdateByIdentifier"
+    },
+    {
+      "name": "RepositoryService.UpdateByIdentifier",
+      "http_method": "PATCH",
+      "path_template": "/api/repositories/{identifier}",
+      "path_expression": "identifierPath(\"/api/repositories\", identifier)",
+      "codec": "json",
+      "request_type": "*RepositoryUpdateParams",
+      "response_type": "*Repository, error"
     },
     {
       "name": "SecretService.Create",
@@ -2067,6 +1871,202 @@
       "response_type": "*ServerInfo, error"
     },
     {
+      "name": "SpecService.AddMountedFile",
+      "codec": "delegated",
+      "request_type": "*MountedFileParams",
+      "response_type": "error",
+      "delegates_to": "SpecService.AddMountedFileByIdentifier"
+    },
+    {
+      "name": "SpecService.AddMountedFileByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/specs/{identifier}/mounts",
+      "path_expression": "path",
+      "codec": "multipart",
+      "request_type": "*MountedFileParams",
+      "response_type": "error"
+    },
+    {
+      "name": "SpecService.AddRegistryCredential",
+      "codec": "delegated",
+      "request_type": "*RegistryCredentialParams",
+      "response_type": "*RegistryCredentialResult, error",
+      "delegates_to": "SpecService.AddRegistryCredentialByIdentifier"
+    },
+    {
+      "name": "SpecService.AddRegistryCredentialByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/specs/{identifier}/registry_credentials",
+      "path_expression": "path",
+      "codec": "json",
+      "request_type": "*RegistryCredentialParams",
+      "response_type": "*RegistryCredentialResult, error"
+    },
+    {
+      "name": "SpecService.Create",
+      "http_method": "POST",
+      "path_template": "/api/specs",
+      "path_expression": "\"/api/specs\"",
+      "codec": "json",
+      "request_type": "*SpecCreateParams",
+      "response_type": "*Spec, error"
+    },
+    {
+      "name": "SpecService.Delete",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "SpecService.DeleteByIdentifier"
+    },
+    {
+      "name": "SpecService.DeleteByIdentifier",
+      "http_method": "DELETE",
+      "path_template": "/api/specs/{identifier}",
+      "path_expression": "identifierPath(\"/api/specs\", identifier)",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "SpecService.Get",
+      "codec": "delegated",
+      "response_type": "*Spec, error",
+      "delegates_to": "SpecService.GetByIdentifier"
+    },
+    {
+      "name": "SpecService.GetByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/specs/{identifier}",
+      "path_expression": "identifierPath(\"/api/specs\", identifier)",
+      "codec": "json",
+      "response_type": "*Spec, error"
+    },
+    {
+      "name": "SpecService.List",
+      "codec": "delegated",
+      "request_type": "*SpecListParams",
+      "response_type": "*ListResult[Spec], error"
+    },
+    {
+      "name": "SpecService.PreviewTemplateVersionSwitch",
+      "codec": "delegated",
+      "request_type": "*SpecTemplateVersionSwitchParams",
+      "response_type": "*SpecTemplateVersionSwitchPreview, error",
+      "delegates_to": "SpecService.PreviewTemplateVersionSwitchByIdentifier"
+    },
+    {
+      "name": "SpecService.PreviewTemplateVersionSwitchByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/specs/{identifier}/template_switch_previews",
+      "path_expression": "path",
+      "codec": "json",
+      "request_type": "*SpecTemplateVersionSwitchParams",
+      "response_type": "*SpecTemplateVersionSwitchPreview, error"
+    },
+    {
+      "name": "SpecService.RemoveMountedFile",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "SpecService.RemoveMountedFileByIdentifier"
+    },
+    {
+      "name": "SpecService.RemoveMountedFileByIdentifier",
+      "http_method": "DELETE",
+      "path_template": "/api/specs/{identifier}/mounts",
+      "path_expression": "path",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "SpecService.RemoveRegistryCredential",
+      "codec": "delegated",
+      "response_type": "error",
+      "delegates_to": "SpecService.RemoveRegistryCredentialByIdentifier"
+    },
+    {
+      "name": "SpecService.RemoveRegistryCredentialByIdentifier",
+      "http_method": "DELETE",
+      "path_template": "/api/specs/{identifier}/registry_credentials",
+      "path_expression": "path",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "SpecService.Services",
+      "codec": "delegated",
+      "response_type": "[]any, error",
+      "delegates_to": "SpecService.ServicesByIdentifier"
+    },
+    {
+      "name": "SpecService.ServicesByIdentifier",
+      "http_method": "GET",
+      "path_template": "/api/specs/{identifier}/services",
+      "path_expression": "identifierPath(\"/api/specs\", identifier) + \"/services\"",
+      "codec": "json",
+      "response_type": "[]any, error"
+    },
+    {
+      "name": "SpecService.SwitchTemplateVersion",
+      "codec": "delegated",
+      "request_type": "*SpecTemplateVersionSwitchParams",
+      "response_type": "*SpecTemplateVersionSwitchResult, error",
+      "delegates_to": "SpecService.SwitchTemplateVersionByIdentifier"
+    },
+    {
+      "name": "SpecService.SwitchTemplateVersionByIdentifier",
+      "http_method": "POST",
+      "path_template": "/api/specs/{identifier}/template_switches",
+      "path_expression": "path",
+      "codec": "async-json",
+      "request_type": "*SpecTemplateVersionSwitchParams",
+      "response_type": "*SpecTemplateVersionSwitchResult, error"
+    },
+    {
+      "name": "SpecService.Update",
+      "codec": "delegated",
+      "request_type": "*SpecUpdateParams",
+      "response_type": "*Spec, error",
+      "delegates_to": "SpecService.UpdateByIdentifier"
+    },
+    {
+      "name": "SpecService.UpdateByIdentifier",
+      "http_method": "PATCH",
+      "path_template": "/api/specs/{identifier}",
+      "path_expression": "identifierPath(\"/api/specs\", identifier)",
+      "codec": "json",
+      "request_type": "*SpecUpdateParams",
+      "response_type": "*Spec, error"
+    },
+    {
+      "name": "SpecService.UpdateMountedFile",
+      "codec": "delegated",
+      "request_type": "*MountedFileUpdateParams",
+      "response_type": "error",
+      "delegates_to": "SpecService.UpdateMountedFileByIdentifier"
+    },
+    {
+      "name": "SpecService.UpdateMountedFileByIdentifier",
+      "http_method": "PATCH",
+      "path_template": "/api/specs/{identifier}/mounts",
+      "path_expression": "path",
+      "codec": "json",
+      "request_type": "*MountedFileUpdateParams",
+      "response_type": "error"
+    },
+    {
+      "name": "SpecService.ValidateCompose",
+      "codec": "delegated",
+      "response_type": "*ComposeValidation, error",
+      "delegates_to": "SpecService.ValidateComposeWithParams"
+    },
+    {
+      "name": "SpecService.ValidateComposeWithParams",
+      "http_method": "POST",
+      "path_template": "/api/compose_validations",
+      "path_expression": "\"/api/compose_validations\"",
+      "codec": "json",
+      "request_type": "*ComposeValidateParams",
+      "response_type": "*ComposeValidation, error"
+    },
+    {
       "name": "StatusService.Get",
       "http_method": "GET",
       "path_template": "/api/status",
@@ -2075,113 +2075,113 @@
       "response_type": "*Status, error"
     },
     {
-      "name": "TemplateCategoryService.List",
-      "codec": "delegated",
-      "request_type": "*ListParams",
-      "response_type": "*ListResult[TemplateCategory], error"
-    },
-    {
-      "name": "TrickService.Delete",
+      "name": "TaskService.Delete",
       "codec": "delegated",
       "response_type": "error",
       "delegates_to": "Playgrounds.Delete"
     },
     {
-      "name": "TrickService.DeleteByIdentifier",
+      "name": "TaskService.DeleteByIdentifier",
       "codec": "delegated",
       "response_type": "error",
       "delegates_to": "Playgrounds.DeleteByIdentifier"
     },
     {
-      "name": "TrickService.Get",
+      "name": "TaskService.Get",
       "codec": "delegated",
       "response_type": "*Playground, error",
       "delegates_to": "Playgrounds.Get"
     },
     {
-      "name": "TrickService.GetByIdentifier",
+      "name": "TaskService.GetByIdentifier",
       "codec": "delegated",
       "response_type": "*Playground, error",
       "delegates_to": "Playgrounds.GetByIdentifier"
     },
     {
-      "name": "TrickService.List",
+      "name": "TaskService.List",
       "codec": "delegated",
       "request_type": "*PlaygroundListParams",
       "response_type": "*ListResult[Playground], error"
     },
     {
-      "name": "TrickService.LogStream",
+      "name": "TaskService.LogStream",
       "codec": "websocket",
       "request_type": "*LogsStreamOptions",
       "response_type": "\u003c-chan LogStreamEvent, \u003c-chan error",
       "delegates_to": "Playgrounds.logStreamByID"
     },
     {
-      "name": "TrickService.LogStreamByIdentifier",
+      "name": "TaskService.LogStreamByIdentifier",
       "codec": "websocket",
       "request_type": "*LogsStreamOptions",
       "response_type": "\u003c-chan LogStreamEvent, \u003c-chan error",
-      "delegates_to": "TrickService.GetByIdentifier"
+      "delegates_to": "TaskService.GetByIdentifier"
     },
     {
-      "name": "TrickService.Logs",
+      "name": "TaskService.Logs",
       "codec": "delegated",
       "request_type": "*int",
       "response_type": "*PlaygroundLogs, error",
       "delegates_to": "Playgrounds.Logs"
     },
     {
-      "name": "TrickService.LogsByIdentifier",
+      "name": "TaskService.LogsByIdentifier",
       "codec": "delegated",
       "request_type": "*int",
       "response_type": "*PlaygroundLogs, error",
       "delegates_to": "Playgrounds.LogsByIdentifier"
     },
     {
-      "name": "TrickService.LogsStream",
+      "name": "TaskService.LogsStream",
       "codec": "websocket",
       "request_type": "*LogsStreamOptions",
       "response_type": "\u003c-chan LogLine",
-      "delegates_to": "TrickService.LogsStreamByIdentifier"
+      "delegates_to": "TaskService.LogsStreamByIdentifier"
     },
     {
-      "name": "TrickService.LogsStreamByIdentifier",
+      "name": "TaskService.LogsStreamByIdentifier",
       "codec": "websocket",
       "request_type": "*LogsStreamOptions",
       "response_type": "\u003c-chan LogLine",
       "delegates_to": "Playgrounds.LogsStreamByIdentifier"
     },
     {
-      "name": "TrickService.Rerun",
+      "name": "TaskService.Rerun",
       "codec": "delegated",
       "response_type": "*Playground, error",
-      "delegates_to": "TrickService.RerunByIdentifier"
+      "delegates_to": "TaskService.RerunByIdentifier"
     },
     {
-      "name": "TrickService.RerunByIdentifier",
+      "name": "TaskService.RerunByIdentifier",
       "codec": "delegated",
       "response_type": "*Playground, error",
       "delegates_to": "Playgrounds.GetByIdentifier"
     },
     {
-      "name": "TrickService.Status",
+      "name": "TaskService.Status",
       "codec": "delegated",
       "response_type": "*PlaygroundStatus, error",
       "delegates_to": "Playgrounds.Status"
     },
     {
-      "name": "TrickService.StatusByIdentifier",
+      "name": "TaskService.StatusByIdentifier",
       "codec": "delegated",
       "response_type": "*PlaygroundStatus, error",
       "delegates_to": "Playgrounds.StatusByIdentifier"
     },
     {
-      "name": "TrickService.Trigger",
+      "name": "TaskService.Trigger",
       "codec": "delegated",
-      "request_type": "*TrickTriggerParams",
+      "request_type": "*TaskTriggerParams",
       "response_type": "*Playground, error",
-      "delegates_to": "Playspecs.GetByIdentifier"
+      "delegates_to": "Specs.GetByIdentifier"
+    },
+    {
+      "name": "TemplateCategoryService.List",
+      "codec": "delegated",
+      "request_type": "*ListParams",
+      "response_type": "*ListResult[TemplateCategory], error"
     },
     {
       "name": "WebhookEndpointService.Create",
@@ -2253,6 +2253,8 @@
     "ArtefactCreateParams",
     "FeedbackCreateParams",
     "GreenfieldCreateParams",
+    "HostCreateParams",
+    "HostUpdateParams",
     "ImportTemplate",
     "ImportTemplateLaunchParams",
     "ImportTemplateSource",
@@ -2261,15 +2263,13 @@
     "JobEnvSetParams",
     "LaunchParams",
     "LaunchResult",
-    "MarqueeCreateParams",
-    "MarqueeUpdateParams",
     "MutterItemParams",
     "Playground",
     "PlaygroundCreateParams",
     "PlaygroundRuntimeStatus",
     "PlaygroundUpdateParams",
-    "PlayspecServiceDef",
-    "PlayspecTemplateVersionSwitchParams",
+    "SpecServiceDef",
+    "SpecTemplateVersionSwitchParams",
     "TemplateVersionPatchParams"
   ]
 }

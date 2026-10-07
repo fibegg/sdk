@@ -10,8 +10,8 @@ func TestLaunch_Create(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("launch parses compose and creates playspec+playground", func(t *testing.T) {
-		// Not parallel: hits shared marquee slot if FIBE_TEST_MARQUEE_ID set
+	t.Run("launch parses compose and creates spec+playground", func(t *testing.T) {
+		// Not parallel: hits shared host slot if FIBE_TEST_HOST_ID set
 		name := uniqueName("launch-real")
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        name,
@@ -19,15 +19,15 @@ func TestLaunch_Create(t *testing.T) {
 		})
 		if err != nil {
 			if apiErr, ok := err.(*fibe.APIError); ok {
-				// No default marquee, no job_mode: backend may require MarqueeID context
+				// No default host, no job_mode: backend may require HostID context
 				if apiErr.StatusCode == 422 || apiErr.StatusCode == 400 {
 					t.Skipf("launch requires additional context (%s): %s", apiErr.Code, apiErr.Message)
 				}
 			}
 			requireNoError(t, err)
 		}
-		if result.PlayspecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
-			t.Fatalf("launch response did not include a playspec, playground, or legacy resource ID: %#v", result)
+		if result.SpecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
+			t.Fatalf("launch response did not include a spec, playground, or legacy resource ID: %#v", result)
 		}
 		if result.PlaygroundID != 0 {
 			if _, err := c.Playgrounds.Get(ctx(), result.PlaygroundID); err != nil {
@@ -35,12 +35,12 @@ func TestLaunch_Create(t *testing.T) {
 			}
 			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.PlaygroundID) })
 		}
-		if result.PlayspecID != 0 {
-			t.Cleanup(func() { c.Playspecs.Delete(ctx(), result.PlayspecID) })
+		if result.SpecID != 0 {
+			t.Cleanup(func() { c.Specs.Delete(ctx(), result.SpecID) })
 		}
 	})
 
-	t.Run("launch with job_mode=true creates trick", func(t *testing.T) {
+	t.Run("launch with job_mode=true creates task", func(t *testing.T) {
 		jm := true
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        uniqueName("launch-job"),
@@ -53,14 +53,14 @@ func TestLaunch_Create(t *testing.T) {
 			}
 			requireNoError(t, err)
 		}
-		if result.PlayspecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
-			t.Fatalf("job-mode launch response did not include a playspec, playground, or legacy resource ID: %#v", result)
+		if result.SpecID == 0 && result.PlaygroundID == 0 && result.ID == 0 {
+			t.Fatalf("job-mode launch response did not include a spec, playground, or legacy resource ID: %#v", result)
 		}
 		if result.PlaygroundID != 0 {
 			t.Cleanup(func() { c.Playgrounds.Delete(ctx(), result.PlaygroundID) })
 		}
-		if result.PlayspecID != 0 {
-			t.Cleanup(func() { c.Playspecs.Delete(ctx(), result.PlayspecID) })
+		if result.SpecID != 0 {
+			t.Cleanup(func() { c.Specs.Delete(ctx(), result.SpecID) })
 		}
 	})
 

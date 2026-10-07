@@ -142,10 +142,10 @@ func TestPollAsync_ErrorPreservesStructuredFields(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"request_id":    "req-funded",
 			"status":        "error",
-			"error":         "This Marquee is not funded. Fund it to continue.",
-			"error_code":    ErrCodeMarqueeNotFunded,
+			"error":         "This Host is not funded. Fund it to continue.",
+			"error_code":    ErrCodeHostNotFunded,
 			"error_status":  http.StatusPaymentRequired,
-			"error_details": map[string]any{"marquee_id": float64(42), "operation": "playground_creation"},
+			"error_details": map[string]any{"host_id": float64(42), "operation": "playground_creation"},
 		})
 	}))
 	defer srv.Close()
@@ -158,8 +158,8 @@ func TestPollAsync_ErrorPreservesStructuredFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.ErrorCode != ErrCodeMarqueeNotFunded {
-		t.Fatalf("expected code %q, got %q", ErrCodeMarqueeNotFunded, result.ErrorCode)
+	if result.ErrorCode != ErrCodeHostNotFunded {
+		t.Fatalf("expected code %q, got %q", ErrCodeHostNotFunded, result.ErrorCode)
 	}
 	if result.ErrorStatus != http.StatusPaymentRequired {
 		t.Fatalf("expected status 402, got %d", result.ErrorStatus)
@@ -423,8 +423,8 @@ func TestDoAsync_202ThenPollStructuredError(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"request_id":    "req-funded",
 			"status":        "error",
-			"error":         "This Marquee is not funded. Fund it to continue.",
-			"error_code":    ErrCodeMarqueeNotFunded,
+			"error":         "This Host is not funded. Fund it to continue.",
+			"error_code":    ErrCodeHostNotFunded,
 			"error_status":  http.StatusPaymentRequired,
 			"error_details": map[string]any{"operation": "agent_chat_start"},
 		})
@@ -440,8 +440,8 @@ func TestDoAsync_202ThenPollStructuredError(t *testing.T) {
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected *APIError, got %T", err)
 	}
-	if apiErr.Code != ErrCodeMarqueeNotFunded {
-		t.Fatalf("expected code %q, got %q", ErrCodeMarqueeNotFunded, apiErr.Code)
+	if apiErr.Code != ErrCodeHostNotFunded {
+		t.Fatalf("expected code %q, got %q", ErrCodeHostNotFunded, apiErr.Code)
 	}
 	if apiErr.StatusCode != http.StatusPaymentRequired {
 		t.Fatalf("expected status 402, got %d", apiErr.StatusCode)

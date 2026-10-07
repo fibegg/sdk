@@ -25,12 +25,12 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 			_, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{Name: uniqueName("t"), Provider: "bogus-provider-xyz"})
 			return err
 		}},
-		{"playspec empty name", func() error {
-			_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{Name: "", BaseComposeYAML: minimalComposeYAML()})
+		{"spec empty name", func() error {
+			_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{Name: "", BaseComposeYAML: minimalComposeYAML()})
 			return err
 		}},
-		{"playspec empty compose", func() error {
-			_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{Name: uniqueName("t"), BaseComposeYAML: ""})
+		{"spec empty compose", func() error {
+			_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{Name: uniqueName("t"), BaseComposeYAML: ""})
 			return err
 		}},
 		{"secret empty key", func() error {
@@ -41,8 +41,8 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 			_, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: "KEY_" + uniqueName(""), Value: ""})
 			return err
 		}},
-		{"prop empty url", func() error {
-			_, err := c.Props.Create(ctx(), &fibe.PropCreateParams{RepositoryURL: ""})
+		{"repository empty url", func() error {
+			_, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{RepositoryURL: ""})
 			return err
 		}},
 		{"webhook empty url", func() error {
@@ -53,8 +53,8 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 			_, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{URL: "https://x", Secret: "s", Events: []string{}})
 			return err
 		}},
-		{"marquee empty name", func() error {
-			_, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{Name: "", Host: "h", Port: 22, User: "u", SSHPrivateKey: "k"})
+		{"host empty name", func() error {
+			_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{Name: "", Host: "h", Port: 22, User: "u", SSHPrivateKey: "k"})
 			return err
 		}},
 		{"api_key empty label", func() error {
@@ -93,10 +93,10 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 		run  func() error
 	}{
 		{"agent get", func() error { _, err := c.Agents.Get(ctx(), bogus); return err }},
-		{"playspec get", func() error { _, err := c.Playspecs.Get(ctx(), bogus); return err }},
-		{"prop get", func() error { _, err := c.Props.Get(ctx(), bogus); return err }},
+		{"spec get", func() error { _, err := c.Specs.Get(ctx(), bogus); return err }},
+		{"repository get", func() error { _, err := c.Repositories.Get(ctx(), bogus); return err }},
 		{"playground get", func() error { _, err := c.Playgrounds.Get(ctx(), bogus); return err }},
-		{"marquee get", func() error { _, err := c.Marquees.Get(ctx(), bogus); return err }},
+		{"host get", func() error { _, err := c.Hosts.Get(ctx(), bogus); return err }},
 		{"secret get", func() error { _, err := c.Secrets.Get(ctx(), bogus, false); return err }},
 		{"webhook get", func() error { _, err := c.WebhookEndpoints.Get(ctx(), bogus); return err }},
 		{"template get", func() error { _, err := c.ImportTemplates.Get(ctx(), bogus); return err }},
@@ -104,9 +104,9 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 		{"playground compose", func() error { _, err := c.Playgrounds.Compose(ctx(), bogus); return err }},
 		{"playground debug", func() error { _, err := c.Playgrounds.Debug(ctx(), bogus); return err }},
 		{"playground env_metadata", func() error { _, err := c.Playgrounds.EnvMetadata(ctx(), bogus); return err }},
-		{"prop sync", func() error { return c.Props.Sync(ctx(), bogus) }},
-		{"prop branches", func() error { _, err := c.Props.Branches(ctx(), bogus, "", 0); return err }},
-		{"marquee test connection", func() error { _, err := c.Marquees.TestConnection(ctx(), bogus); return err }},
+		{"repository sync", func() error { return c.Repositories.Sync(ctx(), bogus) }},
+		{"repository branches", func() error { _, err := c.Repositories.Branches(ctx(), bogus, "", 0); return err }},
+		{"host test connection", func() error { _, err := c.Hosts.TestConnection(ctx(), bogus); return err }},
 		{"webhook test", func() error { return c.WebhookEndpoints.Test(ctx(), bogus) }},
 	}
 

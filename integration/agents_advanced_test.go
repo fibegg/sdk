@@ -131,20 +131,20 @@ func TestArtefacts_List(t *testing.T) {
 	})
 }
 
-func TestPlayspecRegistryCredentials(t *testing.T) {
+func TestSpecRegistryCredentials(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            uniqueName("registry-spec"),
 		BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
-		Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+		Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
 	t.Run("add registry credential", func(t *testing.T) {
-		_, err := c.Playspecs.AddRegistryCredential(ctx(), *spec.ID, &fibe.RegistryCredentialParams{
+		_, err := c.Specs.AddRegistryCredential(ctx(), *spec.ID, &fibe.RegistryCredentialParams{
 			RegistryType: "ghcr",
 			RegistryURL:  "ghcr.io",
 			Username:     "testuser",
@@ -154,16 +154,16 @@ func TestPlayspecRegistryCredentials(t *testing.T) {
 	})
 
 	t.Run("credential visible in detail", func(t *testing.T) {
-		detail, err := c.Playspecs.Get(ctx(), *spec.ID)
+		detail, err := c.Specs.Get(ctx(), *spec.ID)
 		requireNoError(t, err)
 
 		if detail.Credentials == nil {
-			t.Error("expected credentials in playspec detail")
+			t.Error("expected credentials in spec detail")
 		}
 	})
 
 	t.Run("remove registry credential", func(t *testing.T) {
-		detail, err := c.Playspecs.Get(ctx(), *spec.ID)
+		detail, err := c.Specs.Get(ctx(), *spec.ID)
 		requireNoError(t, err)
 
 		creds, ok := detail.Credentials.([]any)
@@ -180,7 +180,7 @@ func TestPlayspecRegistryCredentials(t *testing.T) {
 			t.Skip("no credential ID")
 		}
 
-		err = c.Playspecs.RemoveRegistryCredential(ctx(), *spec.ID, credID)
+		err = c.Specs.RemoveRegistryCredential(ctx(), *spec.ID, credID)
 		requireNoError(t, err)
 	})
 }
