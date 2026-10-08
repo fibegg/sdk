@@ -127,6 +127,10 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 	if s.client.cfg.apiKey == "" {
 		return fmt.Errorf("api key is required")
 	}
+	origin, err := s.client.cableOrigin()
+	if err != nil {
+		return err
+	}
 	if owner := s.client.cfg.expectedOwner; owner != nil {
 		if owner.OwnerID <= 0 || (owner.OwnerType != "Player" && owner.OwnerType != "Team") {
 			return fmt.Errorf("invalid owner context")
@@ -139,6 +143,7 @@ func (s *CableService) subscribeCable(ctx context.Context, label string, identif
 		HTTPClient: s.client.http,
 		HTTPHeader: http.Header{
 			"Authorization": []string{"Bearer " + s.client.cfg.apiKey},
+			"Origin":        []string{origin},
 		},
 		Subprotocols: []string{
 			actionCableProtocol,
@@ -256,6 +261,20 @@ func (c *Client) cableURL() string {
 	u.RawQuery = ""
 	u.Fragment = ""
 	return u.String()
+}
+
+// Native WebSocket clients send the same API origin that a browser would use.
+// Proxy transport addresses and API paths never become an origin claim.
+func (c *Client) cableOrigin() (string, error) {
+	base, err := resolveBaseURL(c.cfg.domain)
+	if err != nil {
+		return "", err
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		return "", err
+	}
+	return (&url.URL{Scheme: u.Scheme, Host: u.Host}).String(), nil
 }
 
 func parseCableFrame(resource string, data []byte) (CableEvent, bool, error) {
