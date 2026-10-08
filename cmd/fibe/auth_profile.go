@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
@@ -29,6 +30,7 @@ type cliConfigStore struct {
 }
 
 type resolvedAuth struct {
+	CredentialContext fibe.CredentialContext
 	Profile           string
 	Domain            string
 	APIKey            string
@@ -188,6 +190,7 @@ func resolveCLIAuth() resolvedAuth {
 	}
 
 	return resolvedAuth{
+		CredentialContext: resolvedCredentialContext(entry, authSource, profile),
 		Profile:           profile,
 		Domain:            normalizeDomainInput(domain),
 		APIKey:            apiKey,
@@ -199,7 +202,7 @@ func resolveCLIAuth() resolvedAuth {
 	}
 }
 
-func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64) error {
+func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64, metadata ...fibe.CredentialContext) error {
 	if err := validateProfileName(profile); err != nil {
 		return err
 	}
@@ -207,14 +210,31 @@ func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64) error {
 	if err := newCLIConfigStore(defaultCLIConfigPath()).setProfile(profile, domain); err != nil {
 		return err
 	}
+	var context fibe.CredentialContext
+	if len(metadata) > 0 {
+		context = metadata[0]
+	}
 	if err := fibe.NewCredentialStore(fibe.DefaultCredentialPath()).SetProfile(profile, &fibe.CredentialEntry{
-		APIKey:   apiKey,
-		APIKeyID: apiKeyID,
-		Domain:   domain,
+		CredentialContext: context,
+		APIKey:            apiKey,
+		APIKeyID:          apiKeyID,
+		Domain:            domain,
 	}); err != nil {
 		return err
 	}
 	return newCLIConfigStore(defaultCLIConfigPath()).setActive(profile)
+}
+
+func resolvedCredentialContext(entry *fibe.CredentialEntry, source, profile string) fibe.CredentialContext {
+	if entry != nil && source == "profile "+profile {
+		return entry.CredentialContext
+	}
+	ownerType := os.Getenv("FIBE_OWNER_TYPE")
+	ownerID, _ := strconv.ParseInt(os.Getenv("FIBE_OWNER_ID"), 10, 64)
+	principalID, _ := strconv.ParseInt(os.Getenv("FIBE_PRINCIPAL_ID"), 10, 64)
+	version, _ := strconv.Atoi(os.Getenv("FIBE_AUTHORIZATION_VERSION"))
+	return fibe.CredentialContext{OwnerContext: fibe.OwnerContext{OwnerType: ownerType, OwnerID: ownerID},
+		PrincipalType: os.Getenv("FIBE_PRINCIPAL_TYPE"), PrincipalID: principalID, AuthorizationVersion: version}
 }
 
 func deleteAuthProfile(profile string) error {

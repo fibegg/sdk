@@ -50,6 +50,14 @@
       "response_type": "*Player, error"
     },
     {
+      "name": "APIKeyService.Rotate",
+      "http_method": "POST",
+      "path_template": "/api/api_keys/{id}/rotate",
+      "path_expression": "fmt.Sprintf(\"/api/api_keys/%d/rotate\", id)",
+      "codec": "json",
+      "response_type": "*APIKey, error"
+    },
+    {
       "name": "AgentDefaultsService.Get",
       "http_method": "GET",
       "path_template": "/api/agent_defaults",
@@ -757,6 +765,91 @@
       "name": "CableService.SubscribeResource",
       "codec": "delegated",
       "response_type": "\u003c-chan CableEvent, \u003c-chan error"
+    },
+    {
+      "name": "EnvPackService.Attachments",
+      "http_method": "GET",
+      "path_template": "{envPackTargetPath(target,id)}",
+      "path_expression": "path",
+      "codec": "json",
+      "response_type": "*EnvPackTarget, error"
+    },
+    {
+      "name": "EnvPackService.Create",
+      "http_method": "POST",
+      "path_template": "/api/env_packs",
+      "path_expression": "\"/api/env_packs\"",
+      "codec": "json",
+      "request_type": "*EnvPackCreateParams",
+      "response_type": "*EnvPack, error"
+    },
+    {
+      "name": "EnvPackService.Delete",
+      "http_method": "DELETE",
+      "path_template": "/api/env_packs/{id}",
+      "path_expression": "fmt.Sprintf(\"/api/env_packs/%d\", id)",
+      "codec": "json",
+      "response_type": "error"
+    },
+    {
+      "name": "EnvPackService.DetachAttachment",
+      "codec": "delegated",
+      "response_type": "*EnvPackTarget, error",
+      "delegates_to": "EnvPackService.ReplaceAttachments"
+    },
+    {
+      "name": "EnvPackService.Get",
+      "http_method": "GET",
+      "path_template": "/api/env_packs/{id}",
+      "path_expression": "fmt.Sprintf(\"/api/env_packs/%d\", id)",
+      "codec": "json",
+      "response_type": "*EnvPack, error"
+    },
+    {
+      "name": "EnvPackService.List",
+      "codec": "delegated",
+      "request_type": "*EnvPackListParams",
+      "response_type": "*ListResult[EnvPack], error"
+    },
+    {
+      "name": "EnvPackService.RenewGrant",
+      "http_method": "POST",
+      "path_template": "{envPackTargetPath(target,id)}/renew",
+      "path_expression": "path + \"/renew\"",
+      "codec": "json",
+      "response_type": "*EnvPackTarget, error"
+    },
+    {
+      "name": "EnvPackService.ReorderAttachments",
+      "codec": "delegated",
+      "request_type": "[]int64",
+      "response_type": "*EnvPackTarget, error",
+      "delegates_to": "EnvPackService.ReplaceAttachments"
+    },
+    {
+      "name": "EnvPackService.ReplaceAttachments",
+      "http_method": "PATCH",
+      "path_template": "{envPackTargetPath(target,id)}",
+      "path_expression": "path",
+      "codec": "json",
+      "request_type": "*EnvPackAttachmentsParams",
+      "response_type": "*EnvPackTarget, error"
+    },
+    {
+      "name": "EnvPackService.RetargetAttachment",
+      "codec": "delegated",
+      "request_type": "*[]string",
+      "response_type": "*EnvPackTarget, error",
+      "delegates_to": "EnvPackService.ReplaceAttachments"
+    },
+    {
+      "name": "EnvPackService.Update",
+      "http_method": "PATCH",
+      "path_template": "/api/env_packs/{id}",
+      "path_expression": "fmt.Sprintf(\"/api/env_packs/%d\", id)",
+      "codec": "json",
+      "request_type": "*EnvPackUpdateParams",
+      "response_type": "*EnvPack, error"
     },
     {
       "name": "FeedbackService.Create",
@@ -1586,6 +1679,15 @@
       "delegates_to": "PlaygroundService.LogStreamByIdentifier"
     },
     {
+      "name": "PlaygroundService.Rerun",
+      "http_method": "POST",
+      "path_template": "/api/playgrounds/{id}/rerun",
+      "path_expression": "fmt.Sprintf(\"/api/playgrounds/%d/rerun\", id)",
+      "codec": "json",
+      "request_type": "*PlaygroundRerunParams",
+      "response_type": "*Playground, error"
+    },
+    {
       "name": "PlaygroundService.RuntimeStatus",
       "codec": "delegated",
       "response_type": "*PlaygroundRuntimeStatus, error",
@@ -2155,6 +2257,13 @@
     {
       "name": "TaskService.RerunByIdentifier",
       "codec": "delegated",
+      "response_type": "*Playground, error",
+      "delegates_to": "TaskService.RerunWithParamsByIdentifier"
+    },
+    {
+      "name": "TaskService.RerunWithParamsByIdentifier",
+      "codec": "delegated",
+      "request_type": "*PlaygroundRerunParams",
       "response_type": "*Playground, error",
       "delegates_to": "Playgrounds.GetByIdentifier"
     },

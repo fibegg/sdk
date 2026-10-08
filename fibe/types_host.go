@@ -6,6 +6,7 @@ import (
 )
 
 type Host struct {
+	OwnershipMetadata
 	ID                    int64      `json:"id"`
 	Name                  string     `json:"name"`
 	Host                  string     `json:"host"`

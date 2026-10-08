@@ -28,11 +28,16 @@
             "enum": [
               "action",
               "attach",
+              "attachment_detach",
+              "attachment_retarget",
+              "attachments_reorder",
+              "attachments_replace",
               "autoconnect_token",
               "change",
               "create",
               "fork",
               "generate_ssh_key",
+              "grant_renew",
               "mirror",
               "rerun",
               "restart_chat",
@@ -71,6 +76,10 @@
               "api-keys",
               "api_key",
               "api_keys",
+              "env-pack",
+              "env-packs",
+              "env_pack",
+              "env_packs",
               "host",
               "hosts",
               "import-template",
@@ -579,6 +588,10 @@
               "audit_logs",
               "categories",
               "category",
+              "env-pack",
+              "env-packs",
+              "env_pack",
+              "env_packs",
               "host",
               "hosts",
               "import-template",
@@ -746,6 +759,10 @@
               "artefact_attachment",
               "artefact_attachments",
               "artefacts",
+              "env-pack",
+              "env-packs",
+              "env_pack",
+              "env_packs",
               "host",
               "hosts",
               "import-template",
@@ -844,6 +861,10 @@
               "api-keys",
               "api_key",
               "api_keys",
+              "env-pack",
+              "env-packs",
+              "env_pack",
+              "env_packs",
               "host",
               "hosts",
               "import-template",
@@ -897,6 +918,46 @@
         },
         "required": [
           "resource"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "name": "fibe_env_pack_attachments_get",
+      "description": "[MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec.",
+      "tier": "base",
+      "read_only": true,
+      "idempotent": true,
+      "input_schema": {
+        "properties": {
+          "only": {
+            "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "output_path": {
+            "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+            "type": "string"
+          },
+          "target": {
+            "description": "Target for this env_pack_attachments_get request.",
+            "enum": [
+              "playgrounds",
+              "specs"
+            ],
+            "type": "string"
+          },
+          "target_id": {
+            "description": "Target ID",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "target",
+          "target_id"
         ],
         "type": "object"
       }
@@ -1032,6 +1093,40 @@
             "description": "Runtime environment overrides for the created Playground.",
             "properties": {},
             "type": "object"
+          },
+          "env_pack_attachments": {
+            "description": "Ordered pack references. Omit or null to preserve/inherit; [] explicitly detaches all packs.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "env_pack_id": {
+                  "description": "Env Pack ID",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "service_names": {
+                  "description": "Omitted or null applies to all services; an empty array is invalid.",
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "env_pack_id"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "github_account": {
             "description": "GitHub App installation account owner to use when multiple installations are connected.",
@@ -1727,6 +1822,11 @@
             "enum": [
               "action",
               "attach",
+              "attachment_detach",
+              "attachment_retarget",
+              "attachments_get",
+              "attachments_reorder",
+              "attachments_replace",
               "autoconnect_token",
               "change",
               "create",
@@ -1735,6 +1835,7 @@
               "fork",
               "generate_ssh_key",
               "get",
+              "grant_renew",
               "list",
               "memorize",
               "mirror",
@@ -1802,6 +1903,10 @@
               "composes",
               "docker-compose",
               "docker_compose",
+              "env-pack",
+              "env-packs",
+              "env_pack",
+              "env_packs",
               "host",
               "hosts",
               "import-template",

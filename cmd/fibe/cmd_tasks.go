@@ -288,7 +288,11 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			tr, err := c.Tasks.RerunByIdentifier(ctx(), args[0])
+			p := &fibe.PlaygroundRerunParams{}
+			if err := applyFromFile(p); err != nil {
+				return err
+			}
+			tr, err := c.Tasks.RerunWithParamsByIdentifier(ctx(), args[0], p)
 			if err != nil {
 				return err
 			}

@@ -85,7 +85,7 @@ func TestRepositoryValidation(t *testing.T) {
 		provider := "gitea"
 		private := true
 		branch := "main"
-		prop1, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
+		repository1, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test")),
 			Provider:      &provider,
@@ -93,9 +93,9 @@ func TestRepositoryValidation(t *testing.T) {
 			DefaultBranch: &branch,
 		})
 		requireNoError(t, err)
-		t.Cleanup(func() { c.Repositories.Delete(ctx(), prop1.ID) })
+		t.Cleanup(func() { c.Repositories.Delete(ctx(), repository1.ID) })
 
-		prop2, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
+		repository2, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test-2")),
 			Provider:      &provider,
@@ -105,8 +105,8 @@ func TestRepositoryValidation(t *testing.T) {
 		if err != nil {
 			return
 		}
-		if prop2.ID != prop1.ID {
-			t.Cleanup(func() { c.Repositories.Delete(ctx(), prop2.ID) })
+		if repository2.ID != repository1.ID {
+			t.Cleanup(func() { c.Repositories.Delete(ctx(), repository2.ID) })
 		}
 	})
 }

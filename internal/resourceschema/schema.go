@@ -28,6 +28,7 @@ type resourceDef struct {
 }
 
 var flatResources = []resourceDef{
+	{name: "env_pack", aliases: []string{"env_packs"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.EnvPackListParams](), get: true, delete: true},
 	{name: "playground", aliases: []string{"playgrounds"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
 	{name: "task", aliases: []string{"tasks"}, operations: []string{"list", "get", "delete"}, listSchema: listParamsSchema[fibe.PlaygroundListParams](), get: true, delete: true},
 	{name: "agent", aliases: []string{"agents"}, operations: []string{"list", "get", "delete", "watch"}, listSchema: listParamsSchema[fibe.AgentListParams](), get: true, delete: true},
@@ -412,6 +413,7 @@ func buildRegistry() map[string]map[string]any {
 	out["task"]["rerun"] = resourceActionIDSchema("id_or_name", "Source task ID or name to rerun.")
 	out["job_env"]["create"] = jobEnvCreateSchema()
 	out["job_env"]["update"] = jobEnvUpdateSchema()
+	installEnvPackSchemas(out)
 	out["memory"]["memorize"] = MemoryMemorizeSchema()
 
 	for _, r := range flatResources {

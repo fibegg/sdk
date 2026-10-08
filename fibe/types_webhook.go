@@ -65,6 +65,7 @@ var WebhookKnownEvents = []string{
 }
 
 type WebhookEndpoint struct {
+	OwnershipMetadata
 	ID              *int64              `json:"id"`
 	URL             string              `json:"url"`
 	Events          []string            `json:"events"`

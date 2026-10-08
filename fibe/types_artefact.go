@@ -7,6 +7,7 @@ import (
 
 // Artefact represents a file produced by an agent.
 type Artefact struct {
+	OwnershipMetadata
 	ID           int64     `json:"id"`
 	AgentID      *int64    `json:"agent_id"`
 	PlayerID     *int64    `json:"player_id"`

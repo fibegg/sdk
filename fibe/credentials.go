@@ -10,6 +10,7 @@ import (
 // CredentialEntry holds a stored API key for a domain and, for modern CLI
 // auth, an optional named profile.
 type CredentialEntry struct {
+	CredentialContext
 	APIKey   string `json:"api_key"`
 	APIKeyID int64  `json:"api_key_id,omitempty"`
 	Domain   string `json:"domain"`
@@ -89,7 +90,8 @@ func (s *CredentialStore) Set(entry *CredentialEntry) error {
 }
 
 // SetProfile stores a credential for a named profile and mirrors it by domain
-// for older SDK/CLI callers that still resolve credentials by domain.
+// for older SDK/CLI callers that still resolve credentials by domain. Company
+// credentials stay in their explicit profile and cannot replace personal lookup.
 func (s *CredentialStore) SetProfile(profile string, entry *CredentialEntry) error {
 	return withStoreLockError(s.path, func() error {
 		f, err := s.loadUnlocked()
@@ -103,7 +105,7 @@ func (s *CredentialStore) SetProfile(profile string, entry *CredentialEntry) err
 		cloned := *entry
 		cloned.Profile = profile
 		f.Profiles[profile] = &cloned
-		if cloned.Domain != "" {
+		if cloned.Domain != "" && !(cloned.OwnerType == "Team" && cloned.AuthorizationVersion >= 2) {
 			f.Domains[cloned.Domain] = &cloned
 		}
 		return s.saveUnlocked(f)

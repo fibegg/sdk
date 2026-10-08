@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +16,7 @@ import (
 func launchCmd() *cobra.Command {
 	var (
 		name                 string
+		envPackSelection     string
 		template             string
 		templateVersion      string
 		spec                 string
@@ -66,6 +70,10 @@ EXAMPLES:
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
+			refs, err := parseLaunchEnvPacks(envPackSelection, cmd.Flags().Changed("env-pack-attachments"))
+			if err != nil {
+				return err
+			}
 			var filePayload map[string]any
 			if err := applyFromFile(&filePayload); err != nil {
 				return err
@@ -112,13 +120,13 @@ EXAMPLES:
 				if templateVersion != "" {
 					return fmt.Errorf("--template cannot be combined with --template-version; use one source selector")
 				}
-				result, playgroundID, err = runTemplateLaunch(c, source.Value, name, hostIdentifier, version, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides)
+				result, playgroundID, err = runTemplateLaunch(c, source.Value, name, hostIdentifier, version, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides, refs)
 			case launchSourceTemplateVersion:
-				result, playgroundID, err = runTemplateVersionLaunch(c, source.Value, name, hostIdentifier, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides)
+				result, playgroundID, err = runTemplateVersionLaunch(c, source.Value, name, hostIdentifier, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides, refs)
 			case launchSourceSpec:
-				result, playgroundID, err = runSpecLaunch(c, source.Value, name, hostIdentifier, serviceOverrides)
+				result, playgroundID, err = runSpecLaunch(c, source.Value, name, hostIdentifier, serviceOverrides, refs)
 			case launchSourceCompose, launchSourceRepo:
-				result, playgroundID, err = runComposeOrRepoLaunch(cmd, c, source, args, name, repoFile, repoRef, githubAccount, githubInstallationID, hostIdentifier, jobMode, createPlayground, noCreatePlayground, persistVolumes, cmd.Flags().Changed("persist-volumes"), launchRepositories, variables, envOverrides, subdomains, serviceOverrides)
+				result, playgroundID, err = runComposeOrRepoLaunch(cmd, c, source, args, name, repoFile, repoRef, githubAccount, githubInstallationID, hostIdentifier, jobMode, createPlayground, noCreatePlayground, persistVolumes, cmd.Flags().Changed("persist-volumes"), launchRepositories, variables, envOverrides, subdomains, serviceOverrides, refs)
 			default:
 				err = fmt.Errorf("unsupported launch source %q", source.Kind)
 			}
@@ -148,6 +156,7 @@ EXAMPLES:
 		},
 	}
 
+	cmd.Flags().StringVar(&envPackSelection, "env-pack-attachments", "", "Ordered recipient pack references as JSON array or @file; [] opts out, omitted/null inherits")
 	cmd.Flags().StringVar(&template, "template", "", "Template ID or name")
 	cmd.Flags().StringVar(&templateVersion, "template-version", "", "Exact template version ID")
 	cmd.Flags().StringVar(&spec, "spec", "", "Spec ID or name")
@@ -189,14 +198,15 @@ func mergeWaitedPlaygroundResult(result any, pg *fibe.Playground) any {
 	}
 }
 
-func runTemplateLaunch(c *fibe.Client, template, name, host string, version int64, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.LaunchResult, int64, error) {
+func runTemplateLaunch(c *fibe.Client, template, name, host string, version int64, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.LaunchResult, int64, error) {
 	params := &fibe.ImportTemplateLaunchParams{
-		HostIdentifier:    host,
-		Name:              name,
-		Variables:         variables,
-		EnvOverrides:      env,
-		ServiceSubdomains: subdomains,
-		Services:          serviceConfigMapAny(services),
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
+		HostIdentifier:     host,
+		Name:               name,
+		Variables:          variables,
+		EnvOverrides:       env,
+		ServiceSubdomains:  subdomains,
+		Services:           serviceConfigMapAny(services),
 	}
 	if version > 0 {
 		params.Version = &version
@@ -211,19 +221,20 @@ func runTemplateLaunch(c *fibe.Client, template, name, host string, version int6
 	return result, result.PlaygroundID, nil
 }
 
-func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, host string, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.GreenfieldResult, int64, error) {
+func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, host string, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.GreenfieldResult, int64, error) {
 	id, err := strconv.ParseInt(strings.TrimSpace(templateVersion), 10, 64)
 	if err != nil || id <= 0 {
 		return nil, 0, fmt.Errorf("--template-version must be a positive integer ID")
 	}
 	params := &fibe.GreenfieldCreateParams{
-		Name:              name,
-		TemplateVersionID: &id,
-		HostIdentifier:    host,
-		Variables:         variables,
-		EnvOverrides:      env,
-		ServiceSubdomains: subdomains,
-		Services:          serviceConfigMapAny(services),
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
+		Name:               name,
+		TemplateVersionID:  &id,
+		HostIdentifier:     host,
+		Variables:          variables,
+		EnvOverrides:       env,
+		ServiceSubdomains:  subdomains,
+		Services:           serviceConfigMapAny(services),
 	}
 	if persistChanged {
 		params.PersistVolumes = &persistVolumes
@@ -239,7 +250,7 @@ func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, host string
 	return result, playgroundID, nil
 }
 
-func runSpecLaunch(c *fibe.Client, spec, name, host string, services map[string]*fibe.ServiceConfig) (*fibe.Playground, int64, error) {
+func runSpecLaunch(c *fibe.Client, spec, name, host string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.Playground, int64, error) {
 	if name == "" {
 		return nil, 0, fmt.Errorf("required field 'name' not set")
 	}
@@ -251,10 +262,11 @@ func runSpecLaunch(c *fibe.Client, spec, name, host string, services map[string]
 		return nil, 0, err
 	}
 	params := &fibe.PlaygroundCreateParams{
-		Name:           name,
-		SpecIdentifier: spec,
-		HostIdentifier: host,
-		Services:       services,
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
+		Name:               name,
+		SpecIdentifier:     spec,
+		HostIdentifier:     host,
+		Services:           services,
 	}
 	result, err := c.Playgrounds.Create(ctx(), params)
 	if err != nil {
@@ -263,8 +275,9 @@ func runSpecLaunch(c *fibe.Client, spec, name, host string, services map[string]
 	return result, result.ID, nil
 }
 
-func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSource, args []string, name, repoFile, repoRef, githubAccount string, githubInstallationID int64, host string, jobMode, createPlayground, noCreatePlayground, persistVolumes, persistChanged bool, launchRepositories []string, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.LaunchResult, int64, error) {
-	params := &fibe.LaunchParams{Name: name, HostIdentifier: host}
+func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSource, args []string, name, repoFile, repoRef, githubAccount string, githubInstallationID int64, host string, jobMode, createPlayground, noCreatePlayground, persistVolumes, persistChanged bool, launchRepositories []string, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.LaunchResult, int64, error) {
+	params := &fibe.LaunchParams{
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks), Name: name, HostIdentifier: host}
 	if source.Kind == launchSourceCompose {
 		params.ComposeYAML = resolveStringValue(source.Value)
 		if params.ComposeYAML == "" && len(rawPayload) > 0 {
@@ -376,4 +389,40 @@ func mapStringAnyToString(values map[string]any) map[string]string {
 		out[key] = fmt.Sprint(value)
 	}
 	return out
+}
+
+func firstLaunchEnvPacks(refs []*[]fibe.EnvPackAttachmentInput) *[]fibe.EnvPackAttachmentInput {
+	if len(refs) == 0 {
+		return nil
+	}
+	return refs[0]
+}
+func parseLaunchEnvPacks(value string, supplied bool) (*[]fibe.EnvPackAttachmentInput, error) {
+	if !supplied {
+		return nil, nil
+	}
+	data := []byte(value)
+	if strings.HasPrefix(value, "@") {
+		var err error
+		data, err = os.ReadFile(strings.TrimPrefix(value, "@"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	var refs []fibe.EnvPackAttachmentInput
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&refs); err != nil {
+		return nil, fmt.Errorf("env-pack-attachments: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return nil, fmt.Errorf("env-pack-attachments must contain one JSON array or null")
+	}
+	if refs == nil {
+		return nil, nil
+	}
+	if err := (&fibe.EnvPackAttachmentsParams{Attachments: &refs}).Validate(); err != nil {
+		return nil, err
+	}
+	return &refs, nil
 }

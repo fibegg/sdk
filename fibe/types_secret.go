@@ -3,6 +3,7 @@ package fibe
 import "time"
 
 type Secret struct {
+	OwnershipMetadata
 	ID          *int64     `json:"id"`
 	Key         string     `json:"key"`
 	Value       *string    `json:"value,omitempty"`

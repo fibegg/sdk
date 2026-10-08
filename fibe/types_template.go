@@ -6,6 +6,7 @@ import (
 )
 
 type ImportTemplate struct {
+	OwnershipMetadata
 	ID               *int64                `json:"id"`
 	Name             string                `json:"name"`
 	Description      *string               `json:"description"`
@@ -42,6 +43,7 @@ func (t *ImportTemplate) UnmarshalJSON(data []byte) error {
 }
 
 type ImportTemplateVersion struct {
+	OwnershipMetadata
 	ID                *int64                       `json:"id"`
 	Version           *int64                       `json:"version"`
 	Public            *bool                        `json:"public"`
@@ -253,18 +255,22 @@ type ImportTemplateUpgradeLinkedResult struct {
 }
 
 type ImportTemplateLaunchParams struct {
-	HostID            int64             `json:"host_id"`
-	HostIdentifier    string            `json:"-"`
-	Version           *int64            `json:"version,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	PersistVolumes    *bool             `json:"persist_volumes,omitempty"`
-	Variables         map[string]any    `json:"variables,omitempty"`
-	EnvOverrides      map[string]string `json:"env_overrides,omitempty"`
-	ServiceSubdomains map[string]string `json:"service_subdomains,omitempty"`
-	Services          map[string]any    `json:"services,omitempty"`
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	HostID             int64                     `json:"host_id"`
+	HostIdentifier     string                    `json:"-"`
+	Version            *int64                    `json:"version,omitempty"`
+	Name               string                    `json:"name,omitempty"`
+	PersistVolumes     *bool                     `json:"persist_volumes,omitempty"`
+	Variables          map[string]any            `json:"variables,omitempty"`
+	EnvOverrides       map[string]string         `json:"env_overrides,omitempty"`
+	ServiceSubdomains  map[string]string         `json:"service_subdomains,omitempty"`
+	Services           map[string]any            `json:"services,omitempty"`
 }
 
 func (p *ImportTemplateLaunchParams) Validate() error {
+	if err := (&EnvPackAttachmentsParams{Attachments: p.EnvPackAttachments}).Validate(); err != nil {
+		return err
+	}
 	v := &validator{}
 	v.requiredIDOrIdentifier("host_id", p.HostID, p.HostIdentifier)
 	return v.err()

@@ -42,6 +42,7 @@ type Client struct {
 	Hosts                  *HostService
 	Secrets                *SecretService
 	JobEnv                 *JobEnvService
+	EnvPacks               *EnvPackService
 	APIKeys                *APIKeyService
 	ImportTemplates        *ImportTemplateService
 	ImportTemplateVersions *ImportTemplateVersionService
@@ -150,6 +151,7 @@ func newClientFromConfig(cfg *clientConfig) *Client {
 	c.Hosts = &HostService{client: c}
 	c.Secrets = &SecretService{client: c}
 	c.JobEnv = &JobEnvService{client: c}
+	c.EnvPacks = &EnvPackService{client: c}
 	c.APIKeys = &APIKeyService{client: c}
 	c.ImportTemplates = &ImportTemplateService{client: c}
 	c.ImportTemplateVersions = &ImportTemplateVersionService{client: c}

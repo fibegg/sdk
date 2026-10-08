@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/coder/websocket"
@@ -125,6 +126,13 @@ func (s *CableService) subscribeLogStream(ctx context.Context, playgroundID int6
 func (s *CableService) subscribeCable(ctx context.Context, label string, identifier map[string]any, heartbeatInterval time.Duration, events chan<- CableEvent) error {
 	if s.client.cfg.apiKey == "" {
 		return fmt.Errorf("api key is required")
+	}
+	if owner := s.client.cfg.expectedOwner; owner != nil {
+		if owner.OwnerID <= 0 || (owner.OwnerType != "Player" && owner.OwnerType != "Team") {
+			return fmt.Errorf("invalid owner context")
+		}
+		identifier["owner_type"] = owner.OwnerType
+		identifier["owner_id"] = strconv.FormatInt(owner.OwnerID, 10)
 	}
 
 	conn, _, err := websocket.Dial(ctx, s.client.cableURL(), &websocket.DialOptions{

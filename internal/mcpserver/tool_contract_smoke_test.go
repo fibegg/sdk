@@ -51,8 +51,8 @@ func TestToolContractSmoke(t *testing.T) {
 	server.httpMode = true
 
 	names := server.dispatcher.names()
-	if len(names) != 60 {
-		t.Fatalf("registered tools = %d, want frozen contract count 60", len(names))
+	if len(names) != 61 {
+		t.Fatalf("registered tools = %d, want frozen contract count 61", len(names))
 	}
 	for _, name := range names {
 		name := name
@@ -108,8 +108,8 @@ func TestAllResourceMutationHandlers(t *testing.T) {
 	}
 
 	cases := resourceschema.MutationCases()
-	if len(cases) != 41 {
-		t.Fatalf("mutation cases = %d, want frozen contract count 41", len(cases))
+	if len(cases) != 49 {
+		t.Fatalf("mutation cases = %d, want frozen contract count 49", len(cases))
 	}
 	for _, mutation := range cases {
 		mutation := mutation
@@ -154,8 +154,8 @@ func TestAllFlatResourceHandlers(t *testing.T) {
 	}
 
 	resources := flatResourceTools()
-	if len(resources) != 21 {
-		t.Fatalf("flat resources = %d, want frozen contract count 21", len(resources))
+	if len(resources) != 22 {
+		t.Fatalf("flat resources = %d, want frozen contract count 22", len(resources))
 	}
 	for name, tool := range resources {
 		name, tool := name, tool
@@ -215,7 +215,7 @@ func completeMutationFixture(resource, operation string, payload map[string]any)
 		switch resource {
 		case "agent_poke":
 			payload["prompt"] = "fixture"
-		case "agent", "host", "playground", "repository":
+		case "agent", "env_pack", "host", "playground", "repository":
 			payload["name"] = "fixture-updated"
 		case "spec", "template", "webhook":
 			payload["description"] = "fixture-updated"

@@ -32,27 +32,31 @@ func (r *LaunchResult) UnmarshalJSON(data []byte) error {
 }
 
 type LaunchParams struct {
-	ComposeYAML                  string            `json:"compose_yaml"`
-	Name                         string            `json:"name"`
-	RepositoryURL                string            `json:"repository_url,omitempty"`
-	ConfigPath                   string            `json:"config_path,omitempty"`
-	GitHubRef                    string            `json:"github_ref,omitempty"`
-	GitHubInstallationID         *int64            `json:"github_installation_id,omitempty"`
-	GitHubAccount                string            `json:"github_account,omitempty"`
-	JobMode                      *bool             `json:"job_mode,omitempty"`
-	HostID                       *int64            `json:"host_id,omitempty"`
-	HostIdentifier               string            `json:"-"`
-	CreatePlayground             *bool             `json:"create_playground,omitempty"`
-	PersistVolumes               *bool             `json:"persist_volumes,omitempty"`
-	EnvOverrides                 map[string]string `json:"env_overrides,omitempty"`
-	ServiceSubdomains            map[string]string `json:"service_subdomains,omitempty"`
-	Services                     map[string]any    `json:"services,omitempty"`
-	Variables                    map[string]string `json:"variables,omitempty"`
-	RepositoryMappings           map[string]int64  `json:"repository_mappings,omitempty"`
-	RepositoryMappingIdentifiers map[string]string `json:"-"`
+	EnvPackAttachments           *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	ComposeYAML                  string                    `json:"compose_yaml"`
+	Name                         string                    `json:"name"`
+	RepositoryURL                string                    `json:"repository_url,omitempty"`
+	ConfigPath                   string                    `json:"config_path,omitempty"`
+	GitHubRef                    string                    `json:"github_ref,omitempty"`
+	GitHubInstallationID         *int64                    `json:"github_installation_id,omitempty"`
+	GitHubAccount                string                    `json:"github_account,omitempty"`
+	JobMode                      *bool                     `json:"job_mode,omitempty"`
+	HostID                       *int64                    `json:"host_id,omitempty"`
+	HostIdentifier               string                    `json:"-"`
+	CreatePlayground             *bool                     `json:"create_playground,omitempty"`
+	PersistVolumes               *bool                     `json:"persist_volumes,omitempty"`
+	EnvOverrides                 map[string]string         `json:"env_overrides,omitempty"`
+	ServiceSubdomains            map[string]string         `json:"service_subdomains,omitempty"`
+	Services                     map[string]any            `json:"services,omitempty"`
+	Variables                    map[string]string         `json:"variables,omitempty"`
+	RepositoryMappings           map[string]int64          `json:"repository_mappings,omitempty"`
+	RepositoryMappingIdentifiers map[string]string         `json:"-"`
 }
 
 func (p *LaunchParams) Validate() error {
+	if err := (&EnvPackAttachmentsParams{Attachments: p.EnvPackAttachments}).Validate(); err != nil {
+		return err
+	}
 	v := &validator{}
 	if p.ComposeYAML == "" && p.RepositoryURL == "" {
 		v.required("compose_yaml", p.ComposeYAML)

@@ -7,6 +7,9 @@ import (
 
 // Playground represents a running environment instance.
 type Playground struct {
+	EnvPackAttachments []EnvPackAttachment `json:"env_pack_attachments,omitempty"`
+	EnvPacks           map[string]any      `json:"env_packs,omitempty"`
+	OwnershipMetadata
 	ID                 int64          `json:"id"`
 	Name               string         `json:"name"`
 	Status             string         `json:"status"`
@@ -120,6 +123,7 @@ type JobResultSummaryRow struct {
 }
 
 type PlaygroundCreateParams struct {
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
 	Name               string                    `json:"name"`
 	SpecID             int64                     `json:"spec_id"`
 	SpecIdentifier     string                    `json:"-"`
@@ -221,6 +225,7 @@ type PlaygroundListParams struct {
 }
 
 type PlaygroundUpdateParams struct {
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
 	Name               *string                   `json:"name,omitempty"`
 	SpecID             *int64                    `json:"spec_id,omitempty"`
 	SpecIdentifier     string                    `json:"-"`
@@ -369,14 +374,15 @@ type PlaygroundExtendResult struct {
 }
 
 type TaskTriggerParams struct {
-	SpecID         int64             `json:"spec_id"`
-	SpecIdentifier string            `json:"-"`
-	HostID         *int64            `json:"host_id,omitempty"`
-	HostIdentifier string            `json:"-"`
-	Name           string            `json:"name,omitempty"` // auto-generated if empty
-	EnvOverrides   map[string]string `json:"env_overrides,omitempty"`
-	OnlyServices   []string          `json:"only_services,omitempty"`
-	ExceptServices []string          `json:"except_services,omitempty"`
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	SpecID             int64                     `json:"spec_id"`
+	SpecIdentifier     string                    `json:"-"`
+	HostID             *int64                    `json:"host_id,omitempty"`
+	HostIdentifier     string                    `json:"-"`
+	Name               string                    `json:"name,omitempty"` // auto-generated if empty
+	EnvOverrides       map[string]string         `json:"env_overrides,omitempty"`
+	OnlyServices       []string                  `json:"only_services,omitempty"`
+	ExceptServices     []string                  `json:"except_services,omitempty"`
 }
 
 func (p *TaskTriggerParams) specIdentifier() string {

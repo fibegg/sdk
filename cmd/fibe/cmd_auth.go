@@ -31,6 +31,7 @@ type deviceAuthResponse struct {
 
 // devicePollResponse mirrors the JSON from POST /cli/device_codes/poll.
 type devicePollResponse struct {
+	fibe.CredentialContext
 	Status   string   `json:"status"`
 	Error    string   `json:"error"`
 	APIKey   string   `json:"api_key"`
@@ -111,7 +112,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("API key validation failed for %s: %w", baseURL, err)
 				}
-				if err := saveAuthProfile(profile, domain, flagAPIKey, 0); err != nil {
+				if err := saveAuthProfile(profile, domain, flagAPIKey, 0, me.CredentialContext); err != nil {
 					return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 				}
 				fmt.Fprintf(os.Stderr, "Authenticated profile %s with %s\n", profile, baseURL)
@@ -198,7 +199,7 @@ Examples:
 						if !progress.IsInteractive() {
 							fmt.Fprintln(os.Stderr)
 						}
-						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID); err != nil {
+						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID, pollResp.CredentialContext); err != nil {
 							return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 						}
 						fmt.Fprintf(os.Stderr, "\nAuthenticated profile %s with %s\n", profile, baseURL)

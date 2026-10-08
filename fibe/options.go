@@ -57,6 +57,7 @@ type clientConfig struct {
 	responseHook      func(res *http.Response) error
 	progressHook      ProgressFunc
 	disableAutoConfig bool
+	expectedOwner     *OwnerContext
 }
 
 func defaultConfig() *clientConfig {

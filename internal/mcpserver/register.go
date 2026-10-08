@@ -15,6 +15,7 @@ func (s *Server) registerTools() error {
 	// the requested tier at MCP advertisement time.
 	s.registerResourceMutationTools()
 	s.registerResourceTools()
+	s.registerEnvPackTools()
 	s.registerCustomTools()
 	s.registerLaunchTools()
 	s.registerGreenfieldTools()

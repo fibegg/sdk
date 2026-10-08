@@ -3,6 +3,7 @@ package fibe
 import "time"
 
 type APIKey struct {
+	CredentialContext
 	ID                   *int64     `json:"id"`
 	Label                string     `json:"label"`
 	Scopes               []string   `json:"scopes"`
@@ -17,6 +18,8 @@ type APIKey struct {
 }
 
 type APIKeyCreateParams struct {
+	PrincipalType   string             `json:"principal_type,omitempty"`
+	PrincipalID     *int64             `json:"principal_id,omitempty"`
 	Label           string             `json:"label"`
 	ExpiresAt       *time.Time         `json:"expires_at,omitempty"`
 	AgentAccessible *bool              `json:"agent_accessible,omitempty"`
@@ -25,6 +28,7 @@ type APIKeyCreateParams struct {
 }
 
 type Player struct {
+	CredentialContext
 	ID            int64         `json:"id"`
 	Username      string        `json:"username"`
 	GithubHandle  *string       `json:"github_handle"`

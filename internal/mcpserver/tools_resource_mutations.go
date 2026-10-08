@@ -83,6 +83,81 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, operation string, payload map[string]any) (any, error) {
 	payload = resourceMutationBackendPayload(resource, operation, payload)
 	switch resource + "." + operation {
+	case "env_pack.create":
+		var p fibe.EnvPackCreateParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.EnvPacks.Create(ctx, &p)
+	case "env_pack.update":
+		id, err := requiredPositiveID(payload, "env_pack_id")
+		if err != nil {
+			return nil, err
+		}
+		var p fibe.EnvPackUpdateParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.EnvPacks.Update(ctx, id, &p)
+	case "env_pack.attachments_replace":
+		id, err := requiredPositiveID(payload, "target_id")
+		if err != nil {
+			return nil, err
+		}
+		var p fibe.EnvPackAttachmentsParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.EnvPacks.ReplaceAttachments(ctx, argString(payload, "target"), id, &p)
+	case "env_pack.grant_renew":
+		id, err := requiredPositiveID(payload, "target_id")
+		if err != nil {
+			return nil, err
+		}
+		attachment, err := requiredPositiveID(payload, "attachment_id")
+		if err != nil {
+			return nil, err
+		}
+		return c.EnvPacks.RenewGrant(ctx, argString(payload, "target"), id, attachment)
+	case "env_pack.attachments_reorder", "env_pack.attachment_detach", "env_pack.attachment_retarget":
+		id, err := requiredPositiveID(payload, "target_id")
+		if err != nil {
+			return nil, err
+		}
+		target := argString(payload, "target")
+		if operation == "attachments_reorder" {
+			var p struct {
+				Order []int64 `json:"order"`
+			}
+			if err := bindArgs(payload, &p); err != nil {
+				return nil, err
+			}
+			return c.EnvPacks.ReorderAttachments(ctx, target, id, p.Order)
+		}
+		packID, err := requiredPositiveID(payload, "env_pack_id")
+		if err != nil {
+			return nil, err
+		}
+		if operation == "attachment_detach" {
+			return c.EnvPacks.DetachAttachment(ctx, target, id, packID)
+		}
+		var p struct {
+			Names *[]string `json:"service_names"`
+		}
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.EnvPacks.RetargetAttachment(ctx, target, id, packID, p.Names)
+	case "playground.rerun":
+		id, err := requiredPositiveID(payload, "playground_id")
+		if err != nil {
+			return nil, err
+		}
+		var p fibe.PlaygroundRerunParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.Playgrounds.Rerun(ctx, id, &p)
 	case "agent_poke.create":
 		identifier, err := requiredIdentifier(payload, "agent_id", "")
 		if err != nil {
@@ -358,7 +433,11 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		if err != nil {
 			return nil, err
 		}
-		return c.Tasks.RerunByIdentifier(ctx, identifier)
+		var p fibe.PlaygroundRerunParams
+		if err := bindArgs(payload, &p); err != nil {
+			return nil, err
+		}
+		return c.Tasks.RerunWithParamsByIdentifier(ctx, identifier, &p)
 	case "webhook.create":
 		var p fibe.WebhookEndpointCreateParams
 		if err := bindArgs(payload, &p); err != nil {

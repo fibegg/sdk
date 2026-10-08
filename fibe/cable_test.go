@@ -51,12 +51,15 @@ func TestCableSubscribeResource(t *testing.T) {
 		if identifier["channel"] != "ApiResourceChannel" || identifier["resource"] != "Agent" {
 			t.Fatalf("unexpected identifier: %#v", identifier)
 		}
+		if identifier["owner_type"] != "Team" || identifier["owner_id"] != "9223372036854775806" {
+			t.Fatalf("missing exact profile owner binding: %#v", identifier)
+		}
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"type":"confirm_subscription"}`))
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"message":{"event":"updated","id":42}}`))
 	}))
 	defer server.Close()
 
-	client := NewClient(WithBaseURL(server.URL), WithAPIKey(apiKey))
+	client := NewClient(WithBaseURL(server.URL), WithAPIKey(apiKey), WithOwnerContext(OwnerContext{OwnerType: "Team", OwnerID: 9223372036854775806}))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

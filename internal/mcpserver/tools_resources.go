@@ -162,6 +162,25 @@ func (s *Server) registerResourceTools() {
 
 func flatResourceTools() map[string]flatResourceTool {
 	return map[string]flatResourceTool{
+		"env_pack": {
+			list: listResource[fibe.EnvPackListParams](func(ctx context.Context, c *fibe.Client, p *fibe.EnvPackListParams) (any, error) {
+				return c.EnvPacks.List(ctx, p)
+			}),
+			get: func(ctx context.Context, c *fibe.Client, identifier string) (any, error) {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return nil, err
+				}
+				return c.EnvPacks.Get(ctx, id)
+			},
+			delete: func(ctx context.Context, c *fibe.Client, identifier string) error {
+				id, err := parsePositiveIdentifierID(identifier, "id")
+				if err != nil {
+					return err
+				}
+				return c.EnvPacks.Delete(ctx, id)
+			},
+		},
 		"playground": {
 			list: listResource[fibe.PlaygroundListParams](func(ctx context.Context, c *fibe.Client, p *fibe.PlaygroundListParams) (any, error) {
 				f := false

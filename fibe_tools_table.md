@@ -2,9 +2,9 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 60
-- Advertised with `FIBE_MCP_TOOLS=full`: 59
-- Advertised with `FIBE_MCP_TOOLS=core`: 39
+- Registered tools: 61
+- Advertised with `FIBE_MCP_TOOLS=full`: 60
+- Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
 `full` advertises every non-hidden registered tool. Hidden tools remain dispatcher-reachable through `fibe_call` and `fibe_pipeline`, and `fibe_tools_catalog` reports them with `hidden:true`.
@@ -31,6 +31,7 @@ Generated from the MCP registry.
 | `fibe_auth_use` | meta | yes | [MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately. |
 | `fibe_call` | meta | yes | [MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear. |
 | `fibe_doctor` | meta | yes | [MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile |
+| `fibe_env_pack_attachments_get` | base | yes | [MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec. |
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |
 | `fibe_feedbacks_list` | brownfield | yes | [MODE:OVERSEER] List all feedback entries associated with an agent. |
 | `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results. |

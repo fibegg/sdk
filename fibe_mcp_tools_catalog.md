@@ -2,9 +2,9 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 60
-- Advertised with `FIBE_MCP_TOOLS=full`: 59
-- Advertised with `FIBE_MCP_TOOLS=core`: 39
+- Registered tools: 61
+- Advertised with `FIBE_MCP_TOOLS=full`: 60
+- Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
 `full` advertises every non-hidden registered tool. Hidden tools remain dispatcher-reachable through `fibe_call` and `fibe_pipeline`, and `fibe_tools_catalog` reports them with `hidden:true`.
@@ -759,6 +759,49 @@ Generated from the MCP registry.
 ### Description
 [MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile
 
+## `fibe_env_pack_attachments_get`
+**Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec.
+
+### Input Schema
+```json
+{
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "target": {
+      "description": "Target for this env_pack_attachments_get request.",
+      "enum": [
+        "playgrounds",
+        "specs"
+      ],
+      "type": "string"
+    },
+    "target_id": {
+      "description": "Target ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "target",
+    "target_id"
+  ],
+  "type": "object"
+}
+```
+
 ## `fibe_feedbacks_get`
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
@@ -1219,6 +1262,40 @@ Generated from the MCP registry.
       "description": "Runtime environment overrides for the created Playground.",
       "properties": {},
       "type": "object"
+    },
+    "env_pack_attachments": {
+      "description": "Ordered pack references. Omit or null to preserve/inherit; [] explicitly detaches all packs.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "env_pack_id": {
+            "description": "Env Pack ID",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "service_names": {
+            "description": "Omitted or null applies to all services; an empty array is invalid.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ],
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "env_pack_id"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
     },
     "github_account": {
       "description": "GitHub App installation account owner to use when multiple installations are connected.",
@@ -2662,6 +2739,10 @@ Generated from the MCP registry.
         "api-keys",
         "api_key",
         "api_keys",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
         "host",
         "hosts",
         "import-template",
@@ -2789,6 +2870,10 @@ Generated from the MCP registry.
         "artefact_attachment",
         "artefact_attachments",
         "artefacts",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
         "host",
         "hosts",
         "import-template",
@@ -2882,6 +2967,10 @@ Generated from the MCP registry.
         "audit_logs",
         "categories",
         "category",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
         "host",
         "hosts",
         "import-template",
@@ -2971,11 +3060,16 @@ Generated from the MCP registry.
       "enum": [
         "action",
         "attach",
+        "attachment_detach",
+        "attachment_retarget",
+        "attachments_reorder",
+        "attachments_replace",
         "autoconnect_token",
         "change",
         "create",
         "fork",
         "generate_ssh_key",
+        "grant_renew",
         "mirror",
         "rerun",
         "restart_chat",
@@ -3014,6 +3108,10 @@ Generated from the MCP registry.
         "api-keys",
         "api_key",
         "api_keys",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
         "host",
         "hosts",
         "import-template",
@@ -3177,6 +3275,11 @@ Generated from the MCP registry.
       "enum": [
         "action",
         "attach",
+        "attachment_detach",
+        "attachment_retarget",
+        "attachments_get",
+        "attachments_reorder",
+        "attachments_replace",
         "autoconnect_token",
         "change",
         "create",
@@ -3185,6 +3288,7 @@ Generated from the MCP registry.
         "fork",
         "generate_ssh_key",
         "get",
+        "grant_renew",
         "list",
         "memorize",
         "mirror",
@@ -3252,6 +3356,10 @@ Generated from the MCP registry.
         "composes",
         "docker-compose",
         "docker_compose",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
         "host",
         "hosts",
         "import-template",

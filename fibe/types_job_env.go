@@ -6,6 +6,7 @@ import (
 )
 
 type JobEnvEntry struct {
+	OwnershipMetadata
 	ID             *int64     `json:"id"`
 	PlayerID       *int64     `json:"player_id,omitempty"`
 	RepositoryID   *int64     `json:"repository_id,omitempty"`

@@ -73,6 +73,9 @@ func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (
 }
 
 func validateOperationPayloadCombination(resource, operation string, payload map[string]any) error {
+	if err := validateEnvPackOperation(resource, operation, payload); err != nil {
+		return err
+	}
 	switch resource + "." + operation {
 	case "playground.switch_template":
 		return validatePlaygroundSwitchTemplatePayloadCombination(resource, operation, payload)

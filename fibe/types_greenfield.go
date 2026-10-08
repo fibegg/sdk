@@ -3,29 +3,33 @@ package fibe
 import "encoding/json"
 
 type GreenfieldCreateParams struct {
-	Name                 string            `json:"name"`
-	TemplateID           *int64            `json:"template_id,omitempty"`
-	TemplateIdentifier   string            `json:"-"`
-	TemplateVersionID    *int64            `json:"template_version_id,omitempty"`
-	Version              string            `json:"version,omitempty"`
-	TemplateBody         string            `json:"template_body,omitempty"`
-	RepositoryURL        string            `json:"repository_url,omitempty"`
-	ConfigPath           string            `json:"config_path,omitempty"`
-	GitHubRef            string            `json:"github_ref,omitempty"`
-	GitHubInstallationID *int64            `json:"github_installation_id,omitempty"`
-	GitHubAccount        string            `json:"github_account,omitempty"`
-	GitProvider          string            `json:"git_provider,omitempty"`
-	Private              *bool             `json:"private,omitempty"`
-	HostID               *int64            `json:"host_id,omitempty"`
-	HostIdentifier       string            `json:"-"`
-	PersistVolumes       *bool             `json:"persist_volumes,omitempty"`
-	Variables            map[string]any    `json:"variables,omitempty"`
-	EnvOverrides         map[string]string `json:"env_overrides,omitempty"`
-	ServiceSubdomains    map[string]string `json:"service_subdomains,omitempty"`
-	Services             map[string]any    `json:"services,omitempty"`
+	EnvPackAttachments   *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	Name                 string                    `json:"name"`
+	TemplateID           *int64                    `json:"template_id,omitempty"`
+	TemplateIdentifier   string                    `json:"-"`
+	TemplateVersionID    *int64                    `json:"template_version_id,omitempty"`
+	Version              string                    `json:"version,omitempty"`
+	TemplateBody         string                    `json:"template_body,omitempty"`
+	RepositoryURL        string                    `json:"repository_url,omitempty"`
+	ConfigPath           string                    `json:"config_path,omitempty"`
+	GitHubRef            string                    `json:"github_ref,omitempty"`
+	GitHubInstallationID *int64                    `json:"github_installation_id,omitempty"`
+	GitHubAccount        string                    `json:"github_account,omitempty"`
+	GitProvider          string                    `json:"git_provider,omitempty"`
+	Private              *bool                     `json:"private,omitempty"`
+	HostID               *int64                    `json:"host_id,omitempty"`
+	HostIdentifier       string                    `json:"-"`
+	PersistVolumes       *bool                     `json:"persist_volumes,omitempty"`
+	Variables            map[string]any            `json:"variables,omitempty"`
+	EnvOverrides         map[string]string         `json:"env_overrides,omitempty"`
+	ServiceSubdomains    map[string]string         `json:"service_subdomains,omitempty"`
+	Services             map[string]any            `json:"services,omitempty"`
 }
 
 func (p *GreenfieldCreateParams) Validate() error {
+	if err := (&EnvPackAttachmentsParams{Attachments: p.EnvPackAttachments}).Validate(); err != nil {
+		return err
+	}
 	v := &validator{}
 	if p.Name == "" && p.RepositoryURL == "" {
 		v.required("name", p.Name)

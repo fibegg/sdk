@@ -25,7 +25,7 @@ func TestCurrentPublicAPIManifestIsExact(t *testing.T) {
 	}
 }
 
-func TestV03OnlyChangesApprovedDomainNames(t *testing.T) {
+func TestV03PreservesExistingAPIOutsideApprovedFeatures(t *testing.T) {
 	root := repositoryRoot(t)
 	baseline, err := Read(filepath.Join(root, "contracts", "go-public-api-v0.2.45.json"))
 	if err != nil {
@@ -44,17 +44,55 @@ func TestV03OnlyChangesApprovedDomainNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The v0.2.45 artifact remains immutable. Its declarations are translated
-	// only for the approved v0.3 domain break; all other public API stays checked.
+	// only for the approved v0.3 domain break. Exact additive Teams and ENV-pack
+	// fields are projected out below; all existing fields and methods stay checked.
 	for i := range baseline.Declarations {
 		baseline.Declarations[i].ID = canonicalDomainDeclaration(baseline.Declarations[i].ID)
 		baseline.Declarations[i].Signature = strings.Join(strings.Fields(canonicalDomainDeclaration(baseline.Declarations[i].Signature)), " ")
 	}
 	for i := range current.Declarations {
-		current.Declarations[i].Signature = strings.Join(strings.Fields(current.Declarations[i].Signature), " ")
+		declaration := &current.Declarations[i]
+		declaration.Signature = strings.Join(strings.Fields(withoutApprovedFeatureFields(*declaration)), " ")
 	}
 	if problems := CompatibilityErrors(baseline, current); len(problems) > 0 {
-		t.Fatalf("unexpected changes outside the v0.3 domain rename:\n%s", strings.Join(problems, "\n"))
+		t.Fatalf("unexpected changes outside the approved v0.3 features:\n%s", strings.Join(problems, "\n"))
 	}
+}
+
+// Match the whole field declaration, including its type and JSON contract. A
+// changed existing field or an unapproved addition still fails compatibility.
+func withoutApprovedFeatureFields(declaration Declaration) string {
+	allowed := make(map[string]bool)
+	switch declaration.ID {
+	case "type.Agent", "type.Artefact", "type.Feedback", "type.Host",
+		"type.ImportTemplate", "type.ImportTemplateVersion", "type.JobEnvEntry",
+		"type.Memory", "type.Mutter", "type.Playground", "type.Repository",
+		"type.Secret", "type.Spec", "type.WebhookEndpoint":
+		allowed["OwnershipMetadata"] = true
+	case "type.APIKey", "type.CredentialEntry", "type.Player":
+		allowed["CredentialContext"] = true
+	case "type.APIKeyCreateParams":
+		allowed["PrincipalType string `json:\"principal_type,omitempty\"`"] = true
+		allowed["PrincipalID *int64 `json:\"principal_id,omitempty\"`"] = true
+	case "type.Client":
+		allowed["EnvPacks *EnvPackService"] = true
+	}
+	switch declaration.ID {
+	case "type.Playground", "type.Spec":
+		allowed["EnvPackAttachments []EnvPackAttachment `json:\"env_pack_attachments,omitempty\"`"] = true
+		allowed["EnvPacks map[string]any `json:\"env_packs,omitempty\"`"] = true
+	case "type.PlaygroundCreateParams", "type.PlaygroundUpdateParams",
+		"type.SpecCreateParams", "type.SpecUpdateParams", "type.TaskTriggerParams",
+		"type.LaunchParams", "type.ImportTemplateLaunchParams", "type.GreenfieldCreateParams":
+		allowed["EnvPackAttachments *[]EnvPackAttachmentInput `json:\"env_pack_attachments,omitempty\"`"] = true
+	}
+	var lines []string
+	for _, line := range strings.Split(declaration.Signature, "\n") {
+		if !allowed[strings.Join(strings.Fields(line), " ")] {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func repositoryRoot(t *testing.T) string {

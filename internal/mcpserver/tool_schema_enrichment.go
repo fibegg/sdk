@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -17,6 +18,9 @@ func enrichToolInputSchema(toolName string, tool *mcp.Tool) {
 		return
 	}
 	injectGlobalResponseShapeProperties(toolName, m)
+	if toolName == "fibe_launch" {
+		m["properties"].(map[string]any)["env_pack_attachments"] = resourceschema.EnvPackAttachmentSchema()
+	}
 	enrichSchemaProperties(toolName, m)
 	data, err := json.Marshal(m)
 	if err != nil {

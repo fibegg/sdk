@@ -129,6 +129,7 @@ DOCUMENTATION:
 		hostsCmd(),
 		secretsCmd(),
 		jobEnvCmd(),
+		envPacksCmd(),
 		apiKeysCmd(),
 		templatesCmd(),
 		webhooksCmd(),
@@ -254,6 +255,9 @@ func newClient(extra ...fibe.Option) *fibe.Client {
 	opts = append(opts, fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig))
 	opts = append(opts, fibe.WithRateLimitAutoWait())
 	opts = append(opts, extra...)
+	if resolved.CredentialContext.OwnerType != "" {
+		opts = append(opts, fibe.WithOwnerContext(resolved.CredentialContext.OwnerContext))
+	}
 
 	return fibe.NewClient(opts...)
 }

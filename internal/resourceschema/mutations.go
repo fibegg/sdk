@@ -15,6 +15,14 @@ var mutationCaseKeys = []struct {
 	resource  string
 	operation string
 }{
+	{resource: "env_pack", operation: "create"},
+	{resource: "env_pack", operation: "update"},
+	{resource: "env_pack", operation: "attachments_replace"},
+	{resource: "env_pack", operation: "grant_renew"},
+	{resource: "env_pack", operation: "attachments_reorder"},
+	{resource: "env_pack", operation: "attachment_detach"},
+	{resource: "env_pack", operation: "attachment_retarget"},
+	{resource: "playground", operation: "rerun"},
 	{resource: "agent_poke", operation: "create"},
 	{resource: "agent_poke", operation: "update"},
 	{resource: "agent", operation: "create"},

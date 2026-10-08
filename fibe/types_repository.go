@@ -3,6 +3,7 @@ package fibe
 import "time"
 
 type Repository struct {
+	OwnershipMetadata
 	ID            int64      `json:"id"`
 	Name          string     `json:"name"`
 	RepositoryURL string     `json:"repository_url"`

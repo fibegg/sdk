@@ -48,14 +48,15 @@ func (s *TaskService) Trigger(ctx context.Context, params *TaskTriggerParams) (*
 	}
 
 	createParams := &PlaygroundCreateParams{
-		Name:           name,
-		SpecID:         params.SpecID,
-		SpecIdentifier: params.SpecIdentifier,
-		HostID:         params.HostID,
-		HostIdentifier: params.HostIdentifier,
-		EnvOverrides:   params.EnvOverrides,
-		OnlyServices:   params.OnlyServices,
-		ExceptServices: params.ExceptServices,
+		Name:               name,
+		SpecID:             params.SpecID,
+		SpecIdentifier:     params.SpecIdentifier,
+		HostID:             params.HostID,
+		HostIdentifier:     params.HostIdentifier,
+		EnvOverrides:       params.EnvOverrides,
+		OnlyServices:       params.OnlyServices,
+		ExceptServices:     params.ExceptServices,
+		EnvPackAttachments: params.EnvPackAttachments,
 	}
 
 	return s.client.Playgrounds.Create(ctx, createParams)
@@ -70,27 +71,17 @@ func (s *TaskService) Rerun(ctx context.Context, sourceID int64) (*Playground, e
 // RerunByIdentifier creates a new task run by copying the spec and host
 // from an existing task identified by numeric ID or slug-safe name.
 func (s *TaskService) RerunByIdentifier(ctx context.Context, sourceIdentifier string) (*Playground, error) {
+	return s.RerunWithParamsByIdentifier(ctx, sourceIdentifier, nil)
+}
+
+// RerunWithParamsByIdentifier delegates source attachment inheritance to the server.
+func (s *TaskService) RerunWithParamsByIdentifier(ctx context.Context, sourceIdentifier string, params *PlaygroundRerunParams) (*Playground, error) {
 	source, err := s.client.Playgrounds.GetByIdentifier(ctx, sourceIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("fibe: fetch source task for rerun: %w", err)
 	}
 
-	if source.SpecID == nil {
-		return nil, fmt.Errorf("fibe: source task %s has no spec", sourceIdentifier)
-	}
-
-	spec, err := s.client.Specs.Get(ctx, *source.SpecID)
-	if err != nil {
-		return nil, fmt.Errorf("fibe: fetch spec for rerun name: %w", err)
-	}
-
-	createParams := &PlaygroundCreateParams{
-		Name:   spec.Name + "-" + randomHex(4),
-		SpecID: *source.SpecID,
-		HostID: source.HostID,
-	}
-
-	return s.client.Playgrounds.Create(ctx, createParams)
+	return s.client.Playgrounds.Rerun(ctx, source.ID, params)
 }
 
 // Delete deletes a task.

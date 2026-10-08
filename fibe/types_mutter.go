@@ -6,6 +6,7 @@ import (
 )
 
 type Mutter struct {
+	OwnershipMetadata
 	ID           *int64         `json:"id"`
 	AgentID      int64          `json:"agent_id"`
 	PlaygroundID *int64         `json:"playground_id"`

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -49,6 +50,9 @@ func (s *Server) registerLaunchTools() {
 }
 
 func (s *Server) runLaunch(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	if _, err := launchEnvPackAttachments(args); err != nil {
+		return nil, err
+	}
 	source, err := mcpLaunchSource(args)
 	if err != nil {
 		return nil, err
@@ -112,6 +116,11 @@ func valuePresent(value any) bool {
 }
 
 func launchTemplateArgs(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	refs, refsErr := launchEnvPackAttachments(args)
+	if refsErr != nil {
+		return nil, refsErr
+	}
+
 	identifier, err := requiredIdentifier(args, "template_id_or_name", "")
 	if err != nil {
 		return nil, err
@@ -121,12 +130,13 @@ func launchTemplateArgs(ctx context.Context, c *fibe.Client, args map[string]any
 		return nil, err
 	}
 	params := &fibe.ImportTemplateLaunchParams{
-		HostIdentifier:    hostIdentifier,
-		Name:              argString(args, "name"),
-		Variables:         argMap(args, "variables"),
-		EnvOverrides:      argStringMap(args, "env_overrides"),
-		ServiceSubdomains: argStringMap(args, "service_subdomains"),
-		Services:          argMap(args, "services"),
+		EnvPackAttachments: refs,
+		HostIdentifier:     hostIdentifier,
+		Name:               argString(args, "name"),
+		Variables:          argMap(args, "variables"),
+		EnvOverrides:       argStringMap(args, "env_overrides"),
+		ServiceSubdomains:  argStringMap(args, "service_subdomains"),
+		Services:           argMap(args, "services"),
 	}
 	if hostID != nil {
 		params.HostID = *hostID
@@ -142,6 +152,11 @@ func launchTemplateArgs(ctx context.Context, c *fibe.Client, args map[string]any
 }
 
 func launchTemplateVersionArgs(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	refs, refsErr := launchEnvPackAttachments(args)
+	if refsErr != nil {
+		return nil, refsErr
+	}
+
 	versionID, ok := argInt64(args, "template_version_id")
 	if !ok || versionID <= 0 {
 		return nil, fmt.Errorf("template_version_id must be a positive integer")
@@ -151,13 +166,14 @@ func launchTemplateVersionArgs(ctx context.Context, c *fibe.Client, args map[str
 		return nil, err
 	}
 	params := &fibe.GreenfieldCreateParams{
-		Name:              argString(args, "name"),
-		TemplateVersionID: &versionID,
-		HostIdentifier:    hostIdentifier,
-		Variables:         argMap(args, "variables"),
-		EnvOverrides:      argStringMap(args, "env_overrides"),
-		ServiceSubdomains: argStringMap(args, "service_subdomains"),
-		Services:          argMap(args, "services"),
+		EnvPackAttachments: refs,
+		Name:               argString(args, "name"),
+		TemplateVersionID:  &versionID,
+		HostIdentifier:     hostIdentifier,
+		Variables:          argMap(args, "variables"),
+		EnvOverrides:       argStringMap(args, "env_overrides"),
+		ServiceSubdomains:  argStringMap(args, "service_subdomains"),
+		Services:           argMap(args, "services"),
 	}
 	params.HostID = hostID
 	if _, ok := args["persist_volumes"]; ok {
@@ -168,14 +184,20 @@ func launchTemplateVersionArgs(ctx context.Context, c *fibe.Client, args map[str
 }
 
 func launchSpecArgs(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+	refs, refsErr := launchEnvPackAttachments(args)
+	if refsErr != nil {
+		return nil, refsErr
+	}
+
 	identifier, err := requiredIdentifier(args, "spec_id_or_name", "")
 	if err != nil {
 		return nil, err
 	}
 	params := &fibe.PlaygroundCreateParams{
-		Name:           argString(args, "name"),
-		SpecIdentifier: identifier,
-		Services:       serviceConfigArgs(args["services"]),
+		EnvPackAttachments: refs,
+		Name:               argString(args, "name"),
+		SpecIdentifier:     identifier,
+		Services:           serviceConfigArgs(args["services"]),
 	}
 	hostID, hostIdentifier, err := resolveMCPHost(ctx, c, args)
 	if err != nil {
@@ -218,6 +240,11 @@ func serviceConfigArgs(raw any) map[string]*fibe.ServiceConfig {
 }
 
 func launchArgs(ctx context.Context, c *fibe.Client, args map[string]any) (*fibe.LaunchParams, error) {
+	refs, refsErr := launchEnvPackAttachments(args)
+	if refsErr != nil {
+		return nil, refsErr
+	}
+
 	composeYAML, err := readInlineOrPathTextArgOptional(args, "compose_yaml", "compose_yaml_path")
 	if err != nil {
 		return nil, err
@@ -266,6 +293,7 @@ func launchArgs(ctx context.Context, c *fibe.Client, args map[string]any) (*fibe
 	}
 
 	params := &fibe.LaunchParams{
+		EnvPackAttachments:           refs,
 		ComposeYAML:                  composeYAML,
 		Name:                         name,
 		JobMode:                      jobMode,
@@ -323,4 +351,26 @@ func applyLaunchRepositoryMappings(params *fibe.LaunchParams, raw any) {
 			params.RepositoryMappingIdentifiers[key] = target
 		}
 	}
+}
+
+func launchEnvPackAttachments(args map[string]any) (*[]fibe.EnvPackAttachmentInput, error) {
+	raw, exists := args["env_pack_attachments"]
+	if !exists || raw == nil {
+		return nil, nil
+	}
+	if err := resourceschema.ValidateEnvPackAttachments(raw); err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+	var refs []fibe.EnvPackAttachmentInput
+	if err := json.Unmarshal(data, &refs); err != nil {
+		return nil, err
+	}
+	if err := (&fibe.EnvPackAttachmentsParams{Attachments: &refs}).Validate(); err != nil {
+		return nil, err
+	}
+	return &refs, nil
 }

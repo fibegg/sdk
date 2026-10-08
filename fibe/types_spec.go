@@ -8,6 +8,9 @@ import (
 
 // Spec defines the service composition template.
 type Spec struct {
+	EnvPackAttachments []EnvPackAttachment `json:"env_pack_attachments,omitempty"`
+	EnvPacks           map[string]any      `json:"env_packs,omitempty"`
+	OwnershipMetadata
 	ID                        *int64              `json:"id"`
 	Name                      string              `json:"name"`
 	Description               *string             `json:"description"`
@@ -56,15 +59,16 @@ type MountedFileInfo struct {
 }
 
 type SpecCreateParams struct {
-	Name            string           `json:"name"`
-	Description     *string          `json:"description,omitempty"`
-	BaseComposeYAML string           `json:"base_compose_yaml"`
-	PersistVolumes  *bool            `json:"persist_volumes,omitempty"`
-	JobMode         *bool            `json:"job_mode,omitempty"`
-	Services        []SpecServiceDef `json:"services,omitempty"`
-	TriggerConfig   map[string]any   `json:"trigger_config,omitempty"`
-	MutiConfig      map[string]any   `json:"muti_config,omitempty"`
-	ScheduleConfig  map[string]any   `json:"schedule_config,omitempty"`
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	Name               string                    `json:"name"`
+	Description        *string                   `json:"description,omitempty"`
+	BaseComposeYAML    string                    `json:"base_compose_yaml"`
+	PersistVolumes     *bool                     `json:"persist_volumes,omitempty"`
+	JobMode            *bool                     `json:"job_mode,omitempty"`
+	Services           []SpecServiceDef          `json:"services,omitempty"`
+	TriggerConfig      map[string]any            `json:"trigger_config,omitempty"`
+	MutiConfig         map[string]any            `json:"muti_config,omitempty"`
+	ScheduleConfig     map[string]any            `json:"schedule_config,omitempty"`
 }
 
 func (p *SpecCreateParams) Validate() error {
@@ -126,15 +130,16 @@ func (p SpecServiceDef) MarshalJSON() ([]byte, error) {
 }
 
 type SpecUpdateParams struct {
-	Name            *string          `json:"name,omitempty"`
-	Description     *string          `json:"description,omitempty"`
-	BaseComposeYAML *string          `json:"base_compose_yaml,omitempty"`
-	PersistVolumes  *bool            `json:"persist_volumes,omitempty"`
-	JobMode         *bool            `json:"job_mode,omitempty"`
-	Services        []SpecServiceDef `json:"services,omitempty"`
-	TriggerConfig   map[string]any   `json:"trigger_config,omitempty"`
-	MutiConfig      map[string]any   `json:"muti_config,omitempty"`
-	ScheduleConfig  map[string]any   `json:"schedule_config,omitempty"`
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	Name               *string                   `json:"name,omitempty"`
+	Description        *string                   `json:"description,omitempty"`
+	BaseComposeYAML    *string                   `json:"base_compose_yaml,omitempty"`
+	PersistVolumes     *bool                     `json:"persist_volumes,omitempty"`
+	JobMode            *bool                     `json:"job_mode,omitempty"`
+	Services           []SpecServiceDef          `json:"services,omitempty"`
+	TriggerConfig      map[string]any            `json:"trigger_config,omitempty"`
+	MutiConfig         map[string]any            `json:"muti_config,omitempty"`
+	ScheduleConfig     map[string]any            `json:"schedule_config,omitempty"`
 }
 
 type ComposeValidation struct {
