@@ -1,0 +1,142 @@
+{
+  "schema": "fibe.owner_context_metadata.v1",
+  "note": "One credential-metadata fixture shared by the Rails contract, the Go SDK and fibe-agent. Each repository pins this file's SHA-256; change all copies together.",
+  "cases": [
+    {
+      "name": "company_service_principal",
+      "credential": {
+        "owner_type": "Team",
+        "owner_id": 19,
+        "principal_type": "TeamServicePrincipal",
+        "principal_id": 31,
+        "authorization_version": 2
+      },
+      "api_response": {
+        "owner_type": "Team",
+        "owner_id": 19,
+        "principal_type": "TeamServicePrincipal",
+        "principal_id": 31,
+        "authorization_version": 2,
+        "authority_revision": 7
+      },
+      "container_env": {
+        "FIBE_OWNER_TYPE": "Team",
+        "FIBE_OWNER_ID": "19",
+        "FIBE_PRINCIPAL_TYPE": "TeamServicePrincipal",
+        "FIBE_PRINCIPAL_ID": "31",
+        "FIBE_AUTHORIZATION_VERSION": "2"
+      },
+      "proof_headers": {
+        "X-Fibe-Expected-Owner-Type": "Team",
+        "X-Fibe-Expected-Owner-ID": "19"
+      },
+      "response_headers": {
+        "X-Fibe-Owner-Type": "Team",
+        "X-Fibe-Owner-ID": "19",
+        "X-Fibe-Authorization-Version": "2"
+      }
+    },
+    {
+      "name": "company_member_player",
+      "credential": {
+        "owner_type": "Team",
+        "owner_id": 19,
+        "principal_type": "Player",
+        "principal_id": 4,
+        "authorization_version": 2
+      },
+      "api_response": {
+        "owner_type": "Team",
+        "owner_id": 19,
+        "principal_type": "Player",
+        "principal_id": 4,
+        "authorization_version": 2,
+        "authority_revision": 7
+      },
+      "container_env": {
+        "FIBE_OWNER_TYPE": "Team",
+        "FIBE_OWNER_ID": "19",
+        "FIBE_PRINCIPAL_TYPE": "Player",
+        "FIBE_PRINCIPAL_ID": "4",
+        "FIBE_AUTHORIZATION_VERSION": "2"
+      },
+      "proof_headers": {
+        "X-Fibe-Expected-Owner-Type": "Team",
+        "X-Fibe-Expected-Owner-ID": "19"
+      },
+      "response_headers": {
+        "X-Fibe-Owner-Type": "Team",
+        "X-Fibe-Owner-ID": "19",
+        "X-Fibe-Authorization-Version": "2"
+      }
+    },
+    {
+      "name": "personal_player",
+      "credential": {
+        "owner_type": "Player",
+        "owner_id": 4,
+        "principal_type": "Player",
+        "principal_id": 4,
+        "authorization_version": 2
+      },
+      "api_response": {
+        "owner_type": "Player",
+        "owner_id": 4,
+        "principal_type": "Player",
+        "principal_id": 4,
+        "authorization_version": 2,
+        "authority_revision": 0
+      },
+      "container_env": {
+        "FIBE_OWNER_TYPE": "Player",
+        "FIBE_OWNER_ID": "4",
+        "FIBE_PRINCIPAL_TYPE": "Player",
+        "FIBE_PRINCIPAL_ID": "4",
+        "FIBE_AUTHORIZATION_VERSION": "2"
+      },
+      "proof_headers": {
+        "X-Fibe-Expected-Owner-Type": "Player",
+        "X-Fibe-Expected-Owner-ID": "4"
+      },
+      "response_headers": {
+        "X-Fibe-Owner-Type": "Player",
+        "X-Fibe-Owner-ID": "4",
+        "X-Fibe-Authorization-Version": "2"
+      }
+    },
+    {
+      "name": "largest_safe_bigint",
+      "credential": {
+        "owner_type": "Team",
+        "owner_id": 9223372036854775806,
+        "principal_type": "TeamServicePrincipal",
+        "principal_id": 9223372036854775805,
+        "authorization_version": 2
+      },
+      "api_response": {
+        "owner_type": "Team",
+        "owner_id": 9223372036854775806,
+        "principal_type": "TeamServicePrincipal",
+        "principal_id": 9223372036854775805,
+        "authorization_version": 2,
+        "authority_revision": 1
+      },
+      "container_env": {
+        "FIBE_OWNER_TYPE": "Team",
+        "FIBE_OWNER_ID": "9223372036854775806",
+        "FIBE_PRINCIPAL_TYPE": "TeamServicePrincipal",
+        "FIBE_PRINCIPAL_ID": "9223372036854775805",
+        "FIBE_AUTHORIZATION_VERSION": "2"
+      },
+      "proof_headers": {
+        "X-Fibe-Expected-Owner-Type": "Team",
+        "X-Fibe-Expected-Owner-ID": "9223372036854775806"
+      },
+      "response_headers": {
+        "X-Fibe-Owner-Type": "Team",
+        "X-Fibe-Owner-ID": "9223372036854775806",
+        "X-Fibe-Authorization-Version": "2"
+      }
+    }
+  ]
+}

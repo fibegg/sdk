@@ -1,9 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -185,4 +189,37 @@ func (s *cliConfigStore) loadActiveForTest(t *testing.T) string {
 		t.Fatalf("load config: %v", err)
 	}
 	return cfg.ActiveProfile
+}
+
+func TestResolvedCredentialContextMatchesSharedMetadataFixture(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "fibe", "testdata", "owner_context_metadata_v1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprintf("%x", sha256.Sum256(raw)); got != "b0fdea43bb72126b5bf7dd744eb41cdc748db25775f385c29ebee762705d1085" {
+		t.Fatalf("shared owner-context fixture digest = %s (update every repository together)", got)
+	}
+	var document struct {
+		Cases []struct {
+			Name         string                 `json:"name"`
+			Credential   fibe.CredentialContext `json:"credential"`
+			ContainerEnv map[string]string      `json:"container_env"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &document); err != nil || len(document.Cases) != 4 {
+		t.Fatalf("fixture cases = %d, err = %v", len(document.Cases), err)
+	}
+	for _, entry := range document.Cases {
+		t.Run(entry.Name, func(t *testing.T) {
+			for _, name := range []string{"FIBE_OWNER_TYPE", "FIBE_OWNER_ID", "FIBE_PRINCIPAL_TYPE", "FIBE_PRINCIPAL_ID", "FIBE_AUTHORIZATION_VERSION"} {
+				t.Setenv(name, entry.ContainerEnv[name])
+			}
+			got := resolvedCredentialContext(nil, "environment", "default")
+			want := entry.Credential
+			if got.OwnerContext != want.OwnerContext || got.PrincipalType != want.PrincipalType ||
+				got.PrincipalID != want.PrincipalID || got.AuthorizationVersion != want.AuthorizationVersion {
+				t.Fatalf("resolved %+v, want %+v", got, want)
+			}
+		})
+	}
 }
