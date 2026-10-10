@@ -28,9 +28,15 @@ fibe env-packs attachments retarget playgrounds 129 42 --services web,jobs
 fibe env-packs attachments retarget playgrounds 129 42 --all-services
 fibe env-packs attachments detach playgrounds 129 42
 fibe env-packs attachments renew playgrounds 129 42
+fibe playgrounds rerun 129
+fibe playgrounds rerun my-app --name my-app-copy
+fibe playgrounds rerun 129 --from-file attachments.json
+fibe tasks rerun 77 --from-file attachments.json
 ```
 
-`attachments.json` contains `env_pack_attachments`: `[]` detaches all packs, omitted/null preserves references. Playground/Spec creation/update and Task trigger/rerun `--from-file` accept the same optional selection. Renew resolves the attached pack ID into its attachment ID without fabricating grant identity.
+`attachments.json` contains `env_pack_attachments`: `[]` detaches all packs, omitted/null preserves references. Playground/Spec creation/update, `fibe playgrounds rerun` and Task trigger/rerun `--from-file` accept the same optional selection. Renew resolves the attached pack ID into its attachment ID without fabricating grant identity.
+
+`fibe playgrounds rerun <id-or-name>` creates a new Playground from an existing one, mirroring `fibe tasks rerun` (which handles job-mode Tasks). It resolves the source, then calls the SDK `Playgrounds.Rerun`. Omitting `env_pack_attachments` keeps the source's references and their original grants; `[]` attaches no packs; a list attaches exactly those packs in order. `--name` names the new Playground. The source is not changed, and the command sends only what you supply.
 
 ## MCP
 

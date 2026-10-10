@@ -44,6 +44,7 @@ SUBCOMMANDS:
   update <id-or-name>       Update playground settings
   delete <id-or-name>       Delete a playground
   rollout <id-or-name>      Recreate with latest config
+  rerun <id-or-name>        Create a new Playground from an existing one
   switch-template <id-or-name> Switch playground to another template version
   hard-restart <id-or-name> Hard restart all services
   stop <id-or-name>         Stop playground containers
@@ -65,6 +66,7 @@ SUBCOMMANDS:
 		pgUpdateCmd(),
 		pgDeleteCmd(),
 		pgRolloutCmd(),
+		pgRerunCmd(),
 		pgSwitchTemplateCmd(),
 		pgHardRestartCmd(),
 		pgStopCmd(),
@@ -673,6 +675,65 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().BoolVar(&force, "force", false, "Bypass eligible state protections when the server permits it")
+	return cmd
+}
+
+func pgRerunCmd() *cobra.Command {
+	var name string
+	cmd := &cobra.Command{
+		Use:   "rerun <id-or-name>",
+		Short: "Create a new playground from an existing one",
+		Long: `Create a new Playground from an existing source Playground. The new
+Playground copies the source's Spec, Host and service settings, and gets a
+fresh name unless --name is given. The source is left unchanged.
+
+ENV pack attachments follow the source's references unless you choose
+otherwise with --from-file (JSON or YAML):
+  env_pack_attachments omitted or null  keep the source's ordered references
+  env_pack_attachments: []              attach no packs to the new Playground
+  env_pack_attachments: [...]           attach exactly these packs, in order
+
+Attachments are applied on this explicit operation only; changing a pack or
+list later does not affect an already-created Playground until you rerun,
+roll out or otherwise apply it again.
+
+Use 'fibe tasks rerun' for job-mode Tasks.
+
+OPTIONAL FLAGS:
+  --name        Name for the new Playground
+  --from-file   JSON/YAML body: {"name": "...", "env_pack_attachments": [...]}
+
+EXAMPLES:
+  fibe playgrounds rerun 42
+  fibe pg rerun my-app --name my-app-copy
+  fibe pg rerun 42 --from-file attachments.json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := newClient()
+			p := &fibe.PlaygroundRerunParams{}
+			if err := applyFromFile(p); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("name") {
+				p.Name = &name
+			}
+			source, err := c.Playgrounds.GetByIdentifier(ctx(), args[0])
+			if err != nil {
+				return fmt.Errorf("fibe: fetch source playground for rerun: %w", err)
+			}
+			pg, err := c.Playgrounds.Rerun(ctx(), source.ID, p)
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(pg)
+				return nil
+			}
+			fmt.Printf("Re-ran playground %d (%s) from source %s: status: %s\n", pg.ID, pg.Name, args[0], pg.Status)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&name, "name", "", "Name for the new playground (auto-generated if omitted)")
 	return cmd
 }
 

@@ -13030,6 +13030,87 @@
       "exit_on_error": false
     },
     {
+      "path": "fibe playgrounds rerun",
+      "use": "rerun \u003cid-or-name\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": "",
+          "usage": "Name for the new playground (auto-generated if omitted)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
       "path": "fibe playgrounds rollout",
       "use": "rollout \u003cid-or-name\u003e",
       "runnable": true,

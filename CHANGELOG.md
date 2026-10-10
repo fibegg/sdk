@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `fibe playgrounds rerun <id-or-name>` creates a new Playground from an existing
+  one through the SDK `Playgrounds.Rerun`, with optional `--name` and
+  `--from-file` ENV pack attachment selection (nil preserves the source's
+  references, `[]` detaches all). It mirrors `fibe tasks rerun`.
+- Live integration coverage for ENV packs across the SDK, CLI binary and MCP
+  server (`integration/env_packs_test.go`).
+
 ## [0.2.46] - 2026-10-01
 
 - Use Homebrew's default download URL verification, supported by current GoReleaser.
