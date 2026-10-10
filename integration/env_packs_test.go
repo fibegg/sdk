@@ -7,10 +7,13 @@ package integration
 // reruns, nil versus empty values, and the four stable error codes.
 //
 // Company credential: RUNTIME_API_KEY, RUNTIME_OWNER_TYPE and RUNTIME_OWNER_ID
-// (and RUNTIME_HOST_ID for Company Playground targets) are exported by the
-// Playwright bootstrap. The app-go-tests lane bootstraps mode=sdk, which does
-// not export them, so Company coverage skips with an explicit reason unless
-// they are set. FIBE_REQUIRE_COMPANY_ENV_PACKS=1 turns that skip into a failure.
+// are exported by the mode=sdk bootstrap (a Company credential without a Host,
+// since a second owner's Host would retire the lane's own on the same endpoint).
+// Company coverage here therefore uses Spec targets; Company Playground targets
+// are proven where a Company Host exists, by the Playwright integration flow
+// (integration/env-pack-runtime.spec.js) and the Rails contracts. When the
+// credential is absent Company coverage skips with an explicit reason, and
+// FIBE_REQUIRE_COMPANY_ENV_PACKS=1 turns that skip into a failure.
 //
 // The file carries no build tag, like every other file in this package: the
 // app-go-tests lane runs ./integration/... without -tags, so a tag would make
@@ -68,26 +71,14 @@ func requireEnv(t *testing.T, surface string, got map[string]string, want map[st
 	}
 }
 
-// envPackTargetHost returns the Host for Playground targets: the lane Host for
-// Personal, the Company Host exported by the Playwright bootstrap for Company.
-func envPackTargetHost(t *testing.T, a *envPackActor) int64 {
-	t.Helper()
+// envPackTargetKinds lists the target kinds an actor can exercise: Playground
+// targets need a Host in the actor's owner context, which only the Personal
+// actor has in this lane.
+func envPackTargetKinds(a *envPackActor) []string {
 	if a.label == "personal" {
-		return envPackHost(t)
+		return []string{"specs", "playgrounds"}
 	}
-	raw := strings.TrimSpace(os.Getenv("RUNTIME_HOST_ID"))
-	if raw == "" {
-		reason := "a Company Playground target needs RUNTIME_HOST_ID (the Company Host exported by the Playwright bootstrap)"
-		if envBool("FIBE_REQUIRE_COMPANY_ENV_PACKS") {
-			t.Fatal(reason)
-		}
-		t.Skip(reason)
-	}
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || id <= 0 {
-		t.Fatalf("invalid RUNTIME_HOST_ID %q", raw)
-	}
-	return id
+	return []string{"specs"}
 }
 
 // ------------------------------------------------------------------ pack CRUD
@@ -254,13 +245,13 @@ func TestEnvPacks_ContextsAreIsolated(t *testing.T) {
 
 func TestEnvPacks_AttachmentLifecycle(t *testing.T) {
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
-		for _, kind := range []string{"specs", "playgrounds"} {
+		for _, kind := range envPackTargetKinds(a) {
 			kind := kind
 			t.Run(kind, func(t *testing.T) {
 				specID := newEnvPackSpec(t, a)
 				targetID := specID
 				if kind == "playgrounds" {
-					targetID = newEnvPackPlayground(t, a, specID, envPackTargetHost(t, a), nil).ID
+					targetID = newEnvPackPlayground(t, a, specID, envPackHost(t), nil).ID
 				}
 				forEachSurface(t, a, func(t *testing.T, s envPackSurface) {
 					exerciseAttachmentLifecycle(t, a, s, kind, targetID)
