@@ -11,3 +11,6 @@ tmp/
 *.test
 *.out
 *.prof
+
+# User-owned MCP authentication is never an image build input.
+**/.mcp.json

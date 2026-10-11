@@ -24,6 +24,12 @@ RUN --mount=type=cache,id=fibe-e2e-sdk-go-build,target=/root/.cache/go-build,sha
 RUN --mount=type=cache,id=fibe-e2e-sdk-go-build,target=/root/.cache/go-build,sharing=locked \
     go vet ./...
 
+FROM builder AS candidate-cli
+ARG FIBE_SDK_SHA
+RUN printf '%s\n' "$FIBE_SDK_SHA" | grep -Eq '^[0-9a-f]{40}$'
+RUN --mount=type=cache,id=fibe-e2e-sdk-go-build,target=/root/.cache/go-build,sharing=locked \
+    CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=candidate-$FIBE_SDK_SHA -X main.commit=$FIBE_SDK_SHA -X github.com/fibegg/sdk/fibe.sdkVersion=candidate-$FIBE_SDK_SHA -X github.com/fibegg/sdk/internal/mcpserver.Version=candidate-$FIBE_SDK_SHA" -o /candidate/fibe ./cmd/fibe
+
 FROM ${GO_IMAGE} AS runtime
 
 RUN apk add --no-cache bash curl
