@@ -5188,6 +5188,1401 @@
       "exit_on_error": false
     },
     {
+      "path": "fibe company",
+      "use": "company",
+      "runnable": false,
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company git-installations",
+      "use": "git-installations",
+      "runnable": false,
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company git-installations connect",
+      "use": "connect",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "installation-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "GitHub organization installation ID"
+        },
+        {
+          "name": "verification-connection-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Existing human GitHub verification connection ID"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company git-installations list",
+      "use": "list",
+      "runnable": true,
+      "safety": "read-only",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company git-installations remove",
+      "use": "remove \u003cid\u003e",
+      "runnable": true,
+      "safety": "destructive",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company principals",
+      "use": "principals",
+      "runnable": false,
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company principals create",
+      "use": "create",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "name",
+          "type": "string",
+          "default": "",
+          "usage": "Service principal name"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company principals list",
+      "use": "list",
+      "runnable": true,
+      "safety": "read-only",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company principals recover",
+      "use": "recover \u003cid\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "agent-ids",
+          "type": "string",
+          "default": "",
+          "usage": "Required explicit JSON list, e.g. '[12,34]' or '[]'; alternatively --from-file replacement_agent_ids"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company principals revoke",
+      "use": "revoke \u003cid\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company repository-operations",
+      "use": "repository-operations",
+      "runnable": false,
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company repository-operations adopt",
+      "use": "adopt \u003crequest-id\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "connection-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Optional current Company installation connection ID"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company repository-operations list",
+      "use": "list",
+      "runnable": true,
+      "safety": "read-only",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company repository-operations reconcile",
+      "use": "reconcile \u003crequest-id\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "connection-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Optional current Company installation connection ID"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company subscriptions",
+      "use": "subscriptions",
+      "runnable": false,
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company subscriptions cancel",
+      "use": "cancel \u003cid\u003e",
+      "runnable": true,
+      "safety": "mutating",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "local_flags": [
+        {
+          "name": "retry-failed",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Explicitly retry a failed cancellation with current human authority"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
+      "path": "fibe company subscriptions list",
+      "use": "list",
+      "runnable": true,
+      "safety": "read-only",
+      "flags": [
+        {
+          "name": "api-key",
+          "type": "string",
+          "default": "",
+          "usage": "API key override"
+        },
+        {
+          "name": "company-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Required Company owner ID (verified through request and response headers)"
+        },
+        {
+          "name": "debug",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Enable debug logging"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "default": "",
+          "usage": "API domain override (default profile domain or fibe.gg)"
+        },
+        {
+          "name": "explain-errors",
+          "type": "bool",
+          "default": "false",
+          "no_opt_default": "true",
+          "usage": "Output errors in structured format instead of plain text string"
+        },
+        {
+          "name": "from-file",
+          "shorthand": "f",
+          "type": "string",
+          "default": "",
+          "usage": "Load parameters from a JSON or YAML file (or - for STDIN)"
+        },
+        {
+          "name": "only",
+          "type": "stringSlice",
+          "default": "[]",
+          "usage": "Filter response to specific fields (e.g. --only id,name,status)"
+        },
+        {
+          "name": "output",
+          "shorthand": "o",
+          "type": "string",
+          "default": "",
+          "usage": "Output format: table, json, yaml (default: $FIBE_OUTPUT or table)"
+        },
+        {
+          "name": "page",
+          "type": "int",
+          "default": "0",
+          "usage": "Page number for list endpoints (default: 1)"
+        },
+        {
+          "name": "per-page",
+          "type": "int",
+          "default": "0",
+          "usage": "Items per page for list endpoints (default: 25)"
+        },
+        {
+          "name": "profile",
+          "type": "string",
+          "default": "",
+          "usage": "Auth profile to use (default: active profile or default)"
+        }
+      ],
+      "exit_on_error": false
+    },
+    {
       "path": "fibe completion",
       "use": "completion [bash|zsh|fish|powershell]",
       "runnable": true,

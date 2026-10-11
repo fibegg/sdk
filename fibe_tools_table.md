@@ -2,8 +2,8 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 61
-- Advertised with `FIBE_MCP_TOOLS=full`: 60
+- Registered tools: 73
+- Advertised with `FIBE_MCP_TOOLS=full`: 72
 - Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
@@ -30,6 +30,18 @@ Generated from the MCP registry.
 | `fibe_auth_status` | meta | yes | [MODE:DIALOG] Show the current MCP session auth target and selected profile, if any. |
 | `fibe_auth_use` | meta | yes | [MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately. |
 | `fibe_call` | meta | yes | [MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear. |
+| `fibe_company_git_installation_connect` | other | yes | [MODE:DIALOG] Verify a Company organization installation with live human organization-admin authority; no token export. |
+| `fibe_company_git_installation_remove` | other | yes | [MODE:DIALOG] Remove a current Company installation with live human authority; reconcile held operations first. |
+| `fibe_company_git_installations_list` | other | yes | [MODE:DIALOG] Read current Company organization installation availability and verified authority; never export tokens. |
+| `fibe_company_principal_create` | other | yes | [MODE:DIALOG] Issue a Company service principal with live human admin authority. |
+| `fibe_company_principal_revoke` | other | yes | [MODE:DIALOG] Revoke a Company service principal with live human admin authority. |
+| `fibe_company_principals_list` | other | yes | [MODE:DIALOG] List Company service principals. |
+| `fibe_company_repository_operation_adopt` | other | yes | [MODE:DIALOG] Require a live human and current Company installation authority to adopt this exact remote destination. Do not overwrite/delete an unknown destination. |
+| `fibe_company_repository_operation_reconcile` | other | yes | [MODE:DIALOG] Require a live human and current Company installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination. |
+| `fibe_company_repository_operations_list` | other | yes | [MODE:DIALOG] Read exact Company Repository operation receipts and unknown outcomes. |
+| `fibe_company_runtime_principal_recover` | other | yes | [MODE:DIALOG] Recover a revoked runtime principal using a live human Company admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens. |
+| `fibe_company_subscription_cancel` | other | yes | [MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt. |
+| `fibe_company_subscriptions_list` | other | yes | [MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts. |
 | `fibe_doctor` | meta | yes | [MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile |
 | `fibe_env_pack_attachments_get` | base | yes | [MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec. |
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |

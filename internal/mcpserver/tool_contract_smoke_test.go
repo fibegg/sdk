@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -51,8 +52,61 @@ func TestToolContractSmoke(t *testing.T) {
 	server.httpMode = true
 
 	names := server.dispatcher.names()
-	if len(names) != 61 {
-		t.Fatalf("registered tools = %d, want frozen contract count 61", len(names))
+	if len(names) != 73 {
+		t.Fatalf("registered tools = %d, want frozen contract count 73 (61 existing plus 12 Company tools)", len(names))
+	}
+	companyContracts := map[string][]string{
+		"fibe_company_principals_list":                {"company_id"},
+		"fibe_company_principal_create":               {"company_id", "name"},
+		"fibe_company_principal_revoke":               {"company_id", "principal_id"},
+		"fibe_company_runtime_principal_recover":      {"company_id", "principal_id", "replacement_agent_ids"},
+		"fibe_company_subscriptions_list":             {"company_id"},
+		"fibe_company_subscription_cancel":            {"company_id", "subscription_id"},
+		"fibe_company_repository_operations_list":     {"company_id"},
+		"fibe_company_repository_operation_reconcile": {"company_id", "request_id"},
+		"fibe_company_repository_operation_adopt":     {"company_id", "request_id"},
+		"fibe_company_git_installations_list":         {"company_id"},
+		"fibe_company_git_installation_connect":       {"company_id", "installation_id", "verification_connection_id"},
+		"fibe_company_git_installation_remove":        {"company_id", "connection_id"},
+	}
+	companyCount := 0
+	for _, name := range names {
+		if !strings.HasPrefix(name, "fibe_company_") {
+			continue
+		}
+		companyCount++
+		expected, known := companyContracts[name]
+		if !known {
+			t.Fatalf("unexpected Company tool %q", name)
+		}
+		encoded, err := json.Marshal(server.toolSchemas[name])
+		if err != nil {
+			t.Fatal(err)
+		}
+		var schema struct {
+			Required             []string                   `json:"required"`
+			Properties           map[string]json.RawMessage `json:"properties"`
+			AdditionalProperties *bool                      `json:"additionalProperties"`
+		}
+		if err = json.Unmarshal(encoded, &schema); err != nil {
+			t.Fatal(err)
+		}
+		slices.Sort(schema.Required)
+		slices.Sort(expected)
+		if !slices.Equal(schema.Required, expected) {
+			t.Fatalf("%s required fields = %v, want %v", name, schema.Required, expected)
+		}
+		if schema.AdditionalProperties == nil || *schema.AdditionalProperties {
+			t.Fatalf("%s must reject unknown properties", name)
+		}
+		for _, private := range []string{"api_key_id", "key_id", "token"} {
+			if _, exposed := schema.Properties[private]; exposed {
+				t.Fatalf("%s exposes private field %q", name, private)
+			}
+		}
+	}
+	if companyCount != len(companyContracts) {
+		t.Fatalf("Company tools = %d, want exact set of %d", companyCount, len(companyContracts))
 	}
 	for _, name := range names {
 		name := name

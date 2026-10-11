@@ -2,8 +2,8 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 61
-- Advertised with `FIBE_MCP_TOOLS=full`: 60
+- Registered tools: 73
+- Advertised with `FIBE_MCP_TOOLS=full`: 72
 - Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
@@ -748,6 +748,525 @@ Generated from the MCP registry.
   },
   "required": [
     "tool"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_git_installation_connect`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Verify a Company organization installation with live human organization-admin authority; no token export.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "installation_id": {
+      "description": "GitHub installation ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "verification_connection_id": {
+      "description": "Human verification connection ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "company_id",
+    "installation_id",
+    "verification_connection_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_git_installation_remove`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Remove a current Company installation with live human authority; reconcile held operations first.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "connection_id": {
+      "description": "Company installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "connection_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_git_installations_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read current Company organization installation availability and verified authority; never export tokens.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_principal_create`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Issue a Company service principal with live human admin authority.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "name": {
+      "description": "Name.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "name"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_principal_revoke`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Revoke a Company service principal with live human admin authority.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "principal_id": {
+      "description": "Service principal ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "company_id",
+    "principal_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_principals_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] List Company service principals.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_repository_operation_adopt`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Require a live human and current Company installation authority to adopt this exact remote destination. Do not overwrite/delete an unknown destination.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "connection_id": {
+      "description": "Optional current Company installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "request_id": {
+      "description": "Request ID for this company_repository_operation_adopt request.",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "request_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_repository_operation_reconcile`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Require a live human and current Company installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "connection_id": {
+      "description": "Optional current Company installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "request_id": {
+      "description": "Request ID for this company_repository_operation_reconcile request.",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id",
+    "request_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_repository_operations_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read exact Company Repository operation receipts and unknown outcomes.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_runtime_principal_recover`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Recover a revoked runtime principal using a live human Company admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "principal_id": {
+      "description": "Revoked runtime principal ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "replacement_agent_ids": {
+      "description": "Replacement Agent Ids for this company_runtime_principal_recover request.",
+      "items": {
+        "description": "Agent ID",
+        "minimum": 1,
+        "type": "integer"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "company_id",
+    "principal_id",
+    "replacement_agent_ids"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_subscription_cancel`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "retry_failed": {
+      "description": "Retry Failed for this company_subscription_cancel request.",
+      "type": "boolean"
+    },
+    "subscription_id": {
+      "description": "Company subscription ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "company_id",
+    "subscription_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_company_subscriptions_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "company_id": {
+      "description": "Explicit Company owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "company_id"
   ],
   "type": "object"
 }

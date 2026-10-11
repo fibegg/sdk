@@ -121,6 +121,7 @@ DOCUMENTATION:
 	cmd.PersistentFlags().BoolVar(&flagExplainErrors, "explain-errors", false, "Output errors in structured format instead of plain text string")
 
 	cmd.AddCommand(
+		companyCmd(),
 		playgroundsCmd(),
 		tasksCmd(),
 		agentsCmd(),

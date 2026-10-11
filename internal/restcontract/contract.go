@@ -102,10 +102,16 @@ func Generate(dir string) ([]byte, error) {
 			if fn.Name.Name == "MarshalJSON" || fn.Name.Name == "UnmarshalJSON" {
 				custom[receiver] = true
 			}
-			if !strings.HasSuffix(receiver, "Service") {
+			if !strings.HasSuffix(receiver, "Service") && receiver != "Client" {
 				continue
 			}
-			contract.Operations = append(contract.Operations, operationFromFunc(fset, receiver, fn))
+			operation := operationFromFunc(fset, receiver, fn)
+			// Direct Client endpoints (including owner-context proof and Company
+			// recovery) are REST operations; local configuration readers are not.
+			if receiver == "Client" && operation.HTTPMethod == "" {
+				continue
+			}
+			contract.Operations = append(contract.Operations, operation)
 		}
 	}
 	for name := range custom {
@@ -209,7 +215,9 @@ func delegatedService(selector *ast.SelectorExpr, receiver string) string {
 func transportHelper(selector *ast.SelectorExpr) (string, bool) {
 	inner, ok := selector.X.(*ast.SelectorExpr)
 	if !ok || inner.Sel.Name != "client" {
-		return "", false
+		if identifier, direct := selector.X.(*ast.Ident); !direct || (identifier.Name != "c" && identifier.Name != "client") {
+			return "", false
+		}
 	}
 	switch selector.Sel.Name {
 	case "do":

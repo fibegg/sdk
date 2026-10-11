@@ -3,6 +3,11 @@
 This directory is the language-neutral compatibility boundary for the Go SDK
 and any additional SDK implementation.
 
+Company recovery and durable operation parity is additive to the candidate.
+See `docs/company-operations.md` for explicit Company owner proofs, nil versus
+empty recovery selection, replay/conflict and accepted cancellation semantics.
+Public response types intentionally omit runtime key identities and token bytes.
+
 - `go-public-api.json` freezes every exported Go type, field order, JSON tag,
   constant, function, method, and public `Unwrap` signature for the current
   candidate.
