@@ -107,6 +107,13 @@ func bootstrapDockerE2E() (func() error, error) {
 	_ = player
 
 	return func() error {
+		// The SDK Hosts are shared: other lanes (Playwright provider and ENV-pack runtime flows) run Personal workloads on
+		// them and may still be running when this lane finishes, so retiring them here would pull a live Host from under
+		// them. A Docker E2E run discards its stack, and the next bootstrap retires any conflicting Host itself;
+		// SDK_E2E_RETIRE_HOSTS=1 restores the eager cleanup for a persistent stack that nothing else uses.
+		if !envBool("SDK_E2E_RETIRE_HOSTS") {
+			return nil
+		}
 		var errs []string
 		for _, id := range []int64{bootstrap.Host.ID, bootstrap.SSHKeyHost.ID} {
 			if err := client.deactivateHost(id); err != nil {
