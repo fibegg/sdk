@@ -55,13 +55,7 @@ func (s *RepositoryService) GetMirrorStateByIdentifier(ctx context.Context, iden
 }
 
 func (s *RepositoryService) MirrorWithState(ctx context.Context, sourceURL, name string) (*RepositoryMirrorState, error) {
-	var result RepositoryMirrorState
-	body := map[string]any{"source_url": sourceURL}
-	if name != "" {
-		body["name"] = name
-	}
-	err := s.client.do(ctx, http.MethodPost, "/api/repositories/mirrors", body, &result)
-	return &result, err
+	return s.MirrorWithParams(ctx, &RepositoryMirrorParams{SourceURL: sourceURL, Name: name})
 }
 
 func (p *PlaygroundRuntimeStatus) UnmarshalJSON(data []byte) error {

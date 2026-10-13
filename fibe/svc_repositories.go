@@ -44,13 +44,34 @@ func (s *RepositoryService) Attach(ctx context.Context, repoFullName string) (*R
 }
 
 func (s *RepositoryService) Mirror(ctx context.Context, sourceURL string, name string) (*Repository, error) {
-	var result Repository
-	body := map[string]any{"source_url": sourceURL}
-	if name != "" {
-		body["name"] = name
+	result, err := s.MirrorWithParams(ctx, &RepositoryMirrorParams{SourceURL: sourceURL, Name: name})
+	if result == nil {
+		return nil, err
 	}
-	err := s.client.do(ctx, http.MethodPost, "/api/repositories/mirrors", body, &result)
-	return &result, err
+	return &result.Repository, err
+}
+
+// MirrorWithParams imports through the selected owner's provider and waits for Company completion.
+func (s *RepositoryService) MirrorWithParams(ctx context.Context, params *RepositoryMirrorParams) (*RepositoryMirrorState, error) {
+	if params == nil {
+		return nil, fmt.Errorf("fibe: mirror parameters are required")
+	}
+	if err := params.Validate(); err != nil {
+		return nil, err
+	}
+	var wire struct {
+		RepositoryMirrorState
+		Imported *RepositoryMirrorState `json:"repository"`
+	}
+	err := s.client.doAsync(WithFields(ctx), http.MethodPost, "/api/repositories/mirrors", "/api/company_repository_operations/%s", params, &wire)
+	if err != nil {
+		return nil, err
+	}
+	result := &wire.RepositoryMirrorState
+	if wire.Imported != nil {
+		result = wire.Imported
+	}
+	return ProjectFields(result, fieldsFromCtx(ctx)), nil
 }
 
 func (s *RepositoryService) Update(ctx context.Context, id int64, params *RepositoryUpdateParams) (*Repository, error) {

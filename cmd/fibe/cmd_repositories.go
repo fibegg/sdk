@@ -28,7 +28,7 @@ SUBCOMMANDS:
   update <id-or-name>       Update repository settings
   delete <id-or-name>       Delete a repository
   attach            Attach a GitHub repo by name
-  mirror            Mirror a GitHub repo to Gitea
+  mirror            Import a GitHub repo into the selected workspace
   sync <id-or-name>         Trigger repository sync
   branches <id-or-name>     List branches
   env-defaults <id-or-name> Get env defaults for a branch`,
@@ -360,24 +360,28 @@ EXAMPLES:
 
 func repositoryMirrorCmd() *cobra.Command {
 	var sourceURL string
+	var installationID int64
 
 	cmd := &cobra.Command{
 		Use:   "mirror",
-		Short: "Mirror a GitHub repo to Gitea",
-		Long: `Create a mirrored copy of a GitHub repository in the internal Gitea instance.
+		Short: "Import a GitHub repo into the selected workspace",
+		Long: `Import a GitHub repository into the selected workspace. Personal imports use Gitea;
+Company imports use the verified GitHub organization and wait for completion.
+Company credentials need repositories:read and repositories:write.
 
 REQUIRED FLAGS:
   --url   GitHub repository URL
 
 OPTIONAL FLAGS:
-  --name  Name for the mirrored repository
+  --name  Name for the imported repository
+  --github-installation-id  Explicit verified Company installation
 
 EXAMPLES:
   fibe repositories mirror --url https://github.com/org/repo`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			nameFlag, _ := cmd.Flags().GetString("name")
-			repository, err := c.Repositories.MirrorWithState(ctx(), sourceURL, nameFlag)
+			repository, err := c.Repositories.MirrorWithParams(ctx(), &fibe.RepositoryMirrorParams{SourceURL: sourceURL, Name: nameFlag, GitHubInstallationID: installationID})
 			if err != nil {
 				return err
 			}
@@ -385,13 +389,18 @@ EXAMPLES:
 				outputJSON(repository)
 				return nil
 			}
-			fmt.Printf("Mirroring started: repository %d (%s)\n", repository.ID, repository.Name)
+			if repository.MirrorStatus != "" {
+				fmt.Printf("Mirroring started: repository %d (%s)\n", repository.ID, repository.Name)
+			} else {
+				fmt.Printf("Repository imported: %d (%s)\n", repository.ID, repository.Name)
+			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&sourceURL, "url", "", "Source GitHub URL (required)")
 	cmd.Flags().String("name", "", "Name for the mirrored repository (optional)")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation (required when multiple are connected)")
 	mustMarkFlagRequired(cmd, "url")
 	return cmd
 }

@@ -78,3 +78,10 @@ The executable contract fixtures in `contracts/` describe SDK declarations,
 REST operations, CLI commands and MCP schemas. Synthetic transport tests exercise
 explicit empty recovery, completed replay/conflict, accepted cancellation,
 current installation status and matching owner-header proofs.
+
+
+## Repository imports
+
+`fibe repositories mirror --url https://github.com/upstream/source --name copy --github-installation-id 501` uses the current credential's owner. Company imports create a private GitHub destination through a verified organization installation; Personal imports keep the Gitea workflow. Select an installation explicitly when multiple are connected. Company imports require `repositories:read` and `repositories:write` and may use a current Company human or durable service key.
+
+SDK `Repositories.Mirror` and `MirrorWithState` retain their signatures and wait for Company completion. `Repositories.MirrorWithParams` additionally accepts `RepositoryMirrorParams.GitHubInstallationID`. The server returns HTTP202 and an owner-scoped status URL, and the SDK decodes the completed canonical Repository, preserves Personal mirror state and applies `WithFields` to that Repository. Reconciliation errors remain structured API errors. A timeout or lost connection does not authorize another remote create: inspect the retained Company operation first. Reconciliation/adoption still requires a live human.
