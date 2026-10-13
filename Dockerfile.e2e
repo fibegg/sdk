@@ -26,9 +26,18 @@ RUN --mount=type=cache,id=fibe-e2e-sdk-go-build,target=/root/.cache/go-build,sha
 
 FROM builder AS candidate-cli
 ARG FIBE_SDK_SHA
-RUN printf '%s\n' "$FIBE_SDK_SHA" | grep -Eq '^[0-9a-f]{40}$'
+ARG FIBE_CLI_VERSION
+ARG FIBE_CLI_GOOS=linux
+ARG FIBE_CLI_GOARCH
+RUN printf '%s\n' "$FIBE_SDK_SHA" | grep -Eq '^[0-9a-f]{40}$' \
+    && test "$FIBE_CLI_VERSION" = "0.3.0-rc.1+$(printf '%s' "$FIBE_SDK_SHA" | cut -c1-7)"
 RUN --mount=type=cache,id=fibe-e2e-sdk-go-build,target=/root/.cache/go-build,sharing=locked \
-    CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=candidate-$FIBE_SDK_SHA -X main.commit=$FIBE_SDK_SHA -X github.com/fibegg/sdk/fibe.sdkVersion=candidate-$FIBE_SDK_SHA -X github.com/fibegg/sdk/internal/mcpserver.Version=candidate-$FIBE_SDK_SHA" -o /candidate/fibe ./cmd/fibe
+    arch="${FIBE_CLI_GOARCH:-$(go env GOARCH)}"; \
+    case "$FIBE_CLI_GOOS/$arch" in linux/amd64|linux/arm64|darwin/arm64) ;; *) exit 1 ;; esac; \
+    CGO_ENABLED=0 GOOS="$FIBE_CLI_GOOS" GOARCH="$arch" go build -trimpath -ldflags "-s -w -X main.version=$FIBE_CLI_VERSION -X main.commit=$FIBE_SDK_SHA -X github.com/fibegg/sdk/fibe.sdkVersion=$FIBE_CLI_VERSION -X github.com/fibegg/sdk/internal/mcpserver.Version=$FIBE_CLI_VERSION" -o /candidate/fibe ./cmd/fibe
+
+FROM scratch AS candidate-cli-export
+COPY --from=candidate-cli /candidate/fibe /fibe
 
 FROM ${GO_IMAGE} AS runtime
 
