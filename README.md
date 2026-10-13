@@ -9,7 +9,7 @@ CLI distributions keep their production contract until the separate production
 cutover; candidate binaries are built from matched source without release tags.
 See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the migration contract.
 
-Requires Go 1.26.8 or newer when building from source. See
+Requires Go 1.26.9 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 

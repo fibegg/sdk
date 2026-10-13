@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Require Go 1.26.9 for its standard-library security fixes and pin the E2E
+  and candidate CLI build image to that patch release.
+
 ### Added
 
 - `fibe playgrounds rerun <id-or-name>` creates a new Playground from an existing
