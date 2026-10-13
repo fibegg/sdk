@@ -325,22 +325,25 @@ func repositoryDeleteCmd() *cobra.Command {
 
 func repositoryAttachCmd() *cobra.Command {
 	var repo string
+	var installationID int64
 
 	cmd := &cobra.Command{
 		Use:   "attach",
 		Short: "Attach a GitHub repo by full name",
 		Long: `Attach an existing GitHub repository by its full name (owner/repo).
 
-Requires GitHub App installation on the repository.
+Requires GitHub App installation on the repository. Company access uses its verified
+organization installation and never a Personal connection.
 
 REQUIRED FLAGS:
   --repo   GitHub repo full name (e.g., org/repo)
+  --github-installation-id  Explicit verified Company installation
 
 EXAMPLES:
   fibe repositories attach --repo myorg/myrepo`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			repository, err := c.Repositories.Attach(ctx(), repo)
+			repository, err := c.Repositories.AttachWithParams(ctx(), &fibe.RepositoryAttachParams{RepoFullName: repo, GitHubInstallationID: installationID})
 			if err != nil {
 				return err
 			}
@@ -354,6 +357,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&repo, "repo", "", "GitHub repo full name (required)")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation")
 	mustMarkFlagRequired(cmd, "repo")
 	return cmd
 }

@@ -338,13 +338,20 @@ func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, ope
 		}
 		return c.Repositories.UpdateByIdentifier(ctx, identifier, &p)
 	case "repository.attach":
-		repoFullName := argString(payload, "repo_full_name")
-		if parsed := parseRepoFullName(repoFullName); parsed != "" {
-			repoFullName = parsed
+		var params fibe.RepositoryAttachParams
+		if err := bindArgs(payload, &params); err != nil {
+			return nil, err
 		}
-		return c.Repositories.Attach(ctx, repoFullName)
+		if parsed := parseRepoFullName(params.RepoFullName); parsed != "" {
+			params.RepoFullName = parsed
+		}
+		return c.Repositories.AttachWithParams(ctx, &params)
 	case "repository.mirror":
-		return c.Repositories.Mirror(ctx, argString(payload, "source_url"), argString(payload, "name"))
+		var params fibe.RepositoryMirrorParams
+		if err := bindArgs(payload, &params); err != nil {
+			return nil, err
+		}
+		return c.Repositories.MirrorWithParams(ctx, &params)
 	case "repository.sync":
 		identifier, err := requiredIdentifier(payload, "repository_id", "")
 		if err != nil {

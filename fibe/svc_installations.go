@@ -37,9 +37,10 @@ type InstallationRepo struct {
 
 // InstallationReposParams controls listing/searching repos in an installation.
 type InstallationReposParams struct {
-	Q       string `url:"q,omitempty"`
-	Page    int    `url:"page,omitempty"`
-	PerPage int    `url:"per_page,omitempty"`
+	GitHubInstallationID int64  `url:"github_installation_id,omitempty"`
+	Q                    string `url:"q,omitempty"`
+	Page                 int    `url:"page,omitempty"`
+	PerPage              int    `url:"per_page,omitempty"`
 }
 
 // List returns all GitHub App installations linked to the authenticated player.
@@ -56,7 +57,7 @@ func (s *InstallationService) Repos(ctx context.Context, id int64, params *Insta
 	return doList[InstallationRepo](s.client, ctx, path)
 }
 
-// FindGitHubRepos searches across ALL of the player's GitHub App installations.
+// FindGitHubRepos searches Personal installations or the selected Company installation.
 // The server aggregates results in parallel and deduplicates by full_name.
 func (s *InstallationService) FindGitHubRepos(ctx context.Context, params *InstallationReposParams) (*ListResult[InstallationRepo], error) {
 	path := "/api/github_repositories" + buildQuery(params)

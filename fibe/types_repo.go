@@ -39,10 +39,11 @@ type GitHubRepo struct {
 }
 
 type GitHubRepoCreateParams struct {
-	Name        string  `json:"name"`
-	Private     *bool   `json:"private,omitempty"`
-	AutoInit    *bool   `json:"auto_init,omitempty"`
-	Description *string `json:"description,omitempty"`
+	GitHubInstallationID int64   `json:"github_installation_id,omitempty"`
+	Name                 string  `json:"name"`
+	Private              *bool   `json:"private,omitempty"`
+	AutoInit             *bool   `json:"auto_init,omitempty"`
+	Description          *string `json:"description,omitempty"`
 }
 
 // GiteaRepo is the result of creating a new Gitea repo.

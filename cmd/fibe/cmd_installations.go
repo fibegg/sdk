@@ -184,16 +184,18 @@ EXAMPLES:
 
 func instFindReposCmd() *cobra.Command {
 	var query string
+	var installationID int64
 	cmd := &cobra.Command{
 		Use:   "find-repos",
-		Short: "Search repos across ALL installations",
+		Short: "Search repositories for the selected workspace",
 		Long: `Search GitHub repositories across all connected installations.
 
-Results are aggregated from all GitHub App installations linked to the
-authenticated player and deduplicated by full_name.
+Personal results aggregate connected installations. Company results use one
+verified organization installation; select it explicitly when multiple are connected.
 
 FILTERS:
   -q, --query           Search query (repo name substring)
+  --github-installation-id  Verified Company installation
 
 PAGINATION:
   --page                Page number (default: 1)
@@ -205,7 +207,7 @@ EXAMPLES:
   fibe inst find-repos -q api -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			params := &fibe.InstallationReposParams{}
+			params := &fibe.InstallationReposParams{GitHubInstallationID: installationID}
 			if query != "" {
 				params.Q = query
 			}
@@ -238,6 +240,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (repo name substring)")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation")
 	return cmd
 }
 

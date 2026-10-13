@@ -36,6 +36,21 @@ func (p *RepositoryCreateParams) Validate() error {
 	return v.err()
 }
 
+// RepositoryAttachParams selects an existing Repository in the current owner's installation.
+type RepositoryAttachParams struct {
+	RepoFullName         string `json:"repo_full_name"`
+	GitHubInstallationID int64  `json:"github_installation_id,omitempty"`
+}
+
+func (p *RepositoryAttachParams) Validate() error {
+	v := &validator{}
+	v.required("repo_full_name", p.RepoFullName)
+	if p.GitHubInstallationID < 0 {
+		v.errors = append(v.errors, ValidationError{Field: "github_installation_id", Message: "must be positive when supplied"})
+	}
+	return v.err()
+}
+
 // RepositoryMirrorParams selects the source and, for Companies, its verified installation.
 // Company imports require repositories:read and repositories:write for completion polling.
 type RepositoryMirrorParams struct {

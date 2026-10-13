@@ -37,9 +37,18 @@ func (s *RepositoryService) Create(ctx context.Context, params *RepositoryCreate
 }
 
 func (s *RepositoryService) Attach(ctx context.Context, repoFullName string) (*Repository, error) {
+	return s.AttachWithParams(ctx, &RepositoryAttachParams{RepoFullName: repoFullName})
+}
+
+func (s *RepositoryService) AttachWithParams(ctx context.Context, params *RepositoryAttachParams) (*Repository, error) {
+	if params == nil {
+		return nil, fmt.Errorf("fibe: attachment parameters are required")
+	}
+	if err := params.Validate(); err != nil {
+		return nil, err
+	}
 	var result Repository
-	body := map[string]any{"repo_full_name": repoFullName}
-	err := s.client.do(ctx, http.MethodPost, "/api/repositories/attachments", body, &result)
+	err := s.client.do(ctx, http.MethodPost, "/api/repositories/attachments", params, &result)
 	return &result, err
 }
 

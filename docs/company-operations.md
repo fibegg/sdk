@@ -85,3 +85,16 @@ current installation status and matching owner-header proofs.
 `fibe repositories mirror --url https://github.com/upstream/source --name copy --github-installation-id 501` uses the current credential's owner. Company imports create a private GitHub destination through a verified organization installation; Personal imports keep the Gitea workflow. Select an installation explicitly when multiple are connected. Company imports require `repositories:read` and `repositories:write` and may use a current Company human or durable service key.
 
 SDK `Repositories.Mirror` and `MirrorWithState` retain their signatures and wait for Company completion. `Repositories.MirrorWithParams` additionally accepts `RepositoryMirrorParams.GitHubInstallationID`. The server returns HTTP202 and an owner-scoped status URL, and the SDK decodes the completed canonical Repository, preserves Personal mirror state and applies `WithFields` to that Repository. Reconciliation errors remain structured API errors. A timeout or lost connection does not authorize another remote create: inspect the retained Company operation first. Reconciliation/adoption still requires a live human.
+
+
+Company search, creation and attachment accept an explicit installation:
+
+```sh
+fibe installations find-repos --github-installation-id 501 -q project
+fibe github-repos create --name project --private --github-installation-id 501
+fibe repositories attach --repo company-org/project --github-installation-id 501
+```
+
+SDK `InstallationReposParams` and `GitHubRepoCreateParams` expose `GitHubInstallationID`; `Repositories.AttachWithParams` accepts `RepositoryAttachParams`. Existing `Attach` remains compatible. Company search uses the selected verified organization rather than Personal installations. Creation and attachment use current human or service authority, and creation replay rechecks the original installation and remote identity.
+
+MCP `fibe_find_github_repos` accepts `github_installation_id`. `fibe_resource_mutate` repository `attach` and `mirror` payloads accept a positive `github_installation_id`; invalid IDs fail schema validation before HTTP. GitHub creation advertises the additive field through its typed schema. Mirror waits for the completed Company Repository. These choices never grant installation-management or human recovery authority to a service key.

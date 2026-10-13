@@ -754,7 +754,8 @@ func repositoryAttachSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"repo_full_name"},
 		"properties": map[string]any{
-			"repo_full_name": map[string]any{"type": "string", "description": "GitHub repository owner/name to attach, for example octocat/Hello-World."},
+			"repo_full_name":         map[string]any{"type": "string", "description": "GitHub repository owner/name to attach, for example octocat/Hello-World."},
+			"github_installation_id": map[string]any{"type": "integer", "minimum": 1, "description": "Verified Company GitHub installation; required when multiple are connected."},
 		},
 	}
 }
@@ -765,8 +766,9 @@ func repositoryMirrorSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"source_url"},
 		"properties": map[string]any{
-			"source_url": map[string]any{"type": "string", "format": "uri", "description": "Source GitHub repository URL to mirror."},
-			"name":       map[string]any{"type": "string", "description": "Optional name for the mirrored repository. If omitted, the server infers it from the URL."},
+			"source_url":             map[string]any{"type": "string", "format": "uri", "description": "Source GitHub repository URL to mirror."},
+			"github_installation_id": map[string]any{"type": "integer", "minimum": 1, "description": "Verified Company GitHub installation; required when multiple are connected."},
+			"name":                   map[string]any{"type": "string", "description": "Optional name for the mirrored repository. If omitted, the server infers it from the URL."},
 		},
 	}
 }
