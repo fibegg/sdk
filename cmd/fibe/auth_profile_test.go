@@ -196,7 +196,7 @@ func TestResolvedCredentialContextMatchesSharedMetadataFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := fmt.Sprintf("%x", sha256.Sum256(raw)); got != "b0fdea43bb72126b5bf7dd744eb41cdc748db25775f385c29ebee762705d1085" {
+	if got := fmt.Sprintf("%x", sha256.Sum256(raw)); got != "4aecc6625d01c2566752c3e33819ed91aa286988411d09d5b59433ab9b5a772b" {
 		t.Fatalf("shared owner-context fixture digest = %s (update every repository together)", got)
 	}
 	var document struct {

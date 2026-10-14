@@ -20,7 +20,7 @@ func TestLegacyResponseFieldsFailWithoutChangingDestination(t *testing.T) {
 }
 
 func TestSharedNamingFixtureUsesActualSDKDecoder(t *testing.T) {
-	data, err := os.ReadFile("../contracts/naming/v1.json")
+	data, err := os.ReadFile("../contracts/naming/v2.json")
 	if err != nil {
 		t.Fatal(err)
 	}

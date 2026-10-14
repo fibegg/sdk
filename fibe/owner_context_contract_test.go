@@ -60,7 +60,7 @@ func TestOwnerContextProofMatchesCredentialResponse(t *testing.T) {
 
 // sharedOwnerContextFixtureSHA256 pins the credential-metadata fixture shared with the Rails contract and
 // fibe-agent. Every repository pins the same digest; change all copies together.
-const sharedOwnerContextFixtureSHA256 = "b0fdea43bb72126b5bf7dd744eb41cdc748db25775f385c29ebee762705d1085"
+const sharedOwnerContextFixtureSHA256 = "4aecc6625d01c2566752c3e33819ed91aa286988411d09d5b59433ab9b5a772b"
 
 type sharedOwnerContextCase struct {
 	Name            string            `json:"name"`

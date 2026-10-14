@@ -3,7 +3,7 @@
   "note": "One credential-metadata fixture shared by the Rails contract, the Go SDK and fibe-agent. Each repository pins this file's SHA-256; change all copies together.",
   "cases": [
     {
-      "name": "company_service_principal",
+      "name": "team_service_principal",
       "credential": {
         "owner_type": "Team",
         "owner_id": 19,
@@ -37,7 +37,7 @@
       }
     },
     {
-      "name": "company_member_player",
+      "name": "team_member_player",
       "credential": {
         "owner_type": "Team",
         "owner_id": 19,
