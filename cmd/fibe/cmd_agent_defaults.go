@@ -78,7 +78,7 @@ EXAMPLES:
   fibe agents defaults update --system-prompt "You are Fibe" --custom-env "DEBUG=true"
   fibe agents defaults update --provider gemini --model-options gemini-pro --syscheck=false
   fibe agents defaults update --provider-args "--bare --max-tokens 4096"
-  fibe agents defaults update --skill-toggle fibe-hunks.md=false`,
+  fibe agents defaults update --skill-toggle example-skill.md=false`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			defaults, fromFile, err := agentDefaultsFromInput()
 			if err != nil {
