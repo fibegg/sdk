@@ -8853,6 +8853,12 @@
           "usage": "Repository description"
         },
         {
+          "name": "github-installation-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Verified Company GitHub installation"
+        },
+        {
           "name": "name",
           "type": "string",
           "default": "",
@@ -10033,6 +10039,12 @@
         }
       ],
       "local_flags": [
+        {
+          "name": "github-installation-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Verified Company GitHub installation"
+        },
         {
           "name": "query",
           "shorthand": "q",
@@ -15371,6 +15383,12 @@
       ],
       "local_flags": [
         {
+          "name": "github-installation-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Verified Company GitHub installation"
+        },
+        {
           "name": "repo",
           "type": "string",
           "default": "",
@@ -16002,6 +16020,12 @@
         }
       ],
       "local_flags": [
+        {
+          "name": "github-installation-id",
+          "type": "int64",
+          "default": "0",
+          "usage": "Verified Company GitHub installation (required when multiple are connected)"
+        },
         {
           "name": "name",
           "type": "string",

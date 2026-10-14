@@ -76,6 +76,10 @@ func withoutApprovedFeatureFields(declaration Declaration) string {
 		allowed["PrincipalID *int64 `json:\"principal_id,omitempty\"`"] = true
 	case "type.Client":
 		allowed["EnvPacks *EnvPackService"] = true
+	case "type.GitHubRepoCreateParams":
+		allowed["GitHubInstallationID int64 `json:\"github_installation_id,omitempty\"`"] = true
+	case "type.InstallationReposParams":
+		allowed["GitHubInstallationID int64 `url:\"github_installation_id,omitempty\"`"] = true
 	}
 	switch declaration.ID {
 	case "type.Playground", "type.Spec":
@@ -93,6 +97,32 @@ func withoutApprovedFeatureFields(declaration Declaration) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func TestCompanyInstallationCompatibilityProjectionIsExact(t *testing.T) {
+	for _, feature := range []struct{ id, tag string }{
+		{"type.GitHubRepoCreateParams", "json"},
+		{"type.InstallationReposParams", "url"},
+	} {
+		t.Run(feature.id, func(t *testing.T) {
+			field := "GitHubInstallationID int64 `" + feature.tag + ":\"github_installation_id,omitempty\"`"
+			if got := withoutApprovedFeatureFields(Declaration{ID: feature.id, Signature: field}); got != "" {
+				t.Fatalf("approved additive field was not projected: %s", got)
+			}
+			for _, changed := range []string{
+				strings.Replace(field, "int64", "string", 1),
+				strings.Replace(field, ",omitempty", "", 1),
+				strings.Replace(field, "github_installation_id", "installation_id", 1),
+			} {
+				if got := withoutApprovedFeatureFields(Declaration{ID: feature.id, Signature: changed}); got != changed {
+					t.Fatalf("unapproved field change escaped compatibility checking: %s", changed)
+				}
+			}
+			if got := withoutApprovedFeatureFields(Declaration{ID: "type.Unrelated", Signature: field}); got != field {
+				t.Fatal("Company field projection escaped its declared types")
+			}
+		})
+	}
 }
 
 func repositoryRoot(t *testing.T) string {

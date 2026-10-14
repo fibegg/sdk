@@ -2073,14 +2073,29 @@
       "signature": "func (s *RepoStatusService) Check(ctx context.Context, githubURLs []string) (*RepoStatus, error)"
     },
     {
+      "id": "method.RepositoryAttachParams.Validate",
+      "kind": "method",
+      "signature": "func (p *RepositoryAttachParams) Validate() error"
+    },
+    {
       "id": "method.RepositoryCreateParams.Validate",
       "kind": "method",
       "signature": "func (p *RepositoryCreateParams) Validate() error"
     },
     {
+      "id": "method.RepositoryMirrorParams.Validate",
+      "kind": "method",
+      "signature": "func (p *RepositoryMirrorParams) Validate() error"
+    },
+    {
       "id": "method.RepositoryService.Attach",
       "kind": "method",
       "signature": "func (s *RepositoryService) Attach(ctx context.Context, repoFullName string) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.AttachWithParams",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) AttachWithParams(ctx context.Context, params *RepositoryAttachParams) (*Repository, error)"
     },
     {
       "id": "method.RepositoryService.Branches",
@@ -2141,6 +2156,11 @@
       "id": "method.RepositoryService.Mirror",
       "kind": "method",
       "signature": "func (s *RepositoryService) Mirror(ctx context.Context, sourceURL string, name string) (*Repository, error)"
+    },
+    {
+      "id": "method.RepositoryService.MirrorWithParams",
+      "kind": "method",
+      "signature": "func (s *RepositoryService) MirrorWithParams(ctx context.Context, params *RepositoryMirrorParams) (*RepositoryMirrorState, error)"
     },
     {
       "id": "method.RepositoryService.MirrorWithState",
@@ -2925,7 +2945,7 @@
     {
       "id": "type.GitHubRepoCreateParams",
       "kind": "type",
-      "signature": "type GitHubRepoCreateParams struct {\n\tName        string  `json:\"name\"`\n\tPrivate     *bool   `json:\"private,omitempty\"`\n\tAutoInit    *bool   `json:\"auto_init,omitempty\"`\n\tDescription *string `json:\"description,omitempty\"`\n}"
+      "signature": "type GitHubRepoCreateParams struct {\n\tGitHubInstallationID int64   `json:\"github_installation_id,omitempty\"`\n\tName                 string  `json:\"name\"`\n\tPrivate              *bool   `json:\"private,omitempty\"`\n\tAutoInit             *bool   `json:\"auto_init,omitempty\"`\n\tDescription          *string `json:\"description,omitempty\"`\n}"
     },
     {
       "id": "type.GitHubRepoService",
@@ -3120,7 +3140,7 @@
     {
       "id": "type.InstallationReposParams",
       "kind": "type",
-      "signature": "type InstallationReposParams struct {\n\tQ       string `url:\"q,omitempty\"`\n\tPage    int    `url:\"page,omitempty\"`\n\tPerPage int    `url:\"per_page,omitempty\"`\n}"
+      "signature": "type InstallationReposParams struct {\n\tGitHubInstallationID int64  `url:\"github_installation_id,omitempty\"`\n\tQ                    string `url:\"q,omitempty\"`\n\tPage                 int    `url:\"page,omitempty\"`\n\tPerPage              int    `url:\"per_page,omitempty\"`\n}"
     },
     {
       "id": "type.InstallationService",
@@ -3548,6 +3568,11 @@
       "signature": "type Repository struct {\n\tOwnershipMetadata\n\tID            int64      `json:\"id\"`\n\tName          string     `json:\"name\"`\n\tRepositoryURL string     `json:\"repository_url\"`\n\tPrivate       bool       `json:\"private\"`\n\tDefaultBranch string     `json:\"default_branch\"`\n\tStatus        string     `json:\"status\"`\n\tProvider      string     `json:\"provider\"`\n\tLastSyncedAt  *time.Time `json:\"last_synced_at\"`\n\tCreatedAt     time.Time  `json:\"created_at\"`\n\tUpdatedAt     time.Time  `json:\"updated_at\"`\n\n\tBranches              []string `json:\"branches,omitempty\"`\n\tOriginalRepositoryURL *string  `json:\"original_repository_url,omitempty\"`\n\tHasCredentials        *bool    `json:\"has_credentials,omitempty\"`\n\tServiceNames          []string `json:\"service_names,omitempty\"`\n}"
     },
     {
+      "id": "type.RepositoryAttachParams",
+      "kind": "type",
+      "signature": "type RepositoryAttachParams struct {\n\tRepoFullName         string `json:\"repo_full_name\"`\n\tGitHubInstallationID int64  `json:\"github_installation_id,omitempty\"`\n}"
+    },
+    {
       "id": "type.RepositoryBranch",
       "kind": "type",
       "signature": "type RepositoryBranch struct {\n\tName    string         `json:\"name\"`\n\tDefault bool           `json:\"default\"`\n\tExtra   map[string]any `json:\"-\"`\n}"
@@ -3571,6 +3596,11 @@
       "id": "type.RepositoryListParams",
       "kind": "type",
       "signature": "type RepositoryListParams struct {\n\tQ             string `url:\"q,omitempty\"`\n\tStatus        string `url:\"status,omitempty\"`\n\tProvider      string `url:\"provider,omitempty\"`\n\tName          string `url:\"name,omitempty\"`\n\tPrivate       *bool  `url:\"private,omitempty\"`\n\tCreatedAfter  string `url:\"created_after,omitempty\"`\n\tCreatedBefore string `url:\"created_before,omitempty\"`\n\tSort          string `url:\"sort,omitempty\"`\n\tPage          int    `url:\"page,omitempty\"`\n\tPerPage       int    `url:\"per_page,omitempty\"`\n}"
+    },
+    {
+      "id": "type.RepositoryMirrorParams",
+      "kind": "type",
+      "signature": "type RepositoryMirrorParams struct {\n\tSourceURL            string `json:\"source_url\"`\n\tName                 string `json:\"name,omitempty\"`\n\tGitHubInstallationID int64  `json:\"github_installation_id,omitempty\"`\n}"
     },
     {
       "id": "type.RepositoryMirrorState",

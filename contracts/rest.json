@@ -1897,10 +1897,17 @@
     },
     {
       "name": "RepositoryService.Attach",
+      "codec": "delegated",
+      "response_type": "*Repository, error",
+      "delegates_to": "RepositoryService.AttachWithParams"
+    },
+    {
+      "name": "RepositoryService.AttachWithParams",
       "http_method": "POST",
       "path_template": "/api/repositories/attachments",
       "path_expression": "\"/api/repositories/attachments\"",
       "codec": "json",
+      "request_type": "*RepositoryAttachParams",
       "response_type": "*Repository, error"
     },
     {
@@ -1984,19 +1991,24 @@
     },
     {
       "name": "RepositoryService.Mirror",
+      "codec": "delegated",
+      "response_type": "*Repository, error",
+      "delegates_to": "RepositoryService.MirrorWithParams"
+    },
+    {
+      "name": "RepositoryService.MirrorWithParams",
       "http_method": "POST",
       "path_template": "/api/repositories/mirrors",
       "path_expression": "\"/api/repositories/mirrors\"",
-      "codec": "json",
-      "response_type": "*Repository, error"
+      "codec": "async-json",
+      "request_type": "*RepositoryMirrorParams",
+      "response_type": "*RepositoryMirrorState, error"
     },
     {
       "name": "RepositoryService.MirrorWithState",
-      "http_method": "POST",
-      "path_template": "/api/repositories/mirrors",
-      "path_expression": "\"/api/repositories/mirrors\"",
-      "codec": "json",
-      "response_type": "*RepositoryMirrorState, error"
+      "codec": "delegated",
+      "response_type": "*RepositoryMirrorState, error",
+      "delegates_to": "RepositoryService.MirrorWithParams"
     },
     {
       "name": "RepositoryService.Sync",
