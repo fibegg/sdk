@@ -46,7 +46,7 @@ Generated from the MCP registry.
 | `fibe_env_pack_attachments_get` | base | yes | [MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec. |
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |
 | `fibe_feedbacks_list` | brownfield | yes | [MODE:OVERSEER] List all feedback entries associated with an agent. |
-| `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results. |
+| `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search Personal installations or a selected verified Company installation. |
 | `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential. |
 | `fibe_gitea_repos_create` | greenfield | yes | [MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template. |
 | `fibe_github_repos_create` | greenfield | yes | [MODE:GREENFIELD] Register and connect a new GitHub repository |

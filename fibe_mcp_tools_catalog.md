@@ -1433,12 +1433,17 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results.
+[MODE:DIALOG] Search Personal installations or a selected verified Company installation.
 
 ### Input Schema
 ```json
 {
   "properties": {
+    "github_installation_id": {
+      "description": "Verified Company GitHub installation; required when multiple are connected.",
+      "minimum": 1,
+      "type": "number"
+    },
     "only": {
       "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
@@ -1582,6 +1587,11 @@ Generated from the MCP registry.
         "null",
         "string"
       ]
+    },
+    "github_installation_id": {
+      "description": "GitHub Installation ID",
+      "minimum": 1,
+      "type": "integer"
     },
     "name": {
       "description": "Name.",
