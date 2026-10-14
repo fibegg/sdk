@@ -28,6 +28,7 @@ var removedWordSet = map[string]bool{
 	"genie": true, "genies": true,
 	"scroll": true, "scrolls": true,
 	"crumb": true, "crumbs": true,
+	"company": true, "companies": true,
 }
 
 var camelWordBoundary = regexp.MustCompile(`([a-z0-9])([A-Z])|([A-Z]+)([A-Z][a-z])`)

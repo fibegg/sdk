@@ -99,7 +99,7 @@ func withoutApprovedFeatureFields(declaration Declaration) string {
 	return strings.Join(lines, "\n")
 }
 
-func TestCompanyInstallationCompatibilityProjectionIsExact(t *testing.T) {
+func TestTeamInstallationCompatibilityProjectionIsExact(t *testing.T) {
 	for _, feature := range []struct{ id, tag string }{
 		{"type.GitHubRepoCreateParams", "json"},
 		{"type.InstallationReposParams", "url"},
@@ -119,7 +119,7 @@ func TestCompanyInstallationCompatibilityProjectionIsExact(t *testing.T) {
 				}
 			}
 			if got := withoutApprovedFeatureFields(Declaration{ID: "type.Unrelated", Signature: field}); got != field {
-				t.Fatal("Company field projection escaped its declared types")
+				t.Fatal("Team field projection escaped its declared types")
 			}
 		})
 	}

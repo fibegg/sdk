@@ -53,31 +53,31 @@ func TestToolContractSmoke(t *testing.T) {
 
 	names := server.dispatcher.names()
 	if len(names) != 73 {
-		t.Fatalf("registered tools = %d, want frozen contract count 73 (61 existing plus 12 Company tools)", len(names))
+		t.Fatalf("registered tools = %d, want frozen contract count 73 (61 existing plus 12 Team tools)", len(names))
 	}
-	companyContracts := map[string][]string{
-		"fibe_company_principals_list":                {"company_id"},
-		"fibe_company_principal_create":               {"company_id", "name"},
-		"fibe_company_principal_revoke":               {"company_id", "principal_id"},
-		"fibe_company_runtime_principal_recover":      {"company_id", "principal_id", "replacement_agent_ids"},
-		"fibe_company_subscriptions_list":             {"company_id"},
-		"fibe_company_subscription_cancel":            {"company_id", "subscription_id"},
-		"fibe_company_repository_operations_list":     {"company_id"},
-		"fibe_company_repository_operation_reconcile": {"company_id", "request_id"},
-		"fibe_company_repository_operation_adopt":     {"company_id", "request_id"},
-		"fibe_company_git_installations_list":         {"company_id"},
-		"fibe_company_git_installation_connect":       {"company_id", "installation_id", "verification_connection_id"},
-		"fibe_company_git_installation_remove":        {"company_id", "connection_id"},
+	teamContracts := map[string][]string{
+		"fibe_team_principals_list":                {"team_id"},
+		"fibe_team_principal_create":               {"team_id", "name"},
+		"fibe_team_principal_revoke":               {"team_id", "principal_id"},
+		"fibe_team_runtime_principal_recover":      {"team_id", "principal_id", "replacement_agent_ids"},
+		"fibe_team_subscriptions_list":             {"team_id"},
+		"fibe_team_subscription_cancel":            {"team_id", "subscription_id"},
+		"fibe_team_repository_operations_list":     {"team_id"},
+		"fibe_team_repository_operation_reconcile": {"team_id", "request_id"},
+		"fibe_team_repository_operation_adopt":     {"team_id", "request_id"},
+		"fibe_team_git_installations_list":         {"team_id"},
+		"fibe_team_git_installation_connect":       {"team_id", "installation_id", "verification_connection_id"},
+		"fibe_team_git_installation_remove":        {"team_id", "connection_id"},
 	}
-	companyCount := 0
+	teamCount := 0
 	for _, name := range names {
-		if !strings.HasPrefix(name, "fibe_company_") {
+		if !strings.HasPrefix(name, "fibe_team_") {
 			continue
 		}
-		companyCount++
-		expected, known := companyContracts[name]
+		teamCount++
+		expected, known := teamContracts[name]
 		if !known {
-			t.Fatalf("unexpected Company tool %q", name)
+			t.Fatalf("unexpected Team tool %q", name)
 		}
 		encoded, err := json.Marshal(server.toolSchemas[name])
 		if err != nil {
@@ -105,8 +105,8 @@ func TestToolContractSmoke(t *testing.T) {
 			}
 		}
 	}
-	if companyCount != len(companyContracts) {
-		t.Fatalf("Company tools = %d, want exact set of %d", companyCount, len(companyContracts))
+	if teamCount != len(teamContracts) {
+		t.Fatalf("Team tools = %d, want exact set of %d", teamCount, len(teamContracts))
 	}
 	for _, name := range names {
 		name := name

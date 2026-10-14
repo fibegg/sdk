@@ -767,53 +767,29 @@
       "response_type": "\u003c-chan CableEvent, \u003c-chan error"
     },
     {
-      "name": "Client.AdoptCompanyRepositoryOperation",
+      "name": "Client.AdoptTeamRepositoryOperation",
       "http_method": "POST",
-      "path_template": "/api/company_repository_operations/{value}/adopt",
-      "path_expression": "fmt.Sprintf(\"/api/company_repository_operations/%s/adopt\", url.PathEscape(requestID))",
+      "path_template": "/api/team_repository_operations/{value}/adopt",
+      "path_expression": "fmt.Sprintf(\"/api/team_repository_operations/%s/adopt\", url.PathEscape(requestID))",
       "codec": "json",
       "request_type": "*int64",
       "response_type": "*Repository, error"
     },
     {
-      "name": "Client.CancelCompanySubscription",
+      "name": "Client.CancelTeamSubscription",
       "http_method": "POST",
-      "path_template": "/api/company_billing/cancel_subscription",
-      "path_expression": "\"/api/company_billing/cancel_subscription\"",
+      "path_template": "/api/team_billing/cancel_subscription",
+      "path_expression": "\"/api/team_billing/cancel_subscription\"",
       "codec": "json",
-      "response_type": "*CompanyCancellation, error"
+      "response_type": "*TeamCancellation, error"
     },
     {
-      "name": "Client.CompanyGitInstallations",
-      "http_method": "GET",
-      "path_template": "/api/company_git_installations",
-      "path_expression": "\"/api/company_git_installations\"",
-      "codec": "json",
-      "response_type": "[]CompanyGitInstallation, error"
-    },
-    {
-      "name": "Client.CompanyRepositoryOperations",
-      "http_method": "GET",
-      "path_template": "/api/company_repository_operations",
-      "path_expression": "\"/api/company_repository_operations\"",
-      "codec": "json",
-      "response_type": "[]CompanyRepositoryOperation, error"
-    },
-    {
-      "name": "Client.CompanySubscriptions",
-      "http_method": "GET",
-      "path_template": "/api/company_billing/subscriptions",
-      "path_expression": "\"/api/company_billing/subscriptions\"",
-      "codec": "json",
-      "response_type": "[]CompanySubscription, error"
-    },
-    {
-      "name": "Client.ConnectCompanyGitInstallation",
+      "name": "Client.ConnectTeamGitInstallation",
       "http_method": "POST",
-      "path_template": "/api/company_git_installations",
-      "path_expression": "\"/api/company_git_installations\"",
+      "path_template": "/api/team_git_installations",
+      "path_expression": "\"/api/team_git_installations\"",
       "codec": "json",
-      "response_type": "*CompanyGitInstallation, error"
+      "response_type": "*TeamGitInstallation, error"
     },
     {
       "name": "Client.CreateTeamServicePrincipal",
@@ -848,13 +824,13 @@
       "response_type": "error"
     },
     {
-      "name": "Client.ReconcileCompanyRepositoryOperation",
+      "name": "Client.ReconcileTeamRepositoryOperation",
       "http_method": "POST",
-      "path_template": "/api/company_repository_operations/{value}/reconcile",
-      "path_expression": "fmt.Sprintf(\"/api/company_repository_operations/%s/reconcile\", url.PathEscape(requestID))",
+      "path_template": "/api/team_repository_operations/{value}/reconcile",
+      "path_expression": "fmt.Sprintf(\"/api/team_repository_operations/%s/reconcile\", url.PathEscape(requestID))",
       "codec": "json",
       "request_type": "*int64",
-      "response_type": "*CompanyRepositoryOperation, error"
+      "response_type": "*TeamRepositoryOperation, error"
     },
     {
       "name": "Client.RecoverRuntimePrincipal",
@@ -866,10 +842,10 @@
       "response_type": "*RuntimePrincipalRecovery, error"
     },
     {
-      "name": "Client.RemoveCompanyGitInstallation",
+      "name": "Client.RemoveTeamGitInstallation",
       "http_method": "DELETE",
-      "path_template": "/api/company_git_installations/{connectionID}",
-      "path_expression": "fmt.Sprintf(\"/api/company_git_installations/%d\", connectionID)",
+      "path_template": "/api/team_git_installations/{connectionID}",
+      "path_expression": "fmt.Sprintf(\"/api/team_git_installations/%d\", connectionID)",
       "codec": "json",
       "response_type": "error"
     },
@@ -882,12 +858,36 @@
       "response_type": "error"
     },
     {
+      "name": "Client.TeamGitInstallations",
+      "http_method": "GET",
+      "path_template": "/api/team_git_installations",
+      "path_expression": "\"/api/team_git_installations\"",
+      "codec": "json",
+      "response_type": "[]TeamGitInstallation, error"
+    },
+    {
+      "name": "Client.TeamRepositoryOperations",
+      "http_method": "GET",
+      "path_template": "/api/team_repository_operations",
+      "path_expression": "\"/api/team_repository_operations\"",
+      "codec": "json",
+      "response_type": "[]TeamRepositoryOperation, error"
+    },
+    {
       "name": "Client.TeamServicePrincipals",
       "http_method": "GET",
       "path_template": "/api/team_service_principals",
       "path_expression": "\"/api/team_service_principals\"",
       "codec": "json",
       "response_type": "[]TeamServicePrincipal, error"
+    },
+    {
+      "name": "Client.TeamSubscriptions",
+      "http_method": "GET",
+      "path_template": "/api/team_billing/subscriptions",
+      "path_expression": "\"/api/team_billing/subscriptions\"",
+      "codec": "json",
+      "response_type": "[]TeamSubscription, error"
     },
     {
       "name": "EnvPackService.Attachments",

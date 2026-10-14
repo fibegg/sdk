@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking (v0.3):** Company is now Team. `fibe company --company-id` is
+  `fibe team --team-id`; the twelve `fibe_company_*` MCP tools are
+  `fibe_team_*` with a required `team_id`; SDK `Company*` methods and types are
+  `Team*`; Repository operations poll `/api/team_repository_operations` and
+  decode `team_repository_operation_id`. Old names fail with replacement
+  guidance and no aliases.
+
 ### Security
 
 - Require Go 1.26.9 for its standard-library security fixes and pin the E2E

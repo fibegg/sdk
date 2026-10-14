@@ -106,7 +106,7 @@ func Generate(dir string) ([]byte, error) {
 				continue
 			}
 			operation := operationFromFunc(fset, receiver, fn)
-			// Direct Client endpoints (including owner-context proof and Company
+			// Direct Client endpoints (including owner-context proof and Team
 			// recovery) are REST operations; local configuration readers are not.
 			if receiver == "Client" && operation.HTTPMethod == "" {
 				continue

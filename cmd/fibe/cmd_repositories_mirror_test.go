@@ -12,9 +12,9 @@ func TestRepositoryMirrorFlagsDescribeBothOwners(t *testing.T) {
 	}
 	id, err := command.Flags().GetInt64("github-installation-id")
 	if err != nil || id != 501 {
-		t.Fatalf("explicit Company installation flag unavailable: %d %v", id, err)
+		t.Fatalf("explicit Team installation flag unavailable: %d %v", id, err)
 	}
-	for _, contract := range []string{"Personal imports use Gitea", "Company imports use the verified GitHub organization", "repositories:read", "repositories:write"} {
+	for _, contract := range []string{"Personal imports use Gitea", "Team imports use the verified GitHub organization", "repositories:read", "repositories:write"} {
 		if !strings.Contains(command.Long, contract) {
 			t.Fatalf("help omits %q", contract)
 		}

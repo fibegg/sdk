@@ -90,7 +90,7 @@ func (s *CredentialStore) Set(entry *CredentialEntry) error {
 }
 
 // SetProfile stores a credential for a named profile and mirrors it by domain
-// for older SDK/CLI callers that still resolve credentials by domain. Company
+// for older SDK/CLI callers that still resolve credentials by domain. Team
 // credentials stay in their explicit profile and cannot replace personal lookup.
 func (s *CredentialStore) SetProfile(profile string, entry *CredentialEntry) error {
 	return withStoreLockError(s.path, func() error {

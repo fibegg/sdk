@@ -30,23 +30,11 @@ Generated from the MCP registry.
 | `fibe_auth_status` | meta | yes | [MODE:DIALOG] Show the current MCP session auth target and selected profile, if any. |
 | `fibe_auth_use` | meta | yes | [MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately. |
 | `fibe_call` | meta | yes | [MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear. |
-| `fibe_company_git_installation_connect` | other | yes | [MODE:DIALOG] Verify a Company organization installation with live human organization-admin authority; no token export. |
-| `fibe_company_git_installation_remove` | other | yes | [MODE:DIALOG] Remove a current Company installation with live human authority; reconcile held operations first. |
-| `fibe_company_git_installations_list` | other | yes | [MODE:DIALOG] Read current Company organization installation availability and verified authority; never export tokens. |
-| `fibe_company_principal_create` | other | yes | [MODE:DIALOG] Issue a Company service principal with live human admin authority. |
-| `fibe_company_principal_revoke` | other | yes | [MODE:DIALOG] Revoke a Company service principal with live human admin authority. |
-| `fibe_company_principals_list` | other | yes | [MODE:DIALOG] List Company service principals. |
-| `fibe_company_repository_operation_adopt` | other | yes | [MODE:DIALOG] Require a live human and current Company installation authority to adopt this exact remote destination. Do not overwrite/delete an unknown destination. |
-| `fibe_company_repository_operation_reconcile` | other | yes | [MODE:DIALOG] Require a live human and current Company installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination. |
-| `fibe_company_repository_operations_list` | other | yes | [MODE:DIALOG] Read exact Company Repository operation receipts and unknown outcomes. |
-| `fibe_company_runtime_principal_recover` | other | yes | [MODE:DIALOG] Recover a revoked runtime principal using a live human Company admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens. |
-| `fibe_company_subscription_cancel` | other | yes | [MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt. |
-| `fibe_company_subscriptions_list` | other | yes | [MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts. |
 | `fibe_doctor` | meta | yes | [MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile |
 | `fibe_env_pack_attachments_get` | base | yes | [MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec. |
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |
 | `fibe_feedbacks_list` | brownfield | yes | [MODE:OVERSEER] List all feedback entries associated with an agent. |
-| `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search Personal installations or a selected verified Company installation. |
+| `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search Personal installations or a selected verified Team installation. |
 | `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential. |
 | `fibe_gitea_repos_create` | greenfield | yes | [MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template. |
 | `fibe_github_repos_create` | greenfield | yes | [MODE:GREENFIELD] Register and connect a new GitHub repository |
@@ -80,6 +68,18 @@ Generated from the MCP registry.
 | `fibe_run` | meta | yes | [MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly. |
 | `fibe_schema` | meta | yes | [MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog. |
 | `fibe_status` | meta | yes | [MODE:DIALOG] Show resource counts, quotas, and rate limits for the account. |
+| `fibe_team_git_installation_connect` | other | yes | [MODE:DIALOG] Verify a Team organization installation with live human organization-admin authority; no token export. |
+| `fibe_team_git_installation_remove` | other | yes | [MODE:DIALOG] Remove a current Team installation with live human authority; reconcile held operations first. |
+| `fibe_team_git_installations_list` | other | yes | [MODE:DIALOG] Read current Team organization installation availability and verified authority; never export tokens. |
+| `fibe_team_principal_create` | other | yes | [MODE:DIALOG] Issue a Team service principal with live human admin authority. |
+| `fibe_team_principal_revoke` | other | yes | [MODE:DIALOG] Revoke a Team service principal with live human admin authority. |
+| `fibe_team_principals_list` | other | yes | [MODE:DIALOG] List Team service principals. |
+| `fibe_team_repository_operation_adopt` | other | yes | [MODE:DIALOG] Require a live human and current Team installation authority to adopt this exact remote destination. Do not overwrite/delete an unknown destination. |
+| `fibe_team_repository_operation_reconcile` | other | yes | [MODE:DIALOG] Require a live human and current Team installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination. |
+| `fibe_team_repository_operations_list` | other | yes | [MODE:DIALOG] Read exact Team Repository operation receipts and unknown outcomes. |
+| `fibe_team_runtime_principal_recover` | other | yes | [MODE:DIALOG] Recover a revoked runtime principal using a live human Team admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens. |
+| `fibe_team_subscription_cancel` | other | yes | [MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt. |
+| `fibe_team_subscriptions_list` | other | yes | [MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts. |
 | `fibe_templates_change` | brownfield | no | [MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. Rollout/trigger actions require a funded Host and fail with HOST_NOT_FUNDED when unpaid. |
 | `fibe_templates_search` | greenfield | yes | [MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering. |
 | `fibe_tools_catalog` | meta | yes | [MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly. |

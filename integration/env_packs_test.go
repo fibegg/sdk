@@ -2,18 +2,18 @@ package integration
 
 // ENV packs end to end against a live Rails: the Go SDK, the built fibe CLI
 // binary and the fibe MCP stdio server are driven through the same scenarios
-// for pack CRUD (Personal and Company), attachment set/reorder/retarget/detach/
+// for pack CRUD (Personal and Team), attachment set/reorder/retarget/detach/
 // renew, delegated sources, launch with attachments, safe Playground and Task
 // reruns, nil versus empty values, and the four stable error codes.
 //
-// Company credential: RUNTIME_API_KEY, RUNTIME_OWNER_TYPE and RUNTIME_OWNER_ID
-// are exported by the mode=sdk bootstrap (a Company credential without a Host,
+// Team credential: RUNTIME_API_KEY, RUNTIME_OWNER_TYPE and RUNTIME_OWNER_ID
+// are exported by the mode=sdk bootstrap (a Team credential without a Host,
 // since a second owner's Host would retire the lane's own on the same endpoint).
-// Company coverage here therefore uses Spec targets; Company Playground targets
-// are proven where a Company Host exists, by the Playwright integration flow
+// Team coverage here therefore uses Spec targets; Team Playground targets
+// are proven where a Team Host exists, by the Playwright integration flow
 // (integration/env-pack-runtime.spec.js) and the Rails contracts. When the
-// credential is absent Company coverage skips with an explicit reason, and
-// FIBE_REQUIRE_COMPANY_ENV_PACKS=1 turns that skip into a failure.
+// credential is absent Team coverage skips with an explicit reason, and
+// FIBE_REQUIRE_TEAM_ENV_PACKS=1 turns that skip into a failure.
 //
 // The file carries no build tag, like every other file in this package: the
 // app-go-tests lane runs ./integration/... without -tags, so a tag would make
@@ -44,11 +44,11 @@ import (
 const missingEnvPackID int64 = 2_000_000_000
 
 // forEachEnvPackContext runs fn as a subtest for the Personal and then the
-// Company context. A missing Company credential skips with a reason.
+// Team context. A missing Team credential skips with a reason.
 func forEachEnvPackContext(t *testing.T, fn func(t *testing.T, a *envPackActor)) {
 	t.Helper()
 	t.Run("personal", func(t *testing.T) { fn(t, personalEnvPackActor(t)) })
-	t.Run("company", func(t *testing.T) { fn(t, companyEnvPackActor(t)) })
+	t.Run("team", func(t *testing.T) { fn(t, teamEnvPackActor(t)) })
 }
 
 func forEachSurface(t *testing.T, a *envPackActor, fn func(t *testing.T, s envPackSurface)) {
@@ -228,14 +228,14 @@ func TestEnvPacks_ServerRejectsForgedOwnerAndBadValues(t *testing.T) {
 
 func TestEnvPacks_ContextsAreIsolated(t *testing.T) {
 	personal := personalEnvPackActor(t)
-	company := companyEnvPackActor(t)
+	team := teamEnvPackActor(t)
 	personalPack := newEnvPack(t, personal, "isolated-personal", nil)
-	companyPack := newEnvPack(t, company, "isolated-company", nil)
+	teamPack := newEnvPack(t, team, "isolated-team", nil)
 	for _, s := range []envPackSurface{sdkSurface{c: personal.client}, cliSurface{key: personal.key, domain: personal.domain}} {
-		_, err := s.GetPack(t, companyPack.ID)
+		_, err := s.GetPack(t, teamPack.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	}
-	for _, s := range []envPackSurface{sdkSurface{c: company.client}, cliSurface{key: company.key, domain: company.domain}} {
+	for _, s := range []envPackSurface{sdkSurface{c: team.client}, cliSurface{key: team.key, domain: team.domain}} {
 		_, err := s.GetPack(t, personalPack.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	}
@@ -498,18 +498,18 @@ func TestEnvPacks_DelegatedSourceSurvivesTargetOnlyManager(t *testing.T) {
 	})
 }
 
-// servicePrincipal is a Company service principal with its own credential.
+// servicePrincipal is a Team service principal with its own credential.
 type servicePrincipal struct {
 	id      int64
 	subject string
 	client  *fibe.Client
 	revoked bool
-	company *envPackActor
+	team    *envPackActor
 }
 
-func newServicePrincipal(t *testing.T, company *envPackActor) *servicePrincipal {
+func newServicePrincipal(t *testing.T, team *envPackActor) *servicePrincipal {
 	t.Helper()
-	status, body := envPackRaw(t, company, "POST", "/api/team_service_principals",
+	status, body := envPackRaw(t, team, "POST", "/api/team_service_principals",
 		map[string]any{"service_principal": map[string]any{"name": uniqueName("envpack-principal")}})
 	if status != 201 {
 		t.Fatalf("create service principal: status %d body %v", status, body)
@@ -518,10 +518,10 @@ func newServicePrincipal(t *testing.T, company *envPackActor) *servicePrincipal 
 	if !ok {
 		t.Fatalf("service principal response has no id: %v", body)
 	}
-	p := &servicePrincipal{id: int64(id), company: company}
+	p := &servicePrincipal{id: int64(id), team: team}
 	p.subject = "TeamServicePrincipal:" + strconv.FormatInt(p.id, 10)
 	t.Cleanup(func() { p.revoke(t) })
-	key, err := company.client.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
+	key, err := team.client.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{
 		Label:         uniqueName("envpack-principal-key"),
 		PrincipalType: "TeamServicePrincipal", PrincipalID: &p.id,
 		Scopes: []string{"env_packs:read", "specs:read", "specs:write"},
@@ -530,7 +530,7 @@ func newServicePrincipal(t *testing.T, company *envPackActor) *servicePrincipal 
 	if key.Token == nil {
 		t.Fatal("service principal credential has no token")
 	}
-	p.client = integrationClient(*key.Token, company.domain, 2)
+	p.client = integrationClient(*key.Token, team.domain, 2)
 	return p
 }
 
@@ -540,29 +540,29 @@ func (p *servicePrincipal) revoke(t *testing.T) {
 		return
 	}
 	p.revoked = true
-	status, body := envPackRaw(t, p.company, "DELETE", "/api/team_service_principals/"+strconv.FormatInt(p.id, 10), nil)
+	status, body := envPackRaw(t, p.team, "DELETE", "/api/team_service_principals/"+strconv.FormatInt(p.id, 10), nil)
 	if status != 204 && status != 404 {
 		t.Errorf("revoke service principal %d: status %d body %v", p.id, status, body)
 	}
 }
 
-// A Company Spec reference granted by a service principal is a delegated grant.
+// A Team Spec reference granted by a service principal is a delegated grant.
 // While the principal is active an administrator can keep it as is. After the
 // principal is revoked, a write that would keep the stale grant fails with
 // env_pack_grant_invalid until the administrator renews it under their own
 // authority. Each surface gets its own principal because renewal consumes the
-// stale state. Revoking a principal revises the Company's authority, so this
+// stale state. Revoking a principal revises the Team's authority, so this
 // test is kept to Specs, which have no queued runtime operations.
-func TestEnvPacks_CompanyDelegatedGrantInvalidAfterGrantorRevoked(t *testing.T) {
-	company := companyEnvPackActor(t)
-	forEachSurface(t, company, func(t *testing.T, s envPackSurface) {
+func TestEnvPacks_TeamDelegatedGrantInvalidAfterGrantorRevoked(t *testing.T) {
+	team := teamEnvPackActor(t)
+	forEachSurface(t, team, func(t *testing.T, s envPackSurface) {
 		name := s.Name()
-		pack := newEnvPack(t, company, "grant-invalid", map[string]string{"TOKEN": uniqueName("grant-secret")})
-		specID := newEnvPackSpec(t, company)
-		principal := newServicePrincipal(t, company)
+		pack := newEnvPack(t, team, "grant-invalid", map[string]string{"TOKEN": uniqueName("grant-secret")})
+		specID := newEnvPackSpec(t, team)
+		principal := newServicePrincipal(t, team)
 
 		granted, err := principal.client.EnvPacks.ReplaceAttachments(ctx(), "specs", specID, &fibe.EnvPackAttachmentsParams{Attachments: attach(pack.ID)})
-		requireNoError(t, err, "principal attaches Company pack")
+		requireNoError(t, err, "principal attaches Team pack")
 		delegated := attachmentFor(t, granted, pack.ID)
 		if delegated.GrantingSubject != principal.subject {
 			t.Fatalf("%s: grantor %q, want %q", name, delegated.GrantingSubject, principal.subject)
@@ -578,7 +578,7 @@ func TestEnvPacks_CompanyDelegatedGrantInvalidAfterGrantorRevoked(t *testing.T) 
 		_, err = s.Replace(t, "specs", specID, attach(pack.ID))
 		apiErr := requireEnvPackError(t, name+" stale delegated grant", err, envPackGrantInvalid, 422)
 		requireNoLeak(t, name+" grant_invalid error", apiErr, "grant-secret")
-		after, err := company.client.EnvPacks.Attachments(ctx(), "specs", specID)
+		after, err := team.client.EnvPacks.Attachments(ctx(), "specs", specID)
 		requireNoError(t, err)
 		requireAttachmentOrder(t, name+" after grant_invalid", after, pack.ID)
 		requireSameGrant(t, name+" after grant_invalid", delegated, attachmentFor(t, after, pack.ID))
@@ -832,7 +832,7 @@ const (
 
 // envPackActor is one authenticated owner context.
 type envPackActor struct {
-	label     string // "personal" or "company"
+	label     string // "personal" or "team"
 	key       string
 	domain    string
 	client    *fibe.Client
@@ -860,24 +860,24 @@ func personalEnvPackActor(t *testing.T) *envPackActor {
 		ownerType: me.OwnerType, ownerID: me.OwnerID, principal: fmt.Sprintf("%s:%d", me.PrincipalType, me.PrincipalID)}
 }
 
-func companyEnvPackActor(t *testing.T) *envPackActor {
+func teamEnvPackActor(t *testing.T) *envPackActor {
 	t.Helper()
 	userClient(t)
 	key := strings.TrimSpace(os.Getenv("RUNTIME_API_KEY"))
 	if key == "" {
-		reason := "Company context needs RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and RUNTIME_OWNER_ID; " +
+		reason := "Team context needs RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and RUNTIME_OWNER_ID; " +
 			"the app-go-tests lane bootstraps mode=sdk, which does not export them (only the Playwright bootstrap does). " +
-			"Export them, or set FIBE_REQUIRE_COMPANY_ENV_PACKS=1 to fail instead of skipping"
-		if envBool("FIBE_REQUIRE_COMPANY_ENV_PACKS") {
+			"Export them, or set FIBE_REQUIRE_TEAM_ENV_PACKS=1 to fail instead of skipping"
+		if envBool("FIBE_REQUIRE_TEAM_ENV_PACKS") {
 			t.Fatal(reason)
 		}
 		t.Skip(reason)
 	}
 	c := integrationClient(key, envPackDomain(), 2)
 	me, err := c.APIKeys.Me(ctx())
-	requireNoError(t, err, "resolve Company credential")
+	requireNoError(t, err, "resolve Team credential")
 	if me.OwnerType != "Team" {
-		t.Fatalf("RUNTIME_API_KEY must be a Company credential, got owner_type %q", me.OwnerType)
+		t.Fatalf("RUNTIME_API_KEY must be a Team credential, got owner_type %q", me.OwnerType)
 	}
 	if want := strings.TrimSpace(os.Getenv("RUNTIME_OWNER_TYPE")); want != "" && want != me.OwnerType {
 		t.Fatalf("RUNTIME_OWNER_TYPE=%q does not match the credential's %q", want, me.OwnerType)
@@ -888,7 +888,7 @@ func companyEnvPackActor(t *testing.T) *envPackActor {
 			t.Fatalf("RUNTIME_OWNER_ID=%q does not match the credential's owner %d", raw, me.OwnerID)
 		}
 	}
-	return &envPackActor{label: "company", key: key, domain: envPackDomain(), client: c,
+	return &envPackActor{label: "team", key: key, domain: envPackDomain(), client: c,
 		ownerType: me.OwnerType, ownerID: me.OwnerID, principal: fmt.Sprintf("%s:%d", me.PrincipalType, me.PrincipalID)}
 }
 

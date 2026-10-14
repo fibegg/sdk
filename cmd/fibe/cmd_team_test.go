@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
-func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *testing.T) {
+func TestTeamCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *testing.T) {
 	setupAuthTest(t)
 	requests := []string{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests = append(requests, r.Method+" "+r.URL.Path)
 		if r.Header.Get("X-Fibe-Expected-Owner-ID") != "9" || r.Header.Get("X-Fibe-Expected-Owner-Type") != "Team" {
-			t.Error("Company expectation lost")
+			t.Error("Team expectation lost")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Fibe-Owner-Type", "Team")
@@ -30,7 +31,7 @@ func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *test
 				t.Error("explicit [] lost")
 			}
 			_, _ = w.Write([]byte(`{"principal_id":3,"replacement_agent_ids":[],"adoption":[]}`))
-		case "/api/company_billing/cancel_subscription":
+		case "/api/team_billing/cancel_subscription":
 			var p struct {
 				ID    int64 `json:"subscription_id"`
 				Retry bool  `json:"retry_failed"`
@@ -43,9 +44,9 @@ func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *test
 			}
 			w.WriteHeader(202)
 			_, _ = w.Write([]byte(`{"subscription_id":4,"status":"pending","cancellation_state":"pending"}`))
-		case "/api/company_repository_operations/exact/adopt":
+		case "/api/team_repository_operations/exact/adopt":
 			_, _ = w.Write([]byte(`{"id":18,"owner_type":"Team","owner_id":9,"repository_url":"https://github.com/org/repo"}`))
-		case "/api/company_git_installations":
+		case "/api/team_git_installations":
 			_, _ = w.Write([]byte(`{"data":[]}`))
 		default:
 			t.Errorf("unexpected request %s", r.URL.Path)
@@ -55,10 +56,10 @@ func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *test
 	t.Setenv("FIBE_DOMAIN", server.URL)
 	t.Setenv("FIBE_API_KEY", "fixture")
 	for _, args := range [][]string{
-		{"company", "--company-id", "9", "principals", "recover", "2", "--agent-ids", "[]"},
-		{"company", "--company-id", "9", "subscriptions", "cancel", "4", "--retry-failed"},
-		{"company", "--company-id", "9", "repository-operations", "adopt", "exact"},
-		{"company", "--company-id", "9", "git-installations", "list"},
+		{"team", "--team-id", "9", "principals", "recover", "2", "--agent-ids", "[]"},
+		{"team", "--team-id", "9", "subscriptions", "cancel", "4", "--retry-failed"},
+		{"team", "--team-id", "9", "repository-operations", "adopt", "exact"},
+		{"team", "--team-id", "9", "git-installations", "list"},
 	} {
 		command := RootCmd()
 		command.SetArgs(args)
@@ -70,11 +71,11 @@ func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *test
 		t.Fatalf("requests %v", requests)
 	}
 	for _, args := range [][]string{
-		{"company", "principals", "list"},
-		{"company", "--company-id", "9", "principals", "recover", "2"},
-		{"company", "--company-id", "9", "principals", "recover", "2", "--agent-ids", "null"},
-		{"company", "--company-id", "9", "principals", "recover", "2", "--agent-ids", "[1,1]"},
-		{"company", "--company-id", "9", "principals", "recover", "2", "--agent-ids", "[1.5]"},
+		{"team", "principals", "list"},
+		{"team", "--team-id", "9", "principals", "recover", "2"},
+		{"team", "--team-id", "9", "principals", "recover", "2", "--agent-ids", "null"},
+		{"team", "--team-id", "9", "principals", "recover", "2", "--agent-ids", "[1,1]"},
+		{"team", "--team-id", "9", "principals", "recover", "2", "--agent-ids", "[1.5]"},
 	} {
 		command := RootCmd()
 		command.SetArgs(args)
@@ -87,16 +88,25 @@ func TestCompanyCLIExplicitOwnerRecoveryCancellationAndRepositoryReceipt(t *test
 	}
 }
 
-func TestCompanyCLICommandsRegistered(t *testing.T) {
+func TestTeamCLICommandsRegistered(t *testing.T) {
 	for _, path := range [][]string{
 		{"principals", "list"}, {"principals", "create"}, {"principals", "revoke"}, {"principals", "recover"},
 		{"subscriptions", "list"}, {"subscriptions", "cancel"},
 		{"repository-operations", "list"}, {"repository-operations", "reconcile"}, {"repository-operations", "adopt"},
 		{"git-installations", "list"}, {"git-installations", "connect"}, {"git-installations", "remove"},
 	} {
-		found, _, err := RootCmd().Find(append([]string{"company"}, path...))
+		found, _, err := RootCmd().Find(append([]string{"team"}, path...))
 		if err != nil || found.Name() != path[1] {
-			t.Fatalf("missing Company command %v", path)
+			t.Fatalf("missing Team command %v", path)
 		}
+	}
+}
+
+func TestRemovedCompanyIDFlagSuggestsTeamID(t *testing.T) {
+	command := RootCmd()
+	command.SetArgs([]string{"team", "--company-id", "9", "principals", "list"})
+	err := command.Execute()
+	if err == nil || !strings.Contains(err.Error(), "use --team-id") {
+		t.Fatalf("expected --team-id guidance, got %v", err)
 	}
 }

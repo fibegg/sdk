@@ -57,7 +57,7 @@ func (s *InstallationService) Repos(ctx context.Context, id int64, params *Insta
 	return doList[InstallationRepo](s.client, ctx, path)
 }
 
-// FindGitHubRepos searches Personal installations or the selected Company installation.
+// FindGitHubRepos searches Personal installations or the selected Team installation.
 // The server aggregates results in parallel and deduplicates by full_name.
 func (s *InstallationService) FindGitHubRepos(ctx context.Context, params *InstallationReposParams) (*ListResult[InstallationRepo], error) {
 	path := "/api/github_repositories" + buildQuery(params)

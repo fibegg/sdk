@@ -51,8 +51,8 @@ func (p *RepositoryAttachParams) Validate() error {
 	return v.err()
 }
 
-// RepositoryMirrorParams selects the source and, for Companies, its verified installation.
-// Company imports require repositories:read and repositories:write for completion polling.
+// RepositoryMirrorParams selects the source and, for Teams, its verified installation.
+// Team imports require repositories:read and repositories:write for completion polling.
 type RepositoryMirrorParams struct {
 	SourceURL            string `json:"source_url"`
 	Name                 string `json:"name,omitempty"`

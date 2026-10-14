@@ -18,16 +18,16 @@ func TestOwnerContextProfileDoesNotReplacePersonalDomainCredential(t *testing.T)
 	if err := store.SetProfile("personal", personal); err != nil {
 		t.Fatal(err)
 	}
-	company := &CredentialEntry{APIKey: "fixture-company", Domain: "example.test", CredentialContext: CredentialContext{
+	team := &CredentialEntry{APIKey: "fixture-team", Domain: "example.test", CredentialContext: CredentialContext{
 		OwnerContext: OwnerContext{OwnerType: "Team", OwnerID: 19}, PrincipalType: "TeamServicePrincipal", PrincipalID: 31, AuthorizationVersion: 2}}
-	if err := store.SetProfile("company", company); err != nil {
+	if err := store.SetProfile("team", team); err != nil {
 		t.Fatal(err)
 	}
 	got, err := store.Get("example.test")
 	if err != nil || got.APIKey != "fixture-personal" {
-		t.Fatal("company profile replaced personal domain lookup")
+		t.Fatal("team profile replaced personal domain lookup")
 	}
-	stored, err := store.GetProfile("company")
+	stored, err := store.GetProfile("team")
 	if err != nil || stored.OwnerType != "Team" || stored.OwnerID != 19 || stored.PrincipalID != 31 {
 		t.Fatal("owner binding was not retained")
 	}

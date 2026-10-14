@@ -14,6 +14,7 @@ var Resources = map[string]string{
 	"prop": "repository", "props": "repositories", "pr": "repositories",
 	"trick": "task", "tricks": "tasks", "tr": "tasks",
 	"scrolls": "library", "genie": "agent", "genies": "agents", "crumbs": "audit_logs",
+	"company": "team", "companies": "teams",
 }
 
 func Replacement(name string) (string, bool) {
@@ -34,6 +35,12 @@ func FieldReplacement(key string) (string, bool) {
 		return "hostRoot", true
 	case "marqueeRootDomain":
 		return "hostRootDomain", true
+	case "company_connection_id":
+		return "team_connection_id", true
+	case "company_git_installation":
+		return "team_git_installation", true
+	case "company_repository_operation_id":
+		return "team_repository_operation_id", true
 	}
 	parts := strings.Split(key, "_")
 	changed := false

@@ -1,8 +1,8 @@
 # Compatibility policy
 
 The v0.3 candidate implements the coordinated domain-name break: Marquee →
-Host, Playspec → Spec, Prop → Repository, and Trick → Task. Library replaces
-Scrolls; Agent and Audit Logs retain their canonical model identities. Old
+Host, Playspec → Spec, Prop → Repository, Trick → Task, and Company → Team.
+Library replaces Scrolls; Agent and Audit Logs retain their canonical model identities. Old
 commands, fields, routes and resource names fail with replacement guidance.
 
 `contracts/go-public-api-v0.2.45.json` remains historical release evidence.

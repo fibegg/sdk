@@ -1073,9 +1073,9 @@
       "signature": "func (e *CircuitOpenError) Error() string"
     },
     {
-      "id": "method.Client.AdoptCompanyRepositoryOperation",
+      "id": "method.Client.AdoptTeamRepositoryOperation",
       "kind": "method",
-      "signature": "func (c *Client) AdoptCompanyRepositoryOperation(ctx context.Context, companyID int64, requestID string, connectionID *int64) (*Repository, error)"
+      "signature": "func (c *Client) AdoptTeamRepositoryOperation(ctx context.Context, teamID int64, requestID string, connectionID *int64) (*Repository, error)"
     },
     {
       "id": "method.Client.BaseURL",
@@ -1083,34 +1083,19 @@
       "signature": "func (c *Client) BaseURL() string"
     },
     {
-      "id": "method.Client.CancelCompanySubscription",
+      "id": "method.Client.CancelTeamSubscription",
       "kind": "method",
-      "signature": "func (c *Client) CancelCompanySubscription(ctx context.Context, companyID, subscriptionID int64, retryFailed bool) (*CompanyCancellation, error)"
+      "signature": "func (c *Client) CancelTeamSubscription(ctx context.Context, teamID, subscriptionID int64, retryFailed bool) (*TeamCancellation, error)"
     },
     {
-      "id": "method.Client.CompanyGitInstallations",
+      "id": "method.Client.ConnectTeamGitInstallation",
       "kind": "method",
-      "signature": "func (c *Client) CompanyGitInstallations(ctx context.Context, companyID int64) ([]CompanyGitInstallation, error)"
-    },
-    {
-      "id": "method.Client.CompanyRepositoryOperations",
-      "kind": "method",
-      "signature": "func (c *Client) CompanyRepositoryOperations(ctx context.Context, companyID int64) ([]CompanyRepositoryOperation, error)"
-    },
-    {
-      "id": "method.Client.CompanySubscriptions",
-      "kind": "method",
-      "signature": "func (c *Client) CompanySubscriptions(ctx context.Context, companyID int64) ([]CompanySubscription, error)"
-    },
-    {
-      "id": "method.Client.ConnectCompanyGitInstallation",
-      "kind": "method",
-      "signature": "func (c *Client) ConnectCompanyGitInstallation(ctx context.Context, companyID, installationID, verificationConnectionID int64) (*CompanyGitInstallation, error)"
+      "signature": "func (c *Client) ConnectTeamGitInstallation(ctx context.Context, teamID, installationID, verificationConnectionID int64) (*TeamGitInstallation, error)"
     },
     {
       "id": "method.Client.CreateTeamServicePrincipal",
       "kind": "method",
-      "signature": "func (c *Client) CreateTeamServicePrincipal(ctx context.Context, companyID int64, name string) (*TeamServicePrincipal, error)"
+      "signature": "func (c *Client) CreateTeamServicePrincipal(ctx context.Context, teamID int64, name string) (*TeamServicePrincipal, error)"
     },
     {
       "id": "method.Client.HTTPClientTimeout",
@@ -1148,24 +1133,24 @@
       "signature": "func (c *Client) RateLimit() RateLimit"
     },
     {
-      "id": "method.Client.ReconcileCompanyRepositoryOperation",
+      "id": "method.Client.ReconcileTeamRepositoryOperation",
       "kind": "method",
-      "signature": "func (c *Client) ReconcileCompanyRepositoryOperation(ctx context.Context, companyID int64, requestID string, connectionID *int64) (*CompanyRepositoryOperation, error)"
+      "signature": "func (c *Client) ReconcileTeamRepositoryOperation(ctx context.Context, teamID int64, requestID string, connectionID *int64) (*TeamRepositoryOperation, error)"
     },
     {
       "id": "method.Client.RecoverRuntimePrincipal",
       "kind": "method",
-      "signature": "func (c *Client) RecoverRuntimePrincipal(ctx context.Context, companyID, principalID int64, agentIDs []int64) (*RuntimePrincipalRecovery, error)"
+      "signature": "func (c *Client) RecoverRuntimePrincipal(ctx context.Context, teamID, principalID int64, agentIDs []int64) (*RuntimePrincipalRecovery, error)"
     },
     {
-      "id": "method.Client.RemoveCompanyGitInstallation",
+      "id": "method.Client.RemoveTeamGitInstallation",
       "kind": "method",
-      "signature": "func (c *Client) RemoveCompanyGitInstallation(ctx context.Context, companyID, connectionID int64) error"
+      "signature": "func (c *Client) RemoveTeamGitInstallation(ctx context.Context, teamID, connectionID int64) error"
     },
     {
       "id": "method.Client.RevokeTeamServicePrincipal",
       "kind": "method",
-      "signature": "func (c *Client) RevokeTeamServicePrincipal(ctx context.Context, companyID, principalID int64) error"
+      "signature": "func (c *Client) RevokeTeamServicePrincipal(ctx context.Context, teamID, principalID int64) error"
     },
     {
       "id": "method.Client.SwitchPlaygroundTemplate",
@@ -1173,9 +1158,24 @@
       "signature": "func (c *Client) SwitchPlaygroundTemplate(ctx context.Context, params *PlaygroundTemplateSwitchParams) (*PlaygroundTemplateSwitchResult, error)"
     },
     {
+      "id": "method.Client.TeamGitInstallations",
+      "kind": "method",
+      "signature": "func (c *Client) TeamGitInstallations(ctx context.Context, teamID int64) ([]TeamGitInstallation, error)"
+    },
+    {
+      "id": "method.Client.TeamRepositoryOperations",
+      "kind": "method",
+      "signature": "func (c *Client) TeamRepositoryOperations(ctx context.Context, teamID int64) ([]TeamRepositoryOperation, error)"
+    },
+    {
       "id": "method.Client.TeamServicePrincipals",
       "kind": "method",
-      "signature": "func (c *Client) TeamServicePrincipals(ctx context.Context, companyID int64) ([]TeamServicePrincipal, error)"
+      "signature": "func (c *Client) TeamServicePrincipals(ctx context.Context, teamID int64) ([]TeamServicePrincipal, error)"
+    },
+    {
+      "id": "method.Client.TeamSubscriptions",
+      "kind": "method",
+      "signature": "func (c *Client) TeamSubscriptions(ctx context.Context, teamID int64) ([]TeamSubscription, error)"
     },
     {
       "id": "method.Client.WithKey",
@@ -2778,41 +2778,6 @@
       "signature": "type Client struct {\n\tPlaygrounds            *PlaygroundService\n\tTasks                  *TaskService\n\tAgents                 *AgentService\n\tCable                  *CableService\n\tAgentDefaults          *AgentDefaultsService\n\tArtefacts              *ArtefactService\n\tSpecs                  *SpecService\n\tRepositories           *RepositoryService\n\tHosts                  *HostService\n\tSecrets                *SecretService\n\tJobEnv                 *JobEnvService\n\tEnvPacks               *EnvPackService\n\tAPIKeys                *APIKeyService\n\tImportTemplates        *ImportTemplateService\n\tImportTemplateVersions *ImportTemplateVersionService\n\tWebhookEndpoints       *WebhookEndpointService\n\tFeedbacks              *FeedbackService\n\tMutters                *MutterService\n\tMemories               *MemoryService\n\tAuditLogs              *AuditLogService\n\tMonitor                *MonitorService\n\tGreenfield             *GreenfieldService\n\tGitHubApps             *GitHubAppService\n\tGitHubRepos            *GitHubRepoService\n\tGiteaRepos             *GiteaRepoService\n\tInstallations          *InstallationService\n\tLaunch                 *LaunchService\n\tRepoStatus             *RepoStatusService\n\tTemplateCategories     *TemplateCategoryService\n\tStatus                 *StatusService\n\tServerInfo             *ServerInfoService\n}"
     },
     {
-      "id": "type.CompanyCancellation",
-      "kind": "type",
-      "signature": "type CompanyCancellation struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tSubscriptionID           int64      `json:\"subscription_id\"`\n\tStatus                   string     `json:\"status\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
-    },
-    {
-      "id": "type.CompanyGitAuthority",
-      "kind": "type",
-      "signature": "type CompanyGitAuthority struct {\n\tInstallationID      string            `json:\"installation_id\"`\n\tOrganizationID      string            `json:\"organization_id\"`\n\tOrganizationLogin   string            `json:\"organization_login\"`\n\tAppID               string            `json:\"app_id\"`\n\tPermissions         map[string]string `json:\"permissions\"`\n\tRepositorySelection string            `json:\"repository_selection\"`\n}"
-    },
-    {
-      "id": "type.CompanyGitAuthorityStatus",
-      "kind": "type",
-      "signature": "type CompanyGitAuthorityStatus struct {\n\tAvailable           bool   `json:\"available\"`\n\tRepositorySelection string `json:\"repository_selection,omitempty\"`\n\tErrorCode           string `json:\"error_code,omitempty\"`\n}"
-    },
-    {
-      "id": "type.CompanyGitInstallation",
-      "kind": "type",
-      "signature": "type CompanyGitInstallation struct {\n\tOwnershipMetadata\n\tID                int64                     `json:\"id\"`\n\tProvider          string                    `json:\"provider\"`\n\tInstallationID    int64                     `json:\"installation_id\"`\n\tOrganization      string                    `json:\"organization\"`\n\tVerifiedAuthority CompanyGitAuthority       `json:\"verified_authority\"`\n\tAuthorityStatus   CompanyGitAuthorityStatus `json:\"authority_status\"`\n}"
-    },
-    {
-      "id": "type.CompanyRepositoryDestination",
-      "kind": "type",
-      "signature": "type CompanyRepositoryDestination struct {\n\tID            int64  `json:\"id\"`\n\tFullName      string `json:\"full_name\"`\n\tHTMLURL       string `json:\"html_url\"`\n\tPrivate       bool   `json:\"private\"`\n\tDefaultBranch string `json:\"default_branch\"`\n}"
-    },
-    {
-      "id": "type.CompanyRepositoryOperation",
-      "kind": "type",
-      "signature": "type CompanyRepositoryOperation struct {\n\tOwnerContext\n\tID                int64                         `json:\"company_repository_operation_id\"`\n\tRequestID         string                        `json:\"operation_request_id\"`\n\tRequestedFullName string                        `json:\"requested_full_name\"`\n\tState             string                        `json:\"operation_state\"`\n\tOutcomeUnknown    bool                          `json:\"outcome_unknown\"`\n\tDestination       *CompanyRepositoryDestination `json:\"destination\"`\n\tRecoveryAction    string                        `json:\"recovery_action\"`\n\tErrorCode         *string                       `json:\"error_code\"`\n\tRequestedAt       *time.Time                    `json:\"requested_at\"`\n\tReconciledAt      *time.Time                    `json:\"reconciled_at\"`\n\tLocalRepositoryID *int64                        `json:\"local_repository_id\"`\n}"
-    },
-    {
-      "id": "type.CompanySubscription",
-      "kind": "type",
-      "signature": "type CompanySubscription struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tPlanType                 string     `json:\"plan_type\"`\n\tBillingInterval          string     `json:\"billing_interval\"`\n\tStatus                   string     `json:\"status\"`\n\tBillingProvider          string     `json:\"billing_provider\"`\n\tCurrentPeriodStart       *time.Time `json:\"current_period_start\"`\n\tCurrentPeriodEnd         *time.Time `json:\"current_period_end\"`\n\tCanceledAt               *time.Time `json:\"canceled_at\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
-    },
-    {
       "id": "type.ComposeValidateParams",
       "kind": "type",
       "signature": "type ComposeValidateParams struct {\n\tComposeYAML string `json:\"compose_yaml\"`\n\tTargetType  string `json:\"target_type,omitempty\"`\n\tJobMode     *bool  `json:\"job_mode,omitempty\"`\n}"
@@ -3758,9 +3723,44 @@
       "signature": "type TaskTriggerParams struct {\n\tEnvPackAttachments *[]EnvPackAttachmentInput `json:\"env_pack_attachments,omitempty\"`\n\tSpecID             int64                     `json:\"spec_id\"`\n\tSpecIdentifier     string                    `json:\"-\"`\n\tHostID             *int64                    `json:\"host_id,omitempty\"`\n\tHostIdentifier     string                    `json:\"-\"`\n\tName               string                    `json:\"name,omitempty\"`\n\tEnvOverrides       map[string]string         `json:\"env_overrides,omitempty\"`\n\tOnlyServices       []string                  `json:\"only_services,omitempty\"`\n\tExceptServices     []string                  `json:\"except_services,omitempty\"`\n}"
     },
     {
+      "id": "type.TeamCancellation",
+      "kind": "type",
+      "signature": "type TeamCancellation struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tSubscriptionID           int64      `json:\"subscription_id\"`\n\tStatus                   string     `json:\"status\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
+    },
+    {
+      "id": "type.TeamGitAuthority",
+      "kind": "type",
+      "signature": "type TeamGitAuthority struct {\n\tInstallationID      string            `json:\"installation_id\"`\n\tOrganizationID      string            `json:\"organization_id\"`\n\tOrganizationLogin   string            `json:\"organization_login\"`\n\tAppID               string            `json:\"app_id\"`\n\tPermissions         map[string]string `json:\"permissions\"`\n\tRepositorySelection string            `json:\"repository_selection\"`\n}"
+    },
+    {
+      "id": "type.TeamGitAuthorityStatus",
+      "kind": "type",
+      "signature": "type TeamGitAuthorityStatus struct {\n\tAvailable           bool   `json:\"available\"`\n\tRepositorySelection string `json:\"repository_selection,omitempty\"`\n\tErrorCode           string `json:\"error_code,omitempty\"`\n}"
+    },
+    {
+      "id": "type.TeamGitInstallation",
+      "kind": "type",
+      "signature": "type TeamGitInstallation struct {\n\tOwnershipMetadata\n\tID                int64                  `json:\"id\"`\n\tProvider          string                 `json:\"provider\"`\n\tInstallationID    int64                  `json:\"installation_id\"`\n\tOrganization      string                 `json:\"organization\"`\n\tVerifiedAuthority TeamGitAuthority       `json:\"verified_authority\"`\n\tAuthorityStatus   TeamGitAuthorityStatus `json:\"authority_status\"`\n}"
+    },
+    {
+      "id": "type.TeamRepositoryDestination",
+      "kind": "type",
+      "signature": "type TeamRepositoryDestination struct {\n\tID            int64  `json:\"id\"`\n\tFullName      string `json:\"full_name\"`\n\tHTMLURL       string `json:\"html_url\"`\n\tPrivate       bool   `json:\"private\"`\n\tDefaultBranch string `json:\"default_branch\"`\n}"
+    },
+    {
+      "id": "type.TeamRepositoryOperation",
+      "kind": "type",
+      "signature": "type TeamRepositoryOperation struct {\n\tOwnerContext\n\tID                int64                      `json:\"team_repository_operation_id\"`\n\tRequestID         string                     `json:\"operation_request_id\"`\n\tRequestedFullName string                     `json:\"requested_full_name\"`\n\tState             string                     `json:\"operation_state\"`\n\tOutcomeUnknown    bool                       `json:\"outcome_unknown\"`\n\tDestination       *TeamRepositoryDestination `json:\"destination\"`\n\tRecoveryAction    string                     `json:\"recovery_action\"`\n\tErrorCode         *string                    `json:\"error_code\"`\n\tRequestedAt       *time.Time                 `json:\"requested_at\"`\n\tReconciledAt      *time.Time                 `json:\"reconciled_at\"`\n\tLocalRepositoryID *int64                     `json:\"local_repository_id\"`\n}"
+    },
+    {
       "id": "type.TeamServicePrincipal",
       "kind": "type",
       "signature": "type TeamServicePrincipal struct {\n\tOwnershipMetadata\n\tID        int64      `json:\"id\"`\n\tSubject   string     `json:\"subject\"`\n\tName      string     `json:\"name\"`\n\tRevokedAt *time.Time `json:\"revoked_at\"`\n}"
+    },
+    {
+      "id": "type.TeamSubscription",
+      "kind": "type",
+      "signature": "type TeamSubscription struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tPlanType                 string     `json:\"plan_type\"`\n\tBillingInterval          string     `json:\"billing_interval\"`\n\tStatus                   string     `json:\"status\"`\n\tBillingProvider          string     `json:\"billing_provider\"`\n\tCurrentPeriodStart       *time.Time `json:\"current_period_start\"`\n\tCurrentPeriodEnd         *time.Time `json:\"current_period_end\"`\n\tCanceledAt               *time.Time `json:\"canceled_at\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
     },
     {
       "id": "type.TemplateCategory",

@@ -26,7 +26,7 @@ type TeamServicePrincipal struct {
 	Name      string     `json:"name"`
 	RevokedAt *time.Time `json:"revoked_at"`
 }
-type CompanySubscription struct {
+type TeamSubscription struct {
 	OwnerContext
 	ID                       int64      `json:"id"`
 	PlanType                 string     `json:"plan_type"`
@@ -43,8 +43,8 @@ type CompanySubscription struct {
 	CancellationErrorCode    *string    `json:"cancellation_error_code"`
 }
 
-// CompanyCancellation is a durable intent receipt, not proof of provider cancellation.
-type CompanyCancellation struct {
+// TeamCancellation is a durable intent receipt, not proof of provider cancellation.
+type TeamCancellation struct {
 	OwnerContext
 	ID                       int64      `json:"id"`
 	SubscriptionID           int64      `json:"subscription_id"`
@@ -55,37 +55,37 @@ type CompanyCancellation struct {
 	CancellationReconciledAt *time.Time `json:"cancellation_reconciled_at"`
 	CancellationErrorCode    *string    `json:"cancellation_error_code"`
 }
-type CompanyRepositoryOperation struct {
+type TeamRepositoryOperation struct {
 	OwnerContext
-	ID                int64                         `json:"company_repository_operation_id"`
-	RequestID         string                        `json:"operation_request_id"`
-	RequestedFullName string                        `json:"requested_full_name"`
-	State             string                        `json:"operation_state"`
-	OutcomeUnknown    bool                          `json:"outcome_unknown"`
-	Destination       *CompanyRepositoryDestination `json:"destination"`
-	RecoveryAction    string                        `json:"recovery_action"`
-	ErrorCode         *string                       `json:"error_code"`
-	RequestedAt       *time.Time                    `json:"requested_at"`
-	ReconciledAt      *time.Time                    `json:"reconciled_at"`
-	LocalRepositoryID *int64                        `json:"local_repository_id"`
+	ID                int64                      `json:"team_repository_operation_id"`
+	RequestID         string                     `json:"operation_request_id"`
+	RequestedFullName string                     `json:"requested_full_name"`
+	State             string                     `json:"operation_state"`
+	OutcomeUnknown    bool                       `json:"outcome_unknown"`
+	Destination       *TeamRepositoryDestination `json:"destination"`
+	RecoveryAction    string                     `json:"recovery_action"`
+	ErrorCode         *string                    `json:"error_code"`
+	RequestedAt       *time.Time                 `json:"requested_at"`
+	ReconciledAt      *time.Time                 `json:"reconciled_at"`
+	LocalRepositoryID *int64                     `json:"local_repository_id"`
 }
-type CompanyRepositoryDestination struct {
+type TeamRepositoryDestination struct {
 	ID            int64  `json:"id"`
 	FullName      string `json:"full_name"`
 	HTMLURL       string `json:"html_url"`
 	Private       bool   `json:"private"`
 	DefaultBranch string `json:"default_branch"`
 }
-type CompanyGitInstallation struct {
+type TeamGitInstallation struct {
 	OwnershipMetadata
-	ID                int64                     `json:"id"`
-	Provider          string                    `json:"provider"`
-	InstallationID    int64                     `json:"installation_id"`
-	Organization      string                    `json:"organization"`
-	VerifiedAuthority CompanyGitAuthority       `json:"verified_authority"`
-	AuthorityStatus   CompanyGitAuthorityStatus `json:"authority_status"`
+	ID                int64                  `json:"id"`
+	Provider          string                 `json:"provider"`
+	InstallationID    int64                  `json:"installation_id"`
+	Organization      string                 `json:"organization"`
+	VerifiedAuthority TeamGitAuthority       `json:"verified_authority"`
+	AuthorityStatus   TeamGitAuthorityStatus `json:"authority_status"`
 }
-type CompanyGitAuthority struct {
+type TeamGitAuthority struct {
 	InstallationID      string            `json:"installation_id"`
 	OrganizationID      string            `json:"organization_id"`
 	OrganizationLogin   string            `json:"organization_login"`
@@ -93,7 +93,7 @@ type CompanyGitAuthority struct {
 	Permissions         map[string]string `json:"permissions"`
 	RepositorySelection string            `json:"repository_selection"`
 }
-type CompanyGitAuthorityStatus struct {
+type TeamGitAuthorityStatus struct {
 	Available           bool   `json:"available"`
 	RepositorySelection string `json:"repository_selection,omitempty"`
 	ErrorCode           string `json:"error_code,omitempty"`

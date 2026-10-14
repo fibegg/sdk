@@ -60,7 +60,7 @@ func (s *RepositoryService) Mirror(ctx context.Context, sourceURL string, name s
 	return &result.Repository, err
 }
 
-// MirrorWithParams imports through the selected owner's provider and waits for Company completion.
+// MirrorWithParams imports through the selected owner's provider and waits for Team completion.
 func (s *RepositoryService) MirrorWithParams(ctx context.Context, params *RepositoryMirrorParams) (*RepositoryMirrorState, error) {
 	if params == nil {
 		return nil, fmt.Errorf("fibe: mirror parameters are required")
@@ -72,7 +72,7 @@ func (s *RepositoryService) MirrorWithParams(ctx context.Context, params *Reposi
 		RepositoryMirrorState
 		Imported *RepositoryMirrorState `json:"repository"`
 	}
-	err := s.client.doAsync(WithFields(ctx), http.MethodPost, "/api/repositories/mirrors", "/api/company_repository_operations/%s", params, &wire)
+	err := s.client.doAsync(WithFields(ctx), http.MethodPost, "/api/repositories/mirrors", "/api/team_repository_operations/%s", params, &wire)
 	if err != nil {
 		return nil, err
 	}

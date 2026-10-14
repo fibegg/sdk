@@ -190,12 +190,12 @@ func instFindReposCmd() *cobra.Command {
 		Short: "Search repositories for the selected workspace",
 		Long: `Search GitHub repositories across all connected installations.
 
-Personal results aggregate connected installations. Company results use one
+Personal results aggregate connected installations. Team results use one
 verified organization installation; select it explicitly when multiple are connected.
 
 FILTERS:
   -q, --query           Search query (repo name substring)
-  --github-installation-id  Verified Company installation
+  --github-installation-id  Verified Team installation
 
 PAGINATION:
   --page                Page number (default: 1)
@@ -240,7 +240,7 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (repo name substring)")
-	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation")
 	return cmd
 }
 

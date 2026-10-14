@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
+func TestTeamMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 	hits := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits++
@@ -32,7 +32,7 @@ func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 			}
 			w.WriteHeader(201)
 			_, _ = w.Write([]byte(`{"principal_id":3,"replacement_agent_ids":[],"adoption":[{"agent_id":5,"status":"adopted","key_id":99}]}`))
-		case "/api/company_billing/cancel_subscription":
+		case "/api/team_billing/cancel_subscription":
 			var p struct {
 				Retry bool `json:"retry_failed"`
 			}
@@ -44,9 +44,9 @@ func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 			}
 			w.WriteHeader(202)
 			_, _ = w.Write([]byte(`{"subscription_id":4,"cancellation_state":"pending","status":"pending"}`))
-		case "/api/company_repository_operations/exact/reconcile":
+		case "/api/team_repository_operations/exact/reconcile":
 			_, _ = w.Write([]byte(`{"operation_request_id":"exact","operation_state":"remote_created"}`))
-		case "/api/company_git_installations":
+		case "/api/team_git_installations":
 			_, _ = w.Write([]byte(`{"data":[]}`))
 		default:
 			t.Errorf("unexpected path %s", r.URL.Path)
@@ -58,20 +58,20 @@ func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, args := range []map[string]any{
-		{"company_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}},
-		{"company_id": 9, "principal_id": 2, "replacement_agent_ids": nil, "confirm": true},
-		{"company_id": 9, "principal_id": 2, "replacement_agent_ids": []any{1, 1}, "confirm": true},
-		{"company_id": 9, "principal_id": 2, "replacement_agent_ids": []any{"1"}, "confirm": true},
-		{"company_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}, "token": "must-not-send", "confirm": true},
+		{"team_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}},
+		{"team_id": 9, "principal_id": 2, "replacement_agent_ids": nil, "confirm": true},
+		{"team_id": 9, "principal_id": 2, "replacement_agent_ids": []any{1, 1}, "confirm": true},
+		{"team_id": 9, "principal_id": 2, "replacement_agent_ids": []any{"1"}, "confirm": true},
+		{"team_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}, "token": "must-not-send", "confirm": true},
 	} {
-		if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_company_runtime_principal_recover", args); err == nil {
+		if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_team_runtime_principal_recover", args); err == nil {
 			t.Fatal("unconfirmed/invalid recovery accepted")
 		}
 	}
 	if hits != 0 {
 		t.Fatal("invalid recovery reached server")
 	}
-	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_company_runtime_principal_recover", map[string]any{"company_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}, "confirm": true})
+	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_team_runtime_principal_recover", map[string]any{"team_id": 9, "principal_id": 2, "replacement_agent_ids": []any{}, "confirm": true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,9 +83,9 @@ func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 		name string
 		args map[string]any
 	}{
-		{"fibe_company_subscription_cancel", map[string]any{"company_id": 9, "subscription_id": 4, "retry_failed": true, "confirm": true}},
-		{"fibe_company_repository_operation_reconcile", map[string]any{"company_id": 9, "request_id": "exact"}},
-		{"fibe_company_git_installations_list", map[string]any{"company_id": 9}},
+		{"fibe_team_subscription_cancel", map[string]any{"team_id": 9, "subscription_id": 4, "retry_failed": true, "confirm": true}},
+		{"fibe_team_repository_operation_reconcile", map[string]any{"team_id": 9, "request_id": "exact"}},
+		{"fibe_team_git_installations_list", map[string]any{"team_id": 9}},
 	} {
 		if _, err := srv.dispatcher.dispatch(context.Background(), tc.name, tc.args); err != nil {
 			t.Fatal(err)
@@ -96,20 +96,31 @@ func TestCompanyMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 	}
 }
 
-func TestCompanyMCPDiscoveryAndConfirmation(t *testing.T) {
+func TestTeamMCPDiscoveryAndConfirmation(t *testing.T) {
 	srv := New(Config{APIKey: "fixture", Domain: "https://fibe.gg", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"fibe_company_principals_list", "fibe_company_principal_create", "fibe_company_principal_revoke", "fibe_company_runtime_principal_recover", "fibe_company_subscriptions_list", "fibe_company_subscription_cancel", "fibe_company_repository_operations_list", "fibe_company_repository_operation_reconcile", "fibe_company_repository_operation_adopt", "fibe_company_git_installations_list", "fibe_company_git_installation_connect", "fibe_company_git_installation_remove"} {
+	for _, name := range []string{"fibe_team_principals_list", "fibe_team_principal_create", "fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_subscriptions_list", "fibe_team_subscription_cancel", "fibe_team_repository_operations_list", "fibe_team_repository_operation_reconcile", "fibe_team_repository_operation_adopt", "fibe_team_git_installations_list", "fibe_team_git_installation_connect", "fibe_team_git_installation_remove"} {
 		if _, ok := srv.dispatcher.lookup(name); !ok {
 			t.Fatalf("missing tool %s", name)
 		}
 	}
-	for _, name := range []string{"fibe_company_principal_revoke", "fibe_company_runtime_principal_recover", "fibe_company_subscription_cancel", "fibe_company_repository_operation_adopt", "fibe_company_git_installation_remove"} {
+	for _, name := range []string{"fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_subscription_cancel", "fibe_team_repository_operation_adopt", "fibe_team_git_installation_remove"} {
 		tool, _ := srv.dispatcher.lookup(name)
 		if !tool.annotations.Destructive {
 			t.Fatalf("confirmation not required: %s", name)
 		}
+	}
+}
+
+func TestTeamMCPRejectsRemovedCompanyID(t *testing.T) {
+	srv := New(Config{APIKey: "fixture", Domain: "https://fibe.gg", ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatal(err)
+	}
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_team_principals_list", map[string]any{"company_id": 9})
+	if err == nil || !strings.Contains(err.Error(), `"team_id"`) {
+		t.Fatalf("expected team_id guidance, got %v", err)
 	}
 }

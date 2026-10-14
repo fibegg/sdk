@@ -332,12 +332,12 @@ func repositoryAttachCmd() *cobra.Command {
 		Short: "Attach a GitHub repo by full name",
 		Long: `Attach an existing GitHub repository by its full name (owner/repo).
 
-Requires GitHub App installation on the repository. Company access uses its verified
+Requires GitHub App installation on the repository. Team access uses its verified
 organization installation and never a Personal connection.
 
 REQUIRED FLAGS:
   --repo   GitHub repo full name (e.g., org/repo)
-  --github-installation-id  Explicit verified Company installation
+  --github-installation-id  Explicit verified Team installation
 
 EXAMPLES:
   fibe repositories attach --repo myorg/myrepo`,
@@ -357,7 +357,7 @@ EXAMPLES:
 	}
 
 	cmd.Flags().StringVar(&repo, "repo", "", "GitHub repo full name (required)")
-	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation")
 	mustMarkFlagRequired(cmd, "repo")
 	return cmd
 }
@@ -370,15 +370,15 @@ func repositoryMirrorCmd() *cobra.Command {
 		Use:   "mirror",
 		Short: "Import a GitHub repo into the selected workspace",
 		Long: `Import a GitHub repository into the selected workspace. Personal imports use Gitea;
-Company imports use the verified GitHub organization and wait for completion.
-Company credentials need repositories:read and repositories:write.
+Team imports use the verified GitHub organization and wait for completion.
+Team credentials need repositories:read and repositories:write.
 
 REQUIRED FLAGS:
   --url   GitHub repository URL
 
 OPTIONAL FLAGS:
   --name  Name for the imported repository
-  --github-installation-id  Explicit verified Company installation
+  --github-installation-id  Explicit verified Team installation
 
 EXAMPLES:
   fibe repositories mirror --url https://github.com/org/repo`,
@@ -404,7 +404,7 @@ EXAMPLES:
 
 	cmd.Flags().StringVar(&sourceURL, "url", "", "Source GitHub URL (required)")
 	cmd.Flags().String("name", "", "Name for the mirrored repository (optional)")
-	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation (required when multiple are connected)")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation (required when multiple are connected)")
 	mustMarkFlagRequired(cmd, "url")
 	return cmd
 }

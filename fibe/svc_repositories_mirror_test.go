@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRepositoryMirrorWaitsForCompanyResult(t *testing.T) {
+func TestRepositoryMirrorWaitsForTeamResult(t *testing.T) {
 	for _, withState := range []bool{false, true} {
 		t.Run(map[bool]string{false: "Mirror", true: "MirrorWithState"}[withState], func(t *testing.T) {
 			posts, polls := 0, 0
@@ -17,10 +17,10 @@ func TestRepositoryMirrorWaitsForCompanyResult(t *testing.T) {
 				case r.Method == http.MethodPost && r.URL.Path == "/api/repositories/mirrors":
 					posts++
 					w.WriteHeader(http.StatusAccepted)
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "company-import", "status": "queued", "status_url": "/api/company_repository_operations/company-import"})
-				case r.Method == http.MethodGet && r.URL.Path == "/api/company_repository_operations/company-import":
+					json.NewEncoder(w).Encode(map[string]any{"request_id": "team-import", "status": "queued", "status_url": "/api/team_repository_operations/team-import"})
+				case r.Method == http.MethodGet && r.URL.Path == "/api/team_repository_operations/team-import":
 					polls++
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "company-import", "status": "success", "repository": map[string]any{"id": 42, "name": "imported", "owner_type": "Team", "owner_id": 9, "provider": "github", "status": "active"}})
+					json.NewEncoder(w).Encode(map[string]any{"request_id": "team-import", "status": "success", "repository": map[string]any{"id": 42, "name": "imported", "owner_type": "Team", "owner_id": 9, "provider": "github", "status": "active"}})
 				default:
 					t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
@@ -38,7 +38,7 @@ func TestRepositoryMirrorWaitsForCompanyResult(t *testing.T) {
 				repo, err = c.Repositories.Mirror(context.Background(), "https://github.com/upstream/imported", "")
 			}
 			if err != nil || repo == nil || repo.ID != 42 || repo.OwnerType != "Team" || repo.OwnerID != 9 || repo.Status != "active" || posts != 1 || polls != 1 {
-				t.Fatalf("expected one completed Company import: repo=%+v error=%v posts=%d polls=%d", repo, err, posts, polls)
+				t.Fatalf("expected one completed Team import: repo=%+v error=%v posts=%d polls=%d", repo, err, posts, polls)
 			}
 		})
 	}
@@ -64,7 +64,7 @@ func TestRepositoryMirrorReportsRetainedReconciliationError(t *testing.T) {
 		if r.Method == http.MethodPost {
 			posts++
 			w.WriteHeader(http.StatusAccepted)
-			json.NewEncoder(w).Encode(map[string]any{"request_id": "unknown-import", "status": "queued", "status_url": "/api/company_repository_operations/unknown-import"})
+			json.NewEncoder(w).Encode(map[string]any{"request_id": "unknown-import", "status": "queued", "status_url": "/api/team_repository_operations/unknown-import"})
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"status": "error", "error_code": "DESTINATION_RECONCILIATION_REQUIRED", "error": "Inspect the retained operation"})
@@ -76,7 +76,7 @@ func TestRepositoryMirrorReportsRetainedReconciliationError(t *testing.T) {
 	}
 }
 
-func TestRepositoryMirrorSelectsExplicitCompanyInstallation(t *testing.T) {
+func TestRepositoryMirrorSelectsExplicitTeamInstallation(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -107,7 +107,7 @@ func TestRepositoryMirrorProjectsTheCompletedRepository(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			w.WriteHeader(http.StatusAccepted)
-			json.NewEncoder(w).Encode(map[string]any{"request_id": "projected-import", "status": "queued", "status_url": "/api/company_repository_operations/projected-import"})
+			json.NewEncoder(w).Encode(map[string]any{"request_id": "projected-import", "status": "queued", "status_url": "/api/team_repository_operations/projected-import"})
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{"status": "success", "repository": map[string]any{"id": 45, "name": "projected", "provider": "github", "status": "active"}})

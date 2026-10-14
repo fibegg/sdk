@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestCompanyRepositoryMutationInstallationSelection(t *testing.T) {
+func TestTeamRepositoryMutationInstallationSelection(t *testing.T) {
 	calls := 0
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
@@ -27,7 +27,7 @@ func TestCompanyRepositoryMutationInstallationSelection(t *testing.T) {
 	for _, operation := range []string{"attach", "mirror"} {
 		payload := map[string]any{"github_installation_id": 501}
 		if operation == "attach" {
-			payload["repo_full_name"] = "company-org/existing"
+			payload["repo_full_name"] = "team-org/existing"
 		} else {
 			payload["source_url"] = "https://github.com/upstream/source"
 		}
@@ -39,7 +39,7 @@ func TestCompanyRepositoryMutationInstallationSelection(t *testing.T) {
 	if calls != 2 {
 		t.Fatalf("expected two selected requests, got %d", calls)
 	}
-	_, err := server.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{"resource": "repository", "operation": "attach", "payload": map[string]any{"repo_full_name": "company-org/existing", "github_installation_id": 0}})
+	_, err := server.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{"resource": "repository", "operation": "attach", "payload": map[string]any{"repo_full_name": "team-org/existing", "github_installation_id": 0}})
 	if err == nil || calls != 2 {
 		t.Fatal("invalid installation reached the API")
 	}

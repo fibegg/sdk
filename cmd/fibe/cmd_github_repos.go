@@ -34,7 +34,7 @@ OPTIONAL FLAGS:
   --private      Create as private repository
   --auto-init    Initialize with README
   --description  Repository description
-  --github-installation-id  Verified Company installation
+  --github-installation-id  Verified Team installation
 
 EXAMPLES:
   fibe github-repos create --name my-repo
@@ -63,6 +63,6 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&private, "private", false, "Create as private")
 	cmd.Flags().BoolVar(&autoInit, "auto-init", false, "Initialize with README")
 	cmd.Flags().StringVar(&description, "description", "", "Repository description")
-	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Company GitHub installation")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation")
 	return cmd
 }

@@ -22,7 +22,12 @@ func installRemovedNameErrors(root *cobra.Command) {
 		cmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 			const prefix = "unknown flag: --"
 			if old, ok := strings.CutPrefix(err.Error(), prefix); ok {
-				if replacement, ok := domainnames.Replacement(strings.TrimSuffix(old, "-id")); ok {
+				if base, hasID := strings.CutSuffix(old, "-id"); hasID {
+					if replacement, ok := domainnames.Replacement(base); ok {
+						return fmt.Errorf("flag --%s was removed; use --%s-id", old, strings.ReplaceAll(replacement, "_", "-"))
+					}
+				}
+				if replacement, ok := domainnames.Replacement(old); ok {
 					return fmt.Errorf("flag --%s was removed; use --%s", old, replacement)
 				}
 				oldField := strings.ReplaceAll(old, "-", "_")
