@@ -4,9 +4,9 @@ ENV packs contain ordinary readable string values. Empty strings, quotes, and ne
 
 ## Go SDK
 
-`Client.EnvPacks` provides `List`, `Get`, `Create`, `Update`, and `Delete`. Target methods `Attachments`, `ReplaceAttachments`, `ReorderAttachments`, `DetachAttachment`, `RetargetAttachment`, and `RenewGrant` accept `playgrounds` or `specs` and numeric target IDs. `Playgrounds.Rerun` and `Tasks.RerunWithParamsByIdentifier` use the server's source-reference operation.
+`Client.EnvPacks` provides `List`, `Get`, `Create`, `Update`, and `Delete`. Target methods `Attachments`, `ReplaceAttachments`, `ReorderAttachments`, `DetachAttachment`, `RetargetAttachment`, and `RenewGrant` accept `playgrounds` or `specs` and numeric target IDs. ENV packs are attached per Playground; Spec attachments are only for job-mode Specs (packs for scheduled runs), and a non-empty attachment on a service Spec is rejected with 422 `env_pack_spec_job_mode_required`. `Playgrounds.Rerun` and `Tasks.RerunWithParamsByIdentifier` use the server's source-reference operation.
 
-`EnvPackAttachmentsParams.Attachments` and creation/update `EnvPackAttachments` fields are pointers to slices. Nil omits the field: creation inherits Spec defaults, updates preserve references, and reruns preserve source references. A pointer to an empty slice sends `[]` and explicitly detaches all packs. `EnvPackAttachmentInput.ServiceNames` nil means all services; a present empty list is rejected. Types expose no writable grantor or position fields.
+`EnvPackAttachmentsParams.Attachments` and creation/update `EnvPackAttachments` fields are pointers to slices. Nil omits the field: creation inherits job-mode Spec defaults (only job-mode Specs pass packs to new runs), updates preserve references, and reruns preserve source references. A pointer to an empty slice sends `[]` and explicitly detaches all packs. `EnvPackAttachmentInput.ServiceNames` nil means all services; a present empty list is rejected. Types expose no writable grantor or position fields.
 
 ```go
 empty := []fibe.EnvPackAttachmentInput{}
@@ -34,7 +34,7 @@ fibe playgrounds rerun 129 --from-file attachments.json
 fibe tasks rerun 77 --from-file attachments.json
 ```
 
-`attachments.json` contains `env_pack_attachments`: `[]` detaches all packs, omitted/null preserves references. Playground/Spec creation/update, `fibe playgrounds rerun` and Task trigger/rerun `--from-file` accept the same optional selection. Renew resolves the attached pack ID into its attachment ID without fabricating grant identity.
+`attachments.json` contains `env_pack_attachments`: `[]` detaches all packs, omitted/null preserves references. Playground and job-mode Spec creation/update, `fibe playgrounds rerun` and Task trigger/rerun `--from-file` accept the same optional selection. Renew resolves the attached pack ID into its attachment ID without fabricating grant identity.
 
 `fibe playgrounds rerun <id-or-name>` creates a new Playground from an existing one, mirroring `fibe tasks rerun` (which handles job-mode Tasks). It resolves the source, then calls the SDK `Playgrounds.Rerun`. Omitting `env_pack_attachments` keeps the source's references and their original grants; `[]` attaches no packs; a list attaches exactly those packs in order. `--name` names the new Playground. The source is not changed, and the command sends only what you supply.
 

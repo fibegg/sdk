@@ -6,7 +6,7 @@ import (
 )
 
 func envPackAttachmentSchema() map[string]any {
-	return map[string]any{"type": []string{"array", "null"}, "description": "Ordered pack references. Omit or null to preserve/inherit; [] explicitly detaches all packs.", "items": map[string]any{"type": "object", "required": []string{"env_pack_id"}, "additionalProperties": false, "properties": map[string]any{
+	return map[string]any{"type": []string{"array", "null"}, "description": "Ordered pack references for a Playground or job-mode Spec (service Specs reject non-empty lists with 422). Omit or null to preserve/inherit; [] explicitly detaches all packs.", "items": map[string]any{"type": "object", "required": []string{"env_pack_id"}, "additionalProperties": false, "properties": map[string]any{
 		"env_pack_id":   map[string]any{"type": "integer", "minimum": 1},
 		"service_names": map[string]any{"type": []string{"array", "null"}, "minItems": 1, "uniqueItems": true, "items": map[string]any{"type": "string", "minLength": 1}, "description": "Omitted or null applies to all services; an empty array is invalid."},
 	}}}

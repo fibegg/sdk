@@ -763,7 +763,7 @@ Generated from the MCP registry.
 **Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or Spec.
+[MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or job-mode Spec (service Specs carry no packs).
 
 ### Input Schema
 ```json
@@ -1274,7 +1274,7 @@ Generated from the MCP registry.
       "type": "object"
     },
     "env_pack_attachments": {
-      "description": "Ordered pack references. Omit or null to preserve/inherit; [] explicitly detaches all packs.",
+      "description": "Ordered pack references for a Playground or job-mode Spec (service Specs reject non-empty lists with 422). Omit or null to preserve/inherit; [] explicitly detaches all packs.",
       "items": {
         "additionalProperties": false,
         "properties": {

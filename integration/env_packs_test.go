@@ -921,10 +921,26 @@ func newEnvPack(t *testing.T, a *envPackActor, prefix string, env map[string]str
 
 func newEnvPackSpec(t *testing.T, a *envPackActor) int64 {
 	t.Helper()
+	// Spec attachments are for job-mode Specs only (packs for scheduled runs).
+	jobMode := true
 	spec := seedSpec(t, a.client, func(p *fibe.SpecCreateParams) {
-		p.BaseComposeYAML = "services:\n  web:\n    image: nginx:alpine\n  db:\n    image: postgres:16-alpine\n  cache:\n    image: redis:7-alpine\n"
+		p.JobMode = &jobMode
+		p.BaseComposeYAML = "services:\n  web:\n    image: nginx:alpine\n    labels:\n      fibe.gg/job_watch: \"true\"\n  db:\n    image: postgres:16-alpine\n  cache:\n    image: redis:7-alpine\n"
+		p.Services[0] = jobWatchedService("web")
 	})
 	return *spec.ID
+}
+
+func TestEnvPacks_ServiceSpecRejectsAttachments(t *testing.T) {
+	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
+		pack := newEnvPack(t, a, "service-spec", map[string]string{"A": "a"})
+		spec := seedSpec(t, a.client)
+		_, err := a.client.EnvPacks.ReplaceAttachments(ctx(), "specs", *spec.ID, &fibe.EnvPackAttachmentsParams{Attachments: attach(pack.ID)})
+		requireAPIError(t, err, "env_pack_spec_job_mode_required", 422)
+		empty := []fibe.EnvPackAttachmentInput{}
+		_, err = a.client.EnvPacks.ReplaceAttachments(ctx(), "specs", *spec.ID, &fibe.EnvPackAttachmentsParams{Attachments: &empty})
+		requireNoError(t, err, "service Spec accepts an empty attachment list")
+	})
 }
 
 func newEnvPackJobSpec(t *testing.T, a *envPackActor) *fibe.Spec {

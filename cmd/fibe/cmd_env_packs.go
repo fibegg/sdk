@@ -108,8 +108,8 @@ func envPackDeleteCmd() *cobra.Command {
 	return cmd
 }
 func envPackAttachmentsCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "attachments", Short: "Manage attachments on a Playground or Spec"}
-	cmd.AddCommand(&cobra.Command{Use: "get <playgrounds|specs> <target-id>", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
+	cmd := &cobra.Command{Use: "attachments", Short: "Manage attachments on a Playground or job-mode Spec"}
+	cmd.AddCommand(&cobra.Command{Use: "get <playgrounds|specs> <target-id>", Short: "Show attachments on a Playground or job-mode Spec", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := envPackID(args[1])
 		if err != nil {
 			return err
@@ -121,7 +121,7 @@ func envPackAttachmentsCmd() *cobra.Command {
 		outputJSON(out)
 		return nil
 	}})
-	cmd.AddCommand(&cobra.Command{Use: "set <playgrounds|specs> <target-id>", Short: "Replace the ordered list from --from-file {env_pack_attachments:[...]}; [] detaches all", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
+	cmd.AddCommand(&cobra.Command{Use: "set <playgrounds|specs> <target-id>", Short: "Replace the ordered list on a Playground or job-mode Spec from --from-file {env_pack_attachments:[...]}; [] detaches all", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := envPackID(args[1])
 		if err != nil {
 			return err
@@ -152,7 +152,7 @@ func envPackAttachmentActionCmd(action string) *cobra.Command {
 		use += " <pack-id>"
 		argc = 3
 	}
-	cmd := &cobra.Command{Use: use, Short: action + " selected attachments while preserving other grants", Args: cobra.ExactArgs(argc), RunE: func(cmd *cobra.Command, args []string) error {
+	cmd := &cobra.Command{Use: use, Short: action + " selected attachments on a Playground or job-mode Spec while preserving other grants", Args: cobra.ExactArgs(argc), RunE: func(cmd *cobra.Command, args []string) error {
 		targetID, err := envPackID(args[1])
 		if err != nil {
 			return err
