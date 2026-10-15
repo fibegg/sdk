@@ -1,18 +1,21 @@
 # Compatibility policy
 
-The v0.3 candidate implements the coordinated domain-name break: Marquee →
-Host, Playspec → Spec, Prop → Repository, Trick → Task, and Company → Team.
-Library replaces Scrolls; Agent and Audit Logs retain their canonical model identities. Old
-commands, fields, routes and resource names fail with replacement guidance.
+v0.3.0 (released 2026-10-15) implements the coordinated domain-name break:
+Marquee → Host, Playspec → Spec, Prop → Repository, Trick → Task, and Company →
+Team. Library replaces Scrolls; Agent and Audit Logs retain their canonical model
+identities. Old commands, fields, routes and resource names fail with replacement
+guidance. Installations that still serve the previous vocabulary require a 0.2.x
+CLI until their own cutover.
 
 `contracts/go-public-api-v0.2.45.json` remains historical release evidence.
 The compatibility check permits only the approved domain rename; unrelated
 exported signatures and struct layouts remain checked. The current generated
-Go, REST, CLI and MCP contracts describe the candidate surface.
+Go, REST, CLI and MCP contracts describe the v0.3 surface.
 
-A production 0.2.x hotfix must come from a branch at the last released tag.
-The candidate CLI is built without tags as `0.3.0-rc.1+<sdk-sha7>`; it does not
-publish a GitHub release or update Homebrew.
+A 0.2.x hotfix must come from a branch at the `v0.2.48` tag. Candidate builds of
+unreleased source are built without tags as `0.3.0-rc.1+<sdk-sha7>`; they do not
+publish a GitHub release or update Homebrew. Tagged releases are published only
+by the `v*` tag workflow.
 
 `Dockerfile.e2e` owns the source-built candidate artifact. Pass the full
 `FIBE_SDK_SHA` and matching `FIBE_CLI_VERSION`; `candidate-cli` retains a runnable

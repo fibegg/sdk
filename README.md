@@ -2,12 +2,13 @@
 
 The official Go SDK and command-line interface for the Fibe platform.
 
-This checkout contains the coordinated v0.3 candidate naming contract:
-Hosts, Specs, Repositories and Tasks. Existing Agent, Audit Log, conversation,
-document and memory operations retain their model identities. Published 0.2.x
-CLI distributions keep their production contract until the separate production
-cutover; candidate binaries are built from matched source without release tags.
-See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the migration contract.
+Since v0.3.0 the SDK uses the coordinated naming contract: Hosts, Specs,
+Repositories, Tasks and Teams. Existing Agent, Audit Log, conversation,
+document and memory operations retain their model identities. Installations
+that still serve the previous vocabulary need a 0.2.x CLI (last: v0.2.48) until
+their own cutover; candidate binaries of unreleased source are built from
+matched source without release tags. See [`COMPATIBILITY.md`](COMPATIBILITY.md)
+for the migration contract.
 
 Requires Go 1.26.9 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and

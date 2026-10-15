@@ -7,14 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-15
+
 ### Changed
 
-- **Breaking (v0.3):** Company is now Team. `fibe company --company-id` is
+- **Breaking:** coordinated domain rename across the SDK, CLI and MCP server:
+  Marquee is now Host, Playspec is now Spec, Prop is now Repository and Trick
+  is now Task (Library replaces Scrolls). Commands, flags, fields, SDK services
+  and types, MCP tools and environment variables (`HOST_ROOT`,
+  `HOST_ROOT_DOMAIN`, `HOST_URL_SCHEME`, `FIBE_HOST_ID`, `FIBE_SPEC_ID`,
+  `FIBE_REPOSITORY_ID`) use the new names. Old names fail with replacement
+  guidance and no aliases. This release targets installations on the new
+  contract; installations still on the previous vocabulary need a 0.2.x CLI.
+- **Breaking:** Company is now Team. `fibe company --company-id` is
   `fibe team --team-id`; the twelve `fibe_company_*` MCP tools are
   `fibe_team_*` with a required `team_id`; SDK `Company*` methods and types are
   `Team*`; Repository operations poll `/api/team_repository_operations` and
   decode `team_repository_operation_id`. Old names fail with replacement
   guidance and no aliases.
+- ENV pack attachments are per Playground. Spec attachments apply only to
+  job-mode Specs (packs for scheduled runs); a non-empty attachment list on a
+  service Spec is rejected with 422 `env_pack_spec_job_mode_required`.
 
 ### Security
 
@@ -29,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references, `[]` detaches all). It mirrors `fibe tasks rerun`.
 - Live integration coverage for ENV packs across the SDK, CLI binary and MCP
   server (`integration/env_packs_test.go`).
+- Team owners, ENV packs and Team repository recovery operations across the
+  SDK, CLI and MCP server, including GitHub installation selection.
+
+### Removed
+
+- Product-specific example skill names in CLI help and tests (`fibe-hunks.md`)
+  in favour of a neutral `example-skill.md`.
 
 ## [0.2.46] - 2026-10-01
 
