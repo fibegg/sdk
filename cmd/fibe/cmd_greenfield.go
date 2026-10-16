@@ -13,8 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const greenfieldDefaultLinkDir = "/app/playground"
-
 func greenfieldCmd() *cobra.Command {
 	var (
 		name                   string
@@ -42,7 +40,7 @@ func greenfieldCmd() *cobra.Command {
 		Long: `Create a new app from a template, including one or more destination repositories and Repositories, an app-owned template version, and a deployed playground.
 
 The command calls the Fibe greenfield API, waits for the playground to run,
-and links the local playground checkout into /app/playground by default.
+and links the local checkout into PLAYGROUNDS_DIR (fallback: /app/playground).
 The target Host must be funded; unpaid Hosts fail with
 HOST_NOT_FUNDED before deployment starts.
 
@@ -191,7 +189,7 @@ Examples:
 			result.Playground = pg
 
 			target := greenfieldLocalTarget(result)
-			link, err := localplaygrounds.Link(target, greenfieldDefaultLinkDir)
+			link, err := localplaygrounds.Link(target, "")
 			if err != nil {
 				return err
 			}

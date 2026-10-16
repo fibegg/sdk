@@ -23,6 +23,7 @@ Environment Variables:
   HOST_ROOT          Host root, or directory containing playgrounds (default: /opt/fibe/playgrounds)
   HOST_ROOT_DOMAIN   Base domain for URLs (default: phoenix.test)
   HOST_URL_SCHEME    URL scheme for exposed services (default: https)
+  PLAYGROUNDS_DIR    Link/state directory shared with the agent UI (fallback: /app/playground)
 
 Examples:
   fibe local playgrounds info --view names
@@ -31,7 +32,7 @@ Examples:
   fibe local playgrounds info --view urls --playground 1
   fibe local playgrounds info --view mounts --playground mcp-test-dev
   fibe local playgrounds info --view details --playground 1
-  fibe local playgrounds link 1 --link-dir /app/playground`,
+  fibe local playgrounds link 1`,
 	}
 
 	cmd.AddCommand(
@@ -152,7 +153,7 @@ Views:
 
 	cmd.Flags().StringVar(&view, "view", "", "Info view: names, current, repos, urls, mounts, or details")
 	cmd.Flags().StringVar(&playground, "playground", "", "Local playground ID, name, compose project, spec, or unique spec prefix")
-	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Current-link directory for views current and repos (default: /app/playground)")
+	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Current-link directory for views current and repos (default: PLAYGROUNDS_DIR, then /app/playground)")
 	return cmd
 }
 
@@ -255,7 +256,9 @@ func lpLinkCmd() *cobra.Command {
 		Short: "Link playground directories into a target directory",
 		Long: `Create symlinks from playground mount points into a target directory.
 
-By default links to /app/playground. Use --link-dir to specify a different target.`,
+Uses PLAYGROUNDS_DIR when set, otherwise /app/playground.
+Use --link-dir to override the shared directory. The target parent must be writable
+so the link directory can be replaced atomically.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			playgrounds, err := localplaygrounds.Scan(localplaygrounds.BaseDir())
@@ -268,13 +271,8 @@ By default links to /app/playground. Use --link-dir to specify a different targe
 				return err
 			}
 
-			targetDir := linkDir
-			if targetDir == "" {
-				targetDir = "/app/playground"
-			}
-
 			fmt.Printf("Linking %s...\n", pg.DirName)
-			result, err := localplaygrounds.LinkPlayground(pg, targetDir)
+			result, err := localplaygrounds.LinkPlayground(pg, linkDir)
 			if err != nil {
 				return err
 			}
@@ -287,6 +285,6 @@ By default links to /app/playground. Use --link-dir to specify a different targe
 		},
 	}
 
-	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Target directory for symlinks (default: /app/playground)")
+	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Target directory for symlinks (default: PLAYGROUNDS_DIR, then /app/playground)")
 	return cmd
 }

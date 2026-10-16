@@ -10,6 +10,64 @@ import (
 	"testing"
 )
 
+func TestLinkUsesConfiguredDirectoryForLinkAndCurrentState(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOST_ROOT", root)
+	linkDir := filepath.Join(t.TempDir(), "agent-data", "playground")
+	t.Setenv("PLAYGROUNDS_DIR", linkDir)
+	pgDir := filepath.Join(root, "app--77")
+	source := filepath.Join(pgDir, "repositories", "team--app--1", "main")
+	if err := os.MkdirAll(source, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "source.txt"), []byte("preserved source"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compose := fmt.Sprintf("services:\n  web:\n    labels:\n      fibe.gg/spec: app\n    volumes:\n      - %q\n", source+":/app")
+	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		result, err := Link("77", "")
+		if err != nil {
+			t.Fatalf("link without an explicit directory: %v", err)
+		}
+		if result.LinkDir != linkDir {
+			t.Fatalf("link directory=%q want %q", result.LinkDir, linkDir)
+		}
+		state, err := LoadCurrentState("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.ID != "77" || len(state.Repos) != 1 {
+			t.Fatalf("current state=%#v", state)
+		}
+		data, err := os.ReadFile(filepath.Join(state.Repos[0].LinkPath, "source.txt"))
+		if err != nil || string(data) != "preserved source" {
+			t.Fatalf("linked source=%q err=%v", data, err)
+		}
+	}
+	explicit := filepath.Join(t.TempDir(), "explicit")
+	result, err := Link("77", explicit)
+	if err != nil || result.LinkDir != explicit {
+		t.Fatalf("explicit directory must win: result=%#v err=%v", result, err)
+	}
+}
+
+func TestCurrentStatePathPrecedence(t *testing.T) {
+	t.Setenv("PLAYGROUNDS_DIR", "/persistent/agent/playground")
+	if got := CurrentStatePath(""); got != "/persistent/agent/playground/.current_playground.json" {
+		t.Fatalf("configured current state path=%q", got)
+	}
+	if got := CurrentStatePath("/explicit"); got != "/explicit/.current_playground.json" {
+		t.Fatalf("explicit current state path=%q", got)
+	}
+	t.Setenv("PLAYGROUNDS_DIR", "  ")
+	if got := CurrentStatePath(""); got != "/app/playground/.current_playground.json" {
+		t.Fatalf("legacy fallback path=%q", got)
+	}
+}
+
 func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOST_ROOT", root)

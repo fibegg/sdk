@@ -48,9 +48,7 @@ func localScreenshotPathCmd() *cobra.Command {
 			if name == "" {
 				return fmt.Errorf("required flag '--name' not set")
 			}
-			if linkDir == "" {
-				linkDir = "/app/playground"
-			}
+			linkDir = localplaygrounds.ResolveLinkDir(linkDir)
 			state, _ := localplaygrounds.LoadCurrentState(linkDir)
 			playground := ""
 			if state != nil {
@@ -86,7 +84,7 @@ func localScreenshotPathCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&name, "name", "", "Screenshot logical name; sanitized and given a .png extension")
-	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Current-link directory (default: /app/playground)")
+	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Current-link directory (default: PLAYGROUNDS_DIR, then /app/playground)")
 	cmd.Flags().BoolVar(&mkdir, "mkdir", false, "Create the parent directory")
 	return cmd
 }

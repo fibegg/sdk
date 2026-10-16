@@ -1550,7 +1550,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "link_dir": {
-      "description": "Current-link directory for view=current or view=repos (default: /app/playground).",
+      "description": "Current-link directory for view=current or view=repos (default: PLAYGROUNDS_DIR, then /app/playground).",
       "type": "string"
     },
     "only": {
@@ -1599,7 +1599,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "link_dir": {
-      "description": "Target directory for symlinks (default: /app/playground)",
+      "description": "Target directory for symlinks (default: PLAYGROUNDS_DIR, then /app/playground)",
       "type": "string"
     },
     "only": {

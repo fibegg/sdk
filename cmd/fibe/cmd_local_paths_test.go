@@ -52,6 +52,19 @@ func TestLocalScreenshotPathMkdirCreatesParent(t *testing.T) {
 	}
 }
 
+func TestLocalScreenshotPathUsesConfiguredLinkDirectory(t *testing.T) {
+	linkDir := t.TempDir()
+	t.Setenv("PLAYGROUNDS_DIR", linkDir)
+	if err := os.WriteFile(filepath.Join(linkDir, ".current_playground.json"), []byte(`{"name":"shared"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	payload := runLocalScreenshotPathCommand(t, "", "preview", false)
+	want := filepath.Join(linkDir, ".artifacts", "screenshots", "shared", "preview.png")
+	if payload.LinkDir != linkDir || payload.Path != want {
+		t.Fatalf("configured screenshot path=%#v want %q", payload, want)
+	}
+}
+
 func runLocalScreenshotPathCommand(t *testing.T, linkDir string, name string, mkdir bool) localResolvedPath {
 	t.Helper()
 
@@ -59,7 +72,10 @@ func runLocalScreenshotPathCommand(t *testing.T, linkDir string, name string, mk
 	flagOutput = "json"
 	t.Cleanup(func() { flagOutput = oldOutput })
 
-	args := []string{"--name", name, "--link-dir", linkDir}
+	args := []string{"--name", name}
+	if linkDir != "" {
+		args = append(args, "--link-dir", linkDir)
+	}
 	if mkdir {
 		args = append(args, "--mkdir")
 	}

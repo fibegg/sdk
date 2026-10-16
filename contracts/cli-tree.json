@@ -10202,7 +10202,7 @@
           "name": "link-dir",
           "type": "string",
           "default": "",
-          "usage": "Current-link directory (default: /app/playground)"
+          "usage": "Current-link directory (default: PLAYGROUNDS_DIR, then /app/playground)"
         },
         {
           "name": "mkdir",
@@ -10371,7 +10371,7 @@
           "name": "link-dir",
           "type": "string",
           "default": "",
-          "usage": "Current-link directory for views current and repos (default: /app/playground)"
+          "usage": "Current-link directory for views current and repos (default: PLAYGROUNDS_DIR, then /app/playground)"
         },
         {
           "name": "playground",
@@ -10464,7 +10464,7 @@
           "name": "link-dir",
           "type": "string",
           "default": "",
-          "usage": "Target directory for symlinks (default: /app/playground)"
+          "usage": "Target directory for symlinks (default: PLAYGROUNDS_DIR, then /app/playground)"
         }
       ],
       "exit_on_error": false

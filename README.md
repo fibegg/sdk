@@ -340,3 +340,17 @@ API-key resource restrictions distinguish omission from an empty list. Omit a
 `--granular-scope agents:read=12,15` selects those IDs. Repeat the flag for other
 scopes. Rails returns normalized restrictions; the current compatibility-frozen
 Go `APIKey` response struct ignores that additive response field.
+
+### Local Playground link directory
+
+The CLI and MCP local Playground tools use `PLAYGROUNDS_DIR` for links, current
+selection, repository paths and screenshot artifacts. Agent startup exports an
+absolute path beneath its persistent data directory so provider tools and the
+file explorer share one location even when their working directories differ.
+An explicit `--link-dir` (MCP `link_dir`) takes precedence. Without either, the
+standalone CLI keeps `/app/playground` for compatibility.
+
+The link directory's parent must be writable by the agent user: linking stages
+and atomically replaces the whole directory. A writable `/app/playground` under
+a root-owned `/app` is insufficient. Use a directory under writable persistent
+data rather than changing `/app` ownership or permissions.

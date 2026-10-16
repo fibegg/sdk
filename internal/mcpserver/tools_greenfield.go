@@ -13,8 +13,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-const greenfieldDefaultLinkDir = "/app/playground"
-
 func (s *Server) registerGreenfieldTools() {
 	s.addTool(&toolImpl{
 		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Host.", tier: tierGreenfield,
@@ -50,7 +48,7 @@ func (s *Server) registerGreenfieldTools() {
 			}
 			result.Playground = pg
 
-			link, err := localplaygrounds.Link(greenfieldTarget(result), greenfieldDefaultLinkDir)
+			link, err := localplaygrounds.Link(greenfieldTarget(result), "")
 			if err != nil {
 				result.Link = nil
 			} else {
@@ -60,7 +58,7 @@ func (s *Server) registerGreenfieldTools() {
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_greenfield_create",
-		mcp.WithDescription("Create a greenfield app in one call: repos/Repositories, app template version, deployed playground, wait until running, and local /app/playground link. Deployment requires a funded Host; unpaid Hosts return HOST_NOT_FUNDED."),
+		mcp.WithDescription("Create a greenfield app in one call: repos/Repositories, app template version, deployed playground, wait until running, and local link in PLAYGROUNDS_DIR (fallback: /app/playground). Deployment requires a funded Host; unpaid Hosts return HOST_NOT_FUNDED."),
 		mcp.WithString("name", mcp.Description("Repository/app name; must be unique. Optional when repository_url is provided; inferred from repo name.")),
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name to use. Optional; defaults to the base template.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id_or_name or version.")),

@@ -258,7 +258,7 @@ Views:
 Selectors accept local numeric playground ID, compose project/name, spec, or unique spec prefix.`),
 		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, current, repos, urls, mounts, or details.")),
 		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix. Omit for view=names.")),
-		mcp.WithString("link_dir", mcp.Description("Current-link directory for view=current or view=repos (default: /app/playground).")),
+		mcp.WithString("link_dir", mcp.Description("Current-link directory for view=current or view=repos (default: PLAYGROUNDS_DIR, then /app/playground).")),
 	))
 
 	s.addTool(&toolImpl{
@@ -278,7 +278,7 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 	}, mcp.NewTool("fibe_local_playgrounds_link",
 		mcp.WithDescription("[MODE:BROWNFIELD] Link local playground mounts into a working directory."),
 		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix")),
-		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: /app/playground)")),
+		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: PLAYGROUNDS_DIR, then /app/playground)")),
 	))
 
 	s.addTool(&toolImpl{

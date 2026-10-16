@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Local Playground linking, current/repository views, greenfield setup and
+  screenshot paths honor `PLAYGROUNDS_DIR`, keeping agent tools and the file
+  explorer on the same directory. Explicit link-directory arguments still win;
+  standalone callers without the variable retain `/app/playground`.
+
 ## [0.3.2] - 2026-10-16
 
 ### Fixed

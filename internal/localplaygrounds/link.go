@@ -20,6 +20,18 @@ const defaultLinkDir = "/app/playground"
 const currentStateFilename = ".current_playground.json"
 const linkOwnerFilename = ".fibe-playground-links"
 
+// ResolveLinkDir keeps CLI, MCP and agent tools on the same selected directory.
+// An explicit command argument overrides the agent's configured directory.
+func ResolveLinkDir(linkDir string) string {
+	if linkDir != "" {
+		return linkDir
+	}
+	if configured := strings.TrimSpace(os.Getenv("PLAYGROUNDS_DIR")); configured != "" {
+		return configured
+	}
+	return defaultLinkDir
+}
+
 var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
 type Service struct {
@@ -297,9 +309,7 @@ func URLScheme() string {
 }
 
 func CurrentStatePath(linkDir string) string {
-	if linkDir == "" {
-		linkDir = defaultLinkDir
-	}
+	linkDir = ResolveLinkDir(linkDir)
 	return filepath.Join(linkDir, currentStateFilename)
 }
 
@@ -362,9 +372,7 @@ func View(playgrounds []Playground, view, selector, rootDomain, linkDir string) 
 }
 
 func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
-	if linkDir == "" {
-		linkDir = defaultLinkDir
-	}
+	linkDir = ResolveLinkDir(linkDir)
 	playgrounds, err := Scan(BaseDir())
 	if err != nil {
 		return nil, err
@@ -377,9 +385,7 @@ func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 }
 
 func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult, error) {
-	if linkDir == "" {
-		linkDir = defaultLinkDir
-	}
+	linkDir = ResolveLinkDir(linkDir)
 	if pg.JobMode {
 		return nil, fmt.Errorf("cannot link job-mode playground %s", pg.DirName)
 	}
