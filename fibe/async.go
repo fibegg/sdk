@@ -40,7 +40,7 @@ func (a *AsyncResult) IsPending() bool {
 type AsyncPollOptions struct {
 	// Interval between poll attempts. Default: 1s.
 	Interval time.Duration
-	// Timeout after which polling gives up. Default: 5m.
+	// Overall deadline for polling requests and sleeps. Default: 5m.
 	Timeout time.Duration
 	// Progress receives every async poll status. Defaults to the client progress hook.
 	Progress ProgressFunc
@@ -53,6 +53,10 @@ var defaultPollOpts = AsyncPollOptions{
 
 // PollAsync polls a status URL until the async operation completes or times out.
 // The statusPath must be an absolute API path like "/api/async_requests/uuid".
+// Unknown or malformed envelope states return the preserved result and an error.
+// A plain successful non-envelope payload remains a legacy success response.
+// The documented error state is returned in AsyncResult (with a nil Go error);
+// doAsync converts it to APIError for mutation-service callers.
 func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPollOptions) (*AsyncResult, error) {
 	if strings.TrimSpace(statusPath) == "" {
 		return nil, fmt.Errorf("fibe: async status path is empty")
@@ -73,6 +77,8 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 	if o.Progress == nil {
 		o.Progress = c.cfg.progressHook
 	}
+	ctx, cancel := context.WithTimeout(ctx, o.Timeout)
+	defer cancel()
 
 	deadline := c.now().Add(o.Timeout)
 	attempt := 0
@@ -106,12 +112,8 @@ func (c *Client) PollAsync(ctx context.Context, statusPath string, opts *AsyncPo
 		case "queued", "running":
 			// still in progress: wait and retry
 		default:
-			// Unknown terminal status: treat as success payload
-			result.Status = "success"
-			if result.Payload == nil {
-				result.Payload = map[string]any{}
-			}
-			return result, nil
+			// Preserve the response for diagnosis, but never manufacture completion.
+			return result, fmt.Errorf("fibe: unexpected async status %q for request %q", result.Status, result.RequestID)
 		}
 
 		if err := c.sleep(ctx, o.Interval); err != nil {
@@ -185,11 +187,13 @@ func (c *Client) pollAsyncOnce(ctx context.Context, statusPath string) (*AsyncRe
 }
 
 func asyncResultFromRaw(raw map[string]any) (*AsyncResult, bool) {
-	status, hasStatus := raw["status"].(string)
+	statusValue, hasStatus := raw["status"]
+	status, _ := statusValue.(string)
 	result := &AsyncResult{
 		RequestID: stringFromMap(raw, "request_id"),
 		Status:    status,
 		StatusURL: stringFromMap(raw, "status_url"),
+		Payload:   raw,
 	}
 	result.ErrorCode = stringFromMap(raw, "error_code")
 	result.ErrorStatus = intFromMap(raw, "error_status")
@@ -222,7 +226,7 @@ func asyncResultFromRaw(raw map[string]any) (*AsyncResult, bool) {
 		return result, true
 	}
 
-	if hasStatus {
+	if hasStatus || result.RequestID != "" || result.StatusURL != "" {
 		if result.IsPending() {
 			return result, true
 		}
