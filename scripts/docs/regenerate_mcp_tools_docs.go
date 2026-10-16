@@ -31,6 +31,7 @@ func main() {
 	for name, body := range files {
 		path := filepath.Join(*outDir, name)
 		if *check {
+			// #nosec G304 -- path comes from the generator's fixed repository output list.
 			current, err := os.ReadFile(path)
 			if err != nil {
 				fatalf("read %s: %v", path, err)
@@ -40,6 +41,7 @@ func main() {
 			}
 			continue
 		}
+		// #nosec G306 -- generated public documentation is intentionally world-readable.
 		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 			fatalf("write %s: %v", path, err)
 		}

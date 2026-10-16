@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
@@ -32,6 +30,7 @@ type cliConfigStore struct {
 }
 
 type resolvedAuth struct {
+	CredentialContext fibe.CredentialContext
 	Profile           string
 	Domain            string
 	APIKey            string
@@ -54,11 +53,7 @@ type authProfileRow struct {
 }
 
 func defaultCLIConfigPath() string {
-	cfgDir := os.Getenv("XDG_CONFIG_HOME")
-	if cfgDir == "" {
-		cfgDir = filepath.Join(os.Getenv("HOME"), ".config")
-	}
-	return filepath.Join(cfgDir, "fibe", "config.json")
+	return fibe.DefaultAuthProfilePath()
 }
 
 func newCLIConfigStore(path string) *cliConfigStore {
@@ -66,65 +61,27 @@ func newCLIConfigStore(path string) *cliConfigStore {
 }
 
 func (s *cliConfigStore) load() (*cliConfigFile, error) {
-	data, err := os.ReadFile(s.path)
+	cfg, err := fibe.NewAuthProfileStore(s.path).Load()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return &cliConfigFile{Profiles: map[string]cliProfileConfig{}}, nil
-		}
 		return nil, err
 	}
-	var cfg cliConfigFile
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+	out := &cliConfigFile{ActiveProfile: cfg.ActiveProfile, Profiles: make(map[string]cliProfileConfig, len(cfg.Profiles))}
+	for name, profile := range cfg.Profiles {
+		out.Profiles[name] = cliProfileConfig{Domain: profile.Domain}
 	}
-	if cfg.Profiles == nil {
-		cfg.Profiles = map[string]cliProfileConfig{}
-	}
-	return &cfg, nil
-}
-
-func (s *cliConfigStore) save(cfg *cliConfigFile) error {
-	if cfg.Profiles == nil {
-		cfg.Profiles = map[string]cliProfileConfig{}
-	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(s.path, append(data, '\n'), 0o644)
+	return out, nil
 }
 
 func (s *cliConfigStore) setProfile(profile, domain string) error {
-	cfg, err := s.load()
-	if err != nil {
-		return err
-	}
-	cfg.Profiles[profile] = cliProfileConfig{Domain: normalizeDomainInput(domain)}
-	return s.save(cfg)
+	return fibe.NewAuthProfileStore(s.path).SetProfile(profile, normalizeDomainInput(domain))
 }
 
 func (s *cliConfigStore) setActive(profile string) error {
-	cfg, err := s.load()
-	if err != nil {
-		return err
-	}
-	cfg.ActiveProfile = profile
-	return s.save(cfg)
+	return fibe.NewAuthProfileStore(s.path).SetActive(profile)
 }
 
 func (s *cliConfigStore) deleteProfile(profile string) error {
-	cfg, err := s.load()
-	if err != nil {
-		return err
-	}
-	delete(cfg.Profiles, profile)
-	if cfg.ActiveProfile == profile {
-		cfg.ActiveProfile = ""
-	}
-	return s.save(cfg)
+	return fibe.NewAuthProfileStore(s.path).DeleteProfile(profile)
 }
 
 func validateProfileName(profile string) error {
@@ -233,6 +190,7 @@ func resolveCLIAuth() resolvedAuth {
 	}
 
 	return resolvedAuth{
+		CredentialContext: resolvedCredentialContext(entry, authSource, profile),
 		Profile:           profile,
 		Domain:            normalizeDomainInput(domain),
 		APIKey:            apiKey,
@@ -244,7 +202,7 @@ func resolveCLIAuth() resolvedAuth {
 	}
 }
 
-func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64) error {
+func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64, metadata ...fibe.CredentialContext) error {
 	if err := validateProfileName(profile); err != nil {
 		return err
 	}
@@ -252,14 +210,31 @@ func saveAuthProfile(profile, domain, apiKey string, apiKeyID int64) error {
 	if err := newCLIConfigStore(defaultCLIConfigPath()).setProfile(profile, domain); err != nil {
 		return err
 	}
+	var context fibe.CredentialContext
+	if len(metadata) > 0 {
+		context = metadata[0]
+	}
 	if err := fibe.NewCredentialStore(fibe.DefaultCredentialPath()).SetProfile(profile, &fibe.CredentialEntry{
-		APIKey:   apiKey,
-		APIKeyID: apiKeyID,
-		Domain:   domain,
+		CredentialContext: context,
+		APIKey:            apiKey,
+		APIKeyID:          apiKeyID,
+		Domain:            domain,
 	}); err != nil {
 		return err
 	}
 	return newCLIConfigStore(defaultCLIConfigPath()).setActive(profile)
+}
+
+func resolvedCredentialContext(entry *fibe.CredentialEntry, source, profile string) fibe.CredentialContext {
+	if entry != nil && source == "profile "+profile {
+		return entry.CredentialContext
+	}
+	ownerType := os.Getenv("FIBE_OWNER_TYPE")
+	ownerID, _ := strconv.ParseInt(os.Getenv("FIBE_OWNER_ID"), 10, 64)
+	principalID, _ := strconv.ParseInt(os.Getenv("FIBE_PRINCIPAL_ID"), 10, 64)
+	version, _ := strconv.Atoi(os.Getenv("FIBE_AUTHORIZATION_VERSION"))
+	return fibe.CredentialContext{OwnerContext: fibe.OwnerContext{OwnerType: ownerType, OwnerID: ownerID},
+		PrincipalType: os.Getenv("FIBE_PRINCIPAL_TYPE"), PrincipalID: principalID, AuthorizationVersion: version}
 }
 
 func deleteAuthProfile(profile string) error {

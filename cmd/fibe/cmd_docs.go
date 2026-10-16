@@ -18,29 +18,33 @@ func docsCmd() *cobra.Command {
 Useful for generating full documentation or piping into search tools.
 The output is identical to running each command with --help sequentially.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			walkCommands(cmd.Root(), os.Stdout)
-			return nil
+			return walkCommands(cmd.Root(), os.Stdout)
 		},
 	}
 }
 
-func walkCommands(cmd *cobra.Command, w io.Writer) {
+func walkCommands(cmd *cobra.Command, w io.Writer) error {
 	fmt.Fprintf(w, "\n%s\n%s\n%s\n\n",
 		strings.Repeat("=", 80),
 		cmd.CommandPath(),
 		strings.Repeat("=", 80))
 
 	cmd.SetOut(w)
-	cmd.Help()
+	if err := cmd.Help(); err != nil {
+		return err
+	}
 
 	// Recurse into children, skipping:
 	// - hidden commands (aliases etc)
 	// - "help" (built-in, excludes itself)
-	// - "docs" (this command — avoid self-inclusion)
+	// - "docs" (this command: avoid self-inclusion)
 	for _, child := range cmd.Commands() {
 		if child.Hidden || child.Name() == "help" || child.Name() == "docs" {
 			continue
 		}
-		walkCommands(child, w)
+		if err := walkCommands(child, w); err != nil {
+			return err
+		}
 	}
+	return nil
 }

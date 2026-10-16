@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -13,7 +15,7 @@ import (
 
 var Default = Build
 
-var ldflags = fmt.Sprintf("-s -w -X main.version=%s", version())
+var ldflags = fmt.Sprintf("-s -w -X main.version=%s -X github.com/fibegg/sdk/fibe.sdkVersion=%s -X github.com/fibegg/sdk/internal/mcpserver.Version=%s", version(), version(), version())
 
 func version() string {
 	if v := os.Getenv("VERSION"); v != "" {
@@ -23,7 +25,7 @@ func version() string {
 	if out != "" {
 		return out
 	}
-	return "dev"
+	return "devel"
 }
 
 func Build() error {
@@ -38,6 +40,7 @@ func BuildAll() error {
 		{"darwin", "amd64"},
 		{"darwin", "arm64"},
 		{"windows", "amd64"},
+		{"windows", "arm64"},
 	}
 
 	for _, t := range targets {
@@ -59,7 +62,7 @@ func Test() error {
 	if err := ToolsDocsCheck(); err != nil {
 		return err
 	}
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "./fibe/...", "./internal/mcpserver/...", "-count=1", "-timeout", "30s", "-short")
+	return sh.RunV("go", "tool", "gotestsum", "--format", "testname", "--", "./fibe/...", "./fibetest/...", "./internal/...", "./cmd/fibe/...", "-count=1", "-timeout", "120s", "-short")
 }
 
 func ToolsDocs() error {
@@ -71,13 +74,13 @@ func ToolsDocsCheck() error {
 }
 
 func IntegrationTest() error {
-	return sh.RunV("go", "run", "gotest.tools/gotestsum@latest", "--format", "testname", "--", "-tags=integration", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
+	return sh.RunV("go", "tool", "gotestsum", "--format", "testname", "--", "-tags=integration", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
 }
 
 // ChatE2E runs provider chat runtime E2E tests.
 func ChatE2E() error {
 	return sh.RunV(
-		"go", "run", "gotest.tools/gotestsum@latest",
+		"go", "tool", "gotestsum",
 		"--format", "testname",
 		"--",
 		"./integration/...",
@@ -94,7 +97,78 @@ func ChatE2EHelp() {
 }
 
 func Lint() error {
-	return sh.RunV("go", "vet", "./...")
+	if err := sh.RunV("go", "vet", "./..."); err != nil {
+		return err
+	}
+	if err := sh.RunV("go", "tool", "staticcheck", "./..."); err != nil {
+		return err
+	}
+	if err := sh.RunV("go", "tool", "revive", "-config", ".revive.toml", "./..."); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Check runs the same hermetic quality gate used by CI and releases.
+func Check() error {
+	steps := []func() error{
+		FormatCheck,
+		func() error { return sh.RunV("go", "mod", "verify") },
+		func() error { return sh.RunV("go", "mod", "tidy", "-diff") },
+		Lint,
+		Security,
+		ToolsDocsCheck,
+		func() error { return sh.RunV("go", "build", "./examples/...") },
+		func() error {
+			return sh.RunV("go", "tool", "gotestsum", "--format", "testname", "--",
+				"./fibe/...", "./fibetest/...", "./internal/...", "./cmd/fibe/...",
+				"-race", "-shuffle=on", "-count=1", "-timeout", "180s", "-short")
+		},
+		BuildAll,
+	}
+	for _, step := range steps {
+		if err := step(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Security runs pinned vulnerability and source-security scanners.
+func Security() error {
+	if err := sh.RunV("go", "tool", "govulncheck", "./..."); err != nil {
+		return err
+	}
+	return sh.RunV("go", "tool", "gosec", "-quiet", "./...")
+}
+
+// FormatCheck rejects Go files whose tracked formatting differs from gofmt.
+func FormatCheck() error {
+	var files []string
+	err := filepath.WalkDir(".", func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() && (path == ".git" || path == "dist" || path == "graphify-out") {
+			return filepath.SkipDir
+		}
+		if !entry.IsDir() && strings.HasSuffix(path, ".go") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	args := append([]string{"-l"}, files...)
+	out, err := sh.Output("gofmt", args...)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(out) != "" {
+		return fmt.Errorf("gofmt required for:\n%s", out)
+	}
+	return nil
 }
 
 func Clean() error {
@@ -119,17 +193,17 @@ func gopath() string {
 
 func chatE2EHelpText() string {
 	rows := [][]string{
-		{"Gemini OAuth", "FIBE_TEST_AGENT_GEMINI_OAUTH_JSON", "GEMINI_OAUTH_JSON", "gemini", "pro"},
-		{"Gemini API key", "FIBE_TEST_AGENT_GEMINI_API_KEY", "GEMINI_KEY", "gemini", "gemini-2.5-flash-lite"},
-		{"Claude manual", "FIBE_TEST_AGENT_CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "claude-code", "haiku"},
-		{"Claude API key", "FIBE_TEST_AGENT_ANTHROPIC_API_KEY", "ANTHROPIC_KEY", "claude-code", "haiku"},
-		{"Codex auth JSON", "FIBE_TEST_AGENT_CODEX_AUTH_JSON", "CODEX_AUTH_JSON", "openai-codex", "gpt-5.4-mini"},
-		{"Codex API key", "FIBE_TEST_AGENT_OPENAI_API_KEY", "OPENAI_KEY", "openai-codex", "gpt-5.4-mini"},
-		{"Cursor API key", "FIBE_TEST_AGENT_CURSOR_API_KEY", "CURSOR_KEY", "cursor", "default"},
-		{"OpenCode OpenRouter", "FIBE_TEST_AGENT_OPENCODE_OPENROUTER_API_KEY", "OPENCODE_OPENROUTER_KEY", "opencode", "google/gemini-2.5-flash-lite"},
-		{"OpenCode Anthropic", "FIBE_TEST_AGENT_OPENCODE_ANTHROPIC_API_KEY", "OPENCODE_ANTHROPIC_KEY", "opencode", "anthropic/claude-haiku-4-5"},
-		{"OpenCode OpenAI", "FIBE_TEST_AGENT_OPENCODE_OPENAI_API_KEY", "OPENCODE_OPENAI_KEY", "opencode", "openai/gpt-5-mini"},
-		{"OpenCode Gemini", "FIBE_TEST_AGENT_OPENCODE_GEMINI_API_KEY", "OPENCODE_GEMINI_KEY", "opencode", "google/gemini-2.5-flash-lite"},
+		{"Gemini OAuth", "GEMINI_OAUTH_JSON", "gemini", "pro"},
+		{"Gemini API key", "GEMINI_API_KEY", "gemini", "gemini-2.5-flash-lite"},
+		{"Claude manual", "CLAUDE_CODE_OAUTH_TOKEN", "claude-code", "haiku"},
+		{"Claude API key", "ANTHROPIC_API_KEY", "claude-code", "haiku"},
+		{"Codex auth JSON", "CODEX_AUTH_JSON", "openai-codex", "gpt-6-luna"},
+		{"Codex API key", "OPENAI_API_KEY", "openai-codex", "gpt-6-luna"},
+		{"Cursor API key", "CURSOR_API_KEY", "cursor", "default"},
+		{"OpenCode OpenRouter", "OPENROUTER_API_KEY", "opencode", "google/gemini-2.5-flash-lite"},
+		{"OpenCode Anthropic", "ANTHROPIC_API_KEY", "opencode", "anthropic/claude-haiku-4-5"},
+		{"OpenCode OpenAI", "OPENAI_API_KEY", "opencode", "openai/gpt-5-mini"},
+		{"OpenCode Gemini", "GEMINI_API_KEY", "opencode", "google/gemini-2.5-flash-lite"},
 	}
 
 	var b strings.Builder
@@ -138,7 +212,7 @@ func chatE2EHelpText() string {
 Required for any runnable row:
   FIBE_API_KEY
   FIBE_DOMAIN optional; defaults to localhost:3000
-  FIBE_TEST_MARQUEE_ID
+  FIBE_TEST_HOST_ID
 
 Prompt:
   MESSAGE or FIBE_TEST_AGENT_MESSAGE overrides the first chat message.
@@ -151,13 +225,13 @@ Filtering:
 Rows:
 `)
 	for _, row := range rows {
-		b.WriteString(fmt.Sprintf("  %-20s primary=%-45s alias=%-24s provider=%-13s model=%s\n", row[0], row[1], row[2], row[3], row[4]))
+		b.WriteString(fmt.Sprintf("  %-20s credential=%-20s provider=%-13s model=%s\n", row[0], row[1], row[2], row[3]))
 	}
 	b.WriteString(`
 Examples:
-  OPENAI_KEY=SECRET MESSAGE="[SYSCHECK]" mage chatE2E
-  OPENAI_KEY=SECRET MESSAGE="[SYSCHECK]" CHAT_E2E_FOLLOWUPS=0 CHAT_E2E_MIN_ENTRIES=0 mage chatE2E
-  CHAT_E2E_CASE=opencode_anthropic OPENCODE_ANTHROPIC_KEY=SECRET MESSAGE="hello" mage chatE2E
+  OPENAI_API_KEY=SECRET MESSAGE="[SYSCHECK]" mage chatE2E
+  OPENAI_API_KEY=SECRET MESSAGE="[SYSCHECK]" CHAT_E2E_FOLLOWUPS=0 CHAT_E2E_MIN_ENTRIES=0 mage chatE2E
+  CHAT_E2E_CASE=opencode_anthropic ANTHROPIC_API_KEY=SECRET MESSAGE="hello" mage chatE2E
   mage chatE2EHelp
 `)
 	return b.String()

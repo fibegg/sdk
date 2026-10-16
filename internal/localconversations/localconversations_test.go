@@ -2,6 +2,8 @@ package localconversations
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -137,7 +139,7 @@ func TestListEnrichesClaudeTitleAndProjectFromHistory(t *testing.T) {
 `)
 	writeFile(t, filepath.Join(home, ".claude", "history.jsonl"), `
 {"display":"/resume","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
-{"display":"Fix tutorial marquee invariant","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
+{"display":"Fix tutorial host invariant","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
 {"display":"later follow-up should not replace title","project":"/Users/vvsk/play/fibe","sessionId":"claude-session-id"}
 `)
 
@@ -148,7 +150,7 @@ func TestListEnrichesClaudeTitleAndProjectFromHistory(t *testing.T) {
 	if len(conversations) != 1 {
 		t.Fatalf("len = %d", len(conversations))
 	}
-	if conversations[0].Title != "Fix tutorial marquee invariant" {
+	if conversations[0].Title != "Fix tutorial host invariant" {
 		t.Fatalf("title = %q", conversations[0].Title)
 	}
 	if conversations[0].Project != "fibe" {
@@ -365,6 +367,54 @@ func TestSearchRootsWorkForListAndGet(t *testing.T) {
 	}
 	if detail.UUID != "codex-search-root-id" {
 		t.Fatalf("uuid = %q", detail.UUID)
+	}
+}
+
+func TestConversationDiscoverySkipsSymlinkRootsAndFiles(t *testing.T) {
+	realRoot := t.TempDir()
+	writeFile(t, filepath.Join(realRoot, "session.jsonl"), `{"type":"session_meta","payload":{"id":"hidden-via-link"}}`)
+	parent := t.TempDir()
+	linkedRoot := filepath.Join(parent, "linked")
+	if err := os.Symlink(realRoot, linkedRoot); err != nil {
+		t.Fatal(err)
+	}
+	conversations, err := List(context.Background(), ListOptions{HomeDir: t.TempDir(), Providers: []string{"codex"}, Paths: []string{linkedRoot}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(conversations) != 0 {
+		t.Fatalf("symlink root yielded conversations: %#v", conversations)
+	}
+}
+
+func TestConversationDiscoveryHonorsCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := List(ctx, ListOptions{HomeDir: t.TempDir(), Paths: []string{t.TempDir()}})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error=%v want context cancellation", err)
+	}
+}
+
+func TestConversationDiscoveryEnforcesAggregateByteBudget(t *testing.T) {
+	root := t.TempDir()
+	for i, size := range []int64{3 << 30, 2 << 30} {
+		path := filepath.Join(root, fmt.Sprintf("%d.jsonl", i))
+		file, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Truncate(size); err != nil {
+			file.Close()
+			t.Skipf("filesystem does not support sparse test files: %v", err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := List(context.Background(), ListOptions{HomeDir: t.TempDir(), Providers: []string{"codex"}, Paths: []string{root}})
+	if err == nil || !strings.Contains(err.Error(), "aggregate budget") {
+		t.Fatalf("error=%v want aggregate budget error", err)
 	}
 }
 

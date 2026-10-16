@@ -20,6 +20,7 @@ SUBCOMMANDS:
 
 func githubRepoCreateCmd() *cobra.Command {
 	var name, description string
+	var installationID int64
 	var private, autoInit bool
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -33,13 +34,14 @@ OPTIONAL FLAGS:
   --private      Create as private repository
   --auto-init    Initialize with README
   --description  Repository description
+  --github-installation-id  Verified Team installation
 
 EXAMPLES:
   fibe github-repos create --name my-repo
   fibe github-repos create --name my-repo --private --auto-init --description "My project"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			params := &fibe.GitHubRepoCreateParams{Name: name}
+			params := &fibe.GitHubRepoCreateParams{Name: name, GitHubInstallationID: installationID}
 			if cmd.Flags().Changed("private") {
 				params.Private = &private
 			}
@@ -61,5 +63,6 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&private, "private", false, "Create as private")
 	cmd.Flags().BoolVar(&autoInit, "auto-init", false, "Initialize with README")
 	cmd.Flags().StringVar(&description, "description", "", "Repository description")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation")
 	return cmd
 }

@@ -1,0 +1,16 @@
+ignoreGeneratedHeader = false
+severity = "warning"
+confidence = 0.8
+
+[rule.atomic]
+[rule.error-naming]
+[rule.error-strings]
+[rule.indent-error-flow]
+[rule.range]
+[rule.receiver-naming]
+[rule.string-of-int]
+[rule.superfluous-else]
+[rule.time-equal]
+[rule.unconditional-recursion]
+[rule.unreachable-code]
+[rule.var-declaration]

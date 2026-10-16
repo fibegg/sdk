@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -24,7 +23,7 @@ This is the canonical way to interact with GitHub App installations.
 SUBCOMMANDS:
   list                List your installations
   find-repos          Search repos across ALL installations
-  get-token           Get a GitHub token for a repo (auto-resolves installation)
+  get-token           Get the server-provided GitHub credential for a repo
   repos <id>          List repositories for a specific installation
   token <id>          Get an installation access token (explicit ID)`,
 	}
@@ -104,7 +103,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			params := &fibe.InstallationReposParams{}
 			if query != "" {
 				params.Q = query
@@ -164,7 +166,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			token, err := c.Installations.Token(ctx(), id, repo)
 			if err != nil {
 				return err
@@ -184,16 +189,18 @@ EXAMPLES:
 
 func instFindReposCmd() *cobra.Command {
 	var query string
+	var installationID int64
 	cmd := &cobra.Command{
 		Use:   "find-repos",
-		Short: "Search repos across ALL installations",
+		Short: "Search repositories for the selected workspace",
 		Long: `Search GitHub repositories across all connected installations.
 
-Results are aggregated from all GitHub App installations linked to the
-authenticated player and deduplicated by full_name.
+Personal results aggregate connected installations. Team results use one
+verified organization installation; select it explicitly when multiple are connected.
 
 FILTERS:
   -q, --query           Search query (repo name substring)
+  --github-installation-id  Verified Team installation
 
 PAGINATION:
   --page                Page number (default: 1)
@@ -205,7 +212,7 @@ EXAMPLES:
   fibe inst find-repos -q api -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			params := &fibe.InstallationReposParams{}
+			params := &fibe.InstallationReposParams{GitHubInstallationID: installationID}
 			if query != "" {
 				params.Q = query
 			}
@@ -238,17 +245,23 @@ EXAMPLES:
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (repo name substring)")
+	cmd.Flags().Int64Var(&installationID, "github-installation-id", 0, "Verified Team GitHub installation")
 	return cmd
 }
 
 func instGetTokenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get-token <repo>",
-		Short: "Get a GitHub token for a repo (auto-resolves installation)",
-		Long: `Get a fresh GitHub access token for a repository.
+		Short: "Get the server-provided GitHub credential for a repo",
+		Long: `Get the server-provided GitHub access credential for a repository.
 
-Automatically resolves the correct GitHub App installation that has
-access to the specified repository. No installation ID needed.
+Enterprise resolves the GitHub App installation that has access to the
+repository. Standalone Core returns its configured stable credential. No
+installation ID is needed in either case.
+
+Enterprise requires a personal key with git_credentials:read, a current GitHub
+owner/organization-admin connection, and repository administrator access. The
+installation token is restricted to the requested repository.
 
 EXAMPLES:
   fibe installations get-token myorg/myrepo

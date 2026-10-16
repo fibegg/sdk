@@ -1,16 +1,16 @@
 package main
 
 import (
-
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
 )
+
 func auditLogsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "audit-logs",
 		Aliases: []string{"al"},
 		Short:   "View audit logs",
-		Long: `View Fibe audit logs — records of all API and UI actions.
+		Long: `View Fibe audit logs: records of all API and UI actions.
 
 Filter by resource type, channel (api/ui), or action prefix.
 
@@ -35,7 +35,7 @@ func alListCmd() *cobra.Command {
 
 FILTERS:
   -q, --query           Search across action (substring match)
-  --resource-type       Filter by resource type (e.g. Playground, Agent, Prop)
+  --resource-type       Filter by resource type (e.g. Playground, Agent, Repository)
   --channel             Filter by channel. Values: api, ui
   --action-prefix       Filter by action prefix (substring match)
 
@@ -61,21 +61,46 @@ EXAMPLES:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.AuditLogListParams{}
-			if query != "" { params.Q = query }
-			if resType != "" { params.ResourceType = resType }
-			if channel != "" { params.Channel = channel }
-			if prefix != "" { params.ActionPrefix = prefix }
-			if createdAfter != "" { params.CreatedAfter = createdAfter }
-			if createdBefore != "" { params.CreatedBefore = createdBefore }
-			if sort != "" { params.Sort = sort }
-			if flagPage > 0 { params.Page = flagPage }
-			if flagPerPage > 0 { params.PerPage = flagPerPage }
+			if query != "" {
+				params.Q = query
+			}
+			if resType != "" {
+				params.ResourceType = resType
+			}
+			if channel != "" {
+				params.Channel = channel
+			}
+			if prefix != "" {
+				params.ActionPrefix = prefix
+			}
+			if createdAfter != "" {
+				params.CreatedAfter = createdAfter
+			}
+			if createdBefore != "" {
+				params.CreatedBefore = createdBefore
+			}
+			if sort != "" {
+				params.Sort = sort
+			}
+			if flagPage > 0 {
+				params.Page = flagPage
+			}
+			if flagPerPage > 0 {
+				params.PerPage = flagPerPage
+			}
 			logs, err := c.AuditLogs.List(ctx(), params)
-			if err != nil { return err }
-			if effectiveOutput() != "table" { outputJSON(logs); return nil }
+			if err != nil {
+				return err
+			}
+			if effectiveOutput() != "table" {
+				outputJSON(logs)
+				return nil
+			}
 			headers := []string{"ID", "ACTION", "RESOURCE", "CHANNEL", "CREATED"}
 			rows := make([][]string, len(logs.Data))
-			for i, l := range logs.Data { rows[i] = []string{fmtInt64(l.ID), l.Action, l.ResourceType, l.Channel, fmtTimeVal(l.CreatedAt)} }
+			for i, l := range logs.Data {
+				rows[i] = []string{fmtInt64(l.ID), l.Action, l.ResourceType, l.Channel, fmtTimeVal(l.CreatedAt)}
+			}
 			outputTable(headers, rows)
 			return nil
 		},
@@ -89,4 +114,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&sort, "sort", "", "Sort order (e.g. created_at_desc)")
 	return cmd
 }
-

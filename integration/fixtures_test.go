@@ -35,14 +35,14 @@ func minimalComposeYAML() string {
 	return "services:\n  web:\n    image: nginx:alpine\n"
 }
 
-// uniqueHost returns a fake but unique hostname for marquee tests.
+// uniqueHost returns a fake but unique hostname for host tests.
 // The backend enforces host uniqueness, and Docker E2E databases can retain
 // old rows between runs, so include the same nanosecond entropy as uniqueName.
 func uniqueHost() string {
 	return fmt.Sprintf("%s.test.local", uniqueName("host"))
 }
 
-// jobComposeYAML returns a compose suitable for job-mode playspecs (tricks).
+// jobComposeYAML returns a compose suitable for job-mode specs (tasks).
 func jobComposeYAML() string {
 	return `services:
   worker:
@@ -55,22 +55,22 @@ func jobComposeYAML() string {
 
 // jobWatchedService returns a service def with JobWatch=true, which is required
 // for backends that enforce "job_mode requires at least one watched service".
-func jobWatchedService(name string) fibe.PlayspecServiceDef {
+func jobWatchedService(name string) fibe.SpecServiceDef {
 	t := true
-	return fibe.PlayspecServiceDef{
+	return fibe.SpecServiceDef{
 		Name:     name,
 		Type:     fibe.ServiceTypeStatic,
 		JobWatch: &t,
 	}
 }
 
-// seedPlayspec creates a real playspec, registers cleanup, returns ID.
-func seedPlayspec(t *testing.T, c *fibe.Client, opts ...func(*fibe.PlayspecCreateParams)) *fibe.Playspec {
+// seedSpec creates a real spec, registers cleanup, returns ID.
+func seedSpec(t *testing.T, c *fibe.Client, opts ...func(*fibe.SpecCreateParams)) *fibe.Spec {
 	t.Helper()
-	params := &fibe.PlayspecCreateParams{
+	params := &fibe.SpecCreateParams{
 		Name:            uniqueName("fx-spec"),
 		BaseComposeYAML: realComposeYAML(),
-		Services: []fibe.PlayspecServiceDef{
+		Services: []fibe.SpecServiceDef{
 			{Name: "web", Type: fibe.ServiceTypeStatic},
 			{Name: "db", Type: fibe.ServiceTypeStatic},
 			{Name: "cache", Type: fibe.ServiceTypeStatic},
@@ -79,12 +79,12 @@ func seedPlayspec(t *testing.T, c *fibe.Client, opts ...func(*fibe.PlayspecCreat
 	for _, o := range opts {
 		o(params)
 	}
-	spec, err := c.Playspecs.Create(ctx(), params)
-	requireNoError(t, err, "seed playspec")
+	spec, err := c.Specs.Create(ctx(), params)
+	requireNoError(t, err, "seed spec")
 	if spec.ID == nil || *spec.ID == 0 {
-		t.Fatal("expected playspec ID")
+		t.Fatal("expected spec ID")
 	}
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 	return spec
 }
 
@@ -124,6 +124,69 @@ func seedSecret(t *testing.T, c *fibe.Client, keySuffix string) *fibe.Secret {
 	return s
 }
 
+// seedWritableGiteaRepository creates a real writable repo through the e2e player's
+// connected Gitea account and returns the Repository surfaced by that flow.
+func seedWritableGiteaRepository(t *testing.T, c *fibe.Client, prefix string) *fibe.Repository {
+	t.Helper()
+	repository := createWritableGiteaRepository(t, c, prefix)
+	t.Cleanup(func() { _ = c.Repositories.Delete(ctx(), repository.ID) })
+	return repository
+}
+
+func createWritableGiteaRepository(t *testing.T, c *fibe.Client, prefix string) *fibe.Repository {
+	t.Helper()
+	repo := seedWritableGiteaRepo(t, c, prefix)
+	var repository *fibe.Repository
+	if repo.Repository != nil {
+		repository = repo.Repository
+	} else if repo.RepositoryID > 0 {
+		var err error
+		repository, err = c.Repositories.Get(ctx(), repo.RepositoryID)
+		requireNoError(t, err, "get writable gitea repository")
+	} else {
+		t.Fatalf("gitea repo create did not return repository metadata: %#v", repo)
+	}
+	return repository
+}
+
+// seedWritableGiteaRepoURL creates a real Gitea repo and removes the auto-created
+// Repository so callers can exercise the generic repositories create path against a writable URL.
+func seedWritableGiteaRepoURL(t *testing.T, c *fibe.Client, prefix string) string {
+	t.Helper()
+	repo := seedWritableGiteaRepo(t, c, prefix)
+	if repo.RepositoryID > 0 {
+		_ = c.Repositories.Delete(ctx(), repo.RepositoryID)
+	}
+	if repo.HTMLURL != "" {
+		return repo.HTMLURL
+	}
+	if repo.CloneURL != "" {
+		return repo.CloneURL
+	}
+	t.Fatalf("gitea repo create did not return a usable URL: %#v", repo)
+	return ""
+}
+
+func seedWritableGiteaRepo(t *testing.T, c *fibe.Client, prefix string) *fibe.GiteaRepo {
+	t.Helper()
+	private := true
+	autoInit := true
+	description := "SDK integration writable repo fixture"
+	repo, err := c.GiteaRepos.Create(ctx(), &fibe.GiteaRepoCreateParams{
+		Name:        uniqueName(prefix),
+		Private:     &private,
+		AutoInit:    &autoInit,
+		Description: &description,
+	})
+	if err != nil {
+		if apiErr, ok := err.(*fibe.APIError); ok && apiErr.Code == "GITEA_CONNECTION_REQUIRED" {
+			t.Skip("Gitea account is not connected for this integration environment")
+		}
+		requireNoError(t, err, "create writable gitea repo")
+	}
+	return repo
+}
+
 // skipIfFeatureDisabled returns true (and skips) if the error is FEATURE_DISABLED.
 func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	t.Helper()
@@ -141,31 +204,7 @@ func skipIfFeatureDisabled(t *testing.T, err error, feature string) bool {
 	return false
 }
 
-// requireSortedByString asserts slice is sorted ascending or descending.
-// Uses Go's byte-wise comparison, which differs from PostgreSQL's default locale-aware
-// collation (which ignores punctuation). Callers that sort against PG should use
-// requireSortedByStringLocaleAware which normalizes punctuation out.
-func requireSortedByString(t *testing.T, label string, values []string, ascending bool) {
-	t.Helper()
-	if len(values) < 2 {
-		return
-	}
-	check := sort.SliceIsSorted(values, func(i, j int) bool {
-		if ascending {
-			return values[i] < values[j]
-		}
-		return values[i] > values[j]
-	})
-	if !check {
-		dir := "descending"
-		if ascending {
-			dir = "ascending"
-		}
-		t.Errorf("%s: expected %s order, got %v", label, dir, values)
-	}
-}
-
-// localeNormalize strips punctuation & casefolds — approximates PostgreSQL's
+// localeNormalize strips punctuation & casefolds: approximates PostgreSQL's
 // default collation treatment of punctuation.
 func localeNormalize(s string) string {
 	var b strings.Builder

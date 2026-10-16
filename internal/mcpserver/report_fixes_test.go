@@ -9,14 +9,9 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Aggregated tests for the fixes landing in response to REPORT.md.
-
-// ---------- SDK: PropBranches is an array of objects ----------
-
-func TestPropBranchesUnmarshalsObjectArray(t *testing.T) {
-	// Shape the Fibe API actually returns.
+func TestRepositoryBranchesUnmarshalsObjectArray(t *testing.T) {
 	payload := []byte(`{"branches":[{"name":"main","default":true},{"name":"feat","default":false}]}`)
-	var pb fibe.PropBranches
+	var pb fibe.RepositoryBranches
 	if err := json.Unmarshal(payload, &pb); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -69,8 +64,6 @@ func TestBindArgsStringifiesStringSliceElements(t *testing.T) {
 	}
 }
 
-// ---------- Tool-level field validation ----------
-
 func TestAgentsSendMessageRequiresCanonicalTextField(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full"})
 	if err := srv.RegisterAll(); err != nil {
@@ -90,20 +83,18 @@ func TestAgentsSendMessageSchemaIncludesConversationControls(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	props, ok := srv.toolSchemas["fibe_agents_send_message"]["properties"].(map[string]any)
+	repositories, ok := srv.toolSchemas["fibe_agents_send_message"]["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties missing: %#v", srv.toolSchemas["fibe_agents_send_message"])
 	}
 	for _, want := range []string{"id_or_name", "text", "conversation_id", "busy_policy", "images", "attachment_paths", "attachment_filenames"} {
-		if _, ok := props[want]; !ok {
-			t.Fatalf("schema property %q missing: %#v", want, props)
+		if _, ok := repositories[want]; !ok {
+			t.Fatalf("schema property %q missing: %#v", want, repositories)
 		}
 	}
 }
 
 // Note: HTTP tests have been moved to real integration tests in tools_templates_change_test.go
-
-// ---------- Props attach: URL-to-short-form parsing ----------
 
 func TestParseRepoFullName(t *testing.T) {
 	cases := map[string]string{
@@ -122,8 +113,6 @@ func TestParseRepoFullName(t *testing.T) {
 		}
 	}
 }
-
-// ---------- pipeline_result bindings-rooted projection ----------
 
 func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10, PipelineCacheEntryMax: 1 << 20})
@@ -149,7 +138,6 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	m := resp.(map[string]any)
 	pid := m["pipeline_id"].(string)
 
-	// Bindings-rooted path: $.create_team.id should return 42.
 	result, err := srv.dispatcher.dispatch(context.Background(), "fibe_pipeline_result", map[string]any{
 		"pipeline_id": pid,
 		"path":        "$.create_team.id",
@@ -174,32 +162,28 @@ func TestPipelineResultBindingsRootedProjection(t *testing.T) {
 	}
 }
 
-// ---------- fibe launch returns stable resource IDs ----------
-
 func TestLaunchSurfacesBothIDs(t *testing.T) {
 	var r fibe.LaunchResult
-	if err := json.Unmarshal([]byte(`{"playspec_id":10,"playground_id":20,"props_created":[1,2]}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"spec_id":10,"playground_id":20,"repositories_created":[1,2]}`), &r); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if r.PlayspecID != 10 {
-		t.Errorf("PlayspecID=%d want 10", r.PlayspecID)
+	if r.SpecID != 10 {
+		t.Errorf("SpecID=%d want 10", r.SpecID)
 	}
 	if r.PlaygroundID != 20 {
 		t.Errorf("PlaygroundID=%d want 20", r.PlaygroundID)
 	}
-	if len(r.PropsCreated) != 2 {
-		t.Errorf("PropsCreated=%v want [1,2]", r.PropsCreated)
+	if len(r.RepositoriesCreated) != 2 {
+		t.Errorf("RepositoriesCreated=%v want [1,2]", r.RepositoriesCreated)
 	}
 
-	if err := json.Unmarshal([]byte(`{"playspecs_created":11}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"specs_created":11}`), &r); err != nil {
 		t.Fatalf("legacy unmarshal: %v", err)
 	}
-	if r.PlayspecID != 11 {
-		t.Errorf("legacy PlayspecID=%d want 11", r.PlayspecID)
+	if r.SpecID != 11 {
+		t.Errorf("legacy SpecID=%d want 11", r.SpecID)
 	}
 }
-
-// ---------- splitContentHeader helps artefacts_download disambiguate ----------
 
 func TestSplitContentHeader(t *testing.T) {
 	cases := []struct {
@@ -220,16 +204,11 @@ func TestSplitContentHeader(t *testing.T) {
 	}
 }
 
-// ---------- Pipeline description documents the limit ----------
-
 func TestPipelineDescriptionDocumentsMaxSteps(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
-	// The dispatcher's description field is the short form; the full
-	// description lives on the mcp-go Tool, not our struct. Assert the
-	// short description mentions the docs exist.
 	t_impl, ok := srv.dispatcher.lookup("fibe_pipeline")
 	if !ok {
 		t.Fatal("fibe_pipeline not registered")

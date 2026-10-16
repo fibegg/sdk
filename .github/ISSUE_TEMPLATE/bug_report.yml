@@ -1,0 +1,45 @@
+name: Bug report
+description: Report reproducible SDK, CLI, or MCP behavior
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include secrets or sensitive payloads. Use the private security-reporting flow for vulnerabilities.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `fibe version` or the Go module version.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options: [Go SDK, CLI, MCP stdio, MCP HTTP/SSE, Local helper, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: request_id
+    attributes:
+      label: Sanitized request ID
+      description: Optional; never include an API key.

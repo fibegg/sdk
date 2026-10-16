@@ -31,12 +31,6 @@ func (v *validator) required(field, value string) {
 	}
 }
 
-func (v *validator) requiredInt(field string, value int64) {
-	if value == 0 {
-		v.errors = append(v.errors, ValidationError{Field: field, Message: "is required"})
-	}
-}
-
 func (v *validator) requiredIDOrIdentifier(field string, id int64, identifier string) {
 	if id == 0 && strings.TrimSpace(identifier) == "" {
 		v.errors = append(v.errors, ValidationError{Field: field, Message: "is required"})

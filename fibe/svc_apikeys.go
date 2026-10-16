@@ -31,3 +31,9 @@ func (s *APIKeyService) Create(ctx context.Context, params *APIKeyCreateParams) 
 func (s *APIKeyService) Delete(ctx context.Context, id int64) error {
 	return s.client.do(ctx, http.MethodDelete, fmt.Sprintf("/api/api_keys/%d", id), nil, nil)
 }
+
+func (s *APIKeyService) Rotate(ctx context.Context, id int64) (*APIKey, error) {
+	var result APIKey
+	err := s.client.do(ctx, http.MethodPost, fmt.Sprintf("/api/api_keys/%d/rotate", id), nil, &result)
+	return &result, err
+}

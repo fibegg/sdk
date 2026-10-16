@@ -6,6 +6,7 @@ import (
 )
 
 type Feedback struct {
+	OwnershipMetadata
 	ID             *int64     `json:"id"`
 	AgentID        int64      `json:"agent_id"`
 	PlayerID       int64      `json:"player_id"`

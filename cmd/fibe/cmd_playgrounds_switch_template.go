@@ -28,7 +28,7 @@ func pgSwitchTemplateCmd() *cobra.Command {
 		Short: "Switch a playground to another template version",
 		Long: `Preview or apply a template switch for a deployed playground.
 
-The playground must currently come from a template-backed playspec.
+The playground must currently come from a template-backed spec.
 
 EXAMPLES:
   fibe playgrounds switch-template staging --template billing-app --preview
@@ -36,7 +36,6 @@ EXAMPLES:
   fibe pg switch-template staging --template-body @template.yml --template-name billing-branch --yes`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := newClient()
 			params := &fibe.PlaygroundTemplateSwitchParams{PlaygroundIdentifier: args[0]}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -53,7 +52,11 @@ EXAMPLES:
 				params.TemplateVersionID = templateVersion
 			}
 			if cmd.Flags().Changed("template-body") {
-				params.TemplateBody = normalizeTemplateBodyValue(resolveStringValue(templateBody))
+				value, err := readTextValue(templateBody)
+				if err != nil {
+					return err
+				}
+				params.TemplateBody = normalizeTemplateBodyValue(value)
 			}
 			if templateName != "" {
 				params.TemplateName = templateName
@@ -83,7 +86,19 @@ EXAMPLES:
 					return err
 				}
 			}
+			var progress *statusLine
+			c := newClient()
+			if params.Mode != "preview" {
+				action := "switching template for playground " + args[0]
+				progress = newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+				progress.Start(action + "...")
+				defer progress.Stop()
+				c = newClient(fibe.WithProgress(progress.Progress(action)))
+			}
 			result, err := c.SwitchPlaygroundTemplate(ctx(), params)
+			if progress != nil {
+				progress.Stop()
+			}
 			if err != nil {
 				return err
 			}

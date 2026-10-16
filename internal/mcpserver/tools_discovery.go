@@ -9,23 +9,11 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// registerDiscoveryTools wires the two meta-tools that make the full tool
-// surface reachable from narrower tool surfaces without loading every
-// description into the agent's context:
-//
-//	fibe_tools_catalog  — list every registered tool (name, description,
-//	                      annotations, optional input schema), filterable
-//	                      by tier/pattern
-//	fibe_call           — invoke any registered tool by name through the
-//	                      same dispatcher path direct MCP calls use, so
-//	                      destructive gating, auth, and idempotency still
-//	                      apply
-//
-// Both live in the meta tier so agents can include them explicitly via
-// FIBE_MCP_TOOLS=meta, use the core shortcut, or load every tier via full.
+// registerDiscoveryTools exposes the meta-tier catalog and generic call tools,
+// giving narrow profiles access to the full dispatcher without advertising every schema.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds", tier: tierMeta,
+		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
@@ -159,9 +147,7 @@ func toolCatalogEntryMatchesPattern(name, description, pattern string) bool {
 		strings.Contains(strings.ToLower(description), needle)
 }
 
-// advertisedToolNames returns the set of tool names that are actually
-// registered on the mcp-go server (i.e., visible to clients under the
-// current FIBE_MCP_TOOLS tier).
+// advertisedToolNames returns tools visible under the current FIBE_MCP_TOOLS tier.
 func advertisedToolNames(s *Server) map[string]bool {
 	out := map[string]bool{}
 	for _, name := range s.dispatcher.names() {
@@ -174,10 +160,7 @@ func advertisedToolNames(s *Server) map[string]bool {
 	return out
 }
 
-// schemaForTool reaches into the tool registry via a round-trip through the
-// MCP server. The mcp-go server doesn't expose a direct accessor, so we
-// fall back to nil for now — the catalog's include_schema flag will be a
-// no-op until we wire a cleaner path (tracked as a follow-up).
+// schemaForTool returns the schema cached during tool registration.
 func schemaForTool(s *Server, name string) map[string]any {
 	if s == nil || s.toolSchemas == nil {
 		return nil

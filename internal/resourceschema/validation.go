@@ -3,6 +3,7 @@ package resourceschema
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"math"
 	"reflect"
 	"regexp"
@@ -13,6 +14,12 @@ import (
 )
 
 func ValidateMutationPayload(rawResource, rawOperation string, payload map[string]any) (string, string, error) {
+	if err := domainnames.RemovedError(rawResource); err != nil {
+		return "", "", err
+	}
+	if err := domainnames.RejectFields(payload); err != nil {
+		return "", "", err
+	}
 	schema, resource, operation, ok := MutationSchemaFor(rawResource, rawOperation)
 	if !ok {
 		if resource == "" {
@@ -40,6 +47,12 @@ func ValidateMutationPayload(rawResource, rawOperation string, payload map[strin
 }
 
 func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (string, string, error) {
+	if err := domainnames.RemovedError(rawResource); err != nil {
+		return "", "", err
+	}
+	if err := domainnames.RejectFields(payload); err != nil {
+		return "", "", err
+	}
 	schema, resource, operation, ok := SchemaFor(rawResource, rawOperation)
 	if !ok {
 		if resource == "" {
@@ -60,6 +73,9 @@ func ValidatePayload(rawResource, rawOperation string, payload map[string]any) (
 }
 
 func validateOperationPayloadCombination(resource, operation string, payload map[string]any) error {
+	if err := validateEnvPackOperation(resource, operation, payload); err != nil {
+		return err
+	}
 	switch resource + "." + operation {
 	case "playground.switch_template":
 		return validatePlaygroundSwitchTemplatePayloadCombination(resource, operation, payload)
@@ -315,11 +331,11 @@ func validateOneOfValue(path string, value any, schema map[string]any) (error, b
 		if !ok {
 			continue
 		}
-		if err := validateValue(path, value, branch); err == nil {
+		err := validateValue(path, value, branch)
+		if err == nil {
 			return nil, true
-		} else {
-			messages = append(messages, err.Error())
 		}
+		messages = append(messages, err.Error())
 	}
 	if len(messages) == 0 {
 		return fmt.Errorf("%s does not match any allowed schema", path), true

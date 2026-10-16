@@ -45,7 +45,7 @@ func TestAgentDefaultsServiceGetAndUpdate(t *testing.T) {
 	_, err = c.AgentDefaults.Update(context.Background(), AgentDefaults{
 		"custom_env": "SDK_ENV=true",
 		"skill_toggles": map[string]bool{
-			"fibe-hunks.md": false,
+			"example-skill.md": false,
 		},
 	})
 	if err != nil {

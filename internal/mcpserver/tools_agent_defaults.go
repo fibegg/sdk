@@ -35,7 +35,7 @@ func (s *Server) registerAgentDefaultsTools() {
 		},
 	}, mcp.NewTool("fibe_agent_defaults_update",
 		mcp.WithDescription("[MODE:SIDEEFFECTS] Replace the authenticated player's agent default overrides. Use the same agent_defaults JSON shape as the profile UI."),
-		mcp.WithObject("agent_defaults", mcp.Required(), mcp.Description("Player agent defaults object, including provider_overrides when needed.")),
+		mcp.WithObject("agent_defaults", mcp.Required(), mcp.Description("Canonical player agent defaults object; use provider_overrides.<provider>.cli_version for per-provider CLI pins and default_mounted_files for runtime files.")),
 	))
 
 	s.addTool(&toolImpl{

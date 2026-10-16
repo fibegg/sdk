@@ -16,7 +16,7 @@ func TestSchemaCustomCreateOperations(t *testing.T) {
 		{args: []string{"mutter", "create"}, want: []string{`"mutter.create"`, `"agent_id_or_name"`, `"type"`, `"body"`}},
 		{args: []string{"template_version", "create"}, want: []string{`"template_version.create"`, `"template_id_or_name"`, `"template_body_path"`, `"response_mode"`}},
 		{args: []string{"template", "change"}, want: []string{`"template.change"`, `"target_type"`, `"base_version_id"`, `"post_apply"`}},
-		{args: []string{"playground", "switch_template"}, want: []string{`"playground.switch_template"`, `"id_or_name"`, `"provision_missing_props"`}},
+		{args: []string{"playground", "switch_template"}, want: []string{`"playground.switch_template"`, `"id_or_name"`, `"provision_missing_repositories"`}},
 	} {
 		out, err := captureStdout(func() error {
 			cmd := schemaCmd()
@@ -39,14 +39,14 @@ func TestSchemaScopedMutationActionOperations(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{args: []string{"marquee", "autoconnect_token"}, want: []string{`"marquee.autoconnect_token"`, `"ssl_mode"`, `"dns_credentials"`}},
-		{args: []string{"marquee", "generate_ssh_key"}, want: []string{`"marquee.generate_ssh_key"`, `"id_or_name"`, `"minimum": 1`}},
-		{args: []string{"prop", "attach"}, want: []string{`"prop.attach"`, `"repo_full_name"`}},
-		{args: []string{"prop", "mirror"}, want: []string{`"prop.mirror"`, `"source_url"`}},
-		{args: []string{"template", "source_set"}, want: []string{`"template.source_set"`, `"source_prop_id_or_name"`, `"source_path"`}},
-		{args: []string{"template", "upgrade_playspecs"}, want: []string{`"template.upgrade_playspecs"`, `"template_id_or_name"`, `"version_id"`}},
+		{args: []string{"host", "autoconnect_token"}, want: []string{`"host.autoconnect_token"`, `"ssl_mode"`, `"dns_credentials"`}},
+		{args: []string{"host", "generate_ssh_key"}, want: []string{`"host.generate_ssh_key"`, `"id_or_name"`, `"minimum": 1`}},
+		{args: []string{"repository", "attach"}, want: []string{`"repository.attach"`, `"repo_full_name"`}},
+		{args: []string{"repository", "mirror"}, want: []string{`"repository.mirror"`, `"source_url"`}},
+		{args: []string{"template", "source_set"}, want: []string{`"template.source_set"`, `"source_repository_id_or_name"`, `"source_path"`}},
+		{args: []string{"template", "upgrade_specs"}, want: []string{`"template.upgrade_specs"`, `"template_id_or_name"`, `"version_id"`}},
 		{args: []string{"template_version", "toggle_public"}, want: []string{`"template_version.toggle_public"`, `"template_id_or_name"`, `"version_id"`}},
-		{args: []string{"trick", "trigger"}, want: []string{`"trick.trigger"`, `"playspec_id_or_name"`}},
+		{args: []string{"task", "trigger"}, want: []string{`"task.trigger"`, `"spec_id_or_name"`}},
 		{args: []string{"webhook", "test"}, want: []string{`"webhook.test"`, `"webhook_id"`}},
 	} {
 		out, err := captureStdout(func() error {

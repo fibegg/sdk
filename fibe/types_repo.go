@@ -6,9 +6,24 @@ type RepoStatus struct {
 }
 
 type RepoStatusEntry struct {
-	URL    string `json:"url"`
-	Status string `json:"status"`
-	Error  string `json:"error,omitempty"`
+	URL                  string `json:"url"`
+	Status               string `json:"status"`
+	Error                string `json:"error,omitempty"`
+	RepositoryID         int64  `json:"repository_id,omitempty"`
+	RepositoryName       string `json:"repository_name,omitempty"`
+	GitHubURL            string `json:"github_url,omitempty"`
+	PlayerRepo           string `json:"player_repo,omitempty"`
+	PlayerRepoURL        string `json:"player_repo_url,omitempty"`
+	DefaultBranch        string `json:"default_branch,omitempty"`
+	ForkURL              string `json:"fork_url,omitempty"`
+	SourceFullName       string `json:"source_full_name,omitempty"`
+	Mirrorable           bool   `json:"mirrorable,omitempty"`
+	RuntimeWritable      *bool  `json:"runtime_writable,omitempty"`
+	RuntimeAccessSource  string `json:"runtime_access_source,omitempty"`
+	RuntimeAccessMessage string `json:"runtime_access_message,omitempty"`
+	GitHubAppInstalled   bool   `json:"github_app_installed,omitempty"`
+	OAuthAccessible      bool   `json:"oauth_accessible,omitempty"`
+	RequiresFork         bool   `json:"requires_fork,omitempty"`
 }
 
 // GitHubRepo is the result of creating a new GitHub repo.
@@ -24,10 +39,11 @@ type GitHubRepo struct {
 }
 
 type GitHubRepoCreateParams struct {
-	Name        string  `json:"name"`
-	Private     *bool   `json:"private,omitempty"`
-	AutoInit    *bool   `json:"auto_init,omitempty"`
-	Description *string `json:"description,omitempty"`
+	GitHubInstallationID int64   `json:"github_installation_id,omitempty"`
+	Name                 string  `json:"name"`
+	Private              *bool   `json:"private,omitempty"`
+	AutoInit             *bool   `json:"auto_init,omitempty"`
+	Description          *string `json:"description,omitempty"`
 }
 
 // GiteaRepo is the result of creating a new Gitea repo.
@@ -42,8 +58,8 @@ type GiteaRepo struct {
 	Description   string            `json:"description"`
 	DefaultBranch string            `json:"default_branch,omitempty"`
 	Repo          *GiteaRepoSummary `json:"repo,omitempty"`
-	PropID        int64             `json:"prop_id,omitempty"`
-	Prop          *Prop             `json:"prop,omitempty"`
+	RepositoryID  int64             `json:"repository_id,omitempty"`
+	Repository    *Repository       `json:"repository,omitempty"`
 }
 
 type GiteaRepoSummary struct {

@@ -57,9 +57,9 @@ func TestPlaygroundsTransformValidatesTargetSelectors(t *testing.T) {
 
 func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 	params, err := buildSwitchTemplateParams(map[string]any{
-		"id_or_name":           7,
-		"template_version_id":  22,
-		"reuse_existing_props": true,
+		"id_or_name":                  7,
+		"template_version_id":         22,
+		"reuse_existing_repositories": true,
 	}, "apply")
 	if err != nil {
 		t.Fatalf("buildSwitchTemplateParams: %v", err)
@@ -73,10 +73,10 @@ func TestBuildTransformParamsDefaultsAgentFacingApplyBehavior(t *testing.T) {
 	if !params.Wait {
 		t.Fatal("switch-template apply should wait by default")
 	}
-	if params.ProvisionMissingProps != "gitea" {
-		t.Fatalf("provision_missing_props=%q want gitea", params.ProvisionMissingProps)
+	if params.ProvisionMissingRepositories != "gitea" {
+		t.Fatalf("provision_missing_repositories=%q want gitea", params.ProvisionMissingRepositories)
 	}
-	if !params.ReuseExistingProps {
-		t.Fatal("reuse_existing_props=false want true")
+	if !params.ReuseExistingRepositories {
+		t.Fatal("reuse_existing_repositories=false want true")
 	}
 }

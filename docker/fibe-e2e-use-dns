@@ -35,12 +35,12 @@ fi
   printf 'options ndots:0\n'
 } > /etc/resolv.conf
 
-if [ -n "${TEST_MARQUEE_ROOT_DOMAIN:-}" ]; then
+if [ -n "${TEST_HOST_ROOT_DOMAIN:-}" ]; then
   deadline="$(($(date +%s) + timeout))"
   while [ "$(date +%s)" -lt "$deadline" ]; do
-    [ -n "$(resolve_ipv4 "$TEST_MARQUEE_ROOT_DOMAIN")" ] && exit 0
+    [ -n "$(resolve_ipv4 "$TEST_HOST_ROOT_DOMAIN")" ] && exit 0
     sleep 1
   done
-  echo "[e2e-dns] unable to resolve $TEST_MARQUEE_ROOT_DOMAIN via $host" >&2
+  echo "[e2e-dns] unable to resolve $TEST_HOST_ROOT_DOMAIN via $host" >&2
   exit 1
 fi

@@ -2,9 +2,9 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 60
-- Advertised with `FIBE_MCP_TOOLS=full`: 59
-- Advertised with `FIBE_MCP_TOOLS=core`: 39
+- Registered tools: 73
+- Advertised with `FIBE_MCP_TOOLS=full`: 72
+- Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
 `full` advertises every non-hidden registered tool. Hidden tools remain dispatcher-reachable through `fibe_call` and `fibe_pipeline`, and `fibe_tools_catalog` reports them with `hidden:true`.
@@ -32,12 +32,12 @@ Generated from the MCP registry.
 {
   "properties": {
     "agent_defaults": {
-      "description": "Player agent defaults object, including provider_overrides when needed.",
+      "description": "Canonical player agent defaults object; use provider_overrides.\u003cprovider\u003e.cli_version for per-provider CLI pins and default_mounted_files for runtime files.",
       "properties": {},
       "type": "object"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -84,7 +84,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -131,7 +131,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -183,7 +183,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -227,7 +227,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -274,7 +274,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -321,7 +321,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -368,7 +368,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -390,7 +390,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with MARQUEE_NOT_FUNDED when unpaid.
+[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid.
 
 ### Input Schema
 ```json
@@ -411,7 +411,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -433,7 +433,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:OVERSEER] Send one text message to an agent chat. Fails with MARQUEE_NOT_FUNDED when the chat Marquee is unpaid.
+[MODE:OVERSEER] Send one text message to an agent chat. Fails with HOST_NOT_FUNDED when the chat Host is unpaid.
 
 ### Input Schema
 ```json
@@ -483,7 +483,7 @@ Generated from the MCP registry.
       "type": "array"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -511,7 +511,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Marquee. Requires a funded Marquee; unpaid Marquees fail with MARQUEE_NOT_FUNDED.
+[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.
 
 ### Input Schema
 ```json
@@ -532,7 +532,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -585,7 +585,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "filename": {
-      "description": "Target filename — defaults to 'name' when omitted",
+      "description": "Target filename: defaults to 'name' when omitted",
       "type": "string"
     },
     "name": {
@@ -593,7 +593,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -633,7 +633,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations
+[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.
 
 ### Input Schema
 ```json
@@ -648,7 +648,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -685,7 +685,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -731,7 +731,7 @@ Generated from the MCP registry.
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -759,6 +759,49 @@ Generated from the MCP registry.
 ### Description
 [MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile
 
+## `fibe_env_pack_attachments_get`
+**Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read ordered ENV-pack references, grant status, and desired/applied provenance for a Playground or job-mode Spec (service Specs carry no packs).
+
+### Input Schema
+```json
+{
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "target": {
+      "description": "Target for this env_pack_attachments_get request.",
+      "enum": [
+        "playgrounds",
+        "specs"
+      ],
+      "type": "string"
+    },
+    "target_id": {
+      "description": "Target ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "target",
+    "target_id"
+  ],
+  "type": "object"
+}
+```
+
 ## `fibe_feedbacks_get`
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
@@ -775,7 +818,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -813,7 +856,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -871,14 +914,19 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Search GitHub repositories across all connected installations. Returns deduplicated results.
+[MODE:DIALOG] Search Personal installations or a selected verified Team installation.
 
 ### Input Schema
 ```json
 {
   "properties": {
+    "github_installation_id": {
+      "description": "Verified Team GitHub installation; required when multiple are connected.",
+      "minimum": 1,
+      "type": "number"
+    },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -912,14 +960,14 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct installation.
+[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.
 
 ### Input Schema
 ```json
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -945,7 +993,7 @@ Generated from the MCP registry.
 **Tier:** greenfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:GREENFIELD] Create a managed Gitea repo and matching Prop. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.
+[MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.
 
 ### Input Schema
 ```json
@@ -971,7 +1019,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1021,12 +1069,17 @@ Generated from the MCP registry.
         "string"
       ]
     },
+    "github_installation_id": {
+      "description": "GitHub Installation ID",
+      "minimum": 1,
+      "type": "integer"
+    },
     "name": {
       "description": "Name.",
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1055,7 +1108,7 @@ Generated from the MCP registry.
 **Tier:** greenfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Marquee.
+[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Host.
 
 ### Input Schema
 ```json
@@ -1086,8 +1139,8 @@ Generated from the MCP registry.
       "description": "Git branch, tag, or commit for the config file. Optional.",
       "type": "string"
     },
-    "marquee_id_or_name": {
-      "description": "Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID. Must be funded.",
+    "host_id_or_name": {
+      "description": "Target host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID. Must be funded.",
       "type": "string"
     },
     "name": {
@@ -1095,7 +1148,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1165,7 +1218,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1189,7 +1242,7 @@ Generated from the MCP registry.
 **Tier:** greenfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:GREENFIELD] Launch from exactly one source: template, template version, playspec, compose YAML, or repository config. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED.
+[MODE:GREENFIELD] Launch from exactly one source: template, template version, spec, compose YAML, or repository config. Deployment requires a funded Host; unpaid Hosts return HOST_NOT_FUNDED.
 
 ### Input Schema
 ```json
@@ -1208,7 +1261,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "create_playground": {
-      "description": "Force playground creation. Defaults to true when marquee_id_or_name is set, false otherwise.",
+      "description": "Force playground creation. Defaults to true when host_id_or_name is set, false otherwise.",
       "type": "boolean"
     },
     "diagnose_on_failure": {
@@ -1219,6 +1272,40 @@ Generated from the MCP registry.
       "description": "Runtime environment overrides for the created Playground.",
       "properties": {},
       "type": "object"
+    },
+    "env_pack_attachments": {
+      "description": "Ordered pack references for a Playground or job-mode Spec (service Specs reject non-empty lists with 422). Omit or null to preserve/inherit; [] explicitly detaches all packs.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "env_pack_id": {
+            "description": "Env Pack ID",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "service_names": {
+            "description": "Omitted or null applies to all services; an empty array is invalid.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ],
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "env_pack_id"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
     },
     "github_account": {
       "description": "GitHub App installation account owner to use when multiple installations are connected.",
@@ -1233,20 +1320,20 @@ Generated from the MCP registry.
       "description": "Git branch, tag, or commit for the config file. Optional.",
       "type": "string"
     },
-    "job_mode": {
-      "description": "Create as a trick/job instead of a playground. Requires marquee_id_or_name.",
-      "type": "boolean"
-    },
-    "marquee_id_or_name": {
-      "description": "Target marquee ID or name. Required for template/playspec launch; compose/repo can omit to create only the playspec unless create_playground is true.",
+    "host_id_or_name": {
+      "description": "Target host ID or name. Required for template/spec launch; compose/repo can omit to create only the spec unless create_playground is true.",
       "type": "string"
+    },
+    "job_mode": {
+      "description": "Create as a task/job instead of a playground. Requires host_id_or_name.",
+      "type": "boolean"
     },
     "name": {
       "description": "Launch name. Optional when repository_url is provided; inferred from repo name.",
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1257,15 +1344,11 @@ Generated from the MCP registry.
       "type": "string"
     },
     "persist_volumes": {
-      "description": "Persist Docker volumes across trick/playground recreations. Optional; omitted means the server infers from named compose volumes.",
+      "description": "Persist Docker volumes across task/playground recreations. Optional; omitted means the server infers from named compose volumes.",
       "type": "boolean"
     },
-    "playspec_id_or_name": {
-      "description": "Existing playspec ID or name. Mutually exclusive with other source fields.",
-      "type": "string"
-    },
-    "prop_mappings": {
-      "description": "Map repository URL to Prop ID or name. Optional.",
+    "repository_mappings": {
+      "description": "Map repository URL to Repository ID or name. Optional.",
       "properties": {},
       "type": "object"
     },
@@ -1291,6 +1374,10 @@ Generated from the MCP registry.
       "properties": {},
       "type": "object"
     },
+    "spec_id_or_name": {
+      "description": "Existing spec ID or name. Mutually exclusive with other source fields.",
+      "type": "string"
+    },
     "template_id_or_name": {
       "description": "Template ID or name. Mutually exclusive with other source fields; without version/template_version_id, latest version is used.",
       "type": "string"
@@ -1304,6 +1391,10 @@ Generated from the MCP registry.
       "description": "Template variables map for Fibe template compilation. Optional.",
       "properties": {},
       "type": "object"
+    },
+    "version": {
+      "description": "Template version number for template_id_or_name. Optional; defaults to latest available version.",
+      "type": "number"
     },
     "wait": {
       "description": "Wait for created playground to reach running where supported.",
@@ -1335,7 +1426,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1386,7 +1477,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1424,7 +1515,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1448,18 +1539,22 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.
+[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or HOST_ROOT.
 
 ### Input Schema
 ```json
 {
   "properties": {
     "id_or_name": {
-      "description": "Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.",
+      "description": "Local playground ID, name, compose project, spec, or unique spec prefix. Omit for view=names.",
+      "type": "string"
+    },
+    "link_dir": {
+      "description": "Current-link directory for view=current or view=repos (default: /app/playground).",
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1470,9 +1565,11 @@ Generated from the MCP registry.
       "type": "string"
     },
     "view": {
-      "description": "Output view: names, urls, mounts, or details.",
+      "description": "Output view: names, current, repos, urls, mounts, or details.",
       "enum": [
         "names",
+        "current",
+        "repos",
         "urls",
         "mounts",
         "details"
@@ -1498,7 +1595,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "id_or_name": {
-      "description": "Local playground ID, name, compose project, playspec, or unique playspec prefix",
+      "description": "Local playground ID, name, compose project, spec, or unique spec prefix",
       "type": "string"
     },
     "link_dir": {
@@ -1506,7 +1603,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1526,7 +1623,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:BROWNFIELD] Stream live playground or trick logs as progress notifications. Omitting service streams all services.
+[MODE:BROWNFIELD] Stream live playground or task logs as progress notifications. Omitting service streams all services.
 
 ### Input Schema
 ```json
@@ -1537,7 +1634,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "id_or_name": {
-      "description": "Playground or trick numeric ID or slug-safe name",
+      "description": "Playground or task numeric ID or slug-safe name",
       "type": "string"
     },
     "max_lines": {
@@ -1546,7 +1643,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1569,7 +1666,7 @@ Generated from the MCP registry.
       "description": "Target type (default: playground).",
       "enum": [
         "playground",
-        "trick"
+        "task"
       ],
       "type": "string"
     }
@@ -1682,7 +1779,7 @@ Generated from the MCP registry.
       "type": "object"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1733,7 +1830,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1785,7 +1882,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1839,7 +1936,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1900,7 +1997,7 @@ Generated from the MCP registry.
       ]
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -1957,7 +2054,7 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.
+[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.
 
 ### Input Schema
 ```json
@@ -1976,7 +2073,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2152,14 +2249,14 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution
+[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.
 
 ### Input Schema
 ```json
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2189,7 +2286,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** true | **Idempotent:** true | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Marquee fail with MARQUEE_NOT_FUNDED when unpaid; stop cleanup remains allowed.
+[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Host fail with HOST_NOT_FUNDED when unpaid; stop cleanup remains allowed.
 
 ### Input Schema
 ```json
@@ -2221,7 +2318,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2244,7 +2341,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Retrieve comprehensive debugging and diagnostic information for a playground. Use when troubleshooting a failing deployment.
+[MODE:DIALOG] Retrieve Playground service, container, port, path, label, status, URL, and recent-log diagnostics.
 
 ### Input Schema
 ```json
@@ -2268,7 +2365,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2298,7 +2395,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.
+[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with HOST_NOT_FUNDED when the Host is unpaid.
 
 ### Input Schema
 ```json
@@ -2309,7 +2406,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2340,7 +2437,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Marquee and fails with MARQUEE_NOT_FUNDED when unpaid.
+[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Host and fails with HOST_NOT_FUNDED when unpaid.
 
 ### Input Schema
 ```json
@@ -2385,7 +2482,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2428,8 +2525,8 @@ Generated from the MCP registry.
       },
       "type": "array"
     },
-    "provision_missing_props": {
-      "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Props.",
+    "provision_missing_repositories": {
+      "description": "When the new template references repos the player does not yet own a Repository for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Repository for each. Default \"gitea\" when omitted on this tool. Set to \"off\" to disable and require existing Repositories.",
       "enum": [
         "off",
         "gitea",
@@ -2456,8 +2553,8 @@ Generated from the MCP registry.
       ],
       "type": "string"
     },
-    "reuse_existing_props": {
-      "description": "Reuse the playground's existing dynamic service Props for the target template before creating new ones. Matching keeps same service names first, then current service order; extra old Props are retired after the switch when they are no longer referenced.",
+    "reuse_existing_repositories": {
+      "description": "Reuse the playground's existing dynamic service Repositories for the target template before creating new ones. Matching keeps same service names first, then current service order; extra old Repositories are retired after the switch when they are no longer referenced.",
       "type": "boolean"
     },
     "template_body": {
@@ -2530,7 +2627,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2565,7 +2662,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs.
+[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.
 
 ### Input Schema
 ```json
@@ -2579,7 +2676,7 @@ Generated from the MCP registry.
       "type": "array"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2629,7 +2726,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2640,7 +2737,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "resource": {
-      "description": "Canonical resource name or explicit alias, e.g. playground, playspec, prop, api_key.",
+      "description": "Canonical resource name or explicit alias, e.g. playground, spec, repository, api_key.",
       "enum": [
         "agent",
         "agent-poke",
@@ -2652,6 +2749,12 @@ Generated from the MCP registry.
         "api-keys",
         "api_key",
         "api_keys",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
+        "host",
+        "hosts",
         "import-template",
         "import-templates",
         "import_template",
@@ -2664,19 +2767,19 @@ Generated from the MCP registry.
         "job_environment",
         "job_environments",
         "job_envs",
-        "marquee",
-        "marquees",
         "memories",
         "memory",
         "playground",
         "playgrounds",
-        "playspec",
-        "playspecs",
         "pokes",
-        "prop",
-        "props",
+        "repositories",
+        "repository",
         "secret",
         "secrets",
+        "spec",
+        "specs",
+        "task",
+        "tasks",
         "template",
         "template-source",
         "template-sources",
@@ -2687,8 +2790,6 @@ Generated from the MCP registry.
         "template_version",
         "template_versions",
         "templates",
-        "trick",
-        "tricks",
         "webhook",
         "webhook-endpoint",
         "webhook-endpoints",
@@ -2746,7 +2847,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2757,7 +2858,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "resource": {
-      "description": "Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, playspec, prop, webhook.",
+      "description": "Canonical resource name or explicit alias, e.g. playground, artefact, artefact_attachment, spec, repository, webhook.",
       "enum": [
         "agent",
         "agent-attachment",
@@ -2779,6 +2880,12 @@ Generated from the MCP registry.
         "artefact_attachment",
         "artefact_attachments",
         "artefacts",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
+        "host",
+        "hosts",
         "import-template",
         "import-templates",
         "import_template",
@@ -2791,23 +2898,21 @@ Generated from the MCP registry.
         "job_environment",
         "job_environments",
         "job_envs",
-        "marquee",
-        "marquees",
         "memories",
         "memory",
         "playground",
         "playgrounds",
-        "playspec",
-        "playspecs",
         "pokes",
-        "prop",
-        "props",
+        "repositories",
+        "repository",
         "secret",
         "secrets",
+        "spec",
+        "specs",
+        "task",
+        "tasks",
         "template",
         "templates",
-        "trick",
-        "tricks",
         "webhook",
         "webhook-endpoint",
         "webhook-endpoints",
@@ -2836,7 +2941,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2852,7 +2957,7 @@ Generated from the MCP registry.
       "type": "object"
     },
     "resource": {
-      "description": "Canonical resource name or explicit alias, e.g. playground, playspec, prop, api_key.",
+      "description": "Canonical resource name or explicit alias, e.g. playground, spec, repository, api_key.",
       "enum": [
         "agent",
         "agent-poke",
@@ -2872,6 +2977,12 @@ Generated from the MCP registry.
         "audit_logs",
         "categories",
         "category",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
+        "host",
+        "hosts",
         "import-template",
         "import-templates",
         "import_template",
@@ -2884,19 +2995,19 @@ Generated from the MCP registry.
         "job_environment",
         "job_environments",
         "job_envs",
-        "marquee",
-        "marquees",
         "memories",
         "memory",
         "playground",
         "playgrounds",
-        "playspec",
-        "playspecs",
         "pokes",
-        "prop",
-        "props",
+        "repositories",
+        "repository",
         "secret",
         "secrets",
+        "spec",
+        "specs",
+        "task",
+        "tasks",
         "template",
         "template-categories",
         "template-category",
@@ -2907,8 +3018,6 @@ Generated from the MCP registry.
         "template_version",
         "template_versions",
         "templates",
-        "trick",
-        "tricks",
         "webhook",
         "webhook-deliveries",
         "webhook-delivery",
@@ -2934,7 +3043,7 @@ Generated from the MCP registry.
 **Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. Actions that use a Marquee require it to be funded.
+[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. Actions that use a Host require it to be funded.
 
 ### Input Schema
 ```json
@@ -2950,7 +3059,7 @@ Generated from the MCP registry.
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -2961,11 +3070,16 @@ Generated from the MCP registry.
       "enum": [
         "action",
         "attach",
+        "attachment_detach",
+        "attachment_retarget",
+        "attachments_reorder",
+        "attachments_replace",
         "autoconnect_token",
         "change",
         "create",
         "fork",
         "generate_ssh_key",
+        "grant_renew",
         "mirror",
         "rerun",
         "restart_chat",
@@ -2978,7 +3092,7 @@ Generated from the MCP registry.
         "toggle_public",
         "trigger",
         "update",
-        "upgrade_playspecs",
+        "upgrade_specs",
         "upload_attachment"
       ],
       "type": "string"
@@ -3004,6 +3118,12 @@ Generated from the MCP registry.
         "api-keys",
         "api_key",
         "api_keys",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
+        "host",
+        "hosts",
         "import-template",
         "import-templates",
         "import_template",
@@ -3016,25 +3136,23 @@ Generated from the MCP registry.
         "job_environment",
         "job_environments",
         "job_envs",
-        "marquee",
-        "marquees",
         "playground",
         "playgrounds",
-        "playspec",
-        "playspecs",
         "pokes",
-        "prop",
-        "props",
+        "repositories",
+        "repository",
         "secret",
         "secrets",
+        "spec",
+        "specs",
+        "task",
+        "tasks",
         "template",
         "template-version",
         "template-versions",
         "template_version",
         "template_versions",
         "templates",
-        "trick",
-        "tricks",
         "webhook",
         "webhook-endpoint",
         "webhook-endpoints",
@@ -3074,7 +3192,7 @@ Generated from the MCP registry.
       "type": "number"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3118,11 +3236,11 @@ Generated from the MCP registry.
       "type": "array"
     },
     "confirm": {
-      "description": "Required for delete/destroy/remove CLI paths unless server runs with --yolo.",
+      "description": "Required for destructive CLI commands unless server runs with --yolo.",
       "type": "boolean"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3156,7 +3274,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3167,6 +3285,11 @@ Generated from the MCP registry.
       "enum": [
         "action",
         "attach",
+        "attachment_detach",
+        "attachment_retarget",
+        "attachments_get",
+        "attachments_reorder",
+        "attachments_replace",
         "autoconnect_token",
         "change",
         "create",
@@ -3175,6 +3298,7 @@ Generated from the MCP registry.
         "fork",
         "generate_ssh_key",
         "get",
+        "grant_renew",
         "list",
         "memorize",
         "mirror",
@@ -3189,7 +3313,7 @@ Generated from the MCP registry.
         "toggle_public",
         "trigger",
         "update",
-        "upgrade_playspecs",
+        "upgrade_specs",
         "upload_attachment",
         "validate",
         "watch"
@@ -3242,6 +3366,12 @@ Generated from the MCP registry.
         "composes",
         "docker-compose",
         "docker_compose",
+        "env-pack",
+        "env-packs",
+        "env_pack",
+        "env_packs",
+        "host",
+        "hosts",
         "import-template",
         "import-templates",
         "import_template",
@@ -3255,21 +3385,21 @@ Generated from the MCP registry.
         "job_environments",
         "job_envs",
         "list",
-        "marquee",
-        "marquees",
         "memories",
         "memory",
         "mutter",
         "mutters",
         "playground",
         "playgrounds",
-        "playspec",
-        "playspecs",
         "pokes",
-        "prop",
-        "props",
+        "repositories",
+        "repository",
         "secret",
         "secrets",
+        "spec",
+        "specs",
+        "task",
+        "tasks",
         "template",
         "template-categories",
         "template-category",
@@ -3284,8 +3414,6 @@ Generated from the MCP registry.
         "template_version",
         "template_versions",
         "templates",
-        "trick",
-        "tricks",
         "webhook",
         "webhook-deliveries",
         "webhook-delivery",
@@ -3309,13 +3437,532 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.
+[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.
+
+## `fibe_team_git_installation_connect`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Verify a Team organization installation with live human organization-admin authority; no token export.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "installation_id": {
+      "description": "GitHub installation ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "verification_connection_id": {
+      "description": "Human verification connection ID",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "installation_id",
+    "verification_connection_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_git_installation_remove`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Remove a current Team installation with live human authority; reconcile held operations first.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "connection_id": {
+      "description": "Team installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "connection_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_git_installations_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read current Team organization installation availability and verified authority; never export tokens.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_principal_create`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Issue a Team service principal with live human admin authority.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "description": "Name.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "name"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_principal_revoke`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Revoke a Team service principal with live human admin authority.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "principal_id": {
+      "description": "Service principal ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "principal_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_principals_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] List Team service principals.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_repository_operation_adopt`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Require a live human and current Team installation authority to adopt this exact remote destination. Do not overwrite/delete an unknown destination.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "connection_id": {
+      "description": "Optional current Team installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "request_id": {
+      "description": "Request ID for this team_repository_operation_adopt request.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "request_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_repository_operation_reconcile`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Require a live human and current Team installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "connection_id": {
+      "description": "Optional current Team installation connection ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "request_id": {
+      "description": "Request ID for this team_repository_operation_reconcile request.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "request_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_repository_operations_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read exact Team Repository operation receipts and unknown outcomes.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_runtime_principal_recover`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Recover a revoked runtime principal using a live human Team admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "principal_id": {
+      "description": "Revoked runtime principal ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "replacement_agent_ids": {
+      "description": "Replacement Agent Ids for this team_runtime_principal_recover request.",
+      "items": {
+        "description": "Agent ID",
+        "minimum": 1,
+        "type": "integer"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "principal_id",
+    "replacement_agent_ids"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_subscription_cancel`
+**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
+
+### Description
+[MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirm": {
+      "description": "Confirm this operation",
+      "type": "boolean"
+    },
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "retry_failed": {
+      "description": "Retry Failed for this team_subscription_cancel request.",
+      "type": "boolean"
+    },
+    "subscription_id": {
+      "description": "Team subscription ID",
+      "minimum": 1,
+      "type": "integer"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id",
+    "subscription_id"
+  ],
+  "type": "object"
+}
+```
+
+## `fibe_team_subscriptions_list`
+**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
+
+### Description
+[MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts.
+
+### Input Schema
+```json
+{
+  "additionalProperties": false,
+  "properties": {
+    "only": {
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "output_path": {
+      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
+      "type": "string"
+    },
+    "team_id": {
+      "description": "Explicit Team owner expectation; never grants authority",
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "team_id"
+  ],
+  "type": "object"
+}
+```
 
 ## `fibe_templates_change`
 **Tier:** brownfield | **Hidden:** true | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run. Rollout/trigger actions require a funded Marquee and fail with MARQUEE_NOT_FUNDED when unpaid.
+[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. Rollout/trigger actions require a funded Host and fail with HOST_NOT_FUNDED when unpaid.
 
 ### Input Schema
 ```json
@@ -3328,7 +3975,7 @@ Generated from the MCP registry.
       "type": "integer"
     },
     "change_type": {
-      "description": "Advanced template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the playspec/playground/trick at a different template version.",
+      "description": "Advanced template change workflow. patch creates a new version of the existing template; overwrite replaces the body of an existing version; switch_existing repoints the spec/playground/task at a different template version.",
       "enum": [
         "patch",
         "overwrite",
@@ -3368,7 +4015,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3386,12 +4033,12 @@ Generated from the MCP registry.
       "type": "array"
     },
     "post_apply": {
-      "description": "Optional action after apply. Tricks should use trigger_trick; normal playgrounds can use rollout_target or rollout_all.",
+      "description": "Optional action after apply. Tasks should use trigger_task; normal playgrounds can use rollout_target or rollout_all.",
       "enum": [
         "none",
         "rollout_target",
         "rollout_all",
-        "trigger_trick"
+        "trigger_task"
       ],
       "type": "string"
     },
@@ -3428,8 +4075,8 @@ Generated from the MCP registry.
       },
       "type": "array"
     },
-    "provision_missing_props": {
-      "description": "When the new template references repos the player does not yet own a Prop for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Prop for each. \"gitea\" provisions Gitea-backed private repos seeded from the template's source URLs. \"off\" (default) keeps today's behaviour: public repos auto-create Props, private/missing repos fail with a manual-creation hint.",
+    "provision_missing_repositories": {
+      "description": "When the new template references repos the player does not yet own a Repository for, automatically provision a fresh git repo (in the player's connected Gitea or GitHub account) and create a Repository for each. \"gitea\" provisions Gitea-backed private repos seeded from the template's source URLs. \"off\" (default) keeps today's behaviour: public repos auto-create Repositories, private/missing repos fail with a manual-creation hint.",
       "enum": [
         "off",
         "gitea",
@@ -3460,12 +4107,12 @@ Generated from the MCP registry.
       ],
       "type": "string"
     },
-    "reuse_existing_props": {
-      "description": "Reuse the target playspec/playground's current dynamic service Props before provisioning new ones. Same-name services keep their Prop first; remaining services reuse existing Props in current service order; extras are retired after apply when no longer referenced.",
+    "reuse_existing_repositories": {
+      "description": "Reuse the target spec/playground's current dynamic service Repositories before provisioning new ones. Same-name services keep their Repository first; remaining services reuse existing Repositories in current service order; extras are retired after apply when no longer referenced.",
       "type": "boolean"
     },
     "switch_variables": {
-      "description": "Template variables to use when switching a playspec.",
+      "description": "Template variables to use when switching a spec.",
       "type": "object"
     },
     "target_id_or_name": {
@@ -3482,7 +4129,7 @@ Generated from the MCP registry.
       ]
     },
     "target_template_version_id": {
-      "description": "Existing template version ID to switch the target's playspec to. Required for change_type=switch_existing. Can belong to a completely different template — the server reconciles the prop set and regenerates services.",
+      "description": "Existing template version ID to switch the target's spec to. Required for change_type=switch_existing. Can belong to a completely different template: the server reconciles the repository set and regenerates services.",
       "minimum": 1,
       "type": "integer"
     },
@@ -3490,9 +4137,9 @@ Generated from the MCP registry.
       "description": "Object to start from. With target_type=playground and change_type=switch_existing, this performs an advanced template-version switch for a deployed playground.",
       "enum": [
         "template",
-        "playspec",
+        "spec",
         "playground",
-        "trick"
+        "task"
       ],
       "type": "string"
     },
@@ -3505,7 +4152,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "wait": {
-      "description": "Wait for rollout targets or triggered trick completion.",
+      "description": "Wait for rollout targets or triggered task completion.",
       "type": "boolean"
     },
     "wait_timeout_seconds": {
@@ -3535,7 +4182,7 @@ Generated from the MCP registry.
 {
   "properties": {
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3567,7 +4214,7 @@ Generated from the MCP registry.
 **Tier:** meta | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] List all tools registered and available on the Fibe MCP server. CRITICAL: Fibe Platform priority is to let you manage **ALL** its capabilities via its tools so you should find anything here. We just can't advertise them all because there are hundreds
+[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.
 
 ### Input Schema
 ```json
@@ -3582,7 +4229,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3629,7 +4276,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "only": {
-      "description": "Return only these top-level fields from each result item. Example: only: [\"uuid\",\"title\",\"project\"] on local conversations keeps envelope metadata but trims each conversation.",
+      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
       "items": {
         "type": "string"
       },
@@ -3646,4 +4293,3 @@ Generated from the MCP registry.
   "type": "object"
 }
 ```
-

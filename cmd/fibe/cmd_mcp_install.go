@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/BurntSushi/toml"
 )
@@ -30,6 +32,8 @@ type mcpClientTarget struct {
 	WrapperDefault map[string]any
 	Format         mcpConfigFormat
 }
+
+var mcpConfigTempCounter atomic.Uint64
 
 // installOptions bundles the flags that shape the emitted MCP config entry.
 // Each field is optional; empty means "use the default".
@@ -61,21 +65,9 @@ func resolveMCPProjectScope(client, project string, userScope bool) (string, err
 	return "", nil
 }
 
-// runMCPInstall writes the fibe MCP server entry into the target client's
-// configuration file. Works with claude-code, claude-desktop, cursor, vscode,
-// antigravity, and codex.
-//
-// Design notes:
-//   - Never clobber unrelated entries: we read the existing config, merge
-//     our "fibe" entry, and write the file back with the same shape.
-//   - Dry-run mode prints the resolved path and the proposed delta so users
-//     can review before overwriting.
-//   - Each client has a slightly different schema (claude uses "mcpServers",
-//     vscode uses "servers", Codex uses TOML "mcp_servers"), so we keep a
-//     small per-client adapter.
-//   - Default stdio installs pin a profile rather than forwarding shell
-//     auth env vars. Explicit --api-key/--domain are passed to the launched
-//     "fibe mcp serve" command as one-off overrides.
+// runMCPInstall merges a Fibe server into each client's native config shape.
+// Dry runs show the path and delta; default stdio installs pin a profile while
+// explicit API key and domain flags remain one-off command overrides.
 func runMCPInstall(client, project string, dryRun bool, opts installOptions) error {
 	bin, err := os.Executable()
 	if err != nil {
@@ -93,7 +85,7 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 	}
 
 	existing := map[string]any{}
-	if data, readErr := os.ReadFile(target.Path); readErr == nil && len(data) > 0 {
+	if data, readErr := readMCPConfigFile(target.Path); readErr == nil && len(data) > 0 {
 		existing, err = parseMCPConfig(data, target.Format)
 		if err != nil {
 			return fmt.Errorf("parse existing config %s: %w", target.Path, err)
@@ -121,10 +113,7 @@ func runMCPInstall(client, project string, dryRun bool, opts installOptions) err
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(target.Path), 0o755); err != nil {
-		return fmt.Errorf("create parent dir: %w", err)
-	}
-	if err := os.WriteFile(target.Path, out, 0o644); err != nil {
+	if err := writeMCPConfigFile(target.Path, out); err != nil {
 		return fmt.Errorf("write %s: %w", target.Path, err)
 	}
 	fmt.Printf("Installed fibe MCP server into %s\n", target.Path)
@@ -182,7 +171,6 @@ func buildMCPInstallEntry(client, bin string, opts installOptions) (map[string]a
 		entry["env_vars"] = envVars
 	}
 	if client == "claude-code" || client == "vscode" {
-		// Claude Code and VS Code both emit "type":"stdio" in their current config schemas.
 		entry["type"] = "stdio"
 	}
 	return entry, warnings, nil
@@ -222,6 +210,7 @@ func buildRemoteMCPInstallEntry(client, transport string, opts installOptions) (
 		}
 		return entry, warnings, nil
 	case "codex":
+		// #nosec G101 -- this names an environment variable; it contains no credential value.
 		entry := map[string]any{
 			"url":                  opts.URL,
 			"bearer_token_env_var": "FIBE_API_KEY",
@@ -273,7 +262,7 @@ func remoteAuthHeaders(client string, opts installOptions) (map[string]string, [
 			return map[string]string{"Authorization": "Bearer " + v}, nil
 		}
 		return nil, []string{
-			"Authorization header omitted — antigravity does not expand ${VAR} placeholders in remote MCP config; rerun with --api-key <key> or export FIBE_API_KEY before install.",
+			"Authorization header omitted: antigravity does not expand ${VAR} placeholders in remote MCP config; rerun with --api-key <key> or export FIBE_API_KEY before install.",
 		}
 	default:
 		return nil, nil
@@ -309,7 +298,6 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 		env["FIBE_MCP_AUDIT_LOG"] = opts.AuditLog
 	}
 
-	// Arbitrary --env KEY=VALUE pairs (override earlier values).
 	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
 
 	return env, nil, warnings
@@ -339,10 +327,10 @@ func runMCPUninstall(client, project string, dryRun bool) error {
 		return err
 	}
 
-	data, readErr := os.ReadFile(target.Path)
+	data, readErr := readMCPConfigFile(target.Path)
 	if readErr != nil {
 		if os.IsNotExist(readErr) {
-			fmt.Printf("No config file at %s — nothing to uninstall.\n", target.Path)
+			fmt.Printf("No config file at %s: nothing to uninstall.\n", target.Path)
 			return nil
 		}
 		return fmt.Errorf("read %s: %w", target.Path, readErr)
@@ -354,11 +342,11 @@ func runMCPUninstall(client, project string, dryRun bool) error {
 
 	servers, _ := existing[target.WrapperKey].(map[string]any)
 	if servers == nil {
-		fmt.Printf("No %q entries in %s — nothing to uninstall.\n", target.WrapperKey, target.Path)
+		fmt.Printf("No %q entries in %s: nothing to uninstall.\n", target.WrapperKey, target.Path)
 		return nil
 	}
 	if _, present := servers[mcpServerName]; !present {
-		fmt.Printf("No 'fibe' entry in %s — nothing to uninstall.\n", target.Path)
+		fmt.Printf("No 'fibe' entry in %s: nothing to uninstall.\n", target.Path)
 		return nil
 	}
 
@@ -377,7 +365,7 @@ func runMCPUninstall(client, project string, dryRun bool) error {
 		fmt.Printf("# target: %s\n\n%s", target.Path, string(out))
 		return nil
 	}
-	if err := os.WriteFile(target.Path, out, 0o644); err != nil {
+	if err := writeMCPConfigFile(target.Path, out); err != nil {
 		return fmt.Errorf("write %s: %w", target.Path, err)
 	}
 	fmt.Printf("Removed fibe MCP server from %s\n", target.Path)
@@ -405,7 +393,7 @@ func resolveMCPClientTarget(client, project string) (mcpClientTarget, error) {
 		target, err := codexConfigPath(project)
 		return mcpClientTarget{Path: target, WrapperKey: "mcp_servers", WrapperDefault: map[string]any{}, Format: mcpConfigTOML}, err
 	default:
-		return mcpClientTarget{}, fmt.Errorf("unknown client %q — valid: %s", client, mcpValidClientList)
+		return mcpClientTarget{}, fmt.Errorf("unknown client %q: valid: %s", client, mcpValidClientList)
 	}
 }
 
@@ -525,4 +513,74 @@ func vscodeConfigPath(project string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, ".vscode", "mcp.json"), nil
+}
+
+func readMCPConfigFile(path string) ([]byte, error) {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	base := filepath.Base(path)
+	info, err := root.Lstat(base)
+	if err != nil {
+		return nil, err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("MCP config must be a regular non-symlink file: %s", path)
+	}
+	return root.ReadFile(base)
+}
+
+func writeMCPConfigFile(path string, data []byte) (returnErr error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("create MCP config directory: %w", err)
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { returnErr = errors.Join(returnErr, root.Close()) }()
+	base := filepath.Base(path)
+	if info, statErr := root.Lstat(base); statErr == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return fmt.Errorf("MCP config must be a regular non-symlink file: %s", path)
+		}
+	} else if !os.IsNotExist(statErr) {
+		return statErr
+	}
+
+	temp := fmt.Sprintf(".%s.tmp-%d-%d", base, os.Getpid(), mcpConfigTempCounter.Add(1))
+	file, err := root.OpenFile(temp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	keep := false
+	defer func() {
+		if !keep {
+			_ = root.Remove(temp)
+		}
+	}()
+	if _, err := file.Write(data); err != nil {
+		return errors.Join(err, file.Close())
+	}
+	if err := file.Sync(); err != nil {
+		return errors.Join(err, file.Close())
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := root.Rename(temp, base); err != nil {
+		return err
+	}
+	keep = true
+	directory, err := root.Open(".")
+	if err != nil {
+		return err
+	}
+	if err := directory.Sync(); err != nil {
+		return errors.Join(err, directory.Close())
+	}
+	return directory.Close()
 }

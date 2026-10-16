@@ -18,12 +18,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// ---------- Structured error preservation ----------
-
 func TestStructuredErrorPreserved(t *testing.T) {
-	// Register a fake tool that returns a *fibe.APIError. We verify that the
-	// MCP result contains the code/status/message/request_id rather than a
-	// flattened string.
 	srv := New(Config{APIKey: "pk_test"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
@@ -44,7 +39,6 @@ func TestStructuredErrorPreserved(t *testing.T) {
 	if !result.IsError {
 		t.Error("expected IsError=true")
 	}
-	// Extract text content and parse.
 	var body string
 	for _, c := range result.Content {
 		if tc, ok := c.(interface{ AsText() string }); ok {
@@ -64,7 +58,6 @@ func TestStructuredErrorPreserved(t *testing.T) {
 		}
 	}
 
-	// Non-APIError: confirmRequiredError should surface a CONFIRM_REQUIRED code.
 	ce := &confirmRequiredError{tool: "fibe_playgrounds_delete"}
 	r2 := toolResultFromError("fibe_playgrounds_delete", ce)
 	raw2, _ := json.Marshal(r2)
@@ -72,8 +65,6 @@ func TestStructuredErrorPreserved(t *testing.T) {
 		t.Errorf("expected CONFIRM_REQUIRED in body, got %s", string(raw2))
 	}
 }
-
-// ---------- Idempotency key threaded per-step ----------
 
 func TestPipelineIdempotencyKey(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10})
@@ -89,8 +80,8 @@ func TestPipelineIdempotencyKey(t *testing.T) {
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			// Use the exported accessor so we don't depend on unexported symbols.
 			// The SDK's WithIdempotencyKey stores the key on ctx; we can exfil
-			// it by making a synthetic request via a dummy URL — but the
-			// simpler path: export a test hook. Here we just record presence.
+			// it by making a synthetic request via a dummy URL: but the
+			// Record whether the hook ran.
 			key := idempotencyKeyFromCtxForTest(ctx)
 			stepID, _ := args["_test_step_id"].(string)
 			mu.Lock()
@@ -148,24 +139,18 @@ func TestPipelineIdempotencyKey(t *testing.T) {
 }
 
 func idempotencyKeyFromCtxForTest(ctx context.Context) string {
-	// Send through a no-op request via a stub client so the SDK header
-	// populates an observed request. We use WithRequestHook to abort
-	// the request before it hits the network while still capturing the header.
 	var captured string
 	client := fibe.NewClient(
 		fibe.WithDomain("http://127.0.0.1:65535"),
 		fibe.WithAPIKey("pk_test"),
 		fibe.WithRequestHook(func(req *http.Request) error {
 			captured = req.Header.Get("Idempotency-Key")
-			// Return a dummy error to short-circuit the actual roundtrip.
 			return fmt.Errorf("aborted_by_test")
 		}),
 	)
 	_, _ = client.APIKeys.Me(ctx)
 	return captured
 }
-
-// ---------- Cache TTL + LRU eviction ----------
 
 func TestPipelineCacheLRU(t *testing.T) {
 	cache := newPipelineCache(2, 1024*1024)
@@ -177,7 +162,6 @@ func TestPipelineCacheLRU(t *testing.T) {
 	id2, _, _ := cache.Put("sess", map[string]int{"x": 2})
 	id3, _, _ := cache.Put("sess", map[string]int{"x": 3})
 
-	// Entry 1 should be evicted; entries 2 and 3 retained.
 	if _, ok := cache.Get("sess", id2); !ok {
 		t.Errorf("id2 should still be in cache after 3 puts (cap=2)")
 	}
@@ -185,15 +169,13 @@ func TestPipelineCacheLRU(t *testing.T) {
 		t.Errorf("id3 should still be in cache after 3 puts (cap=2)")
 	}
 
-	// Multi-tenant isolation: a session-B lookup with a session-A ID misses.
 	if _, ok := cache.Get("sess_b", id2); ok {
-		t.Errorf("cross-session cache hit — security violation")
+		t.Errorf("cross-session cache hit: security violation")
 	}
 }
 
 func TestPipelineCacheEntryTruncation(t *testing.T) {
 	cache := newPipelineCache(4, 32)
-	// Value bigger than 32 bytes triggers truncation.
 	id, truncated, err := cache.Put("sess", map[string]string{"big": strings.Repeat("A", 100)})
 	if err != nil {
 		t.Fatalf("put: %v", err)
@@ -210,15 +192,12 @@ func TestPipelineCacheEntryTruncation(t *testing.T) {
 	}
 }
 
-// ---------- Session isolation ----------
-
 func TestSessionIsolation(t *testing.T) {
 	srv := New(Config{APIKey: "pk_server_default"})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Simulate two sessions with different keys set via fibe_auth_set.
 	ctxA := context.Background()
 	ctxB := context.Background()
 	srv.setSessionAuth(ctxA, "pk_tenant_A", "")
@@ -230,12 +209,11 @@ func TestSessionIsolation(t *testing.T) {
 	stateA := srv.sessionFor(ctxA)
 	if stateA.apiKey != "pk_tenant_B" {
 		// With no mcp-go session, both ctxs map to the "default" state. This
-		// is expected — the isolation mechanism is session-IDs from mcp-go,
+		// is expected: the isolation mechanism is session-IDs from mcp-go,
 		// not the raw context. The test documents this behavior.
 		t.Logf("session state shared across ctx (no mcp-go session): apiKey=%s", stateA.apiKey)
 	}
 
-	// Verify apiKeyFromContext only sees the context it's handed.
 	withA := context.WithValue(context.Background(), ctxKeyAPIKey{}, "pk_inline_A")
 	withB := context.WithValue(context.Background(), ctxKeyAPIKey{}, "pk_inline_B")
 	if apiKeyFromContext(withA) != "pk_inline_A" {
@@ -245,8 +223,6 @@ func TestSessionIsolation(t *testing.T) {
 		t.Errorf("ctx B should carry pk_inline_B")
 	}
 }
-
-// ---------- Pipeline parallel + for_each ----------
 
 func TestPipelineParallel(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10})
@@ -258,7 +234,6 @@ func TestPipelineParallel(t *testing.T) {
 		name: "test_sleep",
 		tier: tierMeta,
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			// Simulate some work.
 			time.Sleep(20 * time.Millisecond)
 			return args, nil
 		},
@@ -322,12 +297,10 @@ func TestPipelineForEach(t *testing.T) {
 		},
 		"return": "$.doubled",
 	})
-	// for_each reads $.items; not bound — should fail cleanly.
 	if err == nil {
 		t.Logf("for_each with missing $.items returned %v", result)
 	}
 
-	// Provide $.items via a prior step.
 	result, err = srv.runPipeline(context.Background(), map[string]any{
 		"steps": []any{
 			map[string]any{"id": "items", "tool": "test_double", "args": map[string]any{"n": 0}},
@@ -339,8 +312,6 @@ func TestPipelineForEach(t *testing.T) {
 	}
 	_ = result
 }
-
-// ---------- Audit log format ----------
 
 func TestAuditLogWrites(t *testing.T) {
 	dir := t.TempDir()
@@ -372,7 +343,6 @@ func TestAuditLogWrites(t *testing.T) {
 	if entry["error"] != "boom" {
 		t.Errorf("error mismatch: %v", entry["error"])
 	}
-	// Sensitive redaction.
 	argsLog := entry["args"].(map[string]any)
 	if argsLog["api_key"] != "[redacted]" {
 		t.Errorf("api_key should be redacted, got %v", argsLog["api_key"])
@@ -381,8 +351,6 @@ func TestAuditLogWrites(t *testing.T) {
 		t.Errorf("id not preserved: %v", argsLog["id"])
 	}
 }
-
-// ---------- Base64 file source round-trip ----------
 
 func TestDecodeFileSource(t *testing.T) {
 	payload := []byte("hello world")
@@ -398,7 +366,6 @@ func TestDecodeFileSource(t *testing.T) {
 		t.Errorf("decoded mismatch: got %q want %q", buf, payload)
 	}
 
-	// content_path path.
 	tmp := filepath.Join(t.TempDir(), "test.txt")
 	if err := os.WriteFile(tmp, payload, 0o644); err != nil {
 		t.Fatal(err)
@@ -413,12 +380,10 @@ func TestDecodeFileSource(t *testing.T) {
 		t.Errorf("path-read mismatch: got %q want %q", buf2, payload)
 	}
 
-	// Missing source.
 	if _, err := decodeFileSource(map[string]any{}); err == nil {
 		t.Errorf("expected error when neither content_base64 nor content_path provided")
 	}
 
-	// Non-absolute path.
 	if _, err := decodeFileSource(map[string]any{"content_path": "./relative"}); err == nil {
 		t.Errorf("expected error for non-absolute path")
 	}
@@ -447,25 +412,13 @@ func TestReadInlineOrPathTextArg(t *testing.T) {
 	}
 }
 
-// ---------- Struct-pointer results must be walkable by JSONPath ----------
-
-// TestPipelineStructPointerNormalization reproduces the bug reported when
-// running an agent pipeline against real SDK tools: a step that returns a
-// typed struct pointer (e.g. *fibe.Team, *fibe.Secret) used to crash the
-// next step's ref resolution with:
-//
-//	"unsupported value type *fibe.Team for select,
-//	 expected map[string]interface{} or []interface{}"
-//
-// because PaesslerAG/jsonpath can't walk arbitrary Go structs. The runner
-// now JSON-round-trips every step output so JSONPath can read its fields.
+// TestPipelineStructPointerNormalization keeps typed SDK results readable by JSONPath.
 func TestPipelineStructPointerNormalization(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Fake tool that mirrors the SDK shape: returns a typed struct pointer.
 	srv.dispatcher.register(&toolImpl{
 		name: "test_get_record",
 		tier: tierMeta,
@@ -477,8 +430,6 @@ func TestPipelineStructPointerNormalization(t *testing.T) {
 			return &record{ID: 123, Name: "Acme"}, nil
 		},
 	})
-	// Second fake tool that echoes its args — we'll assert it receives the
-	// resolved numeric ID instead of failing at ref resolution.
 	srv.dispatcher.register(&toolImpl{
 		name: "test_use_record",
 		tier: tierMeta,
@@ -513,18 +464,12 @@ func TestPipelineStructPointerNormalization(t *testing.T) {
 	}
 }
 
-// ---------- Nested pipeline refusal ----------
-
 func TestNestedPipelineRefused(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10})
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Nested fibe_pipeline is now caught per-step: the pipeline returns a
-	// partial result with status=partial and the error info naming the
-	// nested tool. (runPipeline itself no longer surfaces errors — it
-	// always returns a response so callers see prior step outputs.)
 	result, err := srv.runPipeline(context.Background(), map[string]any{
 		"steps": []any{
 			map[string]any{"id": "inner", "tool": "fibe_pipeline", "args": map[string]any{"steps": []any{}}},

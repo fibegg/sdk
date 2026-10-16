@@ -20,11 +20,14 @@ Reads compose.yml files from the playgrounds directory to discover
 services, URLs, mount points, and other configuration.
 
 Environment Variables:
-  MARQUEE_ROOT          Marquee root, or directory containing playgrounds (default: /opt/fibe/playgrounds)
-  MARQUEE_ROOT_DOMAIN   Base domain for URLs (default: phoenix.test)
+  HOST_ROOT          Host root, or directory containing playgrounds (default: /opt/fibe/playgrounds)
+  HOST_ROOT_DOMAIN   Base domain for URLs (default: phoenix.test)
+  HOST_URL_SCHEME    URL scheme for exposed services (default: https)
 
 Examples:
   fibe local playgrounds info --view names
+  fibe local playgrounds info --view current
+  fibe local playgrounds info --view repos
   fibe local playgrounds info --view urls --playground 1
   fibe local playgrounds info --view mounts --playground mcp-test-dev
   fibe local playgrounds info --view details --playground 1
@@ -42,6 +45,7 @@ Examples:
 func lpInfoCmd() *cobra.Command {
 	var view string
 	var playground string
+	var linkDir string
 
 	cmd := &cobra.Command{
 		Use:   "info",
@@ -49,7 +53,9 @@ func lpInfoCmd() *cobra.Command {
 		Long: `Show local playground information.
 
 Views:
-  names    List selector-visible local playground names, playspecs, IDs, and paths.
+  names    List selector-visible mountable local playground names, specs, IDs, and paths.
+  current  Show the currently linked playground JSON state.
+  repos    List git repository roots for the currently linked playground.
   urls     List exposed service URLs for one playground.
   mounts   List source-code mount locations for one playground.
   details  Show full local metadata for one playground.`,
@@ -77,7 +83,29 @@ Views:
 					return nil
 				}
 				for _, entry := range entries {
-					fmt.Printf("%s|%s|%s\n", entry.Name, entry.Playspec, entry.ID)
+					fmt.Printf("%s|%s|%s\n", entry.Name, entry.Spec, entry.ID)
+				}
+			case "current":
+				state, err := localplaygrounds.LoadCurrentState(linkDir)
+				if err != nil {
+					return err
+				}
+				if effectiveOutput() == "json" || effectiveOutput() == "yaml" {
+					output(state)
+					return nil
+				}
+				outputLocalCurrentState(state)
+			case "repos":
+				state, err := localplaygrounds.LoadCurrentState(linkDir)
+				if err != nil {
+					return err
+				}
+				if effectiveOutput() == "json" || effectiveOutput() == "yaml" {
+					output(state.Repos)
+					return nil
+				}
+				for _, entry := range state.Repos {
+					fmt.Printf("%s|%s|%s|%s|%s\n", entry.Service, entry.Repository, entry.Branch, entry.LinkPath, entry.RepoRoot)
 				}
 			case "urls":
 				pg, err := localplaygrounds.Find(playgrounds, selector)
@@ -103,7 +131,7 @@ Views:
 					return nil
 				}
 				for _, entry := range entries {
-					fmt.Printf("%s|%s|%s|%s\n", entry.Service, entry.Mount, entry.Prop, entry.Branch)
+					fmt.Printf("%s|%s|%s|%s\n", entry.Service, entry.Mount, entry.Repository, entry.Branch)
 				}
 			case "details":
 				pg, err := localplaygrounds.Find(playgrounds, selector)
@@ -122,16 +150,17 @@ Views:
 		},
 	}
 
-	cmd.Flags().StringVar(&view, "view", "", "Info view: names, urls, mounts, or details")
-	cmd.Flags().StringVar(&playground, "playground", "", "Local playground ID, name, compose project, playspec, or unique playspec prefix")
+	cmd.Flags().StringVar(&view, "view", "", "Info view: names, current, repos, urls, mounts, or details")
+	cmd.Flags().StringVar(&playground, "playground", "", "Local playground ID, name, compose project, spec, or unique spec prefix")
+	cmd.Flags().StringVar(&linkDir, "link-dir", "", "Current-link directory for views current and repos (default: /app/playground)")
 	return cmd
 }
 
 func localPlaygroundSelector(view, playground string) (string, error) {
 	playground = strings.TrimSpace(playground)
-	if view == "names" {
+	if view == "names" || view == "current" || view == "repos" {
 		if playground != "" {
-			return "", fmt.Errorf("view 'names' does not accept --playground")
+			return "", fmt.Errorf("view '%s' does not accept --playground", view)
 		}
 		return "", nil
 	}
@@ -144,21 +173,21 @@ func localPlaygroundSelector(view, playground string) (string, error) {
 func outputLocalPlaygroundDetails(pg *localplaygrounds.Playground) {
 	branch := "unknown"
 	mountPath := "unknown"
-	prop := "unknown"
+	repository := "unknown"
 	if mounts := localplaygrounds.Mounts(pg); len(mounts) > 0 {
 		branch = valueOrUnknown(mounts[0].Branch)
 		mountPath = valueOrUnknown(mounts[0].Mount)
-		prop = valueOrUnknown(mounts[0].Prop)
+		repository = valueOrUnknown(mounts[0].Repository)
 	}
 
 	fmt.Println("==========================================================")
-	fmt.Printf("Playground:  %s\n", pg.Playspec)
+	fmt.Printf("Playground:  %s\n", pg.Spec)
 	if pg.ID != "" {
 		fmt.Printf("ID:          %s\n", pg.ID)
 	}
 	fmt.Printf("Name:        %s\n", pg.DirName)
 	fmt.Printf("Branch:      %s\n", branch)
-	fmt.Printf("Prop:        %s\n", prop)
+	fmt.Printf("Repository:        %s\n", repository)
 	fmt.Printf("Mount:       %s\n", mountPath)
 	fmt.Println()
 	fmt.Println("Services:")
@@ -170,7 +199,7 @@ func outputLocalPlaygroundDetails(pg *localplaygrounds.Playground) {
 			fmt.Printf("      Image:      %s\n", svc.Image)
 		}
 		if svc.Traefik && svc.Subdomain != "" {
-			fmt.Printf("      URL:        https://%s.%s\n", svc.Subdomain, localplaygrounds.RootDomain())
+			fmt.Printf("      URL:        %s://%s.%s\n", localplaygrounds.URLScheme(), svc.Subdomain, localplaygrounds.RootDomain())
 		} else {
 			fmt.Println("      Network:    Internal only")
 		}
@@ -181,6 +210,23 @@ func outputLocalPlaygroundDetails(pg *localplaygrounds.Playground) {
 			fmt.Printf("      Mount:      %s\n", svc.HostMount)
 		}
 		fmt.Println()
+	}
+	fmt.Println("==========================================================")
+}
+
+func outputLocalCurrentState(state *localplaygrounds.CurrentState) {
+	fmt.Println("==========================================================")
+	fmt.Printf("Playground:  %s\n", state.Spec)
+	if state.ID != "" {
+		fmt.Printf("ID:          %s\n", state.ID)
+	}
+	fmt.Printf("Name:        %s\n", state.DirName)
+	fmt.Printf("Path:        %s\n", state.Path)
+	fmt.Printf("Link Dir:    %s\n", state.LinkDir)
+	fmt.Println()
+	fmt.Println("Repositories:")
+	for _, repo := range state.Repos {
+		fmt.Printf("  - %s: %s -> %s\n", repo.Service, repo.LinkPath, repo.RepoRoot)
 	}
 	fmt.Println("==========================================================")
 }

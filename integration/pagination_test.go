@@ -75,15 +75,15 @@ func TestPagination_Envelope(t *testing.T) {
 				}
 				return r.Meta.Total, nil
 			}},
-			{"playspecs", func() (int64, error) {
-				r, e := c.Playspecs.List(ctx(), nil)
+			{"specs", func() (int64, error) {
+				r, e := c.Specs.List(ctx(), nil)
 				if e != nil {
 					return 0, e
 				}
 				return r.Meta.Total, nil
 			}},
-			{"props", func() (int64, error) {
-				r, e := c.Props.List(ctx(), nil)
+			{"repositories", func() (int64, error) {
+				r, e := c.Repositories.List(ctx(), nil)
 				if e != nil {
 					return 0, e
 				}

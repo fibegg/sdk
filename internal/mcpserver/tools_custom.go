@@ -9,13 +9,12 @@ import (
 )
 
 // registerCustomTools wires tools that don't fit the uniform CRUD helpers in
-// tools_resource_mutations.go — operations with odd signatures, extra required
+// tools_resource_mutations.go: operations with odd signatures, extra required
 // string parameters, or compose-YAML payloads.
 func (s *Server) registerCustomTools() {
-	// ---------- fibe_playgrounds_logs ----------
 	// Needs: id_or_name (identifier), service (string, optional), tail (int, optional).
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid.", tier: tierBrownfield,
+		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with HOST_NOT_FUNDED when the Host is unpaid.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -31,15 +30,14 @@ func (s *Server) registerCustomTools() {
 			return c.Playgrounds.LogsByIdentifier(ctx, identifier, service, tail)
 		},
 	}, mcp.NewTool("fibe_playgrounds_logs",
-		mcp.WithDescription("[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with MARQUEE_NOT_FUNDED when the Marquee is unpaid."),
+		mcp.WithDescription("[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with HOST_NOT_FUNDED when the Host is unpaid."),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground numeric ID or slug-safe name")),
 		mcp.WithString("service", mcp.Description("Optional Compose service name, for example web or worker. Omit to return all services.")),
 		mcp.WithNumber("tail", mcp.Description("Number of log lines to return (default: 50)")),
 	))
 
-	// ---------- fibe_repo_status ----------
 	s.addTool(&toolImpl{
-		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs.", tier: tierOther,
+		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			type input struct {
@@ -55,15 +53,14 @@ func (s *Server) registerCustomTools() {
 			return c.RepoStatus.Check(ctx, in.GithubURLs)
 		},
 	}, mcp.NewTool("fibe_repo_status_check",
-		mcp.WithDescription("[MODE:DIALOG] Verify the system's access and view of multiple GitHub repository URLs."),
+		mcp.WithDescription("[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access."),
 		mcp.WithArray("github_urls", mcp.Required(),
 			mcp.Description("GitHub repository URLs to check."),
 			mcp.WithStringItems()),
 	))
 
-	// ---------- fibe_get_github_token ----------
 	s.addTool(&toolImpl{
-		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct installation.", tier: tierOther,
+		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.", tier: tierOther,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			repo := argString(args, "repo")
@@ -73,7 +70,7 @@ func (s *Server) registerCustomTools() {
 			return c.Installations.GetGitHubToken(ctx, repo)
 		},
 	}, mcp.NewTool("fibe_get_github_token",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Get a GitHub access token for a repository. Auto-resolves the correct GitHub App installation. No installation ID needed."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves a GitHub App installation; standalone Core returns its configured credential. No installation ID needed."),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("Full repo name, e.g. owner/repo")),
 	))
 }

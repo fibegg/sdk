@@ -48,6 +48,7 @@ type MemoryGrounding struct {
 }
 
 type Memory struct {
+	OwnershipMetadata
 	ID             int64             `json:"id"`
 	PlayerID       int64             `json:"player_id"`
 	ConversationID string            `json:"conversation_id"`

@@ -31,6 +31,7 @@ type deviceAuthResponse struct {
 
 // devicePollResponse mirrors the JSON from POST /cli/device_codes/poll.
 type devicePollResponse struct {
+	fibe.CredentialContext
 	Status   string   `json:"status"`
 	Error    string   `json:"error"`
 	APIKey   string   `json:"api_key"`
@@ -111,7 +112,7 @@ Examples:
 				if err != nil {
 					return fmt.Errorf("API key validation failed for %s: %w", baseURL, err)
 				}
-				if err := saveAuthProfile(profile, domain, flagAPIKey, 0); err != nil {
+				if err := saveAuthProfile(profile, domain, flagAPIKey, 0, me.CredentialContext); err != nil {
 					return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 				}
 				fmt.Fprintf(os.Stderr, "Authenticated profile %s with %s\n", profile, baseURL)
@@ -123,7 +124,6 @@ Examples:
 				return nil
 			}
 
-			// Step 1: Initiate device authorization
 			fmt.Fprintf(os.Stderr, "Initiating authentication for profile %s with %s...\n", profile, baseURL)
 
 			initResp, err := initiateDeviceAuth(baseURL, flagHostname)
@@ -131,7 +131,6 @@ Examples:
 				return fmt.Errorf("failed to initiate device auth: %w", err)
 			}
 
-			// Step 2: Show verification info
 			fmt.Fprintln(os.Stderr)
 			fmt.Fprintf(os.Stderr, "  Your code: %s\n", initResp.UserCode)
 			fmt.Fprintln(os.Stderr)
@@ -146,7 +145,6 @@ Examples:
 				fmt.Fprintln(os.Stderr, "  Browser opened. Waiting for approval...")
 			}
 
-			// Step 3: Poll with Ctrl-C support
 			interval := time.Duration(initResp.Interval) * time.Second
 			if interval < 3*time.Second {
 				interval = 5 * time.Second
@@ -156,37 +154,52 @@ Examples:
 			ctx, cancel := context.WithDeadline(context.Background(), deadline)
 			defer cancel()
 
-			// Handle Ctrl-C gracefully
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, os.Interrupt)
 			defer signal.Stop(sigCh)
 
 			ticker := time.NewTicker(interval)
 			defer ticker.Stop()
+			progress := newStatusLine(os.Stderr, statusLineOptions{})
+			progress.Start("waiting for browser approval")
+			defer progress.Stop()
 
 			for {
 				select {
 				case <-sigCh:
+					progress.Stop()
 					fmt.Fprintln(os.Stderr, "\n\nAborted. No credentials were saved.")
 					return nil
 				case <-ctx.Done():
+					progress.Stop()
 					fmt.Fprintln(os.Stderr)
-					return fmt.Errorf("timed out waiting for authorization — run `fibe auth login` again")
+					return fmt.Errorf("timed out waiting for authorization: run `fibe auth login` again")
 				case <-ticker.C:
 					pollResp, httpStatus, err := pollDeviceAuth(baseURL, initResp.DeviceCode)
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "  Poll error: %v (retrying...)\n", err)
+						if progress.IsInteractive() {
+							progress.Update(fmt.Sprintf("poll error: %v (retrying...)", err))
+						} else {
+							fmt.Fprintf(os.Stderr, "  Poll error: %v (retrying...)\n", err)
+						}
 						continue
 					}
 
 					switch {
 					case pollResp.Status == "authorization_pending":
-						fmt.Fprint(os.Stderr, ".")
+						if progress.IsInteractive() {
+							progress.Update("waiting for browser approval")
+						} else {
+							fmt.Fprint(os.Stderr, ".")
+						}
 						continue
 
 					case pollResp.Status == "authorized" && pollResp.APIKey != "":
-						fmt.Fprintln(os.Stderr)
-						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID); err != nil {
+						progress.Stop()
+						if !progress.IsInteractive() {
+							fmt.Fprintln(os.Stderr)
+						}
+						if err := saveAuthProfile(profile, domain, pollResp.APIKey, pollResp.APIKeyID, pollResp.CredentialContext); err != nil {
 							return fmt.Errorf("authenticated but failed to save credentials: %w", err)
 						}
 						fmt.Fprintf(os.Stderr, "\nAuthenticated profile %s with %s\n", profile, baseURL)
@@ -195,18 +208,22 @@ Examples:
 						return nil
 
 					case pollResp.Error == "access_denied":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("authorization denied by user")
 
 					case pollResp.Error == "already_consumed":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
-						return fmt.Errorf("API key was already retrieved — run `fibe auth login` again")
+						return fmt.Errorf("API key was already retrieved: run `fibe auth login` again")
 
 					case httpStatus == http.StatusGone || pollResp.Error == "expired_token":
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
-						return fmt.Errorf("device code expired — run `fibe auth login` again")
+						return fmt.Errorf("device code expired: run `fibe auth login` again")
 
 					default:
+						progress.Stop()
 						fmt.Fprintln(os.Stderr)
 						return fmt.Errorf("unexpected response: %s", pollResp.Error)
 					}
@@ -375,10 +392,13 @@ func maskKey(key string) string {
 func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "darwin":
+		// #nosec G204 -- fixed executable, validated device-flow URL, argv execution without a shell.
 		return exec.Command("open", url).Start()
 	case "linux":
+		// #nosec G204 -- fixed executable, validated device-flow URL, argv execution without a shell.
 		return exec.Command("xdg-open", url).Start()
 	case "windows":
+		// #nosec G204 -- fixed system launcher and argv execution; no user shell string is constructed.
 		return exec.Command("cmd", "/c", "start", url).Start()
 	}
 	return fmt.Errorf("unsupported platform %s", runtime.GOOS)

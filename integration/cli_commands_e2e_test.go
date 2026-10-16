@@ -27,7 +27,6 @@ func initCLIBin(t *testing.T) {
 		os.MkdirAll(dir, 0755)
 		cliBinPath = filepath.Join(dir, "fibe")
 		cmd := exec.Command("go", "build", "-o", cliBinPath, "../cmd/fibe")
-		// The integration test runs from the integration directory, so we build ../cmd/fibe
 		err := cmd.Run()
 		if err != nil {
 			t.Fatalf("failed to build fibe CLI: %v", err)
@@ -129,37 +128,31 @@ func TestCLI_E2E_Commands(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Negative Path: Missing args
 			out, err := runCompiledCLI(t, tc.resource, tc.createCmdName)
 			require.Error(t, err)
 			assert.True(t, strings.Contains(out, tc.missingArgErr) || strings.Contains(out, "required") || strings.Contains(out, "expected KEY=VALUE"), "output should complain about missing args: %s", out)
 
-			// Happy Path: Create
 			createCmd := append([]string{tc.resource, tc.createCmdName}, tc.createArgs...)
 			out, err = runCompiledCLI(t, createCmd...)
 			require.NoError(t, err, "failed to create: %s", out)
 
 			id := parseResourceID(t, out)
 
-			// Happy Path: Get
 			if !tc.skipGet {
 				out, err = runCompiledCLI(t, tc.resource, "get", strconv.FormatInt(id, 10))
 				require.NoError(t, err, "failed to get: %s", out)
 				assert.Contains(t, out, `"id"`)
 			}
 
-			// Happy Path: List
 			out, err = runCompiledCLI(t, tc.resource, "list")
 			require.NoError(t, err, "failed to list: %s", out)
 
-			// Happy Path: Update
 			if tc.updateArgs != nil {
 				updateCmd := append([]string{tc.resource, tc.updateCmdName, strconv.FormatInt(id, 10)}, tc.updateArgs...)
 				out, err = runCompiledCLI(t, updateCmd...)
 				require.NoError(t, err, "failed to update: %s", out)
 			}
 
-			// Happy Path: Delete
 			if tc.cleanupDelete {
 				deleteCmd := append([]string{tc.resource, "delete", strconv.FormatInt(id, 10)}, tc.deleteArgs...)
 				out, err = runCompiledCLI(t, deleteCmd...)
@@ -173,52 +166,44 @@ func TestCLI_E2E_Commands(t *testing.T) {
 func TestCLI_E2E_ComplexCommands(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	specID, hostID := setupPlaygroundDeps(t, c)
 
 	t.Run("playgrounds", func(t *testing.T) {
 		t.Parallel()
 
-		// Negative: no name
 		out, err := runCompiledCLI(t, "playgrounds", "create")
 		require.Error(t, err)
 		assert.True(t, strings.Contains(out, "required field 'name' not set") || strings.Contains(out, "required"), "expected name error: %s", out)
 
-		// Happy: create
 		pgName := uniqueName("cli-e2e-pg")
-		createArgs := []string{"playgrounds", "create", "--name", pgName, "--playspec", strconv.FormatInt(specID, 10)}
-		if marqueeID > 0 {
-			createArgs = append(createArgs, "--marquee", strconv.FormatInt(marqueeID, 10))
+		createArgs := []string{"playgrounds", "create", "--name", pgName, "--spec", strconv.FormatInt(specID, 10)}
+		if hostID > 0 {
+			createArgs = append(createArgs, "--host", strconv.FormatInt(hostID, 10))
 		}
 		out, err = runCompiledCLI(t, createArgs...)
 		require.NoError(t, err, "failed to create playground: %s", out)
 		id := parseResourceID(t, out)
 
-		// Happy: update
 		out, err = runCompiledCLI(t, "playgrounds", "update", strconv.FormatInt(id, 10), "--name", pgName+"-renamed")
 		require.NoError(t, err, "failed to update playground: %s", out)
 
-		// Happy: get
-		out, err = runCompiledCLI(t, "playgrounds", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "playgrounds", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
-		// Playgrounds debug
 		out, err = runCompiledCLI(t, "playgrounds", "debug", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to debug playground: %s", out)
 
-		// Delete
-		out, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "playgrounds", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
-	t.Run("playspecs", func(t *testing.T) {
+	t.Run("specs", func(t *testing.T) {
 		t.Parallel()
 
-		// Negative: no name
-		out, err := runCompiledCLI(t, "playspecs", "create")
+		out, err := runCompiledCLI(t, "specs", "create")
 		require.Error(t, err)
 		assert.True(t, strings.Contains(out, "required field 'name' not set") || strings.Contains(out, "required"), "expected name error: %s", out)
 
-		// Happy: create
 		psName := uniqueName("cli-e2e-ps")
 		composeContent := "version: '3'\nservices:\n  app:\n    image: alpine"
 		payload := map[string]interface{}{
@@ -232,101 +217,84 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		tmpPath := filepath.Join(t.TempDir(), "payload.json")
 		os.WriteFile(tmpPath, b, 0644)
 
-		out, err = runCompiledCLI(t, "playspecs", "create", "--from-file", tmpPath)
-		require.NoError(t, err, "failed to create playspec: %s", out)
+		out, err = runCompiledCLI(t, "specs", "create", "--from-file", tmpPath)
+		require.NoError(t, err, "failed to create spec: %s", out)
 		id := parseResourceID(t, out)
 
-		// Update
-		out, err = runCompiledCLI(t, "playspecs", "update", strconv.FormatInt(id, 10), "--name", psName+"-renamed")
+		_, err = runCompiledCLI(t, "specs", "update", strconv.FormatInt(id, 10), "--name", psName+"-renamed")
 		require.NoError(t, err)
 
-		// Delete
-		out, err = runCompiledCLI(t, "playspecs", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "specs", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
-	t.Run("props", func(t *testing.T) {
+	t.Run("repositories", func(t *testing.T) {
 		t.Parallel()
 
-		// Negative: no repo url
-		out, err := runCompiledCLI(t, "props", "create")
+		out, err := runCompiledCLI(t, "repositories", "create")
 		require.Error(t, err)
 		assert.True(t, strings.Contains(out, "required field 'url' not set") || strings.Contains(out, "required"), "expected repo url error: %s", out)
 
-		// Happy: create
-		out, err = runCompiledCLI(t, "props", "create", "--url", "https://github.com/fibegg/e2e-tests", "--name", uniqueName("cli-e2e-prop"))
-		require.NoError(t, err, "failed to create prop: %s", out)
+		repoURL := seedWritableGiteaRepoURL(t, userClient(t), "cli-e2e-repository")
+		out, err = runCompiledCLI(t, "repositories", "create", "--url", repoURL, "--provider", "gitea", "--private", "--default-branch", "main", "--name", uniqueName("cli-e2e-repository"))
+		require.NoError(t, err, "failed to create repository: %s", out)
 		id := parseResourceID(t, out)
 
-		// Get
-		out, err = runCompiledCLI(t, "props", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "repositories", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
-		// Delete
-		out, err = runCompiledCLI(t, "props", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "repositories", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
 	t.Run("agents", func(t *testing.T) {
 		t.Parallel()
 
-		// Negative: no name
 		out, err := runCompiledCLI(t, "agents", "create")
 		require.Error(t, err)
 		assert.True(t, strings.Contains(out, "required field 'name' not set") || strings.Contains(out, "required"), "expected name error: %s", out)
 
-		// Happy: create
 		agentName := uniqueName("cli-e2e-agent")
 		out, err = runCompiledCLI(t, "agents", "create", "--name", agentName, "--provider", "gemini")
 		require.NoError(t, err, "failed to create agent: %s", out)
 		id := parseResourceID(t, out)
 
-		// Happy: update
 		out, err = runCompiledCLI(t, "agents", "update", strconv.FormatInt(id, 10), "--name", agentName+"-renamed")
 		require.NoError(t, err, "failed to update agent: %s", out)
 
-		// Happy: get
-		out, err = runCompiledCLI(t, "agents", "get", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 
-		// Happy: list
-		out, err = runCompiledCLI(t, "agents", "list")
+		_, err = runCompiledCLI(t, "agents", "list")
 		require.NoError(t, err)
 
-		// Mutters Negative: no type
 		out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10))
 		require.Error(t, err)
 		assert.True(t, strings.Contains(out, "required field 'type' not set") || strings.Contains(out, "required"), "expected type error: %s", out)
 
-		// Mutters Happy: create
 		out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10), "--type", "observation", "--body", "test observation")
 		require.NoError(t, err, "failed to create mutter: %s", out)
 
-		// Mutters Happy: get
 		out, err = runCompiledCLI(t, "mutters", "get", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to get mutters: %s", out)
 
-		// Agents Duplicate
 		out, err = runCompiledCLI(t, "agents", "duplicate", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to duplicate agent: %s", out)
 		dupID := parseResourceID(t, out)
-		out, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(dupID, 10))
+		_, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(dupID, 10))
 		require.NoError(t, err)
 
-		// Agents runtime-status
 		out, err = runCompiledCLI(t, "agents", "runtime-status", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to get agent runtime-status: %s", out)
 
-		// Agents send-message
-		out, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10))
 		require.Error(t, err) // missing text
 
 		out, err = runCompiledCLI(t, "agents", "send-message", strconv.FormatInt(id, 10), "--text", "hello")
 		require.Error(t, err, "non-running agents should reject chat sends")
 		assert.Contains(t, out, "AGENT_COMMUNICATION_FAILED")
 
-		// Delete
-		out, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(id, 10))
+		_, err = runCompiledCLI(t, "agents", "delete", strconv.FormatInt(id, 10))
 		require.NoError(t, err)
 	})
 
@@ -345,10 +313,10 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to create artefact: %s", out)
 		artID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(agentID, 10), strconv.FormatInt(artID, 10))
+		_, err = runCompiledCLI(t, "artefacts", "get", strconv.FormatInt(agentID, 10), strconv.FormatInt(artID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "artefacts", "list", strconv.FormatInt(agentID, 10))
+		_, err = runCompiledCLI(t, "artefacts", "list", strconv.FormatInt(agentID, 10))
 		require.NoError(t, err)
 
 		runCompiledCLI(t, "agents", "delete", strconv.FormatInt(agentID, 10))
@@ -367,46 +335,46 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		out, err = runCompiledCLI(t, "templates", "versions", "create", strconv.FormatInt(tmplID, 10), "--body", "@"+tmpFile)
 		require.NoError(t, err, "failed to create template version: %s", out)
 
-		out, err = runCompiledCLI(t, "templates", "versions", "list", strconv.FormatInt(tmplID, 10))
+		_, err = runCompiledCLI(t, "templates", "versions", "list", strconv.FormatInt(tmplID, 10))
 		require.NoError(t, err)
 
 		runCompiledCLI(t, "templates", "delete", strconv.FormatInt(tmplID, 10))
 	})
 
-	t.Run("tricks", func(t *testing.T) {
+	t.Run("tasks", func(t *testing.T) {
 		t.Parallel()
 		psName := uniqueName("cli-e2e-job")
 		tmpFile := filepath.Join(t.TempDir(), "job.json")
-		payload := &fibe.PlayspecCreateParams{
+		payload := &fibe.SpecCreateParams{
 			Name:            psName,
 			BaseComposeYAML: jobComposeYAML(),
 			JobMode:         ptr(true),
-			Services:        []fibe.PlayspecServiceDef{jobWatchedService("worker")},
+			Services:        []fibe.SpecServiceDef{jobWatchedService("worker")},
 		}
 		b, _ := json.Marshal(payload)
 		os.WriteFile(tmpFile, b, 0644)
 
-		out, err := runCompiledCLI(t, "playspecs", "create", "--from-file", tmpFile)
+		out, err := runCompiledCLI(t, "specs", "create", "--from-file", tmpFile)
 		require.NoError(t, err)
 		psID := parseResourceID(t, out)
 
-		if marqueeID == 0 {
-			t.Skip("set FIBE_TEST_MARQUEE_ID to trigger tricks")
+		if hostID == 0 {
+			t.Skip("set FIBE_TEST_HOST_ID to trigger tasks")
 		}
-		out, err = runCompiledCLI(t, "tricks", "trigger", "--playspec", strconv.FormatInt(psID, 10), "--marquee", strconv.FormatInt(marqueeID, 10))
-		require.NoError(t, err, "failed to trigger trick: %s", out)
-		trickID := parseResourceID(t, out)
+		out, err = runCompiledCLI(t, "tasks", "trigger", "--spec", strconv.FormatInt(psID, 10), "--host", strconv.FormatInt(hostID, 10))
+		require.NoError(t, err, "failed to trigger task: %s", out)
+		taskID := parseResourceID(t, out)
 
-		out, err = runCompiledCLI(t, "tricks", "get", strconv.FormatInt(trickID, 10))
+		_, err = runCompiledCLI(t, "tasks", "get", strconv.FormatInt(taskID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "tricks", "list", "--playspec", strconv.FormatInt(psID, 10))
+		_, err = runCompiledCLI(t, "tasks", "list", "--spec", strconv.FormatInt(psID, 10))
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "tricks", "delete", strconv.FormatInt(trickID, 10))
+		_, err = runCompiledCLI(t, "tasks", "delete", strconv.FormatInt(taskID, 10))
 		require.NoError(t, err)
 
-		runCompiledCLI(t, "playspecs", "delete", strconv.FormatInt(psID, 10))
+		runCompiledCLI(t, "specs", "delete", strconv.FormatInt(psID, 10))
 	})
 
 	t.Run("gitea_repos", func(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 46-auth-rate-limits.spec.js
 func TestAuthRateLimits_Headers(t *testing.T) {
 	t.Parallel()
 	apiKey := os.Getenv("FIBE_API_KEY")
@@ -48,6 +47,6 @@ func TestAuthRateLimits_RateLimitedKey(t *testing.T) {
 	}
 
 	if !rateLimited {
-		t.Skip("rate limit not triggered after 3 requests — key may have higher limit; test requires a low-limit key")
+		t.Skip("rate limit not triggered after 3 requests: key may have higher limit; test requires a low-limit key")
 	}
 }

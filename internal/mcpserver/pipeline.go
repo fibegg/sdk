@@ -23,7 +23,7 @@ import (
 // fibe_pipeline_result.
 func (s *Server) registerPipelineTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls sequentially in a single round-trip using JSONPath bindings. The most powerful tool by far! Use to eliminate roundtrip latency when creating and waiting for jobs.", tier: tierMeta,
+		name: "fibe_pipeline", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runPipeline(ctx, args)
@@ -33,7 +33,7 @@ func (s *Server) registerPipelineTools() {
 
 STEPS:
   Each step is {id, tool, args} or {parallel: [...]} or {for_each: "$.list", as, steps, collect}.
-  Args may contain JSONPath expressions beginning with "$." — they resolve against a map of
+  Args may contain JSONPath expressions beginning with "$.": they resolve against a map of
   prior step outputs. Example: "$.pg.id" references the "pg" step's result field "id".
 
 LIMITS:
@@ -45,8 +45,7 @@ RETURN:
   object literal with JSONPath values to project only what you need.
 
 CACHING:
-  The full result tree is cached per session for 5 minutes under a returned pipeline_id —
-  including partial results from pipelines that errored mid-run. Use fibe_pipeline_result
+  The full result tree is cached per session for 5 minutes under a returned pipeline_id: including partial results from pipelines that errored mid-run. Use fibe_pipeline_result
   to re-query specific fields later without rerunning. Successful runs have status:"completed";
   mid-run failures have status:"partial" with an "error" block identifying the failed step
   and a "completed_step_ids" array so you can garbage-collect created resources.
@@ -67,7 +66,7 @@ Each step is one of:
 Args may contain JSONPath references starting with "$.", resolved against the map of prior step outputs.`),
 			// Gemini's schema validator requires items to be declared on
 			// every array; other MCP hosts are looser. We describe steps as
-			// a permissive object — the runtime validates the polymorphic
+			// a permissive object: the runtime validates the polymorphic
 			// shape (tool / parallel / for_each) itself.
 			withObjectItems(stepSchema()),
 		),
@@ -78,7 +77,7 @@ Args may contain JSONPath references starting with "$.", resolved against the ma
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline_result", description: "[MODE:DIALOG] Look up a cached result from a previous, the most powerful tool, - pipeline execution", tier: tierMeta,
+		name: "fibe_pipeline_result", description: "[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			pid := argString(args, "pipeline_id")
@@ -107,7 +106,7 @@ PATH RESOLUTION:
   path is a JSONPath expression rooted at the pipeline's step outputs (bindings).
   Example: path="$.create_team.id" returns the "create_team" step's "id" field.
   If the path doesn't resolve inside bindings, it's retried against the full cached
-  response — so "$.status", "$.error", "$.completed_step_ids" also work.
+  response: so "$.status", "$.error", "$.completed_step_ids" also work.
 
 Returns {expired: true} if the ID is unknown or the entry was evicted.`),
 		mcp.WithString("pipeline_id", mcp.Required(), mcp.Description("ID returned by a prior fibe_pipeline call")),
@@ -117,7 +116,7 @@ Returns {expired: true} if the ID is unknown or the entry was evicted.`),
 
 // withObjectItems is a PropertyOption that sets the "items" schema on an
 // array property. mcp-go ships WithStringItems/WithNumberItems/WithBooleanItems
-// but nothing for object items — and Gemini's validator rejects arrays that
+// but nothing for object items: and Gemini's validator rejects arrays that
 // have no items at all.
 func withObjectItems(itemsSchema map[string]any) mcp.PropertyOption {
 	return func(m map[string]any) {
@@ -125,19 +124,10 @@ func withObjectItems(itemsSchema map[string]any) mcp.PropertyOption {
 	}
 }
 
-// stepSchema returns the recursive schema describing a single pipeline
-// step. Gemini's validator walks every nested array and demands an items
-// declaration, so we make sure every inner "parallel" and "steps" array
-// carries one.
-//
-// The schema is intentionally permissive: the runtime validates the
-// polymorphic tool / parallel / for_each shape itself. Describing it with a
-// strict oneOf would bloat the schema without giving the agent better
-// guidance than the free-form description does.
+// stepSchema stays permissive while adding items to every nested array for
+// Gemini's validator; runtime code validates each polymorphic step shape.
 func stepSchema() map[string]any {
-	// Inner object schema used as items for arrays of sub-steps. We stop
-	// one level deep — enough for Gemini to accept the schema without
-	// exploding into a fully recursive definition.
+	// One nested level satisfies Gemini without an unbounded recursive schema.
 	innerStep := map[string]any{
 		"type":        "object",
 		"description": "A nested pipeline step.",
@@ -204,7 +194,6 @@ type pipelineStep struct {
 	Steps   []pipelineStep `json:"steps,omitempty"`
 	Collect string         `json:"collect,omitempty"` // optional JSONPath on each iteration's final output
 
-	// Error handling
 	OnError string `json:"on_error,omitempty"` // abort (default) | continue
 
 	// input_path/output_path filtering (Tool Chainer compatibility)
@@ -213,7 +202,7 @@ type pipelineStep struct {
 }
 
 func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, error) {
-	// Refuse nested pipelines at the top level — a fibe_pipeline step that
+	// Refuse nested pipelines at the top level: a fibe_pipeline step that
 	// invokes fibe_pipeline is caught by dispatcher lookup later. The
 	// dispatcher will return "unknown tool" if nesting is disallowed in
 	// dispatch; we handle that at step-invocation time too.
@@ -225,16 +214,28 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 	if len(req.Steps) == 0 {
 		return nil, errors.New("pipeline has no steps")
 	}
-	if len(req.Steps) > s.cfg.PipelineMaxSteps && s.cfg.PipelineMaxSteps > 0 {
-		return nil, fmt.Errorf("pipeline exceeds max steps (%d)", s.cfg.PipelineMaxSteps)
+	var preflightFailure *pipelineFailure
+	if nested, nestedPath, ok := findNestedPipelineStep(req.Steps, "steps"); ok {
+		preflightFailure = newPipelineFailure(0, nested, fmt.Errorf("nested fibe_pipeline is not allowed at %s", nestedPath))
+	}
+	if err := s.validatePipeline(req.Steps); err != nil {
+		return nil, err
+	}
+	maxConcurrency := s.cfg.PipelineMaxConcurrency
+	if maxConcurrency <= 0 {
+		maxConcurrency = 8
 	}
 
 	runner := &pipelineRunner{
-		srv:            s,
-		ctx:            ctx,
-		bindings:       map[string]any{},
-		maxSteps:       s.cfg.PipelineMaxSteps,
-		maxIter:        s.cfg.PipelineMaxIterations,
+		srv:      s,
+		ctx:      ctx,
+		mu:       &sync.Mutex{},
+		bindings: map[string]any{},
+		state: &pipelineExecutionState{
+			maxSteps:  s.cfg.PipelineMaxSteps,
+			maxIter:   s.cfg.PipelineMaxIterations,
+			semaphore: make(chan struct{}, maxConcurrency),
+		},
 		dryRun:         req.DryRun,
 		idempotencyKey: req.IdempotencyKey,
 	}
@@ -244,11 +245,13 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 	// step outputs (e.g., freshly-created IDs) for manual cleanup. Without
 	// this, a create→update→delete pipeline that fails at "update" loses
 	// the "create" IDs entirely and forces agents to garbage-collect blind.
-	var failure *pipelineFailure
-	for i, step := range req.Steps {
-		if err := runner.execStep(i, step, runner.bindings); err != nil {
-			failure = newPipelineFailure(i, step, err)
-			break
+	failure := preflightFailure
+	if failure == nil {
+		for i, step := range req.Steps {
+			if err := runner.execStep(i, step, runner.bindings); err != nil {
+				failure = newPipelineFailure(i, step, err)
+				break
+			}
 		}
 	}
 
@@ -296,6 +299,134 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 	}
 
 	return resp, nil
+}
+
+func (s *Server) validatePipeline(steps []pipelineStep) error {
+	maxDepth := s.cfg.PipelineMaxDepth
+	if maxDepth <= 0 {
+		maxDepth = 8
+	}
+	seenIDs := map[string]bool{}
+	leafCount := 0
+	var walk func([]pipelineStep, int, string) error
+	walk = func(current []pipelineStep, depth int, path string) error {
+		if depth > maxDepth {
+			return fmt.Errorf("pipeline exceeds max nesting depth (%d)", maxDepth)
+		}
+		for i, step := range current {
+			stepPath := fmt.Sprintf("%s[%d]", path, i)
+			variants := 0
+			if step.Tool != "" {
+				variants++
+			}
+			if len(step.Parallel) > 0 {
+				variants++
+			}
+			if step.ForEach != "" {
+				variants++
+			}
+			if variants != 1 {
+				return fmt.Errorf("%s must define exactly one of tool, parallel, or for_each", stepPath)
+			}
+			if step.OnError != "" && step.OnError != "abort" && step.OnError != "continue" {
+				return fmt.Errorf("%s has invalid on_error %q", stepPath, step.OnError)
+			}
+			if step.ID != "" {
+				if seenIDs[step.ID] {
+					return fmt.Errorf("duplicate pipeline step id %q", step.ID)
+				}
+				seenIDs[step.ID] = true
+			}
+			if step.Tool != "" {
+				leafCount++
+				if s.cfg.PipelineMaxSteps > 0 && leafCount > s.cfg.PipelineMaxSteps {
+					return fmt.Errorf("pipeline exceeds max steps (%d)", s.cfg.PipelineMaxSteps)
+				}
+				if _, ok := s.dispatcher.lookup(step.Tool); !ok {
+					return fmt.Errorf("%s references unknown tool %q", stepPath, step.Tool)
+				}
+			}
+			if len(step.Parallel) > 0 {
+				if err := validateParallelIndependence(step.Parallel, stepPath); err != nil {
+					return err
+				}
+				if err := walk(step.Parallel, depth+1, stepPath+".parallel"); err != nil {
+					return err
+				}
+			}
+			if step.ForEach != "" {
+				if step.As == "" {
+					return fmt.Errorf("%s for_each requires 'as'", stepPath)
+				}
+				if len(step.Steps) == 0 {
+					return fmt.Errorf("%s for_each requires 'steps'", stepPath)
+				}
+				if !strings.HasPrefix(step.ForEach, "$") {
+					return fmt.Errorf("%s for_each must be a JSONPath", stepPath)
+				}
+				if err := walk(step.Steps, depth+1, stepPath+".steps"); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	return walk(steps, 1, "steps")
+}
+
+func findNestedPipelineStep(steps []pipelineStep, path string) (pipelineStep, string, bool) {
+	for i, step := range steps {
+		stepPath := fmt.Sprintf("%s[%d]", path, i)
+		if step.Tool == "fibe_pipeline" {
+			return step, stepPath, true
+		}
+		if nested, nestedPath, ok := findNestedPipelineStep(step.Parallel, stepPath+".parallel"); ok {
+			return nested, nestedPath, true
+		}
+		if nested, nestedPath, ok := findNestedPipelineStep(step.Steps, stepPath+".steps"); ok {
+			return nested, nestedPath, true
+		}
+	}
+	return pipelineStep{}, "", false
+}
+
+func validateParallelIndependence(steps []pipelineStep, path string) error {
+	siblingIDs := map[string]bool{}
+	for _, step := range steps {
+		if step.ID != "" {
+			siblingIDs[step.ID] = true
+		}
+	}
+	for _, step := range steps {
+		refs := map[string]bool{}
+		collectJSONPathRoots(step.Args, refs)
+		for ref := range refs {
+			if siblingIDs[ref] {
+				return fmt.Errorf("%s contains a dependency on parallel sibling %q", path, ref)
+			}
+		}
+	}
+	return nil
+}
+
+func collectJSONPathRoots(value any, roots map[string]bool) {
+	switch value := value.(type) {
+	case string:
+		if strings.HasPrefix(value, "$") && !strings.HasPrefix(value, "$$") {
+			trimmed := strings.TrimPrefix(value, "$.")
+			if root := strings.FieldsFunc(trimmed, func(r rune) bool { return r == '.' || r == '[' })[0:]; len(root) > 0 {
+				roots[root[0]] = true
+			}
+		}
+	case map[string]any:
+		for _, nested := range value {
+			collectJSONPathRoots(nested, roots)
+		}
+	case []any:
+		for _, nested := range value {
+			collectJSONPathRoots(nested, roots)
+		}
+	}
 }
 
 // pipelineFailure describes the step that halted a pipeline. It surfaces
@@ -356,28 +487,68 @@ func collectStepIDs(steps []pipelineStep) []string {
 type pipelineRunner struct {
 	srv            *Server
 	ctx            context.Context
-	mu             sync.Mutex
+	mu             *sync.Mutex
 	bindings       map[string]any
-	maxSteps       int
-	maxIter        int
-	iterUsed       int
+	state          *pipelineExecutionState
 	dryRun         bool
 	idempotencyKey string
+	pathPrefix     string
 }
 
+type pipelineExecutionState struct {
+	mu        sync.Mutex
+	stepsUsed int
+	iterUsed  int
+	maxSteps  int
+	maxIter   int
+	semaphore chan struct{}
+}
+
+func (s *pipelineExecutionState) claimStep() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.maxSteps > 0 && s.stepsUsed >= s.maxSteps {
+		return fmt.Errorf("pipeline exceeds max steps (%d)", s.maxSteps)
+	}
+	s.stepsUsed++
+	return nil
+}
+
+func (s *pipelineExecutionState) claimIteration() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.maxIter > 0 && s.iterUsed >= s.maxIter {
+		return fmt.Errorf("for_each exceeded max iterations (%d)", s.maxIter)
+	}
+	s.iterUsed++
+	return nil
+}
+
+func (s *pipelineExecutionState) acquire(ctx context.Context) error {
+	select {
+	case s.semaphore <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *pipelineExecutionState) release() { <-s.semaphore }
+
 func (r *pipelineRunner) execStep(idx int, step pipelineStep, scope map[string]any) error {
+	stepPath := fmt.Sprintf("%s/%d", r.pathPrefix, idx)
 	switch {
 	case len(step.Parallel) > 0:
-		return r.execParallel(step.Parallel, scope)
+		return r.execParallel(stepPath, step.Parallel, scope)
 	case step.ForEach != "":
-		return r.execForEach(step, scope)
+		return r.execForEach(stepPath, step, scope)
 	case step.Tool != "":
-		return r.execTool(step, scope)
+		return r.execTool(stepPath, step, scope)
 	}
 	return fmt.Errorf("malformed step (expected tool, parallel, or for_each)")
 }
 
-func (r *pipelineRunner) execTool(step pipelineStep, scope map[string]any) error {
+func (r *pipelineRunner) execTool(stepPath string, step pipelineStep, scope map[string]any) error {
 	if step.Tool == "fibe_pipeline" {
 		return errors.New("nested fibe_pipeline is not allowed")
 	}
@@ -387,14 +558,19 @@ func (r *pipelineRunner) execTool(step pipelineStep, scope map[string]any) error
 		return fmt.Errorf("resolve args for %q: %w", step.ID, err)
 	}
 
-	// input_path filters the resolved args down to the subtree named by the path.
 	if step.InputPath != "" {
 		filtered, err := projectOnMap(resolved, step.InputPath)
-		if err == nil {
-			if m, ok := filtered.(map[string]any); ok {
-				resolved = m
-			}
+		if err != nil {
+			return fmt.Errorf("input_path %q: %w", step.InputPath, err)
 		}
+		m, ok := filtered.(map[string]any)
+		if !ok {
+			return fmt.Errorf("input_path %q did not resolve to an object", step.InputPath)
+		}
+		resolved = m
+	}
+	if err := r.state.claimStep(); err != nil {
+		return err
 	}
 
 	if r.dryRun {
@@ -411,10 +587,14 @@ func (r *pipelineRunner) execTool(step pipelineStep, scope map[string]any) error
 	// fibe.WithIdempotencyKey; the server caches the response for 24h so a
 	// pipeline retry won't re-create/rollout/hard-restart the same resource.
 	stepCtx := r.ctx
-	if r.idempotencyKey != "" && step.ID != "" {
-		sum := sha256.Sum256([]byte(r.idempotencyKey + ":" + step.ID))
+	if r.idempotencyKey != "" {
+		sum := sha256.Sum256([]byte(r.idempotencyKey + ":" + stepPath + ":" + step.ID))
 		stepCtx = fibe.WithIdempotencyKey(r.ctx, hex.EncodeToString(sum[:16]))
 	}
+	if err := r.state.acquire(stepCtx); err != nil {
+		return err
+	}
+	defer r.state.release()
 
 	out, err := r.srv.dispatcher.dispatch(stepCtx, step.Tool, resolved)
 	if err != nil {
@@ -443,7 +623,11 @@ func (r *pipelineRunner) execTool(step pipelineStep, scope map[string]any) error
 
 	// output_path projects the normalized result before storing.
 	if step.OutputPath != "" {
-		normalized = mustProject(normalized, step.OutputPath)
+		projected, err := projectOnMap(normalized, step.OutputPath)
+		if err != nil {
+			return fmt.Errorf("output_path %q: %w", step.OutputPath, err)
+		}
+		normalized = projected
 	}
 
 	r.mu.Lock()
@@ -454,22 +638,35 @@ func (r *pipelineRunner) execTool(step pipelineStep, scope map[string]any) error
 	return nil
 }
 
-func (r *pipelineRunner) execParallel(steps []pipelineStep, scope map[string]any) error {
+func (r *pipelineRunner) execParallel(path string, steps []pipelineStep, scope map[string]any) error {
 	var wg sync.WaitGroup
-	errCh := make(chan error, len(steps))
+	errs := make([]error, len(steps))
+	snapshot := make(map[string]any, len(scope))
+	r.mu.Lock()
+	for key, value := range scope {
+		snapshot[key] = value
+	}
+	r.mu.Unlock()
 	for i, st := range steps {
 		i, st := i, st
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := r.execStep(i, st, scope); err != nil {
-				errCh <- err
+			child := &pipelineRunner{
+				srv:            r.srv,
+				ctx:            r.ctx,
+				mu:             r.mu,
+				bindings:       r.bindings,
+				state:          r.state,
+				dryRun:         r.dryRun,
+				idempotencyKey: r.idempotencyKey,
+				pathPrefix:     path + "/parallel",
 			}
+			errs[i] = child.execStep(i, st, snapshot)
 		}()
 	}
 	wg.Wait()
-	close(errCh)
-	for e := range errCh {
+	for _, e := range errs {
 		if e != nil {
 			return e
 		}
@@ -477,7 +674,7 @@ func (r *pipelineRunner) execParallel(steps []pipelineStep, scope map[string]any
 	return nil
 }
 
-func (r *pipelineRunner) execForEach(step pipelineStep, scope map[string]any) error {
+func (r *pipelineRunner) execForEach(path string, step pipelineStep, scope map[string]any) error {
 	if step.As == "" {
 		return errors.New("for_each requires 'as'")
 	}
@@ -495,11 +692,10 @@ func (r *pipelineRunner) execForEach(step pipelineStep, scope map[string]any) er
 	}
 
 	results := make([]any, 0, len(items))
-	for _, item := range items {
-		if r.maxIter > 0 && r.iterUsed >= r.maxIter {
-			return fmt.Errorf("for_each exceeded max iterations (%d)", r.maxIter)
+	for itemIndex, item := range items {
+		if err := r.state.claimIteration(); err != nil {
+			return err
 		}
-		r.iterUsed++
 
 		iterScope := map[string]any{}
 		r.mu.Lock()
@@ -510,28 +706,27 @@ func (r *pipelineRunner) execForEach(step pipelineStep, scope map[string]any) er
 		iterScope[step.As] = item
 
 		inner := &pipelineRunner{
-			srv:      r.srv,
-			ctx:      r.ctx,
-			bindings: iterScope,
-			maxSteps: r.maxSteps,
-			maxIter:  r.maxIter,
-			iterUsed: r.iterUsed,
-			dryRun:   r.dryRun,
+			srv:            r.srv,
+			ctx:            r.ctx,
+			mu:             r.mu,
+			bindings:       iterScope,
+			state:          r.state,
+			dryRun:         r.dryRun,
+			idempotencyKey: r.idempotencyKey,
+			pathPrefix:     fmt.Sprintf("%s/for_each/%d", path, itemIndex),
 		}
 		for i, s := range step.Steps {
 			if err := inner.execStep(i, s, iterScope); err != nil {
 				return fmt.Errorf("for_each[%v]: %w", item, err)
 			}
 		}
-		r.iterUsed = inner.iterUsed
-
-		// Collect projection
 		var collected any = iterScope
 		if step.Collect != "" {
 			projected, err := projectOnMap(iterScope, step.Collect)
-			if err == nil {
-				collected = projected
+			if err != nil {
+				return fmt.Errorf("collect %q: %w", step.Collect, err)
 			}
+			collected = projected
 		}
 		results = append(results, collected)
 	}
@@ -602,27 +797,14 @@ func projectOnMap(data any, path string) (any, error) {
 	return jsonpath.Get(path, data)
 }
 
-// normalizeForJSONPath converts an arbitrary Go value (typically a struct
-// pointer returned by the SDK) into the subset jsonpath can walk:
-// map[string]any, []any, and JSON primitives. Implemented as a JSON
-// round-trip so we honor the same field projection and omitempty behavior
-// the rest of the server already exposes to clients.
-//
-// This is the single point that prevents the "pipeline step 2 can't read
-// step 1's fields" class of bug. It runs on every step output; keep it
-// cheap — the SDK responses are already JSON-shaped so the marshal side is
-// fast.
+// normalizeForJSONPath converts SDK values to JSON-shaped maps, slices, and
+// primitives so later pipeline steps can read projected fields consistently.
 func normalizeForJSONPath(v any) (any, error) {
 	if v == nil {
 		return nil, nil
 	}
-	// Fast path: scalar primitives only. We deliberately do NOT fast-path
-	// maps / slices even if they're already map[string]any / []any,
-	// because their element types might still be struct pointers (e.g.,
-	// the SDK's Debug endpoint returns map[string]any whose values could
-	// be any type). A JSON round-trip guarantees all numeric values
-	// surface as float64 — which the JSONPath library expects when
-	// comparing ordered values.
+	// Containers still need a round-trip because nested values may be structs;
+	// it also normalizes numbers to the float64 form JSONPath expects.
 	switch v.(type) {
 	case string, bool, float64, int, int64, nil:
 		return v, nil
@@ -638,20 +820,8 @@ func normalizeForJSONPath(v any) (any, error) {
 	return out, nil
 }
 
-// projectJSONPath evaluates a JSONPath against a raw JSON payload.
-func projectJSONPath(raw json.RawMessage, path string) (any, error) {
-	var data any
-	if err := json.Unmarshal(raw, &data); err != nil {
-		return nil, err
-	}
-	return jsonpath.Get(path, data)
-}
-
-// projectCached is the smart projection fibe_pipeline_result uses. It
-// tries the path against the pipeline's step bindings first (so agents
-// write $.step_id.field without having to remember the outer "steps"
-// wrapper), then falls back to the whole cached response (so $.status,
-// $.error, $.completed_step_ids remain reachable).
+// projectCached tries step bindings first, then the full cached response so
+// callers can omit the outer "steps" wrapper without losing status fields.
 func projectCached(raw json.RawMessage, path string) (any, error) {
 	var whole any
 	if err := json.Unmarshal(raw, &whole); err != nil {
@@ -665,17 +835,6 @@ func projectCached(raw json.RawMessage, path string) (any, error) {
 		}
 	}
 	return jsonpath.Get(path, whole)
-}
-
-// mustProject projects and returns the result, falling back to the original
-// on error. Used inside step output projection (output_path) where a failed
-// projection shouldn't abort the pipeline.
-func mustProject(data any, path string) any {
-	v, err := projectOnMap(data, path)
-	if err != nil {
-		return data
-	}
-	return v
 }
 
 // projectReturn projects req.Return against the step bindings. Return can

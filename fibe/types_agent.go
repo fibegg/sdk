@@ -18,6 +18,7 @@ var ValidProviders = []string{ProviderGemini, ProviderAntigravity, ProviderClaud
 
 // Agent represents an AI agent configuration.
 type Agent struct {
+	OwnershipMetadata
 	ID                        int64               `json:"id"`
 	Name                      string              `json:"name"`
 	Description               *string             `json:"description"`

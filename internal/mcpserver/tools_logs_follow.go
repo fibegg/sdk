@@ -12,17 +12,17 @@ import (
 
 func (s *Server) registerLogsFollowTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_logs_follow", description: "[MODE:BROWNFIELD] Stream live playground or trick logs as progress notifications. Omitting service streams all services.", tier: tierBrownfield,
+		name: "fibe_logs_follow", description: "[MODE:BROWNFIELD] Stream live playground or task logs as progress notifications. Omitting service streams all services.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLogsFollow(ctx, c, args)
 		},
 	}, mcp.NewTool("fibe_logs_follow",
-		mcp.WithDescription(`Stream playground or trick logs. Omitting service streams all services. Each new log line becomes an MCP progress notification. Returns when duration elapses or max_lines is reached.
+		mcp.WithDescription(`Stream playground or task logs. Omitting service streams all services. Each new log line becomes an MCP progress notification. Returns when duration elapses or max_lines is reached.
 
-Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear. Unpaid Marquees fail with MARQUEE_NOT_FUNDED.`),
-		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground or trick numeric ID or slug-safe name")),
-		mcp.WithString("target", mcp.Enum("playground", "trick"), mcp.Description("Target type (default: playground).")),
+Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear. Unpaid Hosts fail with HOST_NOT_FUNDED.`),
+		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground or task numeric ID or slug-safe name")),
+		mcp.WithString("target", mcp.Enum("playground", "task"), mcp.Description("Target type (default: playground).")),
 		mcp.WithString("service", mcp.Description("Optional Compose service name, for example web or worker. Omit to stream all services.")),
 		mcp.WithNumber("tail", mcp.Description("Initial lines from history (default: 50)")),
 		mcp.WithString("duration", mcp.Description("Max follow duration (Go duration, default: 30s)")),
@@ -61,11 +61,11 @@ func (s *Server) runLogsFollow(ctx context.Context, c *fibe.Client, args map[str
 	case "", "playground", "playgrounds":
 		target = "playground"
 		ch, errs = c.Playgrounds.LogStreamByIdentifier(streamCtx, identifier, service, opts)
-	case "trick", "tricks":
-		target = "trick"
-		ch, errs = c.Tricks.LogStreamByIdentifier(streamCtx, identifier, service, opts)
+	case "task", "tasks":
+		target = "task"
+		ch, errs = c.Tasks.LogStreamByIdentifier(streamCtx, identifier, service, opts)
 	default:
-		return nil, fmt.Errorf("target must be playground or trick")
+		return nil, fmt.Errorf("target must be playground or task")
 	}
 
 	progressToken := progressTokenFromCtx(ctx)

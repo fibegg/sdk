@@ -15,7 +15,7 @@ const (
 	launchSourceNone            launchSourceKind = ""
 	launchSourceTemplate        launchSourceKind = "template"
 	launchSourceTemplateVersion launchSourceKind = "template_version"
-	launchSourcePlayspec        launchSourceKind = "playspec"
+	launchSourceSpec            launchSourceKind = "spec"
 	launchSourceCompose         launchSourceKind = "compose"
 	launchSourceRepo            launchSourceKind = "repo"
 )
@@ -28,7 +28,7 @@ type launchSource struct {
 type launchSourceFlagValues struct {
 	Template        string
 	TemplateVersion string
-	Playspec        string
+	Spec            string
 	Compose         string
 	Repo            string
 }
@@ -43,7 +43,7 @@ func detectLaunchSource(cmd *cobra.Command, c *fibe.Client, args []string, value
 	}
 	add(launchSourceTemplate, values.Template, cmd.Flags().Changed("template"))
 	add(launchSourceTemplateVersion, values.TemplateVersion, cmd.Flags().Changed("template-version"))
-	add(launchSourcePlayspec, values.Playspec, cmd.Flags().Changed("playspec"))
+	add(launchSourceSpec, values.Spec, cmd.Flags().Changed("spec"))
 	add(launchSourceCompose, values.Compose, cmd.Flags().Changed("compose"))
 	add(launchSourceRepo, values.Repo, cmd.Flags().Changed("repo"))
 	if len(args) > 0 {
@@ -53,7 +53,7 @@ func detectLaunchSource(cmd *cobra.Command, c *fibe.Client, args []string, value
 		selected = append(selected, launchSource{Kind: launchSourceNone, Value: strings.TrimSpace(args[0])})
 	}
 	if len(selected) == 0 {
-		return launchSource{}, fmt.Errorf("launch source is required: use --template, --template-version, --playspec, --compose, or --repo")
+		return launchSource{}, fmt.Errorf("launch source is required: use --template, --template-version, --spec, --compose, or --repo")
 	}
 	if len(selected) > 1 {
 		return launchSource{}, fmt.Errorf("provide exactly one launch source")
@@ -73,26 +73,26 @@ func resolveBareLaunchSource(c *fibe.Client, raw string) (launchSource, error) {
 		return launchSource{}, fmt.Errorf("launch source cannot be blank")
 	}
 	if _, err := strconv.ParseInt(raw, 10, 64); err == nil {
-		return launchSource{}, fmt.Errorf("bare numeric launch source %q is ambiguous; use --template %s or --playspec %s", raw, raw, raw)
+		return launchSource{}, fmt.Errorf("bare numeric launch source %q is ambiguous; use --template %s or --spec %s", raw, raw, raw)
 	}
 	if looksLikeRepositorySource(raw) {
 		return launchSource{Kind: launchSourceRepo, Value: raw}, nil
 	}
 
 	templateMatch, templateErr := launchTemplateNameExists(c, raw)
-	playspecMatch, playspecErr := launchPlayspecNameExists(c, raw)
-	if templateErr != nil && playspecErr != nil {
-		return launchSource{}, fmt.Errorf("could not resolve launch source %q as template or playspec: template: %v; playspec: %v", raw, templateErr, playspecErr)
+	specMatch, specErr := launchSpecNameExists(c, raw)
+	if templateErr != nil && specErr != nil {
+		return launchSource{}, fmt.Errorf("could not resolve launch source %q as template or spec: template: %v; spec: %v", raw, templateErr, specErr)
 	}
 	switch {
-	case templateMatch && playspecMatch:
-		return launchSource{}, fmt.Errorf("launch source %q matches both a template and a playspec; use --template %q or --playspec %q", raw, raw, raw)
+	case templateMatch && specMatch:
+		return launchSource{}, fmt.Errorf("launch source %q matches both a template and a spec; use --template %q or --spec %q", raw, raw, raw)
 	case templateMatch:
 		return launchSource{Kind: launchSourceTemplate, Value: raw}, nil
-	case playspecMatch:
-		return launchSource{Kind: launchSourcePlayspec, Value: raw}, nil
+	case specMatch:
+		return launchSource{Kind: launchSourceSpec, Value: raw}, nil
 	default:
-		return launchSource{}, fmt.Errorf("launch source %q was not found as a template or playspec; use --repo for repositories", raw)
+		return launchSource{}, fmt.Errorf("launch source %q was not found as a template or spec; use --repo for repositories", raw)
 	}
 }
 
@@ -117,8 +117,8 @@ func launchTemplateNameExists(c *fibe.Client, name string) (bool, error) {
 	return false, nil
 }
 
-func launchPlayspecNameExists(c *fibe.Client, name string) (bool, error) {
-	result, err := c.Playspecs.List(ctx(), &fibe.PlayspecListParams{Name: name, PerPage: 2})
+func launchSpecNameExists(c *fibe.Client, name string) (bool, error) {
+	result, err := c.Specs.List(ctx(), &fibe.SpecListParams{Name: name, PerPage: 2})
 	if err != nil {
 		return false, err
 	}

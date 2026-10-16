@@ -138,8 +138,8 @@ func TestClient_ValidationError(t *testing.T) {
 	})
 
 	_, err := c.Playgrounds.Create(context.Background(), &PlaygroundCreateParams{
-		Name:       "test",
-		PlayspecID: 1,
+		Name:   "test",
+		SpecID: 1,
 	})
 	apiErr := err.(*APIError)
 	if !apiErr.IsValidation() {
@@ -299,8 +299,8 @@ func TestClient_JSONContentType(t *testing.T) {
 	})
 
 	c.Playgrounds.Create(context.Background(), &PlaygroundCreateParams{
-		Name:       "test",
-		PlayspecID: 1,
+		Name:   "test",
+		SpecID: 1,
 	})
 
 	if gotCT != "application/json" {

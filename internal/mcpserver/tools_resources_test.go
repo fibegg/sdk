@@ -356,25 +356,25 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_api_keys_delete",
 		"fibe_playgrounds_rollout",
 		"fibe_playgrounds_hard_restart",
-		"fibe_marquees_autoconnect_token",
-		"fibe_marquees_generate_ssh_key",
-		"fibe_marquees_test_connection",
-		"fibe_props_attach",
-		"fibe_props_mirror",
-		"fibe_props_sync",
+		"fibe_hosts_autoconnect_token",
+		"fibe_hosts_generate_ssh_key",
+		"fibe_hosts_test_connection",
+		"fibe_repositories_attach",
+		"fibe_repositories_mirror",
+		"fibe_repositories_sync",
 		"fibe_templates_fork",
 		"fibe_templates_source_refresh",
 		"fibe_templates_source_set",
-		"fibe_templates_upgrade_playspecs",
+		"fibe_templates_upgrade_specs",
 		"fibe_templates_versions_toggle_public",
-		"fibe_tricks_rerun",
-		"fibe_tricks_trigger",
+		"fibe_tasks_rerun",
+		"fibe_tasks_trigger",
 		"fibe_webhooks_test",
 		"fibe_agents_raw_providers_get",
 		"fibe_agents_raw_providers_update",
 		"fibe_templates_lineage",
-		"fibe_marquees_generate_ssh_key_status",
-		"fibe_marquees_test_connection_status",
+		"fibe_hosts_generate_ssh_key_status",
+		"fibe_hosts_test_connection_status",
 		"fibe_feedbacks_create",
 		"fibe_feedbacks_delete",
 		"fibe_feedbacks_update",
@@ -383,11 +383,11 @@ func TestOldFlatResourceToolsAreNotRegistered(t *testing.T) {
 		"fibe_templates_versions_list",
 		"fibe_webhooks_deliveries_list",
 		"fibe_webhooks_event_types",
-		"fibe_playspecs_validate_compose",
+		"fibe_specs_validate_compose",
 		"fibe_templates_patch_apply",
 		"fibe_templates_versions_patch_preview",
-		"fibe_playspecs_switch_version",
-		"fibe_playspecs_switch_version_preview",
+		"fibe_specs_switch_version",
+		"fibe_specs_switch_version_preview",
 		"fibe_templates_develop",
 	} {
 		if _, ok := srv.dispatcher.lookup(name); ok {
@@ -482,11 +482,11 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if !ok {
 		t.Fatalf("schema is %T, want map", schema)
 	}
-	props := m["properties"].(map[string]any)
-	params := props["params"].(map[string]any)
-	paramProps := params["properties"].(map[string]any)
-	if _, ok := paramProps["per_page"]; !ok {
-		t.Fatalf("expected per_page in params schema, got %#v", paramProps)
+	repositories := m["properties"].(map[string]any)
+	params := repositories["params"].(map[string]any)
+	paramRepositories := params["properties"].(map[string]any)
+	if _, ok := paramRepositories["per_page"]; !ok {
+		t.Fatalf("expected per_page in params schema, got %#v", paramRepositories)
 	}
 
 	pokeListSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -497,9 +497,9 @@ func TestResourceSchemaCatalog(t *testing.T) {
 		t.Fatalf("fibe_schema pokes list: %v", err)
 	}
 	pokeParams := pokeListSchema.(map[string]any)["properties"].(map[string]any)["params"].(map[string]any)
-	pokeParamProps := pokeParams["properties"].(map[string]any)
-	if _, ok := pokeParamProps["agent_id_or_name"]; !ok {
-		t.Fatalf("expected agent_id_or_name in agent_poke list params, got %#v", pokeParamProps)
+	pokeParamRepositories := pokeParams["properties"].(map[string]any)
+	if _, ok := pokeParamRepositories["agent_id_or_name"]; !ok {
+		t.Fatalf("expected agent_id_or_name in agent_poke list params, got %#v", pokeParamRepositories)
 	}
 
 	updateSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -509,10 +509,10 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fibe_schema agent update: %v", err)
 	}
-	updateProps := updateSchema.(map[string]any)["properties"].(map[string]any)
+	updateRepositories := updateSchema.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"id_or_name", "name", "model_options", "prompt", "system_prompt_mode", "main_md", "main_md_mode", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
-		if _, ok := updateProps[want]; !ok {
-			t.Fatalf("expected %s in agent.update schema, got %#v", want, updateProps)
+		if _, ok := updateRepositories[want]; !ok {
+			t.Fatalf("expected %s in agent.update schema, got %#v", want, updateRepositories)
 		}
 	}
 
@@ -523,15 +523,15 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fibe_schema agent create: %v", err)
 	}
-	createProps := createSchema.(map[string]any)["properties"].(map[string]any)
+	createRepositories := createSchema.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"name", "provider", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
-		if _, ok := createProps[want]; !ok {
-			t.Fatalf("expected %s in agent.create schema, got %#v", want, createProps)
+		if _, ok := createRepositories[want]; !ok {
+			t.Fatalf("expected %s in agent.create schema, got %#v", want, createRepositories)
 		}
 	}
-	providerEnum, ok := createProps["provider"].(map[string]any)["enum"].([]string)
+	providerEnum, ok := createRepositories["provider"].(map[string]any)["enum"].([]string)
 	if !ok || !containsString(providerEnum, "antigravity") {
-		t.Fatalf("expected antigravity in agent.create provider enum, got %#v", createProps["provider"])
+		t.Fatalf("expected antigravity in agent.create provider enum, got %#v", createRepositories["provider"])
 	}
 
 	actionSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -541,13 +541,13 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fibe_schema playground action: %v", err)
 	}
-	actionProps := actionSchema.(map[string]any)["properties"].(map[string]any)
-	if _, ok := actionProps["id_or_name"]; !ok {
-		t.Fatalf("expected id_or_name in playground.action schema, got %#v", actionProps)
+	actionRepositories := actionSchema.(map[string]any)["properties"].(map[string]any)
+	if _, ok := actionRepositories["id_or_name"]; !ok {
+		t.Fatalf("expected id_or_name in playground.action schema, got %#v", actionRepositories)
 	}
-	actionEnum, ok := actionProps["action_type"].(map[string]any)["enum"].([]string)
+	actionEnum, ok := actionRepositories["action_type"].(map[string]any)["enum"].([]string)
 	if !ok || !containsString(actionEnum, "retry_compose") || !containsString(actionEnum, "enable_maintenance") || !containsString(actionEnum, "disable_maintenance") {
-		t.Fatalf("expected action_type enum in playground.action schema, got %#v", actionProps["action_type"])
+		t.Fatalf("expected action_type enum in playground.action schema, got %#v", actionRepositories["action_type"])
 	}
 
 	composeSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -557,10 +557,10 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fibe_schema compose validate: %v", err)
 	}
-	composeProps := composeSchema.(map[string]any)["properties"].(map[string]any)
-	targetEnum := composeProps["target_type"].(map[string]any)["enum"].([]string)
-	if !containsString(targetEnum, "trick") {
-		t.Fatalf("compose.validate target_type enum missing trick: %#v", targetEnum)
+	composeRepositories := composeSchema.(map[string]any)["properties"].(map[string]any)
+	targetEnum := composeRepositories["target_type"].(map[string]any)["enum"].([]string)
+	if !containsString(targetEnum, "task") {
+		t.Fatalf("compose.validate target_type enum missing task: %#v", targetEnum)
 	}
 
 	eventSchema, err := srv.dispatcher.dispatch(context.Background(), "fibe_schema", map[string]any{
@@ -581,10 +581,10 @@ func TestResourceSchemaCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fibe_schema template change: %v", err)
 	}
-	changeProps := changeSchema.(map[string]any)["properties"].(map[string]any)
-	postApplyEnum := changeProps["post_apply"].(map[string]any)["enum"].([]string)
-	if !containsString(postApplyEnum, "trigger_trick") {
-		t.Fatalf("template.change post_apply enum missing trigger_trick: %#v", postApplyEnum)
+	changeRepositories := changeSchema.(map[string]any)["properties"].(map[string]any)
+	postApplyEnum := changeRepositories["post_apply"].(map[string]any)["enum"].([]string)
+	if !containsString(postApplyEnum, "trigger_task") {
+		t.Fatalf("template.change post_apply enum missing trigger_task: %#v", postApplyEnum)
 	}
 }
 
@@ -685,17 +685,17 @@ func toolPropertyEnum(t *testing.T, tool mcp.Tool, property string) []string {
 	if !ok {
 		t.Fatalf("input schema is %T, want map", rawSchema)
 	}
-	props, ok := schema["properties"].(map[string]any)
+	repositories, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties is %T, want map", schema["properties"])
 	}
-	prop, ok := props[property].(map[string]any)
+	repository, ok := repositories[property].(map[string]any)
 	if !ok {
-		t.Fatalf("schema property %q is %T, want map", property, props[property])
+		t.Fatalf("schema property %q is %T, want map", property, repositories[property])
 	}
-	raw, ok := prop["enum"].([]any)
+	raw, ok := repository["enum"].([]any)
 	if !ok {
-		t.Fatalf("schema property %q enum is %T, want []any", property, prop["enum"])
+		t.Fatalf("schema property %q enum is %T, want []any", property, repository["enum"])
 	}
 	values := make([]string, 0, len(raw))
 	for _, value := range raw {

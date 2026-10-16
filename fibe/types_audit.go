@@ -25,4 +25,3 @@ type AuditLogListParams struct {
 	Page          int    `url:"page,omitempty"`
 	PerPage       int    `url:"per_page,omitempty"`
 }
-

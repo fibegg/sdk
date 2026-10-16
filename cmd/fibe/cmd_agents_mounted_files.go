@@ -41,6 +41,7 @@ EXAMPLES:
 			if artefactID != 0 {
 				agent, err = c.Agents.AddMountedFileFromArtefactByIdentifier(ctx(), args[0], artefactID, p)
 			} else {
+				// #nosec G304 -- filePath is an explicit mounted-file source requested by the CLI user.
 				data, readErr := os.ReadFile(filePath)
 				if readErr != nil {
 					return fmt.Errorf("read %s: %w", filePath, readErr)

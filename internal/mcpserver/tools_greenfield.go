@@ -17,7 +17,7 @@ const greenfieldDefaultLinkDir = "/app/playground"
 
 func (s *Server) registerGreenfieldTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Props, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Marquee.", tier: tierGreenfield,
+		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Host.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			params, waitTimeout, err := greenfieldArgsWithClient(ctx, c, args)
@@ -60,7 +60,7 @@ func (s *Server) registerGreenfieldTools() {
 			return result, nil
 		},
 	}, mcp.NewTool("fibe_greenfield_create",
-		mcp.WithDescription("Create a greenfield app in one call: repos/Props, app template version, deployed playground, wait until running, and local /app/playground link. Deployment requires a funded Marquee; unpaid Marquees return MARQUEE_NOT_FUNDED."),
+		mcp.WithDescription("Create a greenfield app in one call: repos/Repositories, app template version, deployed playground, wait until running, and local /app/playground link. Deployment requires a funded Host; unpaid Hosts return HOST_NOT_FUNDED."),
 		mcp.WithString("name", mcp.Description("Repository/app name; must be unique. Optional when repository_url is provided; inferred from repo name.")),
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name to use. Optional; defaults to the base template.")),
 		mcp.WithNumber("template_version_id", mcp.Description("Exact template version ID to use. Optional; cannot be combined with template_id_or_name or version.")),
@@ -74,7 +74,7 @@ func (s *Server) registerGreenfieldTools() {
 		mcp.WithNumber("github_installation_id", mcp.Description("GitHub App installation ID to use when multiple installations are connected.")),
 		mcp.WithString("git_provider", mcp.Description("Destination git provider: gitea or github. Optional; default: gitea.")),
 		mcp.WithBoolean("private", mcp.Description("Create destination repository as private. Optional; Fibe defaults Gitea greenfield repos to private.")),
-		mcp.WithString("marquee_id_or_name", mcp.Description("Target marquee ID or name. Optional; defaults to the current Marquee from FIBE_MARQUEE_ID. Must be funded.")),
+		mcp.WithString("host_id_or_name", mcp.Description("Target host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID. Must be funded.")),
 		mcp.WithObject("variables", mcp.Description("Template variables map, e.g. {\"app_name\":\"Tower\"}. Optional.")),
 		mcp.WithObject("service_subdomains", mcp.Description("Exposed service subdomain overrides, e.g. {\"app\":\"my-app\",\"admin\":\"my-app-admin\"}. Optional.")),
 		mcp.WithString("wait_timeout", mcp.Description("Max wait duration, e.g. 10m. Optional; default: 10m.")),
@@ -141,7 +141,7 @@ func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[stri
 		return nil, 0, fmt.Errorf("required field 'name' not set")
 	}
 
-	marqueeID, marqueeIdentifier, err := resolveMCPMarquee(ctx, c, args)
+	hostID, hostIdentifier, err := resolveMCPHost(ctx, c, args)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -157,8 +157,8 @@ func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[stri
 		TemplateBody:       templateBody,
 		GitProvider:        gitProvider,
 		Private:            private,
-		MarqueeID:          marqueeID,
-		MarqueeIdentifier:  marqueeIdentifier,
+		HostID:             hostID,
+		HostIdentifier:     hostIdentifier,
 		Variables:          greenfieldVariables(args["variables"]),
 		ServiceSubdomains:  greenfieldStringMap(args["service_subdomains"]),
 	}
@@ -172,14 +172,14 @@ func greenfieldArgsWithClient(ctx context.Context, c *fibe.Client, args map[stri
 	return params, timeout, nil
 }
 
-func parseMarqueeIDEnv() (int64, error) {
-	raw := strings.TrimSpace(os.Getenv("FIBE_MARQUEE_ID"))
+func parseHostIDEnv() (int64, error) {
+	raw := strings.TrimSpace(os.Getenv("FIBE_HOST_ID"))
 	if raw == "" {
-		return 0, fmt.Errorf("marquee_id is required when the current Marquee is not available (FIBE_MARQUEE_ID is not set)")
+		return 0, fmt.Errorf("host_id is required when the current Host is not available (FIBE_HOST_ID is not set)")
 	}
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil || id <= 0 {
-		return 0, fmt.Errorf("FIBE_MARQUEE_ID must be a positive integer")
+		return 0, fmt.Errorf("FIBE_HOST_ID must be a positive integer")
 	}
 	return id, nil
 }
@@ -227,11 +227,11 @@ func readInlineOrPathTextArgOptional(args map[string]any, inlineKey, pathKey str
 }
 
 func greenfieldTarget(result *fibe.GreenfieldResult) string {
-	if result.Playground != nil && result.Playground.PlayspecName != nil && *result.Playground.PlayspecName != "" {
-		return *result.Playground.PlayspecName
+	if result.Playground != nil && result.Playground.SpecName != nil && *result.Playground.SpecName != "" {
+		return *result.Playground.SpecName
 	}
-	if result.Playspec != nil && result.Playspec.Name != "" {
-		return result.Playspec.Name
+	if result.Spec != nil && result.Spec.Name != "" {
+		return result.Spec.Name
 	}
 	if result.Playground != nil && result.Playground.Name != "" {
 		return result.Playground.Name

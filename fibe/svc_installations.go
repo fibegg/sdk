@@ -37,12 +37,14 @@ type InstallationRepo struct {
 
 // InstallationReposParams controls listing/searching repos in an installation.
 type InstallationReposParams struct {
-	Q       string `url:"q,omitempty"`
-	Page    int    `url:"page,omitempty"`
-	PerPage int    `url:"per_page,omitempty"`
+	GitHubInstallationID int64  `url:"github_installation_id,omitempty"`
+	Q                    string `url:"q,omitempty"`
+	Page                 int    `url:"page,omitempty"`
+	PerPage              int    `url:"per_page,omitempty"`
 }
 
 // List returns all GitHub App installations linked to the authenticated player.
+// Enterprise requires the personal git_credentials:read permission.
 func (s *InstallationService) List(ctx context.Context) (*ListResult[Installation], error) {
 	return doList[Installation](s.client, ctx, "/api/installations")
 }
@@ -55,15 +57,18 @@ func (s *InstallationService) Repos(ctx context.Context, id int64, params *Insta
 	return doList[InstallationRepo](s.client, ctx, path)
 }
 
-// FindGitHubRepos searches across ALL of the player's GitHub App installations.
+// FindGitHubRepos searches Personal installations or the selected Team installation.
 // The server aggregates results in parallel and deduplicates by full_name.
 func (s *InstallationService) FindGitHubRepos(ctx context.Context, params *InstallationReposParams) (*ListResult[InstallationRepo], error) {
 	path := "/api/github_repositories" + buildQuery(params)
 	return doList[InstallationRepo](s.client, ctx, path)
 }
 
-// Token returns a fresh installation access token. If repo is non-empty, the
-// token is scoped to the specific repository (owner/name format).
+// Token returns an installation access token and its actual remaining lifetime.
+// Enterprise requires personal git_credentials:read and current upstream account
+// owner/organization-admin authority. If repo is non-empty, that repository must
+// belong to this installation and the user must administer it; the token is
+// restricted to that repository (owner/name format).
 func (s *InstallationService) Token(ctx context.Context, id int64, repo string) (*GitHubToken, error) {
 	path := fmt.Sprintf("/api/installations/%d/token", id)
 	if repo != "" {
@@ -76,8 +81,11 @@ func (s *InstallationService) Token(ctx context.Context, id int64, repo string) 
 	return &result, err
 }
 
-// GetGitHubToken returns a fresh GitHub token by auto-resolving the correct
-// installation for the given repo. No installation ID needed.
+// GetGitHubToken returns the server-provided GitHub credential for the given
+// repository. Enterprise resolves a GitHub App installation; standalone Core
+// returns its configured process credential. No installation ID is needed.
+// Enterprise applies the same personal permission and current owner/admin proof
+// as Token; standalone Core retains its configured-credential contract.
 func (s *InstallationService) GetGitHubToken(ctx context.Context, repo string) (*GitHubToken, error) {
 	values := url.Values{}
 	values.Set("repo", repo)

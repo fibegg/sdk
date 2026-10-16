@@ -55,15 +55,8 @@ const CapWaitTimeout = 20 * time.Second
 const PlaygroundLaunchWaitTimeout = 6 * time.Minute
 const playgroundActionRetryTimeout = 3 * time.Minute
 
-// waitForPlaygroundActive polls until status is 'running' or 'error', returns whether running.
-func waitForPlaygroundActive(t *testing.T, c *fibe.Client, id int64, timeout time.Duration) bool {
-	t.Helper()
-	status := waitForPlaygroundStatus(t, c, id, []string{"running", "error", "stopped", "failed"}, timeout)
-	return status == "running"
-}
-
-// waitForTrickTerminal polls trick status until completed/error/failed.
-func waitForTrickTerminal(t *testing.T, c *fibe.Client, id int64, timeout time.Duration) string {
+// waitForTaskTerminal polls task status until completed/error/failed.
+func waitForTaskTerminal(t *testing.T, c *fibe.Client, id int64, timeout time.Duration) string {
 	t.Helper()
 	return waitForPlaygroundStatus(t, c, id, []string{"completed", "error", "failed", "destroyed"}, timeout)
 }

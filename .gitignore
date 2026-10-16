@@ -8,3 +8,5 @@
 *.test
 *.out
 .DS_Store
+dist
+graphify-out

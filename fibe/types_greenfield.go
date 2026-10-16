@@ -3,29 +3,33 @@ package fibe
 import "encoding/json"
 
 type GreenfieldCreateParams struct {
-	Name                 string            `json:"name"`
-	TemplateID           *int64            `json:"template_id,omitempty"`
-	TemplateIdentifier   string            `json:"-"`
-	TemplateVersionID    *int64            `json:"template_version_id,omitempty"`
-	Version              string            `json:"version,omitempty"`
-	TemplateBody         string            `json:"template_body,omitempty"`
-	RepositoryURL        string            `json:"repository_url,omitempty"`
-	ConfigPath           string            `json:"config_path,omitempty"`
-	GitHubRef            string            `json:"github_ref,omitempty"`
-	GitHubInstallationID *int64            `json:"github_installation_id,omitempty"`
-	GitHubAccount        string            `json:"github_account,omitempty"`
-	GitProvider          string            `json:"git_provider,omitempty"`
-	Private              *bool             `json:"private,omitempty"`
-	MarqueeID            *int64            `json:"marquee_id,omitempty"`
-	MarqueeIdentifier    string            `json:"-"`
-	PersistVolumes       *bool             `json:"persist_volumes,omitempty"`
-	Variables            map[string]any    `json:"variables,omitempty"`
-	EnvOverrides         map[string]string `json:"env_overrides,omitempty"`
-	ServiceSubdomains    map[string]string `json:"service_subdomains,omitempty"`
-	Services             map[string]any    `json:"services,omitempty"`
+	EnvPackAttachments   *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	Name                 string                    `json:"name"`
+	TemplateID           *int64                    `json:"template_id,omitempty"`
+	TemplateIdentifier   string                    `json:"-"`
+	TemplateVersionID    *int64                    `json:"template_version_id,omitempty"`
+	Version              string                    `json:"version,omitempty"`
+	TemplateBody         string                    `json:"template_body,omitempty"`
+	RepositoryURL        string                    `json:"repository_url,omitempty"`
+	ConfigPath           string                    `json:"config_path,omitempty"`
+	GitHubRef            string                    `json:"github_ref,omitempty"`
+	GitHubInstallationID *int64                    `json:"github_installation_id,omitempty"`
+	GitHubAccount        string                    `json:"github_account,omitempty"`
+	GitProvider          string                    `json:"git_provider,omitempty"`
+	Private              *bool                     `json:"private,omitempty"`
+	HostID               *int64                    `json:"host_id,omitempty"`
+	HostIdentifier       string                    `json:"-"`
+	PersistVolumes       *bool                     `json:"persist_volumes,omitempty"`
+	Variables            map[string]any            `json:"variables,omitempty"`
+	EnvOverrides         map[string]string         `json:"env_overrides,omitempty"`
+	ServiceSubdomains    map[string]string         `json:"service_subdomains,omitempty"`
+	Services             map[string]any            `json:"services,omitempty"`
 }
 
 func (p *GreenfieldCreateParams) Validate() error {
+	if err := (&EnvPackAttachmentsParams{Attachments: p.EnvPackAttachments}).Validate(); err != nil {
+		return err
+	}
 	v := &validator{}
 	if p.Name == "" && p.RepositoryURL == "" {
 		v.required("name", p.Name)
@@ -55,8 +59,8 @@ func (p GreenfieldCreateParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.MarqueeIdentifier != "" {
-		body["marquee_id"] = p.MarqueeIdentifier
+	if p.HostIdentifier != "" {
+		body["host_id"] = p.HostIdentifier
 	}
 	if p.TemplateIdentifier != "" {
 		body["template_id"] = p.TemplateIdentifier
@@ -70,11 +74,11 @@ type GreenfieldResult struct {
 	SourceTemplateVersionID *int64                 `json:"source_template_version_id,omitempty"`
 	Repo                    *GreenfieldRepo        `json:"repo,omitempty"`
 	Repos                   []GreenfieldRepo       `json:"repos,omitempty"`
-	Prop                    *Prop                  `json:"prop,omitempty"`
-	Props                   []Prop                 `json:"props,omitempty"`
+	Repository              *Repository            `json:"repository,omitempty"`
+	Repositories            []Repository           `json:"repositories,omitempty"`
 	ImportTemplate          *ImportTemplate        `json:"import_template,omitempty"`
 	ImportTemplateVersion   *ImportTemplateVersion `json:"import_template_version,omitempty"`
-	Playspec                *GreenfieldIDName      `json:"playspec,omitempty"`
+	Spec                    *GreenfieldIDName      `json:"spec,omitempty"`
 	Playground              *Playground            `json:"playground,omitempty"`
 	ServiceURLs             []GreenfieldServiceURL `json:"service_urls,omitempty"`
 	Link                    *GreenfieldLinkResult  `json:"link,omitempty"`
@@ -117,10 +121,10 @@ type GreenfieldLinkResult struct {
 }
 
 type GreenfieldLinkedPath struct {
-	Name    string `json:"name"`
-	Path    string `json:"path"`
-	Target  string `json:"target"`
-	Service string `json:"service,omitempty"`
-	Prop    string `json:"prop,omitempty"`
-	Branch  string `json:"branch,omitempty"`
+	Name       string `json:"name"`
+	Path       string `json:"path"`
+	Target     string `json:"target"`
+	Service    string `json:"service,omitempty"`
+	Repository string `json:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty"`
 }

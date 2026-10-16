@@ -18,7 +18,7 @@ const (
 	ErrCodeInternalError    = "INTERNAL_ERROR"
 	ErrCodeFeatureDisabled  = "FEATURE_DISABLED"
 	ErrCodeRateLimited      = "RATE_LIMITED"
-	ErrCodeMarqueeNotFunded = "MARQUEE_NOT_FUNDED"
+	ErrCodeHostNotFunded    = "HOST_NOT_FUNDED"
 )
 
 type APIError struct {
@@ -37,7 +37,7 @@ func (e *APIError) Error() string {
 		prefix = fmt.Sprintf("fibe [%s]", e.RequestID)
 	}
 	if e.Details != nil {
-		return fmt.Sprintf("%s: %s (%d): %s — %v", prefix, e.Code, e.StatusCode, e.Message, e.Details)
+		return fmt.Sprintf("%s: %s (%d): %s: %v", prefix, e.Code, e.StatusCode, e.Message, e.Details)
 	}
 	return fmt.Sprintf("%s: %s (%d): %s", prefix, e.Code, e.StatusCode, e.Message)
 }
@@ -55,19 +55,24 @@ func (e *APIError) IsRetryable() bool {
 	}
 }
 
-func (e *APIError) IsNotFound() bool         { return e.Code == ErrCodeNotFound }
-func (e *APIError) IsForbidden() bool        { return e.Code == ErrCodeForbidden }
-func (e *APIError) IsUnauthorized() bool     { return e.Code == ErrCodeUnauthorized }
-func (e *APIError) IsRateLimited() bool      { return e.StatusCode == 429 }
-func (e *APIError) IsValidation() bool       { return e.Code == ErrCodeValidationFailed }
-func (e *APIError) IsMarqueeNotFunded() bool { return e.Code == ErrCodeMarqueeNotFunded }
+func (e *APIError) IsNotFound() bool { return e.Code == ErrCodeNotFound }
+
+func (e *APIError) IsForbidden() bool { return e.Code == ErrCodeForbidden }
+
+func (e *APIError) IsUnauthorized() bool { return e.Code == ErrCodeUnauthorized }
+
+func (e *APIError) IsRateLimited() bool { return e.StatusCode == 429 }
+
+func (e *APIError) IsValidation() bool { return e.Code == ErrCodeValidationFailed }
+
+func (e *APIError) IsHostNotFunded() bool { return e.Code == ErrCodeHostNotFunded }
 
 type CircuitOpenError struct {
 	Resource string
 }
 
 func (e *CircuitOpenError) Error() string {
-	return fmt.Sprintf("fibe: circuit breaker open for %s — too many recent failures", e.Resource)
+	return fmt.Sprintf("fibe: circuit breaker open for %s: too many recent failures", e.Resource)
 }
 
 type apiErrorResponse struct {

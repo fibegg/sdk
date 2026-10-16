@@ -15,16 +15,23 @@ import (
 )
 
 const (
-	defaultE2EAdminAPIKey = "fibe_test_secret_admin"
-	defaultSDKAPIKey      = "fibe_test_secret_sdk"
-	defaultSDKUserBAPIKey = "fibe_test_secret_sdk_user_b"
-	defaultSDKRateAPIKey  = "fibe_test_secret_sdk_rate_limit"
-	seededPropNamePrefix  = "sdk-seed-prop"
-	seededPropRepoPrefix  = "https://github.com/fibegg/sdk-sdk-seed"
-	seededPropEnvFile     = ".env.example"
+	defaultE2EAdminAPIKey      = "fibe_test_secret_admin"
+	defaultSDKAPIKey           = "fibe_test_secret_sdk"
+	defaultSDKUserBAPIKey      = "fibe_test_secret_sdk_user_b"
+	defaultSDKRateAPIKey       = "fibe_test_secret_sdk_rate_limit"
+	seededRepositoryNamePrefix = "sdk-seed-repository"
+	seededRepositoryRepoPrefix = "https://github.com/fibegg/sdk-sdk-seed"
+	seededRepositoryEnvFile    = ".env.example"
 )
 
 func TestMain(m *testing.M) {
+	if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
+		// Merely having ambient credentials must never turn `go test ./...`
+		// into a live or localhost-mutating test run.
+		for _, key := range []string{"FIBE_API_KEY", "FIBE_ADMIN_API_KEY", "USER_B_API_KEY", "RATE_LIMIT_TEST_KEY"} {
+			_ = os.Unsetenv(key)
+		}
+	}
 	cleanup, err := bootstrapDockerE2E()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "SDK docker e2e bootstrap failed: %v\n", err)
@@ -69,16 +76,16 @@ func bootstrapDockerE2E() (func() error, error) {
 	token := envDefault("E2E_SDK_API_KEY", defaultSDKAPIKey+"_"+tokenSuffix)
 	userBToken := envDefault("E2E_SDK_USER_B_API_KEY", defaultSDKUserBAPIKey+"_"+tokenSuffix)
 	rateToken := envDefault("E2E_SDK_RATE_LIMIT_API_KEY", defaultSDKRateAPIKey+"_"+tokenSuffix)
-	rootDomain := envDefault("TEST_MARQUEE_ROOT_DOMAIN", dockerE2ERootDomain())
+	rootDomain := envDefault("TEST_HOST_ROOT_DOMAIN", dockerE2ERootDomain())
 	bootstrap, err := client.bootstrapSDK(runID, map[string]string{
 		"primary":    token,
 		"user_b":     userBToken,
 		"rate_limit": rateToken,
 	}, map[string]any{
-		"host":            envDefault("TEST_MARQUEE_HOST", "dind-sdk"),
-		"port":            envDefault("TEST_MARQUEE_PORT", "22"),
-		"ssh_key_port":    envDefault("TEST_SSH_KEY_MARQUEE_PORT", "2222"),
-		"user":            envDefault("TEST_MARQUEE_USER", "root"),
+		"host":            envDefault("TEST_HOST_HOST", "dind-sdk"),
+		"port":            envDefault("TEST_HOST_PORT", "22"),
+		"ssh_key_port":    envDefault("TEST_SSH_KEY_HOST_PORT", "2222"),
+		"user":            envDefault("TEST_HOST_USER", "root"),
 		"ssh_private_key": sshKey,
 		"root_domain":     rootDomain,
 	})
@@ -100,9 +107,16 @@ func bootstrapDockerE2E() (func() error, error) {
 	_ = player
 
 	return func() error {
+		// The SDK Hosts are shared: other lanes (Playwright provider and ENV-pack runtime flows) run Personal workloads on
+		// them and may still be running when this lane finishes, so retiring them here would pull a live Host from under
+		// them. A Docker E2E run discards its stack, and the next bootstrap retires any conflicting Host itself;
+		// SDK_E2E_RETIRE_HOSTS=1 restores the eager cleanup for a persistent stack that nothing else uses.
+		if !envBool("SDK_E2E_RETIRE_HOSTS") {
+			return nil
+		}
 		var errs []string
-		for _, id := range []int64{bootstrap.Marquee.ID, bootstrap.SSHKeyMarquee.ID} {
-			if err := client.deactivateMarquee(id); err != nil {
+		for _, id := range []int64{bootstrap.Host.ID, bootstrap.SSHKeyHost.ID} {
+			if err := client.deactivateHost(id); err != nil {
 				errs = append(errs, err.Error())
 			}
 		}
@@ -125,10 +139,10 @@ type e2eResource struct {
 }
 
 type e2eBootstrapPayload struct {
-	Success       bool              `json:"success"`
-	Env           map[string]string `json:"env"`
-	Marquee       e2eResource       `json:"marquee"`
-	SSHKeyMarquee e2eResource       `json:"ssh_key_marquee"`
+	Success    bool              `json:"success"`
+	Env        map[string]string `json:"env"`
+	Host       e2eResource       `json:"host"`
+	SSHKeyHost e2eResource       `json:"ssh_key_host"`
 }
 
 func (c *e2eBootstrapClient) waitForFibe() error {
@@ -163,30 +177,30 @@ func (c *e2eBootstrapClient) currentPlayer(token string) (e2eResource, error) {
 	return player, nil
 }
 
-func (c *e2eBootstrapClient) bootstrapSDK(runID string, tokens map[string]string, marquee map[string]any) (e2eBootstrapPayload, error) {
+func (c *e2eBootstrapClient) bootstrapSDK(runID string, tokens map[string]string, host map[string]any) (e2eBootstrapPayload, error) {
 	var payload e2eBootstrapPayload
 	err := c.requestJSON(http.MethodPost, "/e2e_backdoor/bootstrap", c.adminToken, map[string]any{
-		"mode":    "sdk",
-		"run_id":  runID,
-		"tokens":  tokens,
-		"marquee": marquee,
+		"mode":   "sdk",
+		"run_id": runID,
+		"tokens": tokens,
+		"host":   host,
 	}, &payload, http.StatusOK)
 	return payload, err
 }
 
-func (c *e2eBootstrapClient) deactivateMarquee(marqueeID int64) error {
+func (c *e2eBootstrapClient) deactivateHost(hostID int64) error {
 	var payload struct {
 		Success bool `json:"success"`
 	}
 	err := c.requestJSON(http.MethodPost, "/e2e_backdoor/operation", c.adminToken, map[string]any{
-		"operation":  "deactivate_marquee",
-		"marquee_id": marqueeID,
+		"operation": "deactivate_host",
+		"host_id":   hostID,
 	}, &payload, http.StatusOK)
 	if err != nil {
 		return err
 	}
 	if !payload.Success {
-		return errors.New("deactivate_marquee operation returned success=false")
+		return errors.New("deactivate_host operation returned success=false")
 	}
 	return nil
 }
@@ -231,12 +245,12 @@ func (c *e2eBootstrapClient) requestJSON(method, path, token string, body any, o
 }
 
 func dockerE2ESSHPrivateKey() (string, error) {
-	if value := os.Getenv("TEST_MARQUEE_PRIVATE_KEY"); value != "" {
+	if value := os.Getenv("TEST_HOST_PRIVATE_KEY"); value != "" {
 		return value, nil
 	}
-	path := os.Getenv("TEST_MARQUEE_PRIVATE_KEY_PATH")
+	path := os.Getenv("TEST_HOST_PRIVATE_KEY_PATH")
 	if path == "" {
-		return "", errors.New("TEST_MARQUEE_PRIVATE_KEY or TEST_MARQUEE_PRIVATE_KEY_PATH is required for SDK e2e bootstrap")
+		return "", errors.New("TEST_HOST_PRIVATE_KEY or TEST_HOST_PRIVATE_KEY_PATH is required for SDK e2e bootstrap")
 	}
 	deadline := time.Now().Add(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_FILE_TIMEOUT_SECONDS", 600)) * time.Second)
 	for time.Now().Before(deadline) {
@@ -261,22 +275,22 @@ func e2eRunID() string {
 	return e2eSlug(raw, 24)
 }
 
-func ensureFundedPrivateE2EMarquee(t *testing.T, prefix string) (e2eResource, bool) {
+func ensureFundedPrivateE2EHost(t *testing.T, prefix string) (e2eResource, bool) {
 	t.Helper()
 	if !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
 		return e2eResource{}, false
 	}
 
-	rawID := strings.TrimSpace(os.Getenv("FIBE_TEST_MARQUEE_ID"))
+	rawID := strings.TrimSpace(os.Getenv("FIBE_TEST_HOST_ID"))
 	if rawID == "" {
-		t.Fatal("FIBE_TEST_MARQUEE_ID is required after SDK e2e bootstrap")
+		t.Fatal("FIBE_TEST_HOST_ID is required after SDK e2e bootstrap")
 	}
 	id, err := strconv.ParseInt(rawID, 10, 64)
 	if err != nil {
-		t.Fatalf("parse FIBE_TEST_MARQUEE_ID: %v", err)
+		t.Fatalf("parse FIBE_TEST_HOST_ID: %v", err)
 	}
 	if id <= 0 {
-		t.Fatalf("invalid FIBE_TEST_MARQUEE_ID %q", rawID)
+		t.Fatalf("invalid FIBE_TEST_HOST_ID %q", rawID)
 	}
 	return e2eResource{ID: id, Name: prefix}, true
 }

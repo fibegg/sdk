@@ -18,7 +18,7 @@ func artefactsCmd() *cobra.Command {
 
 ARTEFACT CONSTRAINTS:
   - Artefacts securely embed massive context responses, markdown scripts, or JSON configs into the Agent brain without polluting the chat logs.
-  - LLM Genies MUST bundle any text output over ~40 lines into an Artefact instead of direct chat messages to keep the session context token window efficient.
+  - LLM Agents MUST bundle any text output over ~40 lines into an Artefact instead of direct chat messages to keep the session context token window efficient.
 
 SUBCOMMANDS:
   list <agent-id-or-name>          List artefacts
@@ -30,7 +30,6 @@ SUBCOMMANDS:
 	cmd.AddCommand(artListCmd(), artGetCmd(), artCreateCmd(), artUpdateCmd(), artDownloadCmd())
 	return cmd
 }
-
 func artListCmd() *cobra.Command {
 	var query, name, agentIDFlag, playground, contentType, createdAfter, createdBefore, sort string
 	cmd := &cobra.Command{
@@ -166,6 +165,7 @@ func artCreateCmd() *cobra.Command {
 					fileReader = os.Stdin
 					fileName = "stdin"
 				} else {
+					// #nosec G304 -- file is an explicit upload source requested by the CLI user.
 					f, err := os.Open(file)
 					if err != nil {
 						return err
@@ -275,19 +275,7 @@ EXAMPLES:
 			}
 			defer body.Close()
 
-			var dst io.Writer
-			if to == "-" {
-				dst = os.Stdout
-			} else {
-				f, err := os.Create(to)
-				if err != nil {
-					return fmt.Errorf("create output file: %w", err)
-				}
-				defer f.Close()
-				dst = f
-			}
-
-			n, err := io.Copy(dst, body)
+			n, err := writeDownload(body, to)
 			if err != nil {
 				return fmt.Errorf("write content: %w", err)
 			}
@@ -303,7 +291,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&to, "to", "", "Output file path (required, use - for stdout)")
 	return cmd
 }
-
-// =============================================================================
-// Repo Status: check
-// =============================================================================

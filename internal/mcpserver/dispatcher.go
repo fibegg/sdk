@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"math"
 	"reflect"
 	"strconv"
@@ -16,7 +17,7 @@ import (
 )
 
 // Ensure the fibe import stays compile-visible even when no signature
-// references it directly — handler is `func(..., *fibe.Client, ...)`.
+// references it directly: handler is `func(..., *fibe.Client, ...)`.
 var _ *fibe.Client
 
 var (
@@ -24,20 +25,13 @@ var (
 	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 )
 
-// dispatcher is the single choke point through which every tool invocation
-// passes — including steps of a fibe_pipeline. It enforces:
-//
-//   - destructive-op gating (confirm:true or --yolo)
-//   - per-session auth resolution
-//   - idempotency / rate-limit inheritance from the resolved client
-//
-// The actual work for each tool is performed by a toolImpl registered via
-// register(). toolImpls stay free of auth/safety concerns; the dispatcher
-// handles that uniformly.
+// dispatcher applies confirmation, per-session auth, idempotency, and rate
+// limits uniformly to direct and pipeline tool calls.
 type dispatcher struct {
 	srv   *Server
 	mu    sync.RWMutex
 	tools map[string]*toolImpl
+	order []string
 }
 
 func newDispatcher(s *Server) *dispatcher {
@@ -85,6 +79,9 @@ type toolHandler func(ctx context.Context, c *fibe.Client, args map[string]any) 
 func (d *dispatcher) register(t *toolImpl) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if _, exists := d.tools[t.name]; !exists {
+		d.order = append(d.order, t.name)
+	}
 	d.tools[t.name] = t
 }
 
@@ -98,11 +95,7 @@ func (d *dispatcher) lookup(name string) (*toolImpl, bool) {
 func (d *dispatcher) names() []string {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	out := make([]string, 0, len(d.tools))
-	for k := range d.tools {
-		out = append(out, k)
-	}
-	return out
+	return append([]string(nil), d.order...)
 }
 
 // dispatch runs a tool by name. This is the entry point both for MCP tool
@@ -112,8 +105,19 @@ func (d *dispatcher) names() []string {
 // running with --yolo. The confirm field is stripped before the handler
 // sees args so tool implementations don't have to ignore it.
 func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]any) (any, error) {
+	if err := domainnames.RejectFields(args); err != nil {
+		return nil, err
+	}
+	if resource, ok := args["resource"].(string); ok {
+		if err := domainnames.RemovedError(resource); err != nil {
+			return nil, err
+		}
+	}
 	t, ok := d.lookup(name)
 	if !ok {
+		if replacement, ok := domainnames.ToolReplacement(name); ok {
+			return nil, fmt.Errorf("FIBE tool %q was removed; use %q", name, replacement)
+		}
 		return nil, fmt.Errorf("unknown tool %q", name)
 	}
 
@@ -122,6 +126,9 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 		return nil, err
 	}
 	handlerArgs := stripResponseShapeArgs(args)
+	if d.srv.httpMode && !d.srv.cfg.AllowLocalAccess && isLocalCapability(t, handlerArgs) {
+		return nil, fmt.Errorf("tool %q requires local access, which is disabled for HTTP MCP transports", name)
+	}
 
 	yolo := d.srv.cfg.Yolo || yoloFromContext(ctx)
 	if t.annotations.Destructive && !yolo {
@@ -133,9 +140,7 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	// fibe_call and fibe_pipeline need to read and forward confirm into
 	// nested invocations, so we leave their args untouched.
 	if !preservesConfirmArgs(t.name) {
-		if _, ok := handlerArgs["confirm"]; ok {
-			delete(handlerArgs, "confirm")
-		}
+		delete(handlerArgs, "confirm")
 		if err := validatePositiveIDArgs(handlerArgs); err != nil {
 			return nil, err
 		}
@@ -150,6 +155,39 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 		return nil, err
 	}
 	return applyResponseShape(result, shape)
+}
+
+func isLocalCapability(tool *toolImpl, args map[string]any) bool {
+	if tool.tier == tierLocal {
+		return true
+	}
+	switch tool.name {
+	case "fibe_run", "fibe_auth_list", "fibe_auth_use":
+		return true
+	}
+	return containsLocalCapabilityArg(args)
+}
+
+func containsLocalCapabilityArg(value any) bool {
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, child := range typed {
+			switch strings.ToLower(key) {
+			case "content_path", "workspace", "workspace_dir", "file_path":
+				return true
+			}
+			if containsLocalCapabilityArg(child) {
+				return true
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if containsLocalCapabilityArg(child) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func validatePositiveIDArgs(args map[string]any) error {
@@ -169,24 +207,7 @@ func validatePositiveIDArgs(args map[string]any) error {
 }
 
 func valueAsInt64(v any) (int64, bool) {
-	switch x := v.(type) {
-	case float64:
-		return int64(x), true
-	case int:
-		return int64(x), true
-	case int64:
-		return x, true
-	case json.Number:
-		n, err := x.Int64()
-		return n, err == nil
-	case string:
-		if x == "" {
-			return 0, false
-		}
-		n, err := strconv.ParseInt(x, 10, 64)
-		return n, err == nil
-	}
-	return 0, false
+	return coerceInt64(v)
 }
 
 // confirmRequiredError is returned when a destructive tool is invoked without
@@ -195,7 +216,7 @@ func valueAsInt64(v any) (int64, bool) {
 type confirmRequiredError struct{ tool string }
 
 func (e *confirmRequiredError) Error() string {
-	return fmt.Sprintf("tool %q is destructive — pass confirm:true or run server with --yolo", e.tool)
+	return fmt.Sprintf("tool %q is destructive: pass confirm:true or run server with --yolo", e.tool)
 }
 
 func argBool(args map[string]any, key string) bool {
@@ -228,24 +249,7 @@ func argInt64(args map[string]any, key string) (int64, bool) {
 	if !ok {
 		return 0, false
 	}
-	switch x := v.(type) {
-	case float64:
-		return int64(x), true
-	case int:
-		return int64(x), true
-	case int64:
-		return x, true
-	case string:
-		if x == "" {
-			return 0, false
-		}
-		n, err := strconv.ParseInt(strings.TrimSpace(x), 10, 64)
-		if err != nil {
-			return 0, false
-		}
-		return n, true
-	}
-	return 0, false
+	return coerceInt64(v)
 }
 
 // bindArgs re-marshals the map then unmarshals into a typed destination.
@@ -254,6 +258,9 @@ func argInt64(args map[string]any, key string) (int64, bool) {
 // snake_case / stringified-number shapes without losing the benefits of typed
 // tool structs.
 func bindArgs(args map[string]any, dest any) error {
+	if err := domainnames.RejectFields(args); err != nil {
+		return err
+	}
 	if dest == nil {
 		return errors.New("nil destination")
 	}
@@ -540,7 +547,9 @@ func coerceInt64(v any) (int64, bool) {
 	case int64:
 		return x, true
 	case uint:
-		return int64(x), true
+		if uint64(x) <= math.MaxInt64 {
+			return int64(x), true
+		}
 	case uint8:
 		return int64(x), true
 	case uint16:
@@ -552,7 +561,7 @@ func coerceInt64(v any) (int64, bool) {
 			return int64(x), true
 		}
 	case float64:
-		if math.Trunc(x) == x {
+		if !math.IsNaN(x) && !math.IsInf(x, 0) && x >= -math.Exp2(63) && x < math.Exp2(63) && math.Trunc(x) == x {
 			return int64(x), true
 		}
 	case json.Number:
@@ -589,7 +598,7 @@ func coerceUint64(v any) (uint64, bool) {
 			return uint64(x), true
 		}
 	case float64:
-		if x >= 0 && math.Trunc(x) == x {
+		if !math.IsNaN(x) && !math.IsInf(x, 0) && x >= 0 && x < math.Exp2(64) && math.Trunc(x) == x {
 			return uint64(x), true
 		}
 	case json.Number:
@@ -606,40 +615,49 @@ func coerceUint64(v any) (uint64, bool) {
 }
 
 func coerceFloat64(v any) (float64, bool) {
+	var value float64
 	switch x := v.(type) {
 	case float64:
-		return x, true
+		value = x
 	case float32:
-		return float64(x), true
+		value = float64(x)
 	case int:
-		return float64(x), true
+		value = float64(x)
 	case int8:
-		return float64(x), true
+		value = float64(x)
 	case int16:
-		return float64(x), true
+		value = float64(x)
 	case int32:
-		return float64(x), true
+		value = float64(x)
 	case int64:
-		return float64(x), true
+		value = float64(x)
 	case uint:
-		return float64(x), true
+		value = float64(x)
 	case uint8:
-		return float64(x), true
+		value = float64(x)
 	case uint16:
-		return float64(x), true
+		value = float64(x)
 	case uint32:
-		return float64(x), true
+		value = float64(x)
 	case uint64:
-		return float64(x), true
+		value = float64(x)
 	case json.Number:
-		if f, err := x.Float64(); err == nil {
-			return f, true
+		parsed, err := x.Float64()
+		if err != nil {
+			return 0, false
 		}
+		value = parsed
 	case string:
-		f, err := strconv.ParseFloat(strings.TrimSpace(x), 64)
-		if err == nil {
-			return f, true
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(x), 64)
+		if err != nil {
+			return 0, false
 		}
+		value = parsed
+	default:
+		return 0, false
 	}
-	return 0, false
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0, false
+	}
+	return value, true
 }

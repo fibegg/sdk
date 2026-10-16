@@ -7,36 +7,35 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 11-marquee-validation.spec.js
-func TestMarqueeValidation(t *testing.T) {
+func TestHostValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
 	t.Run("create with minimum port", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: uniqueName("port-min"), Host: "10.0.0.1", Port: 1, User: "root",
 			SSHPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
 		})
 		if err == nil {
-			t.Cleanup(func() { c.Marquees.Delete(ctx(), mq.ID) })
+			t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
 		}
 	})
 
 	t.Run("create with maximum port", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: uniqueName("port-max"), Host: "10.0.0.2", Port: 65535, User: "root",
 			SSHPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
 		})
 		if err == nil {
-			t.Cleanup(func() { c.Marquees.Delete(ctx(), mq.ID) })
+			t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
 		}
 	})
 
 	t.Run("reject port out of range via client validation", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: "bad-port", Host: "10.0.0.3", Port: 99999, User: "root",
 			SSHPrivateKey: "key",
 		})
@@ -47,7 +46,7 @@ func TestMarqueeValidation(t *testing.T) {
 
 	t.Run("reject missing name", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Host: "10.0.0.4", Port: 22, User: "root", SSHPrivateKey: "key",
 		})
 		if err == nil {
@@ -57,7 +56,7 @@ func TestMarqueeValidation(t *testing.T) {
 
 	t.Run("reject dockerhub enabled without credentials", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Marquees.Create(ctx(), &fibe.MarqueeCreateParams{
+		_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: "docker-fail", Host: "10.0.0.5", Port: 22, User: "root",
 			SSHPrivateKey:        "key",
 			DockerhubAuthEnabled: ptr(true),
@@ -68,14 +67,13 @@ func TestMarqueeValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 12-prop-validation.spec.js
-func TestPropValidation(t *testing.T) {
+func TestRepositoryValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
 	t.Run("reject missing repository_url", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Props.Create(ctx(), &fibe.PropCreateParams{})
+		_, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{})
 		if err == nil {
 			t.Error("expected validation error for missing repo URL")
 		}
@@ -83,37 +81,45 @@ func TestPropValidation(t *testing.T) {
 
 	t.Run("duplicate repo_url handled gracefully", func(t *testing.T) {
 		t.Parallel()
-		url := "https://github.com/octocat/" + uniqueName("Hello-World")
-		prop1, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+		url := seedWritableGiteaRepoURL(t, c, "dup-repo")
+		provider := "gitea"
+		private := true
+		branch := "main"
+		repository1, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test")),
+			Provider:      &provider,
+			Private:       &private,
+			DefaultBranch: &branch,
 		})
 		requireNoError(t, err)
-		t.Cleanup(func() { c.Props.Delete(ctx(), prop1.ID) })
+		t.Cleanup(func() { c.Repositories.Delete(ctx(), repository1.ID) })
 
-		prop2, err := c.Props.Create(ctx(), &fibe.PropCreateParams{
+		repository2, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{
 			RepositoryURL: url,
 			Name:          ptr(uniqueName("dup-test-2")),
+			Provider:      &provider,
+			Private:       &private,
+			DefaultBranch: &branch,
 		})
 		if err != nil {
 			return
 		}
-		if prop2.ID != prop1.ID {
-			t.Cleanup(func() { c.Props.Delete(ctx(), prop2.ID) })
+		if repository2.ID != repository1.ID {
+			t.Cleanup(func() { c.Repositories.Delete(ctx(), repository2.ID) })
 		}
 	})
 }
 
-// Migrated from: 13-playspec-validation.spec.js
-func TestPlayspecValidation(t *testing.T) {
+func TestSpecValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
 	t.Run("reject missing name", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+		_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 			BaseComposeYAML: "services:\n  web:\n    image: nginx\n",
-			Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+			Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 		})
 		if err == nil {
 			t.Error("expected validation error for missing name")
@@ -122,7 +128,7 @@ func TestPlayspecValidation(t *testing.T) {
 
 	t.Run("reject missing compose YAML", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+		_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 			Name: uniqueName("no-compose"),
 		})
 		if err == nil {
@@ -132,10 +138,10 @@ func TestPlayspecValidation(t *testing.T) {
 
 	t.Run("reject duplicate service names", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+		_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 			Name:            uniqueName("dup-svc"),
 			BaseComposeYAML: "services:\n  web:\n    image: nginx\n",
-			Services: []fibe.PlayspecServiceDef{
+			Services: []fibe.SpecServiceDef{
 				{Name: "web", Type: fibe.ServiceTypeStatic},
 				{Name: "web", Type: fibe.ServiceTypeStatic},
 			},
@@ -147,10 +153,10 @@ func TestPlayspecValidation(t *testing.T) {
 
 	t.Run("reject invalid service type", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+		_, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 			Name:            uniqueName("bad-type"),
 			BaseComposeYAML: "services:\n  web:\n    image: nginx\n",
-			Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: "invalid"}},
+			Services:        []fibe.SpecServiceDef{{Name: "web", Type: "invalid"}},
 		})
 		if err == nil {
 			t.Error("expected validation error for invalid service type")
@@ -159,7 +165,7 @@ func TestPlayspecValidation(t *testing.T) {
 
 	t.Run("validate compose YAML endpoint", func(t *testing.T) {
 		t.Parallel()
-		result, err := c.Playspecs.ValidateCompose(ctx(), "services:\n  web:\n    image: nginx\n  db:\n    image: postgres\n")
+		result, err := c.Specs.ValidateCompose(ctx(), "services:\n  web:\n    image: nginx\n  db:\n    image: postgres\n")
 		requireNoError(t, err)
 
 		if result == nil {
@@ -169,7 +175,7 @@ func TestPlayspecValidation(t *testing.T) {
 
 	t.Run("validate compose with invalid YAML", func(t *testing.T) {
 		t.Parallel()
-		result, err := c.Playspecs.ValidateCompose(ctx(), "this is not valid yaml: [[[")
+		result, err := c.Specs.ValidateCompose(ctx(), "this is not valid yaml: [[[")
 		requireNoError(t, err)
 
 		if result == nil {
@@ -178,7 +184,6 @@ func TestPlayspecValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 43-secrets-crud.spec.js (validation parts)
 func TestSecretValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -206,7 +211,6 @@ func TestSecretValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 21-agents-crud.spec.js (validation parts)
 func TestAgentValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -253,7 +257,6 @@ func TestAgentValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 29-webhooks.spec.js (validation parts)
 func TestWebhookValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -296,7 +299,6 @@ func TestWebhookValidation(t *testing.T) {
 	})
 }
 
-// Migrated from: 06-launch.spec.js
 func TestLaunchValidation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -321,7 +323,7 @@ func TestLaunchValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("launch creates playspec", func(t *testing.T) {
+	t.Run("launch creates spec", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        uniqueName("launch-test"),
@@ -337,7 +339,7 @@ func TestLaunchValidation(t *testing.T) {
 		if result == nil {
 			t.Fatal("expected launch result to be non-nil")
 		}
-		// Launch endpoint returns a playspec — the result struct may have zero values
+		// Launch endpoint returns a spec: the result struct may have zero values
 		// if the API response shape doesn't match LaunchResult exactly.
 		// The key assertion is that the call succeeded (no error above).
 	})

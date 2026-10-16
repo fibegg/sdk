@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -17,7 +16,7 @@ func templatesCmd() *cobra.Command {
 		Use:     "templates",
 		Aliases: []string{"tpl"},
 		Short:   "Manage import templates (Pantry)",
-		Long: `Manage Fibe import templates — reusable playspec configurations.
+		Long: `Manage Fibe import templates: reusable spec configurations.
 
 Templates can be published publicly or kept private. Each template
 can have multiple versions.
@@ -34,10 +33,10 @@ SUBCOMMANDS:
   versions create <id-or-name>               Create a new version
   versions destroy <id-or-name> <ver-id>     Delete a version
   versions toggle-public <id-or-name> <ver-id> Toggle version public visibility
-  source set <id-or-name>                    Track a Prop file as template source
+  source set <id-or-name>                    Track a Repository file as template source
   source refresh <id-or-name>                Refresh tracked source now
   source clear <id-or-name>                  Clear tracked source
-  upgrade-playspecs <id-or-name>             Upgrade linked job Playspecs to a version
+  upgrade-specs <id-or-name>             Upgrade linked job Specs to a version
   fork <id-or-name>                          Fork a template into your account
   upload-image <id-or-name>                  Upload a cover image`,
 	}
@@ -45,7 +44,7 @@ SUBCOMMANDS:
 		tplListCmd(), tplGetCmd(), tplCreateCmd(), tplUpdateCmd(), tplDeleteCmd(),
 		tplSearchCmd(), tplVersionsCmd(),
 		tplCreateVersionCmd(), tplDestroyVersionCmd(), tplTogglePublicCmd(),
-		tplSourceCmd(), tplUpgradePlayspecsCmd(),
+		tplSourceCmd(), tplUpgradeSpecsCmd(),
 		tplForkCmd(), tplUploadImageCmd(),
 	)
 	return cmd
@@ -102,6 +101,8 @@ EXAMPLES:
 			} else if system == "false" {
 				f := false
 				params.System = &f
+			} else if cmd.Flags().Changed("system") {
+				return fmt.Errorf("--system must be true or false")
 			}
 			if sort != "" {
 				params.Sort = sort
@@ -157,7 +158,7 @@ func tplCreateCmd() *cobra.Command {
 	var category string
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new template",
-		Long: "Create a new import template.\n\nTEMPLATE CONSTRAINTS:\n  - Templates are heavily opinionated YAML mappings used to generate generalized Playspecs.\n  - The 'body' must be a valid predefined YAML template matching Fibe's Template Schema engine.\n\nREQUIRED FLAGS:\n  --name          Template name\n  --body          Template body (YAML)\n\nOPTIONAL FLAGS:\n  --category      Category ID, name, or slug (defaults to \"Uncategorized\" on the server when omitted)\n  --description   Free-form description\n\nEXAMPLES:\n  fibe templates create --name \"Node.js\" --body @template.yml\n  fibe templates create --name \"Node.js\" --category web --body @template.yml",
+		Long: "Create a new import template.\n\nTEMPLATE CONSTRAINTS:\n  - Templates are heavily opinionated YAML mappings used to generate generalized Specs.\n  - The 'body' must be a valid predefined YAML template matching Fibe's Template Schema engine.\n\nREQUIRED FLAGS:\n  --name          Template name\n  --body          Template body (YAML)\n\nOPTIONAL FLAGS:\n  --category      Category ID, name, or slug (defaults to \"Uncategorized\" on the server when omitted)\n  --description   Free-form description\n\nEXAMPLES:\n  fibe templates create --name \"Node.js\" --body @template.yml\n  fibe templates create --name \"Node.js\" --category web --body @template.yml",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.ImportTemplateCreateParams{}
@@ -178,7 +179,11 @@ func tplCreateCmd() *cobra.Command {
 				params.CategoryID = id
 			}
 			if cmd.Flags().Changed("body") {
-				params.TemplateBody = body
+				var err error
+				params.TemplateBody, err = readTextValue(body)
+				if err != nil {
+					return err
+				}
 			}
 
 			if params.Name == "" {
@@ -287,7 +292,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "Search query (required)")
 	cmd.Flags().BoolVar(&regex, "regex", false, "Treat query as PostgreSQL regex; requires a 3+ character literal token")
-	cmd.MarkFlagRequired("query")
+	mustMarkFlagRequired(cmd, "query")
 	return cmd
 }
 
@@ -373,8 +378,16 @@ EXAMPLES:
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			params := &fibe.ImportTemplateVersionCreateParams{
-				TemplateBody: resolveStringValue(body),
+			params := &fibe.ImportTemplateVersionCreateParams{}
+			if err := applyFromFile(params); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("body") {
+				var err error
+				params.TemplateBody, err = readTextValue(body)
+				if err != nil {
+					return err
+				}
 			}
 			if cmd.Flags().Changed("public") {
 				params.Public = &public
@@ -406,25 +419,25 @@ func tplSourceCmd() *cobra.Command {
 }
 
 func tplSourceSetCmd() *cobra.Command {
-	var propID, ciMarqueeID, marqueeID string
+	var repositoryID, ciHostID, hostID string
 	var path, ref string
 	var autoRefresh, autoUpgrade, ciEnabled bool
 	cmd := &cobra.Command{
 		Use:   "set <template-id-or-name>",
-		Short: "Track a YAML file from a Prop",
+		Short: "Track a YAML file from a Repository",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			templateIdentifier := args[0]
-			if propID == "" {
-				return fmt.Errorf("required field 'prop' not set")
+			if repositoryID == "" {
+				return fmt.Errorf("required field 'repository' not set")
 			}
 			if path == "" {
 				return fmt.Errorf("required field 'path' not set")
 			}
 			params := &fibe.ImportTemplateSourceParams{
-				SourcePropIdentifier: propID,
-				SourcePath:           path,
-				SourceRef:            ref,
+				SourceRepositoryIdentifier: repositoryID,
+				SourcePath:                 path,
+				SourceRef:                  ref,
 			}
 			if cmd.Flags().Changed("auto-refresh") {
 				params.SourceAutoRefresh = &autoRefresh
@@ -435,10 +448,10 @@ func tplSourceSetCmd() *cobra.Command {
 			if cmd.Flags().Changed("ci-enabled") || cmd.Flags().Changed("ci") {
 				params.CIEnabled = &ciEnabled
 			}
-			if cmd.Flags().Changed("ci-marquee") {
-				params.CIMarqueeIdentifier = ciMarqueeID
-			} else if cmd.Flags().Changed("marquee") {
-				params.CIMarqueeIdentifier = marqueeID
+			if cmd.Flags().Changed("ci-host") {
+				params.CIHostIdentifier = ciHostID
+			} else if cmd.Flags().Changed("host") {
+				params.CIHostIdentifier = hostID
 			}
 			result, err := newClient().ImportTemplates.SetSourceByIdentifier(ctx(), templateIdentifier, params)
 			if err != nil {
@@ -448,15 +461,15 @@ func tplSourceSetCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&propID, "prop", "", "Source Prop ID or name (required)")
+	cmd.Flags().StringVar(&repositoryID, "repository", "", "Source Repository ID or name (required)")
 	cmd.Flags().StringVar(&path, "path", "", "Source YAML path, e.g. fibe-ci.yml")
 	cmd.Flags().StringVar(&ref, "ref", "", "Source ref/branch")
 	cmd.Flags().BoolVar(&autoRefresh, "auto-refresh", true, "Refresh versions from matching pushes")
-	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Playspecs")
+	cmd.Flags().BoolVar(&autoUpgrade, "auto-upgrade", true, "Auto-upgrade linked job Specs")
 	cmd.Flags().BoolVar(&ciEnabled, "ci-enabled", false, "Enable CI workflow sync for this template source")
 	cmd.Flags().BoolVar(&ciEnabled, "ci", false, "Alias for --ci-enabled")
-	cmd.Flags().StringVar(&ciMarqueeID, "ci-marquee", "", "Marquee ID or name used by CI workflow sync")
-	cmd.Flags().StringVar(&marqueeID, "marquee", "", "Alias for --ci-marquee")
+	cmd.Flags().StringVar(&ciHostID, "ci-host", "", "Host ID or name used by CI workflow sync")
+	cmd.Flags().StringVar(&hostID, "host", "", "Alias for --ci-host")
 	return cmd
 }
 
@@ -466,7 +479,11 @@ func tplSourceRefreshCmd() *cobra.Command {
 		Short: "Refresh tracked template source now",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			result, err := newClient().ImportTemplates.RefreshSourceByIdentifier(ctx(), args[0])
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("refreshing template source " + args[0] + "...")
+			defer progress.Stop()
+			result, err := newClient(fibe.WithProgress(progress.Progress("refreshing template source "+args[0]))).ImportTemplates.RefreshSourceByIdentifier(ctx(), args[0])
+			progress.Stop()
 			if err != nil {
 				return err
 			}
@@ -492,17 +509,21 @@ func tplSourceClearCmd() *cobra.Command {
 	}
 }
 
-func tplUpgradePlayspecsCmd() *cobra.Command {
+func tplUpgradeSpecsCmd() *cobra.Command {
 	var versionID int64
 	cmd := &cobra.Command{
-		Use:   "upgrade-playspecs <template-id-or-name>",
-		Short: "Upgrade linked job Playspecs to a template version",
+		Use:   "upgrade-specs <template-id-or-name>",
+		Short: "Upgrade linked job Specs to a template version",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if versionID <= 0 {
 				return fmt.Errorf("required field 'target-version-id' not set")
 			}
-			result, err := newClient().ImportTemplates.UpgradeLinkedPlayspecsByIdentifier(ctx(), args[0], versionID)
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+			progress.Start("upgrading linked specs for template " + args[0] + "...")
+			defer progress.Stop()
+			result, err := newClient(fibe.WithProgress(progress.Progress("upgrading linked specs for template "+args[0]))).ImportTemplates.UpgradeLinkedSpecsByIdentifier(ctx(), args[0], versionID)
+			progress.Stop()
 			if err != nil {
 				return err
 			}
@@ -527,7 +548,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			versionID, _ := strconv.ParseInt(args[1], 10, 64)
+			versionID, err := positiveInputID(args[1], "versionID")
+			if err != nil {
+				return err
+			}
 			if err := c.ImportTemplates.DestroyVersionByIdentifier(ctx(), args[0], versionID); err != nil {
 				return err
 			}
@@ -548,7 +572,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			versionID, _ := strconv.ParseInt(args[1], 10, 64)
+			versionID, err := positiveInputID(args[1], "versionID")
+			if err != nil {
+				return err
+			}
 			version, err := c.ImportTemplates.TogglePublicByIdentifier(ctx(), args[0], versionID)
 			if err != nil {
 				return err
@@ -628,6 +655,7 @@ EXAMPLES:
 			if file == "" {
 				return fmt.Errorf("required field 'file' not set")
 			}
+			// #nosec G304 -- file is an explicit local input requested by the CLI user.
 			data, err := os.ReadFile(file)
 			if err != nil {
 				return fmt.Errorf("read image file: %w", err)
@@ -649,6 +677,3 @@ EXAMPLES:
 	cmd.Flags().StringVar(&file, "file", "", "Path to image file (required)")
 	return cmd
 }
-
-// =============================================================================
-// =============================================================================

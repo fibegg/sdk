@@ -127,24 +127,21 @@ func cloneSchemaAndRemoveAgentID(schema any) map[string]any {
 		return map[string]any{}
 	}
 
-	// Create a shallow copy of the top-level map
 	out := make(map[string]any, len(m))
 	for k, v := range m {
 		out[k] = v
 	}
 
-	// Copy properties and remove agent identifier
-	if props, ok := out["properties"].(map[string]any); ok {
-		newProps := make(map[string]any, len(props))
-		for k, v := range props {
+	if repositories, ok := out["properties"].(map[string]any); ok {
+		newRepositories := make(map[string]any, len(repositories))
+		for k, v := range repositories {
 			if k != "agent_id" && k != "agent_id_or_name" {
-				newProps[k] = v
+				newRepositories[k] = v
 			}
 		}
-		out["properties"] = newProps
+		out["properties"] = newRepositories
 	}
 
-	// Remove agent identifier from required list
 	if reqs, ok := out["required"].([]string); ok {
 		newReqs := make([]string, 0, len(reqs))
 		for _, r := range reqs {

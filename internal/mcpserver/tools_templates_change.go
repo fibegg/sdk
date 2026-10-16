@@ -13,37 +13,37 @@ import (
 )
 
 type templateChangeArgs struct {
-	TargetType              string                    `json:"target_type"`
-	TargetIdentifier        string                    `json:"target_id_or_name"`
-	Mode                    string                    `json:"mode"`
-	ChangeType              string                    `json:"change_type"`
-	BaseVersionID           int64                     `json:"base_version_id,omitempty"`
-	TargetTemplateVersionID int64                     `json:"target_template_version_id,omitempty"`
-	Patches                 []fibe.TemplatePatchEdit  `json:"patches,omitempty"`
-	Edits                   []fibe.TemplatePatchEdit  `json:"edits,omitempty"`
-	TemplateBody            string                    `json:"template_body,omitempty"`
-	TemplateBodyPath        string                    `json:"template_body_path,omitempty"`
-	Changelog               string                    `json:"changelog,omitempty"`
-	Public                  *bool                     `json:"public,omitempty"`
-	SwitchVariables         map[string]any            `json:"switch_variables,omitempty"`
-	RegenerateVariables     []string                  `json:"regenerate_variables,omitempty"`
-	ConfirmWarnings         bool                      `json:"confirm_warnings,omitempty"`
-	PostApply               string                    `json:"post_apply,omitempty"`
-	Wait                    bool                      `json:"wait,omitempty"`
-	WaitTimeoutSeconds      int64                     `json:"wait_timeout_seconds,omitempty"`
-	DiagnoseOnFailure       *bool                     `json:"diagnose_on_failure,omitempty"`
-	ResponseMode            string                    `json:"response_mode,omitempty"`
-	ProvisionMissingProps   string                    `json:"provision_missing_props,omitempty"`
-	ProvisionPrivate        *bool                     `json:"provision_private,omitempty"`
-	ProvisionInputs         []fibe.ProvisionPropInput `json:"provision_inputs,omitempty"`
-	ReuseExistingProps      bool                      `json:"reuse_existing_props,omitempty"`
+	TargetType                   string                          `json:"target_type"`
+	TargetIdentifier             string                          `json:"target_id_or_name"`
+	Mode                         string                          `json:"mode"`
+	ChangeType                   string                          `json:"change_type"`
+	BaseVersionID                int64                           `json:"base_version_id,omitempty"`
+	TargetTemplateVersionID      int64                           `json:"target_template_version_id,omitempty"`
+	Patches                      []fibe.TemplatePatchEdit        `json:"patches,omitempty"`
+	Edits                        []fibe.TemplatePatchEdit        `json:"edits,omitempty"`
+	TemplateBody                 string                          `json:"template_body,omitempty"`
+	TemplateBodyPath             string                          `json:"template_body_path,omitempty"`
+	Changelog                    string                          `json:"changelog,omitempty"`
+	Public                       *bool                           `json:"public,omitempty"`
+	SwitchVariables              map[string]any                  `json:"switch_variables,omitempty"`
+	RegenerateVariables          []string                        `json:"regenerate_variables,omitempty"`
+	ConfirmWarnings              bool                            `json:"confirm_warnings,omitempty"`
+	PostApply                    string                          `json:"post_apply,omitempty"`
+	Wait                         bool                            `json:"wait,omitempty"`
+	WaitTimeoutSeconds           int64                           `json:"wait_timeout_seconds,omitempty"`
+	DiagnoseOnFailure            *bool                           `json:"diagnose_on_failure,omitempty"`
+	ResponseMode                 string                          `json:"response_mode,omitempty"`
+	ProvisionMissingRepositories string                          `json:"provision_missing_repositories,omitempty"`
+	ProvisionPrivate             *bool                           `json:"provision_private,omitempty"`
+	ProvisionInputs              []fibe.ProvisionRepositoryInput `json:"provision_inputs,omitempty"`
+	ReuseExistingRepositories    bool                            `json:"reuse_existing_repositories,omitempty"`
 }
 
 type templateChangeTarget struct {
 	templateID   int64
-	playspecID   *int64
+	specID       *int64
 	playgroundID *int64
-	marqueeID    *int64
+	hostID       *int64
 	jobMode      bool
 	baseVersion  int64
 }
@@ -57,7 +57,7 @@ func (s *Server) registerTemplateChangeTools() {
 func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	schema, _, _, _ := resourceschema.SchemaFor("template", "change")
 	inputSchema, _ := schema.(map[string]any)
-	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch playspecs/playgrounds/tricks to existing template versions, and optionally roll out or trigger a fresh trick run. Rollout/trigger actions require a funded Marquee and fail with MARQUEE_NOT_FUNDED when unpaid."
+	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. Rollout/trigger actions require a funded Host and fail with HOST_NOT_FUNDED when unpaid."
 	s.addTool(&toolImpl{
 		name:        name,
 		description: description,
@@ -151,48 +151,48 @@ func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templa
 		if target.baseVersion == 0 && tpl.LatestVersionID != nil {
 			target.baseVersion = *tpl.LatestVersionID
 		}
-	case "playspec":
-		ps, err := c.Playspecs.GetByIdentifier(ctx, in.TargetIdentifier)
+	case "spec":
+		ps, err := c.Specs.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
-		fillTemplateChangeTargetFromPlayspec(target, ps)
+		fillTemplateChangeTargetFromSpec(target, ps)
 	case "playground":
 		pg, err := c.Playgrounds.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
 		target.playgroundID = &pg.ID
-		target.marqueeID = pg.MarqueeID
+		target.hostID = pg.HostID
 		target.jobMode = pg.JobMode
-		if pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
-			return nil, fmt.Errorf("%s %s has no playspec_id", in.TargetType, in.TargetIdentifier)
+		if pg.SpecID == nil || *pg.SpecID <= 0 {
+			return nil, fmt.Errorf("%s %s has no spec_id", in.TargetType, in.TargetIdentifier)
 		}
-		ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
+		ps, err := c.Specs.Get(ctx, *pg.SpecID)
 		if err != nil {
 			return nil, err
 		}
-		fillTemplateChangeTargetFromPlayspec(target, ps)
+		fillTemplateChangeTargetFromSpec(target, ps)
 		target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
-	case "trick":
-		pg, err := c.Tricks.GetByIdentifier(ctx, in.TargetIdentifier)
+	case "task":
+		pg, err := c.Tasks.GetByIdentifier(ctx, in.TargetIdentifier)
 		if err != nil {
 			return nil, err
 		}
 		target.playgroundID = &pg.ID
-		target.marqueeID = pg.MarqueeID
+		target.hostID = pg.HostID
 		target.jobMode = pg.JobMode
-		if pg.PlayspecID == nil || *pg.PlayspecID <= 0 {
-			return nil, fmt.Errorf("%s %s has no playspec_id", in.TargetType, in.TargetIdentifier)
+		if pg.SpecID == nil || *pg.SpecID <= 0 {
+			return nil, fmt.Errorf("%s %s has no spec_id", in.TargetType, in.TargetIdentifier)
 		}
-		ps, err := c.Playspecs.Get(ctx, *pg.PlayspecID)
+		ps, err := c.Specs.Get(ctx, *pg.SpecID)
 		if err != nil {
 			return nil, err
 		}
-		fillTemplateChangeTargetFromPlayspec(target, ps)
+		fillTemplateChangeTargetFromSpec(target, ps)
 		target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
 		if !target.jobMode {
-			return nil, fmt.Errorf("target_type trick requires a job-mode playground or playspec")
+			return nil, fmt.Errorf("target_type task requires a job-mode playground or spec")
 		}
 	default:
 		return nil, fmt.Errorf("unsupported target_type %q", in.TargetType)
@@ -209,9 +209,9 @@ func resolveTemplateChangeTarget(ctx context.Context, c *fibe.Client, in *templa
 	return target, nil
 }
 
-func fillTemplateChangeTargetFromPlayspec(target *templateChangeTarget, ps *fibe.Playspec) {
+func fillTemplateChangeTargetFromSpec(target *templateChangeTarget, ps *fibe.Spec) {
 	if ps.ID != nil {
-		target.playspecID = ps.ID
+		target.specID = ps.ID
 	}
 	target.jobMode = target.jobMode || boolPtrValue(ps.JobMode)
 	if target.baseVersion == 0 && ps.SourceTemplateVersionID != nil {
@@ -227,18 +227,18 @@ func fillTemplateChangeTargetFromPlayspec(target *templateChangeTarget, ps *fibe
 
 func validateTemplateChangeCombination(in *templateChangeArgs, target *templateChangeTarget) error {
 	switch in.PostApply {
-	case "none", "rollout_target", "rollout_all", "trigger_trick":
+	case "none", "rollout_target", "rollout_all", "trigger_task":
 	default:
-		return fmt.Errorf("post_apply must be none, rollout_target, rollout_all, or trigger_trick")
+		return fmt.Errorf("post_apply must be none, rollout_target, rollout_all, or trigger_task")
 	}
 	if in.TargetType == "template" && in.PostApply != "none" {
 		return fmt.Errorf("target_type template only supports post_apply=none")
 	}
-	if in.PostApply == "trigger_trick" && !target.jobMode {
-		return fmt.Errorf("post_apply=trigger_trick requires a trick or job-mode playspec")
+	if in.PostApply == "trigger_task" && !target.jobMode {
+		return fmt.Errorf("post_apply=trigger_task requires a task or job-mode spec")
 	}
 	if (in.PostApply == "rollout_target" || in.PostApply == "rollout_all") && target.jobMode {
-		return fmt.Errorf("job-mode tricks cannot be rolled out; use post_apply=trigger_trick")
+		return fmt.Errorf("job-mode tasks cannot be rolled out; use post_apply=trigger_task")
 	}
 	if in.PostApply == "rollout_target" && target.playgroundID == nil {
 		return fmt.Errorf("post_apply=rollout_target requires target_type playground")
@@ -246,8 +246,8 @@ func validateTemplateChangeCombination(in *templateChangeArgs, target *templateC
 	if in.ChangeType == "switch_existing" && in.TargetTemplateVersionID <= 0 {
 		return fmt.Errorf("target_template_version_id is required for switch_existing")
 	}
-	if in.ChangeType == "switch_existing" && target.playspecID == nil {
-		return fmt.Errorf("switch_existing requires target_type playspec, playground, or trick")
+	if in.ChangeType == "switch_existing" && target.specID == nil {
+		return fmt.Errorf("switch_existing requires target_type spec, playground, or task")
 	}
 	if in.ChangeType == "patch" && len(in.Patches) == 0 && len(in.Edits) == 0 {
 		return fmt.Errorf("patch change_type requires patches or edits")
@@ -262,23 +262,23 @@ func validateTemplateChangeCombination(in *templateChangeArgs, target *templateC
 }
 
 func runTemplateChangeSwitch(ctx context.Context, c *fibe.Client, in *templateChangeArgs, target *templateChangeTarget) (any, error) {
-	params := &fibe.PlayspecTemplateVersionSwitchParams{
-		TargetTemplateVersionID: in.TargetTemplateVersionID,
-		Variables:               in.SwitchVariables,
-		RegenerateVariables:     in.RegenerateVariables,
-		ConfirmWarnings:         in.ConfirmWarnings,
-		RolloutMode:             rolloutModeForPostApply(in.PostApply),
-		TargetPlaygroundID:      target.playgroundID,
-		ResponseMode:            in.ResponseMode,
-		ProvisionMissingProps:   in.ProvisionMissingProps,
-		ProvisionPrivate:        in.ProvisionPrivate,
-		ProvisionInputs:         in.ProvisionInputs,
-		ReuseExistingProps:      in.ReuseExistingProps,
+	params := &fibe.SpecTemplateVersionSwitchParams{
+		TargetTemplateVersionID:      in.TargetTemplateVersionID,
+		Variables:                    in.SwitchVariables,
+		RegenerateVariables:          in.RegenerateVariables,
+		ConfirmWarnings:              in.ConfirmWarnings,
+		RolloutMode:                  rolloutModeForPostApply(in.PostApply),
+		TargetPlaygroundID:           target.playgroundID,
+		ResponseMode:                 in.ResponseMode,
+		ProvisionMissingRepositories: in.ProvisionMissingRepositories,
+		ProvisionPrivate:             in.ProvisionPrivate,
+		ProvisionInputs:              in.ProvisionInputs,
+		ReuseExistingRepositories:    in.ReuseExistingRepositories,
 	}
 	if in.Mode == "preview" {
-		return c.Playspecs.PreviewTemplateVersionSwitch(ctx, *target.playspecID, params)
+		return c.Specs.PreviewTemplateVersionSwitch(ctx, *target.specID, params)
 	}
-	result, err := c.Playspecs.SwitchTemplateVersion(ctx, *target.playspecID, params)
+	result, err := c.Specs.SwitchTemplateVersion(ctx, *target.specID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func runTemplateChangePatch(ctx context.Context, c *fibe.Client, in *templateCha
 		Patches:             in.Patches,
 		Edits:               in.Edits,
 		Public:              in.Public,
-		TargetPlayspecID:    target.playspecID,
+		TargetSpecID:        target.specID,
 		TargetPlaygroundID:  target.playgroundID,
 		RolloutMode:         rolloutModeForPostApply(in.PostApply),
 		SwitchVariables:     in.SwitchVariables,
@@ -321,7 +321,7 @@ func runTemplateChangePatch(ctx context.Context, c *fibe.Client, in *templateCha
 	if in.Mode == "preview" {
 		return c.ImportTemplates.PatchPreview(ctx, target.templateID, params)
 	}
-	autoSwitch := target.playspecID != nil
+	autoSwitch := target.specID != nil
 	params.AutoSwitch = &autoSwitch
 	result, err := c.ImportTemplates.PatchCreate(ctx, target.templateID, params)
 	if err != nil {
@@ -335,25 +335,25 @@ func runTemplateChangePatch(ctx context.Context, c *fibe.Client, in *templateCha
 }
 
 func runTemplateChangePostApply(ctx context.Context, c *fibe.Client, in *templateChangeArgs, target *templateChangeTarget, out map[string]any, rolloutIDs []int64) error {
-	if in.PostApply == "trigger_trick" {
-		if target.playspecID == nil {
-			return fmt.Errorf("cannot trigger trick without playspec_id")
+	if in.PostApply == "trigger_task" {
+		if target.specID == nil {
+			return fmt.Errorf("cannot trigger task without spec_id")
 		}
-		trick, err := c.Tricks.Trigger(ctx, &fibe.TrickTriggerParams{PlayspecID: *target.playspecID, MarqueeID: target.marqueeID})
+		task, err := c.Tasks.Trigger(ctx, &fibe.TaskTriggerParams{SpecID: *target.specID, HostID: target.hostID})
 		if err != nil {
 			return err
 		}
-		out["triggered_trick"] = trick
+		out["triggered_task"] = task
 		if in.Wait {
-			result := waitForSingleTemplatePatchRollout(ctx, c, trick.ID, time.Duration(in.WaitTimeoutSeconds)*time.Second)
+			result := waitForSingleTemplatePatchRollout(ctx, c, task.ID, time.Duration(in.WaitTimeoutSeconds)*time.Second)
 			out["wait_results"] = []map[string]any{result}
 			if diagnoseTemplateChange(in) && result["success"] != true {
 				refresh := true
-				debug, err := c.Playgrounds.DebugWithParams(ctx, trick.ID, &fibe.PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
+				debug, err := c.Playgrounds.DebugWithParams(ctx, task.ID, &fibe.PlaygroundDebugParams{Mode: "summary", Refresh: &refresh, LogsTail: 50})
 				if err != nil {
-					out["diagnostics"] = map[string]any{fmt.Sprintf("%d", trick.ID): map[string]any{"error": err.Error()}}
+					out["diagnostics"] = map[string]any{fmt.Sprintf("%d", task.ID): map[string]any{"error": err.Error()}}
 				} else {
-					out["diagnostics"] = map[string]any{fmt.Sprintf("%d", trick.ID): debug}
+					out["diagnostics"] = map[string]any{fmt.Sprintf("%d", task.ID): debug}
 				}
 			}
 		}

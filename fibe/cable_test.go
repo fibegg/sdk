@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 func TestCableSubscribeResource(t *testing.T) {
 	apiKey := "fibe_test_secret"
+	var expectedOrigin string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/cable" {
 			t.Fatalf("unexpected path %s", r.URL.Path)
@@ -24,6 +25,10 @@ func TestCableSubscribeResource(t *testing.T) {
 		}
 		if got := r.Header.Get("Authorization"); got != "Bearer "+apiKey {
 			t.Fatalf("missing bearer authorization header: %q", got)
+		}
+		if got := r.Header.Get("Origin"); got != expectedOrigin {
+			http.Error(w, "Origin does not match API origin", http.StatusForbidden)
+			return
 		}
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			Subprotocols: []string{actionCableProtocol},
@@ -51,12 +56,16 @@ func TestCableSubscribeResource(t *testing.T) {
 		if identifier["channel"] != "ApiResourceChannel" || identifier["resource"] != "Agent" {
 			t.Fatalf("unexpected identifier: %#v", identifier)
 		}
+		if identifier["owner_type"] != "Team" || identifier["owner_id"] != "9223372036854775806" {
+			t.Fatalf("missing exact profile owner binding: %#v", identifier)
+		}
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"type":"confirm_subscription"}`))
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"message":{"event":"updated","id":42}}`))
 	}))
+	expectedOrigin = server.URL
 	defer server.Close()
 
-	client := NewClient(WithBaseURL(server.URL), WithAPIKey(apiKey))
+	client := NewClient(WithBaseURL(server.URL), WithAPIKey(apiKey), WithOwnerContext(OwnerContext{OwnerType: "Team", OwnerID: 9223372036854775806}))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -76,12 +85,17 @@ func TestCableSubscribeResource(t *testing.T) {
 
 func TestCableSubscribeLogStream(t *testing.T) {
 	apiKey := "fibe_test_secret"
+	var expectedOrigin string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/cable" {
 			t.Fatalf("unexpected path %s", r.URL.Path)
 		}
 		if got := r.Header.Get("Authorization"); got != "Bearer "+apiKey {
 			t.Fatalf("missing bearer authorization header: %q", got)
+		}
+		if got := r.Header.Get("Origin"); got != expectedOrigin {
+			http.Error(w, "Origin does not match API origin", http.StatusForbidden)
+			return
 		}
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 			Subprotocols: []string{actionCableProtocol},
@@ -114,6 +128,7 @@ func TestCableSubscribeLogStream(t *testing.T) {
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"message":{"type":"status","status":"connected"}}`))
 		_ = conn.Write(r.Context(), websocket.MessageText, []byte(`{"message":{"type":"log","stream":"stdout","service":"web","line":"ready","timestamp":"2026-06-02T00:00:00Z"}}`))
 	}))
+	expectedOrigin = server.URL
 	defer server.Close()
 
 	client := NewClient(WithBaseURL(server.URL), WithAPIKey(apiKey))
@@ -201,7 +216,7 @@ func TestPlaygroundLogStreamByIdentifierResolvesID(t *testing.T) {
 	}
 }
 
-func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
+func TestTaskLogStreamByIdentifierResolvesID(t *testing.T) {
 	apiKey := "fibe_test_secret"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -242,7 +257,7 @@ func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	events, errs := client.Tricks.LogStreamByIdentifier(ctx, "nightly-build", "worker", &LogsStreamOptions{Tail: 10, MaxLines: 1})
+	events, errs := client.Tasks.LogStreamByIdentifier(ctx, "nightly-build", "worker", &LogsStreamOptions{Tail: 10, MaxLines: 1})
 	select {
 	case ev := <-events:
 		if ev.Type != "log" || ev.Line != "job ready" || ev.Service != "worker" || ev.Stream != "stderr" {
@@ -253,7 +268,7 @@ func TestTrickLogStreamByIdentifierResolvesID(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	case <-ctx.Done():
-		t.Fatal("timed out waiting for trick log event")
+		t.Fatal("timed out waiting for task log event")
 	}
 }
 

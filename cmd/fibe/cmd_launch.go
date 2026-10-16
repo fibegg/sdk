@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,16 +16,17 @@ import (
 func launchCmd() *cobra.Command {
 	var (
 		name                 string
+		envPackSelection     string
 		template             string
 		templateVersion      string
-		playspec             string
+		spec                 string
 		compose              string
 		repo                 string
 		repoFile             string
 		repoRef              string
 		githubAccount        string
 		githubInstallationID int64
-		marquee              string
+		host                 string
 		version              int64
 		jobMode              bool
 		createPlayground     bool
@@ -31,7 +35,7 @@ func launchCmd() *cobra.Command {
 		wait                 bool
 		waitTimeout          time.Duration
 		launchVars           []string
-		launchProps          []string
+		launchRepositories   []string
 		envFlags             []string
 		subdomainFlags       []string
 		serviceFlags         []string
@@ -39,33 +43,42 @@ func launchCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "launch [source]",
-		Short: "Launch a playspec, template, compose file, or GitHub repository",
+		Short: "Launch a spec, template, compose file, or GitHub repository",
 		Long: `Launch a Fibe app from one explicit source.
 
 SOURCE SELECTION:
   --template <id-or-name>          Launch latest or selected version of a template
   --template-version <id>          Launch an exact template version ID
-  --playspec <id-or-name>          Create a playground from an existing playspec
-  --compose <yaml-or-@file>        Create a playspec and playground from compose YAML
-  --repo <owner/repo[@ref]|url>    Create a playspec and playground from repository config
+  --spec <id-or-name>          Create a playground from an existing spec
+  --compose <yaml-or-@file>        Create a spec and playground from compose YAML
+  --repo <owner/repo[@ref]|url>    Create a spec and playground from repository config
 
 If a template is selected and neither --version nor --template-version is set,
-the latest template version is used. If --marquee is omitted, the SDK uses
-FIBE_MARQUEE_ID or infers the only launchable Marquee.
+the latest template version is used. If --host is omitted, the SDK uses
+FIBE_HOST_ID or infers the only launchable Host.
 
 SERVICE OVERRIDES:
   --service SERVICE.FIELD=VALUE applies runtime Playground config only. It does
-  not edit the compose file, TemplateVersion, or Playspec.
+  not edit the compose file, TemplateVersion, or Spec.
+  Existing Spec launches use --service; --var, --env, --subdomain and
+  --persist-volumes are rejected for that source. --version requires --template.
+  --repository and creation/job flags require Compose or repository sources.
+  --file, --ref and GitHub installation selectors require repository sources.
+  Text supplied as @path must be readable; a failed read is never literal text.
 
 EXAMPLES:
-  fibe launch --template billing-app --name billing-staging --marquee next --persist-volumes --subdomain web=billing-staging --service web.exposure_port=3000 --service web.exposure_visibility=external
-  fibe launch --template-version 912 --name branch-a --marquee next --subdomain web=branch-a --wait
-  fibe launch --playspec starter --name demo --marquee next --service worker.env_vars.QUEUE=critical
-  fibe launch --compose @docker-compose.yml --name demo --marquee next --persist-volumes
-  fibe launch --repo owner/repo@main --name demo --marquee next`,
+  fibe launch --template billing-app --name billing-staging --host next --persist-volumes --subdomain web=billing-staging --service web.exposure_port=3000 --service web.exposure_visibility=external
+  fibe launch --template-version 912 --name branch-a --host next --subdomain web=branch-a --wait
+  fibe launch --spec starter --name demo --host next --service worker.env_vars.QUEUE=critical
+  fibe launch --compose @docker-compose.yml --name demo --host next --persist-volumes
+  fibe launch --repo owner/repo@main --name demo --host next`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
+			refs, err := parseLaunchEnvPacks(envPackSelection, cmd.Flags().Changed("env-pack-attachments"))
+			if err != nil {
+				return err
+			}
 			var filePayload map[string]any
 			if err := applyFromFile(&filePayload); err != nil {
 				return err
@@ -76,12 +89,48 @@ EXAMPLES:
 			source, err := detectLaunchSource(cmd, c, args, launchSourceFlagValues{
 				Template:        template,
 				TemplateVersion: templateVersion,
-				Playspec:        playspec,
+				Spec:            spec,
 				Compose:         compose,
 				Repo:            repo,
 			})
 			if err != nil {
 				return err
+			}
+			if err := validateLaunchSourceFlags(cmd, source.Kind); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("version") && version <= 0 {
+				return fmt.Errorf("--version must be a positive integer")
+			}
+			if source.Kind == launchSourceTemplateVersion {
+				if _, err := positiveInputID(source.Value, "--template-version"); err != nil {
+					return err
+				}
+			}
+			if cmd.Flags().Changed("github-installation-id") && githubInstallationID <= 0 {
+				return fmt.Errorf("--github-installation-id must be a positive integer ID")
+			}
+			if cmd.Flags().Changed("create-playground") && cmd.Flags().Changed("no-create-playground") {
+				return fmt.Errorf("use only one of --create-playground and --no-create-playground")
+			}
+			if cmd.Flags().Changed("wait-timeout") && waitTimeout <= 0 {
+				return fmt.Errorf("--wait-timeout must be positive")
+			}
+			if cmd.Flags().Changed("wait-timeout") && !wait {
+				return fmt.Errorf("--wait-timeout requires --wait")
+			}
+			if wait && (noCreatePlayground || (cmd.Flags().Changed("create-playground") && !createPlayground)) {
+				return fmt.Errorf("--wait requires playground creation")
+			}
+			if err := applyLaunchRepositories(&fibe.LaunchParams{}, launchRepositories); err != nil {
+				return err
+			}
+			if source.Kind == launchSourceCompose {
+				value, err := readTextValue(source.Value)
+				if err != nil {
+					return err
+				}
+				source.Value = value
 			}
 
 			serviceOverrides, err := parsePlaygroundServiceOverrides(serviceFlags)
@@ -100,7 +149,7 @@ EXAMPLES:
 			if err != nil {
 				return err
 			}
-			marqueeIdentifier, err := resolveLaunchMarqueeIdentifier(c, marquee)
+			hostIdentifier, err := resolveLaunchHostIdentifier(c, host)
 			if err != nil {
 				return err
 			}
@@ -112,13 +161,13 @@ EXAMPLES:
 				if templateVersion != "" {
 					return fmt.Errorf("--template cannot be combined with --template-version; use one source selector")
 				}
-				result, playgroundID, err = runTemplateLaunch(c, source.Value, name, marqueeIdentifier, version, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides)
+				result, playgroundID, err = runTemplateLaunch(c, source.Value, name, hostIdentifier, version, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides, refs)
 			case launchSourceTemplateVersion:
-				result, playgroundID, err = runTemplateVersionLaunch(c, source.Value, name, marqueeIdentifier, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides)
-			case launchSourcePlayspec:
-				result, playgroundID, err = runPlayspecLaunch(c, source.Value, name, marqueeIdentifier, serviceOverrides)
+				result, playgroundID, err = runTemplateVersionLaunch(c, source.Value, name, hostIdentifier, persistVolumes, cmd.Flags().Changed("persist-volumes"), variables, envOverrides, subdomains, serviceOverrides, refs)
+			case launchSourceSpec:
+				result, playgroundID, err = runSpecLaunch(c, source.Value, name, hostIdentifier, serviceOverrides, refs)
 			case launchSourceCompose, launchSourceRepo:
-				result, playgroundID, err = runComposeOrRepoLaunch(cmd, c, source, args, name, repoFile, repoRef, githubAccount, githubInstallationID, marqueeIdentifier, jobMode, createPlayground, noCreatePlayground, persistVolumes, cmd.Flags().Changed("persist-volumes"), launchProps, variables, envOverrides, subdomains, serviceOverrides)
+				result, playgroundID, err = runComposeOrRepoLaunch(cmd, c, source, args, name, repoFile, repoRef, githubAccount, githubInstallationID, hostIdentifier, jobMode, createPlayground, noCreatePlayground, persistVolumes, cmd.Flags().Changed("persist-volumes"), launchRepositories, variables, envOverrides, subdomains, serviceOverrides, refs)
 			default:
 				err = fmt.Errorf("unsupported launch source %q", source.Kind)
 			}
@@ -126,49 +175,79 @@ EXAMPLES:
 				return err
 			}
 			if wait {
-				if err := waitForCreatedPlayground(c, playgroundID, waitTimeout); err != nil {
+				waitProgress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{})
+				if playgroundID > 0 {
+					waitProgress.Start(fmt.Sprintf("waiting for playground %d to reach running...", playgroundID))
+				}
+				pg, err := waitForCreatedPlayground(c, playgroundID, waitTimeout, func(status string) {
+					waitProgress.Update(fmt.Sprintf("status: %s", status))
+				})
+				waitProgress.Stop()
+				if err != nil {
 					return err
 				}
+				if pg != nil && effectiveOutput() == "table" {
+					printPlaygroundDetails(pg)
+					return nil
+				}
+				result = mergeWaitedPlaygroundResult(result, pg)
 			}
 			outputJSON(result)
 			return nil
 		},
 	}
 
+	cmd.Flags().StringVar(&envPackSelection, "env-pack-attachments", "", "Ordered recipient pack references as JSON array or @file; [] opts out, omitted/null inherits")
 	cmd.Flags().StringVar(&template, "template", "", "Template ID or name")
 	cmd.Flags().StringVar(&templateVersion, "template-version", "", "Exact template version ID")
-	cmd.Flags().StringVar(&playspec, "playspec", "", "Playspec ID or name")
+	cmd.Flags().StringVar(&spec, "spec", "", "Spec ID or name")
 	cmd.Flags().StringVar(&compose, "compose", "", "Docker Compose or Fibe YAML content, or @path")
 	cmd.Flags().StringVar(&repo, "repo", "", "GitHub repository as owner/repo, owner/repo@ref, or URL")
 	cmd.Flags().StringVar(&name, "name", "", "Playground/app name")
-	cmd.Flags().StringVar(&marquee, "marquee", "", "Target Marquee ID or name; inferred when exactly one launchable Marquee exists")
+	cmd.Flags().StringVar(&host, "host", "", "Target Host ID or name; inferred when exactly one launchable Host exists")
 	cmd.Flags().Int64Var(&version, "version", 0, "Template version number when --template is used; omitted means latest")
 	cmd.Flags().StringVar(&repoFile, "file", "", "Config file path inside the GitHub repository")
 	cmd.Flags().StringVar(&repoRef, "ref", "", "Git branch, tag, or commit for repository config")
 	cmd.Flags().StringVar(&githubAccount, "github-account", "", "GitHub App installation account owner")
 	cmd.Flags().Int64Var(&githubInstallationID, "github-installation-id", 0, "GitHub App installation ID")
-	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Create as a trick/job for compose or repo sources")
+	cmd.Flags().BoolVar(&jobMode, "job-mode", false, "Create as a task/job for compose or repo sources")
 	cmd.Flags().BoolVar(&createPlayground, "create-playground", false, "Force playground creation for compose or repo sources")
-	cmd.Flags().BoolVar(&noCreatePlayground, "no-create-playground", false, "Create only the playspec for compose or repo sources")
+	cmd.Flags().BoolVar(&noCreatePlayground, "no-create-playground", false, "Create only the spec for compose or repo sources")
 	cmd.Flags().BoolVar(&persistVolumes, "persist-volumes", false, "Persist Docker volumes across playground recreations")
 	cmd.Flags().BoolVar(&wait, "wait", false, "Wait for created playground to reach running")
 	cmd.Flags().DurationVar(&waitTimeout, "wait-timeout", 10*time.Minute, "Maximum wait duration")
 	cmd.Flags().StringArrayVar(&launchVars, "var", nil, "Template variable override as key=value (repeatable)")
-	cmd.Flags().StringArrayVar(&launchProps, "prop", nil, "Map private Git repository to Prop ID or name for compose/repo sources")
+	cmd.Flags().StringArrayVar(&launchRepositories, "repository", nil, "Map private Git repository to Repository ID or name for compose/repo sources")
 	cmd.Flags().StringArrayVar(&envFlags, "env", nil, "Runtime environment override as KEY=VALUE (repeatable)")
 	cmd.Flags().StringArrayVar(&subdomainFlags, "subdomain", nil, "Service subdomain override as SERVICE=SUBDOMAIN (repeatable)")
 	cmd.Flags().StringArrayVar(&serviceFlags, "service", nil, "Runtime service override as SERVICE.FIELD=VALUE (repeatable)")
 	return cmd
 }
 
-func runTemplateLaunch(c *fibe.Client, template, name, marquee string, version int64, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.LaunchResult, int64, error) {
+func mergeWaitedPlaygroundResult(result any, pg *fibe.Playground) any {
+	if pg == nil {
+		return result
+	}
+	switch typed := result.(type) {
+	case *fibe.Playground:
+		return pg
+	case *fibe.GreenfieldResult:
+		typed.Playground = pg
+		return typed
+	default:
+		return result
+	}
+}
+
+func runTemplateLaunch(c *fibe.Client, template, name, host string, version int64, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.LaunchResult, int64, error) {
 	params := &fibe.ImportTemplateLaunchParams{
-		MarqueeIdentifier: marquee,
-		Name:              name,
-		Variables:         variables,
-		EnvOverrides:      env,
-		ServiceSubdomains: subdomains,
-		Services:          serviceConfigMapAny(services),
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
+		HostIdentifier:     host,
+		Name:               name,
+		Variables:          variables,
+		EnvOverrides:       env,
+		ServiceSubdomains:  subdomains,
+		Services:           serviceConfigMapAny(services),
 	}
 	if version > 0 {
 		params.Version = &version
@@ -183,19 +262,20 @@ func runTemplateLaunch(c *fibe.Client, template, name, marquee string, version i
 	return result, result.PlaygroundID, nil
 }
 
-func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, marquee string, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.GreenfieldResult, int64, error) {
+func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, host string, persistVolumes bool, persistChanged bool, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.GreenfieldResult, int64, error) {
 	id, err := strconv.ParseInt(strings.TrimSpace(templateVersion), 10, 64)
 	if err != nil || id <= 0 {
 		return nil, 0, fmt.Errorf("--template-version must be a positive integer ID")
 	}
 	params := &fibe.GreenfieldCreateParams{
-		Name:              name,
-		TemplateVersionID: &id,
-		MarqueeIdentifier: marquee,
-		Variables:         variables,
-		EnvOverrides:      env,
-		ServiceSubdomains: subdomains,
-		Services:          serviceConfigMapAny(services),
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
+		Name:               name,
+		TemplateVersionID:  &id,
+		HostIdentifier:     host,
+		Variables:          variables,
+		EnvOverrides:       env,
+		ServiceSubdomains:  subdomains,
+		Services:           serviceConfigMapAny(services),
 	}
 	if persistChanged {
 		params.PersistVolumes = &persistVolumes
@@ -211,21 +291,22 @@ func runTemplateVersionLaunch(c *fibe.Client, templateVersion, name, marquee str
 	return result, playgroundID, nil
 }
 
-func runPlayspecLaunch(c *fibe.Client, playspec, name, marquee string, services map[string]*fibe.ServiceConfig) (*fibe.Playground, int64, error) {
+func runSpecLaunch(c *fibe.Client, spec, name, host string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.Playground, int64, error) {
 	if name == "" {
 		return nil, 0, fmt.Errorf("required field 'name' not set")
 	}
-	ps, err := c.Playspecs.GetByIdentifier(ctx(), playspec)
+	ps, err := c.Specs.GetByIdentifier(ctx(), spec)
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := validateServiceOverrideNames(playspecServiceNames(ps), services); err != nil {
+	if err := validateServiceOverrideNames(specServiceNames(ps), services); err != nil {
 		return nil, 0, err
 	}
 	params := &fibe.PlaygroundCreateParams{
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks),
 		Name:               name,
-		PlayspecIdentifier: playspec,
-		MarqueeIdentifier:  marquee,
+		SpecIdentifier:     spec,
+		HostIdentifier:     host,
 		Services:           services,
 	}
 	result, err := c.Playgrounds.Create(ctx(), params)
@@ -235,10 +316,11 @@ func runPlayspecLaunch(c *fibe.Client, playspec, name, marquee string, services 
 	return result, result.ID, nil
 }
 
-func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSource, args []string, name, repoFile, repoRef, githubAccount string, githubInstallationID int64, marquee string, jobMode, createPlayground, noCreatePlayground, persistVolumes, persistChanged bool, launchProps []string, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig) (*fibe.LaunchResult, int64, error) {
-	params := &fibe.LaunchParams{Name: name, MarqueeIdentifier: marquee}
+func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSource, args []string, name, repoFile, repoRef, githubAccount string, githubInstallationID int64, host string, jobMode, createPlayground, noCreatePlayground, persistVolumes, persistChanged bool, launchRepositories []string, variables map[string]any, env map[string]string, subdomains map[string]string, services map[string]*fibe.ServiceConfig, envPacks ...*[]fibe.EnvPackAttachmentInput) (*fibe.LaunchResult, int64, error) {
+	params := &fibe.LaunchParams{
+		EnvPackAttachments: firstLaunchEnvPacks(envPacks), Name: name, HostIdentifier: host}
 	if source.Kind == launchSourceCompose {
-		params.ComposeYAML = resolveStringValue(source.Value)
+		params.ComposeYAML = source.Value // Explicit @file input was resolved before Host lookup.
 		if params.ComposeYAML == "" && len(rawPayload) > 0 {
 			params.ComposeYAML = string(rawPayload)
 		}
@@ -259,16 +341,15 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 		id := githubInstallationID
 		params.GitHubInstallationID = &id
 	}
-	if cmd.Flags().Changed("job-mode") && jobMode {
-		t := true
-		params.JobMode = &t
+	if cmd.Flags().Changed("job-mode") {
+		params.JobMode = &jobMode
 	}
 	if cmd.Flags().Changed("create-playground") {
 		v := createPlayground
 		params.CreatePlayground = &v
 	}
-	if cmd.Flags().Changed("no-create-playground") && noCreatePlayground {
-		v := false
+	if cmd.Flags().Changed("no-create-playground") {
+		v := !noCreatePlayground
 		params.CreatePlayground = &v
 	}
 	if persistChanged {
@@ -279,7 +360,9 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 	params.ServiceSubdomains = subdomains
 	params.Services = serviceConfigMapAny(services)
 	params.Variables = mapStringAnyToString(variables)
-	applyLaunchProps(params, launchProps)
+	if err := applyLaunchRepositories(params, launchRepositories); err != nil {
+		return nil, 0, err
+	}
 	if source.Kind == launchSourceRepo {
 		repoRequest, err := resolveGitHubRepoRequest(cmd, c, nil, githubRepoRequestOptions{
 			ExistingURL:            params.RepositoryURL,
@@ -320,23 +403,60 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 	return result, result.PlaygroundID, nil
 }
 
-func applyLaunchProps(params *fibe.LaunchParams, values []string) {
+func applyLaunchRepositories(params *fibe.LaunchParams, values []string) error {
 	if len(values) == 0 {
-		return
+		return nil
 	}
-	params.PropMappings = make(map[string]int64)
-	params.PropMappingIdentifiers = make(map[string]string)
+	params.RepositoryMappings = make(map[string]int64)
+	params.RepositoryMappingIdentifiers = make(map[string]string)
 	for _, value := range values {
 		key, target, ok := strings.Cut(value, "=")
-		if !ok {
-			continue
+		key, target = strings.TrimSpace(key), strings.TrimSpace(target)
+		if !ok || key == "" || target == "" || strings.Contains(target, "=") {
+			return fmt.Errorf("--repository expects REPOSITORY=ID_OR_NAME with nonempty values")
+		}
+		if _, exists := params.RepositoryMappings[key]; exists {
+			return fmt.Errorf("--repository repeats mapping for %q", key)
+		}
+		if _, exists := params.RepositoryMappingIdentifiers[key]; exists {
+			return fmt.Errorf("--repository repeats mapping for %q", key)
 		}
 		if id, err := strconv.ParseInt(target, 10, 64); err == nil {
-			params.PropMappings[key] = id
+			if id <= 0 {
+				return fmt.Errorf("--repository numeric target must be a positive ID")
+			}
+			params.RepositoryMappings[key] = id
 		} else {
-			params.PropMappingIdentifiers[key] = target
+			if strings.Trim(target, "+-0123456789") == "" {
+				return fmt.Errorf("--repository numeric target must be a positive ID")
+			}
+			params.RepositoryMappingIdentifiers[key] = target
 		}
 	}
+	return nil
+}
+
+func validateLaunchSourceFlags(cmd *cobra.Command, kind launchSourceKind) error {
+	for _, name := range []string{"version", "var", "env", "subdomain", "persist-volumes", "repository", "job-mode", "create-playground", "no-create-playground", "file", "ref", "github-account", "github-installation-id"} {
+		if !cmd.Flags().Changed(name) {
+			continue
+		}
+		allowed := false
+		switch name {
+		case "version":
+			allowed = kind == launchSourceTemplate
+		case "var", "env", "subdomain", "persist-volumes":
+			allowed = kind != launchSourceSpec
+		case "repository", "job-mode", "create-playground", "no-create-playground":
+			allowed = kind == launchSourceCompose || kind == launchSourceRepo
+		default:
+			allowed = kind == launchSourceRepo
+		}
+		if !allowed {
+			return fmt.Errorf("--%s is not supported for %s launch sources; existing Spec runtime overrides use --service", name, kind)
+		}
+	}
+	return nil
 }
 
 func mapStringAnyToString(values map[string]any) map[string]string {
@@ -348,4 +468,40 @@ func mapStringAnyToString(values map[string]any) map[string]string {
 		out[key] = fmt.Sprint(value)
 	}
 	return out
+}
+
+func firstLaunchEnvPacks(refs []*[]fibe.EnvPackAttachmentInput) *[]fibe.EnvPackAttachmentInput {
+	if len(refs) == 0 {
+		return nil
+	}
+	return refs[0]
+}
+func parseLaunchEnvPacks(value string, supplied bool) (*[]fibe.EnvPackAttachmentInput, error) {
+	if !supplied {
+		return nil, nil
+	}
+	data := []byte(value)
+	if strings.HasPrefix(value, "@") {
+		var err error
+		data, err = os.ReadFile(strings.TrimPrefix(value, "@"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	var refs []fibe.EnvPackAttachmentInput
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&refs); err != nil {
+		return nil, fmt.Errorf("env-pack-attachments: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return nil, fmt.Errorf("env-pack-attachments must contain one JSON array or null")
+	}
+	if refs == nil {
+		return nil, nil
+	}
+	if err := (&fibe.EnvPackAttachmentsParams{Attachments: &refs}).Validate(); err != nil {
+		return nil, err
+	}
+	return &refs, nil
 }

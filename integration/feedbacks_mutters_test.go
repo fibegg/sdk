@@ -6,7 +6,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 23-feedbacks.spec.js
 func TestFeedbacks_CRUD(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -110,7 +109,6 @@ func TestFeedbacks_CRUD(t *testing.T) {
 	})
 }
 
-// Migrated from: 24-mutters.spec.js
 func TestMutters_Read(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

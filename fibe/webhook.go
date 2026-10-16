@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -19,7 +18,7 @@ type WebhookPayload struct {
 }
 
 // VerifyWebhookSignature verifies the HMAC-SHA256 signature on a webhook request.
-// It does NOT check payload age — use VerifyWebhookSignatureWithMaxAge for replay protection.
+// It does NOT check payload age: use VerifyWebhookSignatureWithMaxAge for replay protection.
 func VerifyWebhookSignature(r *http.Request, secret string) (*WebhookPayload, error) {
 	return VerifyWebhookSignatureWithMaxAge(r, secret, 0)
 }
@@ -30,21 +29,30 @@ func VerifyWebhookSignature(r *http.Request, secret string) (*WebhookPayload, er
 //
 // Recommended maxAge: 5 * time.Minute (industry standard used by Stripe, GitHub).
 func VerifyWebhookSignatureWithMaxAge(r *http.Request, secret string, maxAge time.Duration) (*WebhookPayload, error) {
+	if secret == "" {
+		return nil, fmt.Errorf("fibe: webhook secret is empty")
+	}
+	if r == nil || r.Body == nil {
+		return nil, fmt.Errorf("fibe: webhook request body is missing")
+	}
 	signature := r.Header.Get("X-Fibe-Signature")
 	if signature == "" {
 		return nil, fmt.Errorf("fibe: missing X-Fibe-Signature header")
 	}
 
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1*1024*1024))
+	body, err := readLimited(r.Body, maxErrorBody, "webhook body")
 	if err != nil {
 		return nil, fmt.Errorf("fibe: read body: %w", err)
 	}
 
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	expected := hex.EncodeToString(mac.Sum(nil))
+	provided, err := hex.DecodeString(signature)
+	if err != nil || len(provided) != sha256.Size {
+		return nil, fmt.Errorf("fibe: invalid signature")
+	}
 
-	if !hmac.Equal([]byte(signature), []byte(expected)) {
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write(body)
+	if !hmac.Equal(provided, mac.Sum(nil)) {
 		return nil, fmt.Errorf("fibe: invalid signature")
 	}
 
@@ -53,13 +61,21 @@ func VerifyWebhookSignatureWithMaxAge(r *http.Request, secret string, maxAge tim
 		return nil, fmt.Errorf("fibe: decode payload: %w", err)
 	}
 
-	if maxAge > 0 && payload.Timestamp != "" {
+	if maxAge > 0 {
+		if payload.Timestamp == "" {
+			return nil, fmt.Errorf("fibe: payload timestamp is required")
+		}
 		ts, err := time.Parse(time.RFC3339, payload.Timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("fibe: invalid timestamp format: %w", err)
 		}
-		if time.Since(ts) > maxAge {
-			return nil, fmt.Errorf("fibe: payload too old (%s ago, max %s)", time.Since(ts).Round(time.Second), maxAge)
+		now := time.Now()
+		age := now.Sub(ts)
+		if age > maxAge {
+			return nil, fmt.Errorf("fibe: payload too old (%s ago, max %s)", age.Round(time.Second), maxAge)
+		}
+		if age < -5*time.Minute {
+			return nil, fmt.Errorf("fibe: payload timestamp is too far in the future")
 		}
 	}
 
@@ -69,6 +85,9 @@ func VerifyWebhookSignatureWithMaxAge(r *http.Request, secret string, maxAge tim
 // ParseWebhookData extracts the strongly typed struct from the raw WebhookPayload Data map
 // depending on the event prefix (e.g., "playground.created" returns a *Playground).
 func ParseWebhookData(payload *WebhookPayload) (any, error) {
+	if payload == nil {
+		return nil, fmt.Errorf("fibe: webhook payload is nil")
+	}
 	dataBytes, err := json.Marshal(payload.Data)
 	if err != nil {
 		return nil, fmt.Errorf("fibe: marshal webhook data: %w", err)
@@ -84,16 +103,16 @@ func ParseWebhookData(payload *WebhookPayload) (any, error) {
 		var p Playground
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
-	case "marquee":
-		var m Marquee
+	case "host":
+		var m Host
 		err = json.Unmarshal(dataBytes, &m)
 		return &m, err
-	case "prop":
-		var p Prop
+	case "repository":
+		var p Repository
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
-	case "playspec":
-		var p Playspec
+	case "spec":
+		var p Spec
 		err = json.Unmarshal(dataBytes, &p)
 		return &p, err
 	case "agent", "mutter":
@@ -128,4 +147,3 @@ func ParseWebhookData(payload *WebhookPayload) (any, error) {
 		return payload.Data, nil
 	}
 }
-

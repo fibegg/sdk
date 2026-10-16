@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -19,7 +21,7 @@ import (
 var (
 	// Injected at build time via ldflags:
 	//   -ldflags "-X main.version=v1.0.0 -X main.commit=abc123 -X main.date=2024-01-01"
-	version = "dev"
+	version = "devel"
 	commit  = "none"
 	date    = "unknown"
 
@@ -40,18 +42,18 @@ var (
 func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fibe",
-		Short: "Fibe CLI — manage playgrounds, agents, and infrastructure",
+		Short: "Fibe CLI: manage playgrounds, agents, and infrastructure",
 		Long: `Fibe CLI is the official command-line interface for the Fibe platform API.
 
-It provides complete access to all Fibe resources: playgrounds, tricks, agents,
-playspecs, props (repositories), marquees (servers), secrets, templates,
+It provides complete access to all Fibe resources: playgrounds, tasks, agents,
+specs, repositories, hosts (servers), secrets, templates,
 webhooks, and more.
 
 CORE ARCHITECTURE:
-  - Blueprints (Playspecs) combine services & Source Code (Props).
-  - Servers (Marquees) host live environments.
-  - Playgrounds are long-running environments from Playspecs on a Marquee.
-  - Tricks are ad-hoc job workloads (job-mode Playspecs) that run to completion.
+  - Blueprints (Specs) combine services & Source Code (Repositories).
+  - Servers (Hosts) host live environments.
+  - Playgrounds are long-running environments from Specs on a Host.
+  - Tasks are ad-hoc job workloads (job-mode Specs) that run to completion.
 
 AUTHENTICATION:
   Run 'fibe login --api-key <key>' or 'fibe auth login' to configure the
@@ -60,8 +62,8 @@ AUTHENTICATION:
 
 EXAMPLES:
   fibe playgrounds list                      List all playgrounds
-  fibe tricks list                           List all tricks (jobs)
-  fibe tricks trigger --playspec 12          Run a trick
+  fibe tasks list                           List all tasks (jobs)
+  fibe tasks trigger --spec 12          Run a task
   fibe agents list                           List all agents
   fibe playgrounds logs 42 --service web     Stream logs for a service
   fibe doctor                                  Check auth and show user info
@@ -94,11 +96,15 @@ DOCUMENTATION:
   Run any command with --help for detailed usage information.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := domainnames.CheckEnvironment(); err != nil {
+				return err
+			}
 			setCommandContext(cmd.Context())
+			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			setCommandContext(nil)
+			setCommandContext(context.Background())
 		},
 		Version: version,
 	}
@@ -115,14 +121,16 @@ DOCUMENTATION:
 	cmd.PersistentFlags().BoolVar(&flagExplainErrors, "explain-errors", false, "Output errors in structured format instead of plain text string")
 
 	cmd.AddCommand(
+		teamCmd(),
 		playgroundsCmd(),
-		tricksCmd(),
+		tasksCmd(),
 		agentsCmd(),
-		playspecsCmd(),
-		propsCmd(),
-		marqueesCmd(),
+		specsCmd(),
+		repositoriesCmd(),
+		hostsCmd(),
 		secretsCmd(),
 		jobEnvCmd(),
+		envPacksCmd(),
 		apiKeysCmd(),
 		templatesCmd(),
 		webhooksCmd(),
@@ -154,7 +162,6 @@ DOCUMENTATION:
 		docsCmd(),
 	)
 
-	// Register template function to show aliases inline in help output.
 	cobra.AddTemplateFunc("nameWithAlias", func(cmd *cobra.Command) string {
 		if len(cmd.Aliases) == 0 {
 			return cmd.Name()
@@ -168,7 +175,6 @@ DOCUMENTATION:
 		return fmt.Sprintf("%s (%s)", cmd.Name(), shortest)
 	})
 
-	// Compute padding that accounts for alias suffixes.
 	cobra.AddTemplateFunc("aliasPadding", func(parent *cobra.Command) int {
 		maxLen := 0
 		for _, c := range parent.Commands() {
@@ -200,6 +206,8 @@ DOCUMENTATION:
 	})
 
 	cmd.SetUsageTemplate(usageTemplateWithAliases)
+	installRemovedNameErrors(cmd)
+	annotateCommandSafety(cmd)
 
 	return cmd
 }
@@ -231,7 +239,7 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
 
-func newClient() *fibe.Client {
+func newClient(extra ...fibe.Option) *fibe.Client {
 	resolved := resolveCLIAuth()
 	opts := []fibe.Option{
 		fibe.WithDisableAutoConfig(),
@@ -247,6 +255,10 @@ func newClient() *fibe.Client {
 
 	opts = append(opts, fibe.WithCircuitBreaker(fibe.DefaultBreakerConfig))
 	opts = append(opts, fibe.WithRateLimitAutoWait())
+	opts = append(opts, extra...)
+	if resolved.CredentialContext.OwnerType != "" {
+		opts = append(opts, fibe.WithOwnerContext(resolved.CredentialContext.OwnerContext))
+	}
 
 	return fibe.NewClient(opts...)
 }
@@ -352,7 +364,9 @@ func output(v any) {
 	default:
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(v)
+		if err := enc.Encode(v); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: encode output: %v\n", err)
+		}
 	}
 }
 
@@ -387,7 +401,9 @@ func outputError(err error) {
 		default:
 			enc := json.NewEncoder(os.Stderr)
 			enc.SetIndent("", "  ")
-			enc.Encode(errMap)
+			if encodeErr := enc.Encode(errMap); encodeErr != nil {
+				fmt.Fprintf(os.Stderr, "Error: encode structured error: %v\n", encodeErr)
+			}
 		}
 		return
 	}
@@ -447,7 +463,9 @@ func outputTable(headers []string, rows [][]string) {
 		}
 		fmt.Fprintln(w)
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: flush table output: %v\n", err)
+	}
 }
 
 func fmtTime(t *time.Time) string {
@@ -497,21 +515,9 @@ func fmtStr(s *string) string {
 }
 
 func ctx() context.Context {
-	c := currentCommandContext()
-	if len(flagOnly) > 0 {
-		var fields []string
-		for _, f := range flagOnly {
-			for _, part := range strings.Split(f, ",") {
-				if trimmed := strings.TrimSpace(part); trimmed != "" {
-					fields = append(fields, trimmed)
-				}
-			}
-		}
-		if len(fields) > 0 {
-			c = fibe.WithFields(c, fields...)
-		}
-	}
-	return c
+	// --only projects the final CLI output. Internal SDK lookups still need
+	// identity, authorization and readiness fields to complete an operation.
+	return currentCommandContext()
 }
 
 func setCommandContext(ctx context.Context) {
@@ -530,19 +536,63 @@ func currentCommandContext() context.Context {
 	return context.Background()
 }
 
-func saveDownload(body io.ReadCloser, filename string) error {
-	defer body.Close()
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
+func mustMarkFlagRequired(cmd *cobra.Command, name string) {
+	if err := cmd.MarkFlagRequired(name); err != nil {
+		panic(fmt.Sprintf("mark required flag %q: %v", name, err))
 	}
-	defer f.Close()
-	_, err = io.Copy(f, body)
-	if err != nil {
-		return err
+}
+
+func writeDownload(body io.Reader, destination string) (int64, error) {
+	if destination == "-" {
+		return io.Copy(os.Stdout, body)
 	}
-	fmt.Printf("Downloaded: %s\n", filename)
-	return nil
+	dir := filepath.Dir(destination)
+	if info, err := os.Lstat(destination); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return 0, fmt.Errorf("destination must be a regular non-symlink file: %s", destination)
+		}
+	} else if !os.IsNotExist(err) {
+		return 0, err
+	}
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(destination)+"-*")
+	if err != nil {
+		return 0, err
+	}
+	tmpName := tmp.Name()
+	keep := false
+	defer func() {
+		_ = tmp.Close()
+		if !keep {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if err := tmp.Chmod(0o644); err != nil {
+		return 0, err
+	}
+	n, err := io.Copy(tmp, body)
+	if err != nil {
+		return n, err
+	}
+	if err := tmp.Sync(); err != nil {
+		return n, err
+	}
+	if err := tmp.Close(); err != nil {
+		return n, err
+	}
+	if err := os.Rename(tmpName, destination); err != nil {
+		return n, err
+	}
+	keep = true
+	// #nosec G304 -- dir is the validated parent of the explicit download destination.
+	dirFile, err := os.Open(dir)
+	if err != nil {
+		return n, err
+	}
+	defer dirFile.Close()
+	if err := dirFile.Sync(); err != nil {
+		return n, err
+	}
+	return n, nil
 }
 
 func listParams() *fibe.ListParams {

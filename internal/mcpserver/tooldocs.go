@@ -15,9 +15,13 @@ type ToolDocs struct {
 func GenerateToolDocs(tools []ToolInfo) ToolDocs {
 	sorted := sortedToolInfos(tools)
 	return ToolDocs{
-		CatalogMarkdown: toolCatalogMarkdown(sorted),
-		TableMarkdown:   toolTableMarkdown(sorted),
+		CatalogMarkdown: normalizeMarkdownEOF(toolCatalogMarkdown(sorted)),
+		TableMarkdown:   normalizeMarkdownEOF(toolTableMarkdown(sorted)),
 	}
+}
+
+func normalizeMarkdownEOF(markdown string) string {
+	return strings.TrimRight(markdown, "\n") + "\n"
 }
 
 func sortedToolInfos(tools []ToolInfo) []ToolInfo {

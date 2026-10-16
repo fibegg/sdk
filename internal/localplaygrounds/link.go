@@ -1,7 +1,9 @@
 package localplaygrounds
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/fibegg/sdk/internal/domainnames"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,36 +16,39 @@ import (
 
 const defaultBaseDir = "/opt/fibe/playgrounds"
 const defaultRootDomain = "phoenix.test"
+const defaultLinkDir = "/app/playground"
+const currentStateFilename = ".current_playground.json"
+const linkOwnerFilename = ".fibe-playground-links"
 
-var Views = []string{"names", "urls", "mounts", "details"}
+var Views = []string{"names", "current", "repos", "urls", "mounts", "details"}
 
 type Service struct {
-	Name      string `json:"name" yaml:"name"`
-	Image     string `json:"image,omitempty" yaml:"image,omitempty"`
-	Traefik   bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
-	Expose    bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
-	Subdomain string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
-	StartCmd  string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
-	HostMount string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
-	Prop      string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch    string `json:"branch,omitempty" yaml:"branch,omitempty"`
-	JobWatch  bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
+	Name       string `json:"name" yaml:"name"`
+	Image      string `json:"image,omitempty" yaml:"image,omitempty"`
+	Traefik    bool   `json:"traefik,omitempty" yaml:"traefik,omitempty"`
+	Expose     bool   `json:"expose,omitempty" yaml:"expose,omitempty"`
+	Subdomain  string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+	StartCmd   string `json:"start_cmd,omitempty" yaml:"start_cmd,omitempty"`
+	HostMount  string `json:"host_mount,omitempty" yaml:"host_mount,omitempty"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	JobWatch   bool   `json:"job_watch,omitempty" yaml:"job_watch,omitempty"`
 }
 
 type Playground struct {
 	ID       string              `json:"id,omitempty" yaml:"id,omitempty"`
 	DirName  string              `json:"name" yaml:"name"`
 	Path     string              `json:"path" yaml:"path"`
-	Playspec string              `json:"playspec" yaml:"playspec"`
+	Spec     string              `json:"spec" yaml:"spec"`
 	JobMode  bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
 	Services map[string]*Service `json:"services" yaml:"services"`
 }
 
 type NameEntry struct {
-	ID       string `json:"id,omitempty" yaml:"id,omitempty"`
-	Name     string `json:"name" yaml:"name"`
-	Playspec string `json:"playspec" yaml:"playspec"`
-	Path     string `json:"path" yaml:"path"`
+	ID   string `json:"id,omitempty" yaml:"id,omitempty"`
+	Name string `json:"name" yaml:"name"`
+	Spec string `json:"spec" yaml:"spec"`
+	Path string `json:"path" yaml:"path"`
 }
 
 type URLEntry struct {
@@ -52,10 +57,36 @@ type URLEntry struct {
 }
 
 type MountEntry struct {
-	Service string `json:"service" yaml:"service"`
-	Mount   string `json:"mount" yaml:"mount"`
-	Prop    string `json:"prop,omitempty" yaml:"prop,omitempty"`
-	Branch  string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Service    string `json:"service" yaml:"service"`
+	Mount      string `json:"mount" yaml:"mount"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
+}
+
+type RepoEntry struct {
+	ID         string `json:"id,omitempty" yaml:"id,omitempty"`
+	Service    string `json:"service" yaml:"service"`
+	Repository string `json:"repository,omitempty" yaml:"repository,omitempty"`
+	Branch     string `json:"branch,omitempty" yaml:"branch,omitempty"`
+	LinkPath   string `json:"link_path" yaml:"link_path"`
+	Target     string `json:"target" yaml:"target"`
+	RepoRoot   string `json:"repo_root" yaml:"repo_root"`
+}
+
+type CurrentState struct {
+	ID         string              `json:"id,omitempty" yaml:"id,omitempty"`
+	Name       string              `json:"name" yaml:"name"`
+	DirName    string              `json:"dir_name" yaml:"dir_name"`
+	Path       string              `json:"path" yaml:"path"`
+	Spec       string              `json:"spec" yaml:"spec"`
+	LinkDir    string              `json:"link_dir" yaml:"link_dir"`
+	StateFile  string              `json:"state_file" yaml:"state_file"`
+	JobMode    bool                `json:"job_mode,omitempty" yaml:"job_mode,omitempty"`
+	Services   map[string]*Service `json:"services" yaml:"services"`
+	URLs       []URLEntry          `json:"urls" yaml:"urls"`
+	Mounts     []MountEntry        `json:"mounts" yaml:"mounts"`
+	Repos      []RepoEntry         `json:"repos" yaml:"repos"`
+	RootDomain string              `json:"root_domain" yaml:"root_domain"`
 }
 
 type BaseDirMissingError struct {
@@ -64,7 +95,7 @@ type BaseDirMissingError struct {
 }
 
 func (e *BaseDirMissingError) Error() string {
-	return fmt.Sprintf("directory %q does not exist; set MARQUEE_ROOT to the Marquee root or playgrounds directory", e.Path)
+	return fmt.Sprintf("directory %q does not exist; set HOST_ROOT to the Host root or playgrounds directory", e.Path)
 }
 
 func (e *BaseDirMissingError) Unwrap() error {
@@ -84,20 +115,23 @@ func (e *BaseDirMissingError) ErrorDetails() map[string]any {
 }
 
 func BaseDir() string {
-	if v := strings.TrimSpace(os.Getenv("MARQUEE_ROOT")); v != "" {
-		return resolveMarqueeRoot(v)
+	if v := strings.TrimSpace(os.Getenv("HOST_ROOT")); v != "" {
+		return resolveHostRoot(v)
 	}
 	return defaultBaseDir
 }
 
 func RootDomain() string {
-	if v := os.Getenv("MARQUEE_ROOT_DOMAIN"); v != "" {
+	if v := os.Getenv("HOST_ROOT_DOMAIN"); v != "" {
 		return v
 	}
 	return defaultRootDomain
 }
 
 func Scan(baseDir string) ([]Playground, error) {
+	if err := domainnames.CheckEnvironment(); err != nil {
+		return nil, err
+	}
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -112,6 +146,7 @@ func Scan(baseDir string) ([]Playground, error) {
 			continue
 		}
 		ymlPath := filepath.Join(baseDir, entry.Name(), "compose.yml")
+		// #nosec G304 -- ymlPath is derived from a validated regular entry beneath the configured base directory.
 		data, err := os.ReadFile(ymlPath)
 		if err != nil {
 			continue
@@ -125,7 +160,7 @@ func Scan(baseDir string) ([]Playground, error) {
 	return playgrounds, nil
 }
 
-func resolveMarqueeRoot(root string) string {
+func resolveHostRoot(root string) string {
 	root = filepath.Clean(root)
 	if filepath.Base(root) == "playgrounds" || hasComposeProjectDirs(root) {
 		return root
@@ -177,13 +212,13 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 		return nil, ambiguousError(target, matches)
 	}
 
-	if matches := exactPlayspecMatches(playgrounds, target); len(matches) == 1 {
+	if matches := exactSpecMatches(playgrounds, target); len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
 		return nil, ambiguousError(target, matches)
 	}
 
-	if matches := playspecPrefixMatches(playgrounds, target); len(matches) == 1 {
+	if matches := specPrefixMatches(playgrounds, target); len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
 		return nil, ambiguousError(target, matches)
@@ -195,29 +230,39 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 func Names(playgrounds []Playground) []NameEntry {
 	items := make([]NameEntry, 0, len(playgrounds))
 	for _, pg := range playgrounds {
-		if pg.JobMode {
+		if pg.JobMode || !hasMountableService(pg) {
 			continue
 		}
 		items = append(items, NameEntry{
-			ID:       pg.ID,
-			Name:     pg.DirName,
-			Playspec: pg.Playspec,
-			Path:     pg.Path,
+			ID:   pg.ID,
+			Name: pg.DirName,
+			Spec: pg.Spec,
+			Path: pg.Path,
 		})
 	}
 	return items
+}
+
+func hasMountableService(pg Playground) bool {
+	for _, svc := range pg.Services {
+		if svc.HostMount != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func URLs(pg *Playground, rootDomain string) []URLEntry {
 	if rootDomain == "" {
 		rootDomain = defaultRootDomain
 	}
+	scheme := URLScheme()
 	seen := make(map[string]bool)
 	var entries []URLEntry
 	for _, name := range serviceNames(pg.Services) {
 		svc := pg.Services[name]
 		if svc.Traefik && svc.Subdomain != "" {
-			fullURL := svc.Subdomain + "." + rootDomain
+			fullURL := scheme + "://" + svc.Subdomain + "." + rootDomain
 			if !seen[fullURL] {
 				seen[fullURL] = true
 				entries = append(entries, URLEntry{Service: name, URL: fullURL})
@@ -235,22 +280,64 @@ func Mounts(pg *Playground) []MountEntry {
 			continue
 		}
 		entries = append(entries, MountEntry{
-			Service: name,
-			Mount:   svc.HostMount,
-			Prop:    svc.Prop,
-			Branch:  svc.Branch,
+			Service:    name,
+			Mount:      svc.HostMount,
+			Repository: svc.Repository,
+			Branch:     svc.Branch,
 		})
 	}
 	return entries
 }
 
-func View(playgrounds []Playground, view, selector, rootDomain string) (any, error) {
+func URLScheme() string {
+	if v := strings.TrimSpace(os.Getenv("HOST_URL_SCHEME")); v != "" {
+		return strings.TrimSuffix(strings.ToLower(v), "://")
+	}
+	return "https"
+}
+
+func CurrentStatePath(linkDir string) string {
+	if linkDir == "" {
+		linkDir = defaultLinkDir
+	}
+	return filepath.Join(linkDir, currentStateFilename)
+}
+
+func LoadCurrentState(linkDir string) (*CurrentState, error) {
+	path := CurrentStatePath(linkDir)
+	// #nosec G304 -- path is the fixed state filename beneath the validated link directory.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var state CurrentState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
+func View(playgrounds []Playground, view, selector, rootDomain, linkDir string) (any, error) {
 	switch view {
 	case "names":
 		if strings.TrimSpace(selector) != "" {
 			return nil, fmt.Errorf("view 'names' does not accept a playground selector")
 		}
 		return Names(playgrounds), nil
+	case "current":
+		if strings.TrimSpace(selector) != "" {
+			return nil, fmt.Errorf("view 'current' does not accept a playground selector")
+		}
+		return LoadCurrentState(linkDir)
+	case "repos":
+		if strings.TrimSpace(selector) != "" {
+			return nil, fmt.Errorf("view 'repos' does not accept a playground selector")
+		}
+		state, err := LoadCurrentState(linkDir)
+		if err != nil {
+			return nil, err
+		}
+		return state.Repos, nil
 	case "urls":
 		pg, err := Find(playgrounds, selector)
 		if err != nil {
@@ -276,7 +363,7 @@ func View(playgrounds []Playground, view, selector, rootDomain string) (any, err
 
 func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if linkDir == "" {
-		linkDir = "/app/playground"
+		linkDir = defaultLinkDir
 	}
 	playgrounds, err := Scan(BaseDir())
 	if err != nil {
@@ -291,18 +378,26 @@ func Link(target, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 
 func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult, error) {
 	if linkDir == "" {
-		linkDir = "/app/playground"
+		linkDir = defaultLinkDir
 	}
 	if pg.JobMode {
 		return nil, fmt.Errorf("cannot link job-mode playground %s", pg.DirName)
 	}
-	if err := prepareLinkDir(linkDir); err != nil {
+	existed, err := prepareLinkDir(linkDir)
+	if err != nil {
 		return nil, err
 	}
 
 	var mountable []*Service
-	for _, svc := range pg.Services {
+	for _, name := range serviceNames(pg.Services) {
+		svc := pg.Services[name]
 		if svc.HostMount != "" {
+			if err := validateLinkComponent("repository", svc.Repository); err != nil {
+				return nil, err
+			}
+			if err := validateLinkComponent("branch", svc.Branch); err != nil {
+				return nil, err
+			}
 			mountable = append(mountable, svc)
 		}
 	}
@@ -316,83 +411,285 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	result := &fibe.GreenfieldLinkResult{
 		LinkDir:    linkDir,
 		Playground: pg.DirName,
-		StateFile:  filepath.Join(linkDir, ".current_playground"),
+		StateFile:  CurrentStatePath(linkDir),
 	}
-	created := make(map[string]bool)
+	created := make(map[string]string)
+	linkNames := make([]string, 0, len(mountable))
 	for _, svc := range mountable {
-		if created[svc.HostMount] {
-			continue
-		}
-		created[svc.HostMount] = true
-
-		symlinkName := svc.Prop
+		symlinkName := svc.Repository
 		if symlinkName == "" {
 			symlinkName = "default"
 		}
 		if appendBranch && svc.Branch != "" {
 			symlinkName = symlinkName + "-" + svc.Branch
 		}
+		if target, ok := created[symlinkName]; ok {
+			if target == svc.HostMount {
+				continue
+			}
+			return nil, fmt.Errorf("link name %q resolves to multiple mount targets", symlinkName)
+		}
+		created[symlinkName] = svc.HostMount
+		linkNames = append(linkNames, symlinkName)
 		symlinkPath := filepath.Join(linkDir, symlinkName)
-
-		if err := os.RemoveAll(symlinkPath); err != nil {
-			return nil, fmt.Errorf("failed to remove existing symlink %s: %w", symlinkPath, err)
-		}
-		if err := os.Symlink(svc.HostMount, symlinkPath); err != nil {
-			return nil, fmt.Errorf("failed to create symlink %s -> %s: %w", symlinkPath, svc.HostMount, err)
-		}
 		result.Links = append(result.Links, fibe.GreenfieldLinkedPath{
-			Name:    symlinkName,
-			Path:    symlinkPath,
-			Target:  svc.HostMount,
-			Service: svc.Name,
-			Prop:    svc.Prop,
-			Branch:  svc.Branch,
+			Name:       symlinkName,
+			Path:       symlinkPath,
+			Target:     svc.HostMount,
+			Service:    svc.Name,
+			Repository: svc.Repository,
+			Branch:     svc.Branch,
 		})
 	}
 
-	if err := os.WriteFile(result.StateFile, []byte(pg.DirName), 0o644); err != nil {
+	state := currentStateFromLinks(pg, linkDir, result.StateFile, result.Links)
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize state file: %w", err)
+	}
+
+	parent := filepath.Dir(linkDir)
+	staged, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".staged-")
+	if err != nil {
+		return nil, fmt.Errorf("failed to stage target directory: %w", err)
+	}
+	keepStaged := false
+	defer func() {
+		if !keepStaged {
+			_ = os.RemoveAll(staged)
+		}
+	}()
+	// #nosec G302 -- staged is a directory and 0700 is deliberately restrictive.
+	if err := os.Chmod(staged, 0o700); err != nil {
+		return nil, fmt.Errorf("failed to set staged directory permissions: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(staged, linkOwnerFilename), []byte("managed by fibe local playground linking\n"), 0o600); err != nil {
+		return nil, fmt.Errorf("failed to write ownership marker: %w", err)
+	}
+	for i, link := range result.Links {
+		if err := os.Symlink(link.Target, filepath.Join(staged, linkNames[i])); err != nil {
+			return nil, fmt.Errorf("failed to create symlink %s -> %s: %w", link.Path, link.Target, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(staged, currentStateFilename), append(data, '\n'), 0o600); err != nil {
 		return nil, fmt.Errorf("failed to write state file: %w", err)
 	}
+	if err := syncDirectory(staged); err != nil {
+		return nil, fmt.Errorf("failed to sync staged directory: %w", err)
+	}
+	if err := replaceLinkDir(linkDir, staged, existed); err != nil {
+		return nil, err
+	}
+	keepStaged = true
 	return result, nil
 }
 
-func prepareLinkDir(linkDir string) error {
+func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fibe.GreenfieldLinkedPath) CurrentState {
+	repos := make([]RepoEntry, 0, len(links))
+	for _, link := range links {
+		repoRoot := findGitRoot(link.Target)
+		if repoRoot == "" {
+			repoRoot = link.Target
+		}
+		repos = append(repos, RepoEntry{
+			ID:         link.Name,
+			Service:    link.Service,
+			Repository: link.Repository,
+			Branch:     link.Branch,
+			LinkPath:   link.Path,
+			Target:     link.Target,
+			RepoRoot:   repoRoot,
+		})
+	}
+	return CurrentState{
+		ID:         pg.ID,
+		Name:       pg.DirName,
+		DirName:    pg.DirName,
+		Path:       pg.Path,
+		Spec:       pg.Spec,
+		LinkDir:    linkDir,
+		StateFile:  stateFile,
+		JobMode:    pg.JobMode,
+		Services:   pg.Services,
+		URLs:       URLs(pg, RootDomain()),
+		Mounts:     Mounts(pg),
+		Repos:      repos,
+		RootDomain: RootDomain(),
+	}
+}
+
+func findGitRoot(start string) string {
+	current := filepath.Clean(start)
+	for {
+		if _, err := os.Stat(filepath.Join(current, ".git")); err == nil {
+			return current
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return ""
+		}
+		current = parent
+	}
+}
+
+func prepareLinkDir(linkDir string) (bool, error) {
+	abs, err := filepath.Abs(linkDir)
+	if err != nil {
+		return false, fmt.Errorf("failed to resolve target directory %s: %w", linkDir, err)
+	}
+	linkDir = filepath.Clean(abs)
+	if filepath.Dir(linkDir) == linkDir {
+		return false, fmt.Errorf("refusing to use filesystem root %s as a link directory", linkDir)
+	}
+	if home, err := os.UserHomeDir(); err == nil && sameCleanPath(linkDir, home) {
+		return false, fmt.Errorf("refusing to use home directory %s as a link directory", linkDir)
+	}
+	if cwd, err := os.Getwd(); err == nil && sameCleanPath(linkDir, cwd) {
+		return false, fmt.Errorf("refusing to use current working directory %s as a link directory", linkDir)
+	}
+	if err := rejectSymlinkedAncestors(linkDir); err != nil {
+		return false, err
+	}
+	if err := os.MkdirAll(filepath.Dir(linkDir), 0o700); err != nil {
+		return false, fmt.Errorf("failed to create target parent %s: %w", filepath.Dir(linkDir), err)
+	}
+	if err := rejectSymlinkedAncestors(filepath.Dir(linkDir)); err != nil {
+		return false, err
+	}
+
 	info, err := os.Lstat(linkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(linkDir, 0o755); err != nil {
-				return fmt.Errorf("failed to create target directory %s: %w", linkDir, err)
-			}
-			return nil
+			return false, nil
 		}
-		return fmt.Errorf("failed to inspect target directory %s: %w", linkDir, err)
+		return false, fmt.Errorf("failed to inspect target directory %s: %w", linkDir, err)
 	}
 
 	if info.Mode()&os.ModeSymlink != 0 {
-		return fmt.Errorf("target path %s must be a directory, got symlink", linkDir)
+		return false, fmt.Errorf("target path %s must be a directory, got symlink", linkDir)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("target path %s must be a directory", linkDir)
+		return false, fmt.Errorf("target path %s must be a directory", linkDir)
 	}
 
 	entries, err := os.ReadDir(linkDir)
 	if err != nil {
-		return fmt.Errorf("failed to read target directory %s: %w", linkDir, err)
+		return false, fmt.Errorf("failed to read target directory %s: %w", linkDir, err)
+	}
+	if len(entries) == 0 {
+		return true, nil
+	}
+	if marker, err := os.Lstat(filepath.Join(linkDir, linkOwnerFilename)); err == nil && marker.Mode().IsRegular() {
+		return true, nil
 	}
 	for _, entry := range entries {
-		path := filepath.Join(linkDir, entry.Name())
-		if err := os.RemoveAll(path); err != nil {
-			return fmt.Errorf("failed to remove existing target entry %s: %w", path, err)
+		if entry.Name() == currentStateFilename && entry.Type().IsRegular() {
+			continue
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		return false, fmt.Errorf("refusing to replace non-empty unowned directory %s (unexpected entry %s)", linkDir, entry.Name())
+	}
+	return true, nil
+}
+
+func validateLinkComponent(label, value string) error {
+	if value == "" {
+		return nil
+	}
+	if value == "." || value == ".." || filepath.IsAbs(value) || filepath.Base(value) != value || strings.ContainsAny(value, `/\\`) {
+		return fmt.Errorf("invalid %s link component %q", label, value)
+	}
+	return nil
+}
+
+func rejectSymlinkedAncestors(path string) error {
+	path = filepath.Clean(path)
+	var paths []string
+	for current := path; ; current = filepath.Dir(current) {
+		paths = append(paths, current)
+		if filepath.Dir(current) == current {
+			break
+		}
+	}
+	for i := len(paths) - 1; i >= 0; i-- {
+		info, err := os.Lstat(paths[i])
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to inspect target ancestor %s: %w", paths[i], err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			// macOS exposes standard temporary paths such as /var and /tmp as
+			// root-level aliases. They are controlled by the operating system;
+			// reject symlinks at every user-controlled depth below them.
+			parent := filepath.Dir(paths[i])
+			if filepath.Dir(parent) == parent {
+				continue
+			}
+			return fmt.Errorf("target directory has symlinked ancestor %s", paths[i])
+		}
+		if i > 0 && !info.IsDir() {
+			return fmt.Errorf("target ancestor %s is not a directory", paths[i])
 		}
 	}
 	return nil
+}
+
+func replaceLinkDir(linkDir, staged string, existed bool) error {
+	parent := filepath.Dir(linkDir)
+	if !existed {
+		if err := os.Rename(staged, linkDir); err != nil {
+			return fmt.Errorf("failed to install link directory: %w", err)
+		}
+		return syncDirectory(parent)
+	}
+	backup, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".backup-")
+	if err != nil {
+		return fmt.Errorf("failed to reserve link directory backup: %w", err)
+	}
+	if err := os.Remove(backup); err != nil {
+		return fmt.Errorf("failed to prepare link directory backup: %w", err)
+	}
+	if err := os.Rename(linkDir, backup); err != nil {
+		return fmt.Errorf("failed to preserve previous link directory: %w", err)
+	}
+	if err := os.Rename(staged, linkDir); err != nil {
+		_ = os.Rename(backup, linkDir)
+		return fmt.Errorf("failed to install link directory: %w", err)
+	}
+	if err := syncDirectory(parent); err != nil {
+		return fmt.Errorf("failed to sync installed link directory: %w", err)
+	}
+	if err := os.RemoveAll(backup); err != nil {
+		return fmt.Errorf("failed to remove previous link directory: %w", err)
+	}
+	return syncDirectory(parent)
+}
+
+func syncDirectory(path string) error {
+	// #nosec G304 -- path is the validated parent directory being fsynced after an atomic swap.
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	return dir.Sync()
+}
+
+func sameCleanPath(left, right string) bool {
+	leftAbs, leftErr := filepath.Abs(left)
+	rightAbs, rightErr := filepath.Abs(right)
+	return leftErr == nil && rightErr == nil && filepath.Clean(leftAbs) == filepath.Clean(rightAbs)
 }
 
 func parseCompose(dirName, dirPath string, data []byte) Playground {
 	pg := Playground{
 		DirName:  dirName,
 		Path:     dirPath,
-		Playspec: dirName,
+		Spec:     dirName,
 		Services: map[string]*Service{},
 	}
 
@@ -401,6 +698,7 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		return pg
 	}
 
+	pg.JobMode = composeJobMode(doc)
 	services := asMap(doc["services"])
 	for _, svcName := range sortedMapKeys(services) {
 		svcMap := asMap(services[svcName])
@@ -417,9 +715,9 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		if service.JobWatch {
 			pg.JobMode = true
 		}
-		if pg.Playspec == dirName {
-			if playspec := labels["fibe.gg/playspec"]; playspec != "" {
-				pg.Playspec = playspec
+		if pg.Spec == dirName {
+			if spec := labels["fibe.gg/spec"]; spec != "" {
+				pg.Spec = spec
 			}
 		}
 		if pg.ID == "" {
@@ -439,6 +737,12 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 		pg.ID = id
 	}
 	return pg
+}
+
+func composeJobMode(doc map[string]any) bool {
+	namespace := asMap(doc["x-fibe.gg"])
+	metadata := asMap(namespace["metadata"])
+	return truthy(scalarString(metadata["job_mode"])) || truthy(scalarString(namespace["job_mode"]))
 }
 
 func asMap(value any) map[string]any {
@@ -568,22 +872,22 @@ func labelExists(labels map[string]string, key string) bool {
 }
 
 func setMount(service *Service, hostPath string) {
-	propsIdx := strings.Index(hostPath, "/props/")
-	if propsIdx == -1 {
+	repositoriesIdx := strings.Index(hostPath, "/repositories/")
+	if repositoriesIdx == -1 {
 		return
 	}
-	relative := hostPath[propsIdx+7:]
+	relative := hostPath[repositoriesIdx+len("/repositories/"):]
 	parts := strings.SplitN(relative, "/", 3)
 	if len(parts) < 2 {
 		return
 	}
 	service.HostMount = hostPath
-	rawProp := parts[0]
-	propParts := strings.Split(rawProp, "--")
-	if len(propParts) >= 3 {
-		service.Prop = strings.Join(propParts[1:len(propParts)-1], "--")
+	rawRepository := parts[0]
+	repositoryParts := strings.Split(rawRepository, "--")
+	if len(repositoryParts) >= 3 {
+		service.Repository = strings.Join(repositoryParts[1:len(repositoryParts)-1], "--")
 	} else {
-		service.Prop = rawProp
+		service.Repository = rawRepository
 	}
 	service.Branch = parts[1]
 }
@@ -631,20 +935,20 @@ func exactNameMatches(playgrounds []Playground, target string) []*Playground {
 	return matches
 }
 
-func exactPlayspecMatches(playgrounds []Playground, target string) []*Playground {
+func exactSpecMatches(playgrounds []Playground, target string) []*Playground {
 	var matches []*Playground
 	for i := range playgrounds {
-		if playgrounds[i].Playspec == target {
+		if playgrounds[i].Spec == target {
 			matches = append(matches, &playgrounds[i])
 		}
 	}
 	return matches
 }
 
-func playspecPrefixMatches(playgrounds []Playground, target string) []*Playground {
+func specPrefixMatches(playgrounds []Playground, target string) []*Playground {
 	var matches []*Playground
 	for i := range playgrounds {
-		if strings.HasPrefix(playgrounds[i].Playspec, target) {
+		if strings.HasPrefix(playgrounds[i].Spec, target) {
 			matches = append(matches, &playgrounds[i])
 		}
 	}
@@ -655,8 +959,8 @@ func ambiguousError(target string, matches []*Playground) error {
 	candidates := make([]string, 0, len(matches))
 	for _, pg := range matches {
 		label := pg.DirName
-		if pg.Playspec != "" {
-			label += " (playspec: " + pg.Playspec
+		if pg.Spec != "" {
+			label += " (spec: " + pg.Spec
 			if pg.ID != "" {
 				label += ", id: " + pg.ID
 			}

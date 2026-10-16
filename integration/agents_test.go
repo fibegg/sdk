@@ -13,7 +13,6 @@ func TestAgents_CRUD(t *testing.T) {
 	var agentID int64
 
 	t.Run("create agent", func(t *testing.T) {
-		// Parallelism disabled for this subtest: state flows sequentially to below tests using agentID
 		agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
 			Name:     uniqueName("test-agent"),
 			Provider: fibe.ProviderGemini,

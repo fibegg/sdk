@@ -165,11 +165,11 @@ func (s *ImportTemplateService) RefreshSourceByIdentifier(ctx context.Context, i
 	return &result, err
 }
 
-func (s *ImportTemplateService) UpgradeLinkedPlayspecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
-	return s.UpgradeLinkedPlayspecsByIdentifier(ctx, int64Identifier(templateID), versionID)
+func (s *ImportTemplateService) UpgradeLinkedSpecs(ctx context.Context, templateID, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
+	return s.UpgradeLinkedSpecsByIdentifier(ctx, int64Identifier(templateID), versionID)
 }
 
-func (s *ImportTemplateService) UpgradeLinkedPlayspecsByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
+func (s *ImportTemplateService) UpgradeLinkedSpecsByIdentifier(ctx context.Context, templateIdentifier string, versionID int64) (*ImportTemplateUpgradeLinkedResult, error) {
 	var result ImportTemplateUpgradeLinkedResult
 	path := fmt.Sprintf("%s/versions/%d/upgrades", identifierPath("/api/import_templates", templateIdentifier), versionID)
 	err := s.client.doAsync(ctx, http.MethodPost, path, "/api/async_requests/%s", nil, &result)

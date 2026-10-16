@@ -9,9 +9,9 @@ import (
 func TestImportTemplates_Launch(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test template launch")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to test template launch")
 	}
 
 	categories, err := c.TemplateCategories.List(ctx(), nil)
@@ -35,12 +35,12 @@ func TestImportTemplates_Launch(t *testing.T) {
 
 	t.Run("launch from template returns playground id or error", func(t *testing.T) {
 		result, err := c.ImportTemplates.LaunchWithParams(ctx(), tplID, &fibe.ImportTemplateLaunchParams{
-			MarqueeID: marqueeID,
-			Name:      uniqueName("launch-pg"),
+			HostID: hostID,
+			Name:   uniqueName("launch-pg"),
 		})
 		if err != nil {
 			if apiErr, ok := err.(*fibe.APIError); ok {
-				// Runtime provisioning can still fail if the target marquee is not usable.
+				// Runtime provisioning can still fail if the target host is not usable.
 				if apiErr.StatusCode == 422 || apiErr.StatusCode == 400 || apiErr.StatusCode == 404 {
 					t.Skipf("template launch requires prerequisites (%s): %s", apiErr.Code, apiErr.Message)
 				}

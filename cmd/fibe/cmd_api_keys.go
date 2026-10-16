@@ -21,9 +21,9 @@ API keys support granular scopes and expiration dates.
 The token is only shown once at creation time.
 
 AVAILABLE SCOPES:
-  marquees:read, marquees:write, marquees:delete, marquees:manage
-  props:read, props:write, props:delete
-  playspecs:read, playspecs:write, playspecs:delete
+  hosts:read, hosts:write, hosts:delete, hosts:manage
+  repositories:read, repositories:write, repositories:delete
+  specs:read, specs:write, specs:delete
   playgrounds:read, playgrounds:write, playgrounds:delete
   import_templates:read, import_templates:write
   agents:read, agents:write, agents:delete
@@ -35,6 +35,8 @@ AVAILABLE SCOPES:
   webhooks:read, webhooks:write, webhooks:delete
   mcp:access
   secrets:read, secrets:write, secrets:delete, secrets:manage
+  env_packs:read, env_packs:write, env_packs:delete, env_packs:manage
+  billing:read, billing:write
   * (full access)
 
 SUBCOMMANDS:
@@ -117,7 +119,7 @@ func keyCreateCmd() *cobra.Command {
 	var agentAccessible bool
 	cmd := &cobra.Command{
 		Use: "create", Short: "Create a new API key",
-		Long: `Create a new API key. The full token is only shown ONCE — save it.
+		Long: `Create a new API key. The full token is only shown ONCE: save it.
 
 AUTH USAGE:
   Send as 'Authorization: Bearer fibe_...' header.
@@ -129,8 +131,8 @@ OPTIONAL FLAGS:
   --scope                Access scopes (repeatable, default: *). Format: resource:action,
                          e.g. playgrounds:read, agents:write, mcp:access
   --granular-scope       Granular scope binding to specific IDs (repeatable).
-                         Format: scope_name=id1,id2,...
-                         e.g. --granular-scope playspecs:read=12,15
+                         Format: scope_name=id1,id2,...; scope_name= allows no resources.
+                         e.g. --granular-scope specs:read=12,15
   --expires-at           Expiration time (RFC3339, e.g. 2026-12-31T23:59:59Z)
   --agent-accessible     Allow this key to be used by agents (default: false)
 
@@ -138,7 +140,7 @@ EXAMPLES:
   fibe api-keys create --label "CI/CD"
   fibe keys create --label "Read only" --scope playgrounds:read --scope agents:read
   fibe keys create --label "Bot key" --agent-accessible --expires-at 2026-12-31T23:59:59Z
-  fibe keys create --label "Scoped" --granular-scope playspecs:read=12,15` + generateSchemaDoc(&fibe.APIKeyCreateParams{}),
+  fibe keys create --label "Scoped" --granular-scope specs:read=12,15` + generateSchemaDoc(&fibe.APIKeyCreateParams{}),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.APIKeyCreateParams{}
@@ -167,17 +169,19 @@ EXAMPLES:
 				}
 				for _, gs := range granularScopes {
 					eq := strings.Index(gs, "=")
-					if eq < 1 || eq == len(gs)-1 {
-						return fmt.Errorf("invalid --granular-scope %q: expected scope=id1,id2,...", gs)
+					if eq < 1 {
+						return fmt.Errorf("invalid --granular-scope %q: expected scope=id1,id2", gs)
 					}
 					name := gs[:eq]
 					ids := []int64{}
-					for _, idStr := range strings.Split(gs[eq+1:], ",") {
-						id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
-						if err != nil {
-							return fmt.Errorf("invalid id %q in --granular-scope %q: %w", idStr, gs, err)
+					if gs[eq+1:] != "" {
+						for _, idStr := range strings.Split(gs[eq+1:], ",") {
+							id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+							if err != nil {
+								return fmt.Errorf("invalid id %q in --granular-scope %q: %w", idStr, gs, err)
+							}
+							ids = append(ids, id)
 						}
-						ids = append(ids, id)
 					}
 					params.GranularScopes[name] = ids
 				}
@@ -198,14 +202,14 @@ EXAMPLES:
 			fmt.Printf("Created API key %s (%s)\n", fmtInt64Ptr(key.ID), key.Label)
 			if key.Token != nil {
 				fmt.Printf("\nToken: %s\n", *key.Token)
-				fmt.Println("\nSave this token — it will not be shown again!")
+				fmt.Println("\nSave this token: it will not be shown again!")
 			}
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&label, "label", "", "Key label (required)")
 	cmd.Flags().StringSliceVar(&scopes, "scope", nil, "Access scope (repeatable)")
-	cmd.Flags().StringSliceVar(&granularScopes, "granular-scope", nil, "Granular scope (repeatable, format: scope=id1,id2)")
+	cmd.Flags().StringArrayVar(&granularScopes, "granular-scope", nil, "Granular scope (repeatable: scope=id1,id2; scope= allows none)")
 	cmd.Flags().StringVar(&expiresAt, "expires-at", "", "Expiration time (RFC3339)")
 	cmd.Flags().BoolVar(&agentAccessible, "agent-accessible", false, "Allow agent access")
 	return cmd
@@ -217,7 +221,10 @@ func keyDeleteCmd() *cobra.Command {
 		Long: "Delete an API key. The key will immediately stop working.\n\nEXAMPLES:\n  fibe api-keys delete 15",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.APIKeys.Delete(ctx(), id); err != nil {
 				return err
 			}

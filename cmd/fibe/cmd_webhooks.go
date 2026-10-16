@@ -14,7 +14,7 @@ func webhooksCmd() *cobra.Command {
 		Use:     "webhooks",
 		Aliases: []string{"wh"},
 		Short:   "Manage webhook endpoints",
-		Long: `Manage Fibe webhook endpoints — HTTP callbacks for platform events.
+		Long: `Manage Fibe webhook endpoints: HTTP callbacks for platform events.
 
 Webhooks deliver real-time event notifications to your URL.
 Each endpoint can subscribe to specific event types and optionally
@@ -114,7 +114,10 @@ func whGetCmd() *cobra.Command {
 		Use: "get <id>", Short: "Show endpoint details", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			ep, err := c.WebhookEndpoints.Get(ctx(), id)
 			if err != nil {
 				return err
@@ -148,9 +151,12 @@ OPTIONAL FLAGS:
                     e.g. --event-filter playground.created=12,15
   --tool-filter     Restrict an event to specific MCP tool names (repeatable)
                     Format: event=tool1,tool2,...
-                    e.g. --tool-filter mcp.tool.executed=deploy,status
+                    e.g. --tool-filter playground.created=deploy,status
 
-For complex event_filters/tool_filters, use --from-file with JSON.
+Filter keys must be event names from fibe webhooks event-types. Tool filters match
+payload.tool_name; built-in lifecycle publishers currently omit it, so these
+filters block their events. An explicit empty array blocks all matches for that
+event. Use --from-file with JSON for empty arrays and complex filters.
 
 EXAMPLES:
   fibe webhooks create --url https://example.com/hook \
@@ -182,7 +188,7 @@ EXAMPLES:
 				for _, ef := range eventFilters {
 					eq := strings.Index(ef, "=")
 					if eq < 1 || eq == len(ef)-1 {
-						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2,...", ef)
+						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2", ef)
 					}
 					name := ef[:eq]
 					ids := []int64{}
@@ -203,7 +209,7 @@ EXAMPLES:
 				for _, tf := range toolFilters {
 					eq := strings.Index(tf, "=")
 					if eq < 1 || eq == len(tf)-1 {
-						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2,...", tf)
+						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2", tf)
 					}
 					name := tf[:eq]
 					tools := []string{}
@@ -262,18 +268,24 @@ OPTIONAL FLAGS:
   --event-filter    Event filter (repeatable, format: event=id1,id2,...)
                     e.g. --event-filter playground.created=12,15
   --tool-filter     MCP tool filter (repeatable, format: event=tool1,tool2,...)
-                    e.g. --tool-filter mcp.tool.executed=deploy,status
+                    e.g. --tool-filter playground.created=deploy,status
 
-For complex event_filters/tool_filters, use --from-file with JSON.
+Filter keys must be event names from fibe webhooks event-types. Tool filters match
+payload.tool_name; built-in lifecycle publishers currently omit it, so these
+filters block their events. An explicit empty array blocks all matches for that
+event. Use --from-file with JSON for empty arrays and complex filters.
 
 EXAMPLES:
   fibe webhooks update 5 --enabled=false
   fibe wh update 5 --url https://hooks.example.com/new --secret newSecret
-  fibe wh update 5 --event playground.created --event marquee.deleted
+  fibe wh update 5 --event playground.created --event host.deleted
   fibe wh update 5 --event-filter playground.created=12,15`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			params := &fibe.WebhookEndpointUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -300,7 +312,7 @@ EXAMPLES:
 				for _, ef := range eventFilters {
 					eq := strings.Index(ef, "=")
 					if eq < 1 || eq == len(ef)-1 {
-						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2,...", ef)
+						return fmt.Errorf("invalid --event-filter %q: expected event=id1,id2", ef)
 					}
 					name := ef[:eq]
 					ids := []int64{}
@@ -321,7 +333,7 @@ EXAMPLES:
 				for _, tf := range toolFilters {
 					eq := strings.Index(tf, "=")
 					if eq < 1 || eq == len(tf)-1 {
-						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2,...", tf)
+						return fmt.Errorf("invalid --tool-filter %q: expected event=tool1,tool2", tf)
 					}
 					name := tf[:eq]
 					tools := []string{}
@@ -361,7 +373,10 @@ func whDeleteCmd() *cobra.Command {
 		Use: "delete <id>", Short: "Delete a webhook endpoint", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.WebhookEndpoints.Delete(ctx(), id); err != nil {
 				return err
 			}
@@ -377,7 +392,10 @@ func whTestCmd() *cobra.Command {
 		Long: "Queue a test webhook delivery to verify the endpoint is working.\n\nEXAMPLES:\n  fibe webhooks test 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.WebhookEndpoints.Test(ctx(), id); err != nil {
 				return err
 			}
@@ -393,7 +411,10 @@ func whDeliveriesCmd() *cobra.Command {
 		Long: "List webhook delivery attempts for an endpoint.\n\nEXAMPLES:\n  fibe webhooks deliveries 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			deliveries, err := c.WebhookEndpoints.ListDeliveries(ctx(), id, nil)
 			if err != nil {
 				return err

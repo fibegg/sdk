@@ -137,8 +137,7 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	// Pick a real playspec ID to use as filter target
-	spec := seedPlayspec(t, c)
+	spec := seedSpec(t, c)
 
 	ep, err := c.WebhookEndpoints.Create(ctx(), &fibe.WebhookEndpointCreateParams{
 		URL:    "https://sdk-webhook-filter.invalid/hook-" + uniqueName(""),
@@ -155,7 +154,6 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 		}
 	})
 
-	// Verify the endpoint was created with the right events
 	if len(ep.Events) < 2 {
 		t.Errorf("expected >= 2 events, got %d", len(ep.Events))
 	}
@@ -181,7 +179,6 @@ func TestWebhook_TestDeliveryAppearsInHistory(t *testing.T) {
 		t.Fatal("expected webhook ID")
 	}
 
-	// Trigger a test delivery
 	err = c.WebhookEndpoints.Test(ctx(), *ep.ID)
 	requireNoError(t, err)
 
@@ -201,8 +198,7 @@ func TestWebhook_EventTypesEndpoint(t *testing.T) {
 	if len(types) == 0 {
 		t.Error("expected non-empty list of event types")
 	}
-	// Known events that should always be present:
-	knownEvents := []string{"playground.created", "marquee.created", "agent.created"}
+	knownEvents := []string{"playground.created", "host.created", "agent.created"}
 	foundAny := false
 	for _, want := range knownEvents {
 		for _, got := range types {
@@ -237,7 +233,6 @@ func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
 	}
 
 	t.Run("update replaces event list", func(t *testing.T) {
-		// Discover a valid set of events first
 		allTypes, err := c.WebhookEndpoints.EventTypes(ctx())
 		requireNoError(t, err)
 		if len(allTypes) < 2 {

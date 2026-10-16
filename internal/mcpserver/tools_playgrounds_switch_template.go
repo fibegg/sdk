@@ -20,7 +20,7 @@ func (s *Server) registerPlaygroundSwitchTemplateTool(name string) {
 	schema, _, _, _ := resourceschema.SchemaFor("playground", "switch_template")
 	inputSchema, _ := schema.(map[string]any)
 
-	description := "[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Props for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Marquee and fails with MARQUEE_NOT_FUNDED when unpaid."
+	description := "[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Host and fails with HOST_NOT_FUNDED when unpaid."
 
 	s.addTool(&toolImpl{
 		name:        name,
@@ -80,21 +80,21 @@ func buildSwitchTemplateParams(args map[string]any, mode string) (*fibe.Playgrou
 	}
 
 	params := &fibe.PlaygroundTemplateSwitchParams{
-		PlaygroundIdentifier:  identifier,
-		Mode:                  mode,
-		TemplateBody:          body,
-		TemplateID:            templateID,
-		TemplateIdentifier:    templateIdentifier,
-		TemplateVersionID:     versionID,
-		TemplateName:          argString(args, "template_name"),
-		Variables:             argMap(args, "variables"),
-		RegenerateVariables:   argStringSlice(args, "regenerate_variables"),
-		ConfirmWarnings:       argBool(args, "confirm_warnings"),
-		ProvisionMissingProps: argString(args, "provision_missing_props"),
-		Wait:                  argBoolDefault(args, "wait", true),
-		ResponseMode:          argString(args, "response_mode"),
-		Changelog:             argString(args, "changelog"),
-		ReuseExistingProps:    argBool(args, "reuse_existing_props"),
+		PlaygroundIdentifier:         identifier,
+		Mode:                         mode,
+		TemplateBody:                 body,
+		TemplateID:                   templateID,
+		TemplateIdentifier:           templateIdentifier,
+		TemplateVersionID:            versionID,
+		TemplateName:                 argString(args, "template_name"),
+		Variables:                    argMap(args, "variables"),
+		RegenerateVariables:          argStringSlice(args, "regenerate_variables"),
+		ConfirmWarnings:              argBool(args, "confirm_warnings"),
+		ProvisionMissingRepositories: argString(args, "provision_missing_repositories"),
+		Wait:                         argBoolDefault(args, "wait", true),
+		ResponseMode:                 argString(args, "response_mode"),
+		Changelog:                    argString(args, "changelog"),
+		ReuseExistingRepositories:    argBool(args, "reuse_existing_repositories"),
 	}
 	if v, ok := args["provision_private"]; ok {
 		if b, ok := v.(bool); ok {
@@ -112,7 +112,7 @@ func buildSwitchTemplateParams(args map[string]any, mode string) (*fibe.Playgrou
 	if inputs, ok := args["provision_inputs"].([]any); ok {
 		for _, raw := range inputs {
 			if m, ok := raw.(map[string]any); ok {
-				input := fibe.ProvisionPropInput{SourceRepoURL: argString(m, "source_repo_url")}
+				input := fibe.ProvisionRepositoryInput{SourceRepoURL: argString(m, "source_repo_url")}
 				if input.SourceRepoURL == "" {
 					continue
 				}
@@ -135,8 +135,8 @@ func buildSwitchTemplateParams(args map[string]any, mode string) (*fibe.Playgrou
 		}
 	}
 
-	if params.ProvisionMissingProps == "" {
-		params.ProvisionMissingProps = "gitea"
+	if params.ProvisionMissingRepositories == "" {
+		params.ProvisionMissingRepositories = "gitea"
 	}
 
 	return params, nil

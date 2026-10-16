@@ -26,6 +26,11 @@ var (
 func userClient(t *testing.T) *fibe.Client {
 	t.Helper()
 	setupOnce.Do(func() {
+		if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
+			setupErr = fmt.Errorf("FIBE_INTEGRATION=1 is required for live integration tests")
+			setupSkip = true
+			return
+		}
 		key := os.Getenv("FIBE_API_KEY")
 		if key == "" {
 			setupErr = fmt.Errorf("FIBE_API_KEY is required for integration tests")
@@ -74,7 +79,7 @@ func superAdminClient(t *testing.T) *fibe.Client {
 	t.Helper()
 	key := os.Getenv("FIBE_ADMIN_API_KEY")
 	if key == "" {
-		t.Skip("FIBE_ADMIN_API_KEY not set — skipping admin-only integration test")
+		t.Skip("FIBE_ADMIN_API_KEY not set: skipping admin-only integration test")
 	}
 	domain := os.Getenv("FIBE_DOMAIN")
 	if domain == "" {
@@ -207,7 +212,7 @@ func userBClient(t *testing.T) *fibe.Client {
 	c := userClient(t)
 	key := os.Getenv("USER_B_API_KEY")
 	if key == "" {
-		t.Skip("USER_B_API_KEY not set — skipping multi-user test")
+		t.Skip("USER_B_API_KEY not set: skipping multi-user test")
 	}
 	return c.WithKey(key)
 }
@@ -217,7 +222,7 @@ func rateLimitClient(t *testing.T) *fibe.Client {
 	_ = userClient(t)
 	key := os.Getenv("RATE_LIMIT_TEST_KEY")
 	if key == "" {
-		t.Skip("RATE_LIMIT_TEST_KEY not set — skipping rate limit test")
+		t.Skip("RATE_LIMIT_TEST_KEY not set: skipping rate limit test")
 	}
 	domain := os.Getenv("FIBE_DOMAIN")
 	if domain == "" {

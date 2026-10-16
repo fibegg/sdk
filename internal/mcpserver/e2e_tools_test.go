@@ -26,7 +26,6 @@ func TestE2EMCPTools(t *testing.T) {
 	ctx := context.Background()
 	client := srv.buildBaseClient()
 
-	// 1. Test fibe_status
 	t.Run("fibe_status", func(t *testing.T) {
 		res, err := srv.dispatcher.dispatch(ctx, "fibe_status", map[string]any{})
 		if err != nil {
@@ -41,7 +40,6 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	// 1.5 Test fibe_resource_list
 	t.Run("fibe_resource_list", func(t *testing.T) {
 		res, err := srv.dispatcher.dispatch(ctx, "fibe_resource_list", map[string]any{
 			"resource": "playground",
@@ -63,7 +61,6 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	// Setup: Create a temporary agent to test agent-specific tools
 	agentName := fmt.Sprintf("e2e-mcp-agent-%d", time.Now().UnixNano())
 	ag, err := client.Agents.Create(ctx, &fibe.AgentCreateParams{
 		Name:     agentName,
@@ -78,9 +75,7 @@ func TestE2EMCPTools(t *testing.T) {
 
 	agentIDStr := fmt.Sprintf("%d", ag.ID)
 
-	// 2. Test fibe_update_name
 	t.Run("fibe_update_name", func(t *testing.T) {
-		// Negative: no agent ID in environment
 		os.Unsetenv("FIBE_AGENT_ID")
 		_, err := srv.dispatcher.dispatch(ctx, "fibe_update_name", map[string]any{
 			"name": "Should Fail",
@@ -91,7 +86,6 @@ func TestE2EMCPTools(t *testing.T) {
 			t.Errorf("expected FIBE_AGENT_ID error, got: %v", err)
 		}
 
-		// Positive: correct agent ID
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")
 
@@ -103,7 +97,6 @@ func TestE2EMCPTools(t *testing.T) {
 			t.Fatalf("fibe_update_name failed: %v", err)
 		}
 
-		// Verify on backend
 		updatedAg, err := client.Agents.Get(ctx, ag.ID)
 		if err != nil {
 			t.Fatalf("failed to fetch updated agent: %v", err)
@@ -113,7 +106,6 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	// 3. Test fibe_artefact_upload
 	t.Run("fibe_artefact_upload", func(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")
@@ -137,7 +129,6 @@ func TestE2EMCPTools(t *testing.T) {
 			t.Fatalf("expected valid artefact ID in response, got <= 0")
 		}
 
-		// Wait and fetch artefact
 		artefactID := resMap.ID
 		art, err := client.Artefacts.Get(ctx, ag.ID, artefactID)
 		if err != nil {
@@ -151,7 +142,6 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	// 4. Test fibe_mutter
 	t.Run("fibe_mutter", func(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")

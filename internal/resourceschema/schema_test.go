@@ -85,9 +85,9 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "action" {
 		t.Fatalf("playground.action schema missing")
 	}
-	actionProps := playgroundAction.(map[string]any)["properties"].(map[string]any)
-	if _, ok := actionProps["action_type"].(map[string]any)["enum"]; !ok {
-		t.Fatalf("playground.action action_type enum missing: %#v", actionProps["action_type"])
+	actionRepositories := playgroundAction.(map[string]any)["properties"].(map[string]any)
+	if _, ok := actionRepositories["action_type"].(map[string]any)["enum"]; !ok {
+		t.Fatalf("playground.action action_type enum missing: %#v", actionRepositories["action_type"])
 	}
 
 	if _, _, _, ok := SchemaFor("artefacts", "create"); ok {
@@ -98,10 +98,10 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "create" {
 		t.Fatalf("mutter.create schema missing")
 	}
-	mutterProps := mutterCreate.(map[string]any)["properties"].(map[string]any)
+	mutterRepositories := mutterCreate.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"agent_id_or_name", "type", "body", "playground_id_or_name"} {
-		if _, ok := mutterProps[want]; !ok {
-			t.Fatalf("mutter.create missing property %q: %#v", want, mutterProps)
+		if _, ok := mutterRepositories[want]; !ok {
+			t.Fatalf("mutter.create missing property %q: %#v", want, mutterRepositories)
 		}
 	}
 
@@ -109,10 +109,10 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "create" {
 		t.Fatalf("template_version.create schema missing")
 	}
-	versionCreateProps := templateVersionCreate.(map[string]any)["properties"].(map[string]any)
+	versionCreateRepositories := templateVersionCreate.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"template_id_or_name", "template_body", "template_body_path", "public", "response_mode"} {
-		if _, ok := versionCreateProps[want]; !ok {
-			t.Fatalf("template_version.create missing property %q: %#v", want, versionCreateProps)
+		if _, ok := versionCreateRepositories[want]; !ok {
+			t.Fatalf("template_version.create missing property %q: %#v", want, versionCreateRepositories)
 		}
 	}
 
@@ -120,29 +120,29 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "update" {
 		t.Fatalf("template.update schema missing")
 	}
-	templateProps := templateUpdate.(map[string]any)["properties"].(map[string]any)
+	templateRepositories := templateUpdate.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"id_or_name", "name", "description", "category_id", "filename", "image_data", "content_base64", "content_path", "content_type"} {
-		if _, ok := templateProps[want]; !ok {
-			t.Fatalf("template.update missing property %q: %#v", want, templateProps)
+		if _, ok := templateRepositories[want]; !ok {
+			t.Fatalf("template.update missing property %q: %#v", want, templateRepositories)
 		}
 	}
-	if _, ok := templateProps["content_type"].(map[string]any)["enum"]; !ok {
-		t.Fatalf("template.update content_type enum missing: %#v", templateProps["content_type"])
+	if _, ok := templateRepositories["content_type"].(map[string]any)["enum"]; !ok {
+		t.Fatalf("template.update content_type enum missing: %#v", templateRepositories["content_type"])
 	}
 
 	memoryMemorize, _, op, ok := SchemaFor("memory", "memorize")
 	if !ok || op != "memorize" {
 		t.Fatalf("memory.memorize schema missing")
 	}
-	memoryProps := memoryMemorize.(map[string]any)["properties"].(map[string]any)
+	memoryRepositories := memoryMemorize.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"conversation_id", "content", "tags", "confidence", "groundings"} {
-		if _, ok := memoryProps[want]; !ok {
-			t.Fatalf("memory.memorize missing property %q: %#v", want, memoryProps)
+		if _, ok := memoryRepositories[want]; !ok {
+			t.Fatalf("memory.memorize missing property %q: %#v", want, memoryRepositories)
 		}
 	}
 	for _, disallowed := range []string{"conversation", "messages", "raw_content", "provider", "output_path"} {
-		if _, ok := memoryProps[disallowed]; ok {
-			t.Fatalf("memory.memorize should not expose %q: %#v", disallowed, memoryProps)
+		if _, ok := memoryRepositories[disallowed]; ok {
+			t.Fatalf("memory.memorize should not expose %q: %#v", disallowed, memoryRepositories)
 		}
 	}
 	if _, _, err := ValidatePayload("memory", "memorize", map[string]any{
@@ -158,10 +158,10 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "change" {
 		t.Fatalf("template.change schema missing")
 	}
-	changeProps := templateChange.(map[string]any)["properties"].(map[string]any)
+	changeRepositories := templateChange.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"target_type", "target_id_or_name", "mode", "change_type", "confirm", "post_apply", "template_body", "template_body_path"} {
-		if _, ok := changeProps[want]; !ok {
-			t.Fatalf("template.change missing property %q: %#v", want, changeProps)
+		if _, ok := changeRepositories[want]; !ok {
+			t.Fatalf("template.change missing property %q: %#v", want, changeRepositories)
 		}
 	}
 	if _, _, err := ValidatePayload("template", "change", map[string]any{
@@ -195,10 +195,10 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if playgroundSwitchTemplate, _, op, ok := SchemaFor("playground", "switch_template"); !ok || op != "switch_template" {
 		t.Fatalf("playground.switch_template schema missing")
 	} else {
-		props := playgroundSwitchTemplate.(map[string]any)["properties"].(map[string]any)
-		for _, want := range []string{"id_or_name", "template_body", "template_body_path", "template_id_or_name", "template_version_id", "provision_missing_props"} {
-			if _, ok := props[want]; !ok {
-				t.Fatalf("playground.switch_template missing property %q: %#v", want, props)
+		repositories := playgroundSwitchTemplate.(map[string]any)["properties"].(map[string]any)
+		for _, want := range []string{"id_or_name", "template_body", "template_body_path", "template_id_or_name", "template_version_id", "provision_missing_repositories"} {
+			if _, ok := repositories[want]; !ok {
+				t.Fatalf("playground.switch_template missing property %q: %#v", want, repositories)
 			}
 		}
 	}
@@ -214,27 +214,27 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	}); err == nil {
 		t.Fatalf("playground.switch_template should reject ambiguous template selectors")
 	}
-	marqueeCreate, _, op, ok := SchemaFor("marquee", "create")
+	hostCreate, _, op, ok := SchemaFor("host", "create")
 	if !ok || op != "create" {
-		t.Fatalf("marquee.create schema missing")
+		t.Fatalf("host.create schema missing")
 	}
-	marqueeSchema := marqueeCreate.(map[string]any)
-	if !containsSelector(marqueeSchema["required"].([]string), "port") {
-		t.Fatalf("marquee.create should require port: %#v", marqueeSchema["required"])
+	hostSchema := hostCreate.(map[string]any)
+	if !containsSelector(hostSchema["required"].([]string), "port") {
+		t.Fatalf("host.create should require port: %#v", hostSchema["required"])
 	}
-	port := marqueeSchema["properties"].(map[string]any)["port"].(map[string]any)
+	port := hostSchema["properties"].(map[string]any)["port"].(map[string]any)
 	if port["default"] != 22 {
-		t.Fatalf("marquee.create port default = %#v, want 22", port["default"])
+		t.Fatalf("host.create port default = %#v, want 22", port["default"])
 	}
 
 	agentUpdate, _, op, ok := SchemaFor("agent", "update")
 	if !ok || op != "update" {
 		t.Fatalf("agent.update schema missing")
 	}
-	props := agentUpdate.(map[string]any)["properties"].(map[string]any)
+	repositories := agentUpdate.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"id_or_name", "name", "model_options", "prompt", "system_prompt_mode", "main_md", "main_md_mode", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
-		if _, ok := props[want]; !ok {
-			t.Fatalf("agent.update missing property %q: %#v", want, props)
+		if _, ok := repositories[want]; !ok {
+			t.Fatalf("agent.update missing property %q: %#v", want, repositories)
 		}
 	}
 
@@ -242,74 +242,74 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 	if !ok || op != "create" {
 		t.Fatalf("agent.create schema missing")
 	}
-	createProps := agentCreate.(map[string]any)["properties"].(map[string]any)
+	createRepositories := agentCreate.(map[string]any)["properties"].(map[string]any)
 	for _, want := range []string{"name", "provider", "model_options", "prompt", "mcp_json", "post_init_script", "custom_env", "cli_version", "provider_args", "skill_toggles"} {
-		if _, ok := createProps[want]; !ok {
-			t.Fatalf("agent.create missing property %q: %#v", want, createProps)
+		if _, ok := createRepositories[want]; !ok {
+			t.Fatalf("agent.create missing property %q: %#v", want, createRepositories)
 		}
 	}
-	providerEnum, ok := createProps["provider"].(map[string]any)["enum"].([]string)
+	providerEnum, ok := createRepositories["provider"].(map[string]any)["enum"].([]string)
 	if !ok {
-		t.Fatalf("agent.create provider enum missing: %#v", createProps["provider"])
+		t.Fatalf("agent.create provider enum missing: %#v", createRepositories["provider"])
 	}
 	if !reflect.DeepEqual(providerEnum, fibe.ValidProviders) {
 		t.Fatalf("agent.create provider enum = %#v, want %#v", providerEnum, fibe.ValidProviders)
 	}
-	modeDescription := createProps["mode"].(map[string]any)["description"].(string)
+	modeDescription := createRepositories["mode"].(map[string]any)["description"].(string)
 	if !strings.Contains(modeDescription, "does not inherit auth") || !strings.Contains(modeDescription, "fibe_agents_duplicate") {
 		t.Fatalf("agent.create mode description should explain auth inheritance, got %q", modeDescription)
 	}
 
-	playspecCreate, _, op, ok := SchemaFor("playspec", "create")
+	specCreate, _, op, ok := SchemaFor("spec", "create")
 	if !ok || op != "create" {
-		t.Fatalf("playspec.create schema missing")
+		t.Fatalf("spec.create schema missing")
 	}
-	playspecCreateProps := playspecCreate.(map[string]any)["properties"].(map[string]any)
+	specCreateRepositories := specCreate.(map[string]any)["properties"].(map[string]any)
 	for _, field := range []string{"schedule_config", "trigger_config", "muti_config"} {
-		prop, ok := playspecCreateProps[field].(map[string]any)
+		repository, ok := specCreateRepositories[field].(map[string]any)
 		if !ok {
-			t.Fatalf("playspec.create missing %q: %#v", field, playspecCreateProps)
+			t.Fatalf("spec.create missing %q: %#v", field, specCreateRepositories)
 		}
-		if prop["type"] != "object" {
-			t.Fatalf("playspec.create %s type = %#v, want object", field, prop["type"])
-		}
-	}
-	triggerProps := playspecCreateProps["trigger_config"].(map[string]any)["properties"].(map[string]any)
-	for _, field := range []string{"enabled", "event_type", "branch", "prop_id", "marquee_id", "agent_id", "max_retries", "prompt_template"} {
-		if _, ok := triggerProps[field]; !ok {
-			t.Fatalf("playspec.trigger_config missing %q: %#v", field, triggerProps)
+		if repository["type"] != "object" {
+			t.Fatalf("spec.create %s type = %#v, want object", field, repository["type"])
 		}
 	}
-	if _, ok := triggerProps["event_type"].(map[string]any)["enum"]; !ok {
-		t.Fatalf("playspec.trigger_config.event_type enum missing: %#v", triggerProps["event_type"])
-	}
-	mutiProps := playspecCreateProps["muti_config"].(map[string]any)["properties"].(map[string]any)
-	for _, field := range []string{"enabled", "language", "prop_id", "agent_id", "prompt_template"} {
-		if _, ok := mutiProps[field]; !ok {
-			t.Fatalf("playspec.muti_config missing %q: %#v", field, mutiProps)
+	triggerRepositories := specCreateRepositories["trigger_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "event_type", "branch", "repository_id", "host_id", "agent_id", "max_retries", "prompt_template"} {
+		if _, ok := triggerRepositories[field]; !ok {
+			t.Fatalf("spec.trigger_config missing %q: %#v", field, triggerRepositories)
 		}
 	}
-	scheduleProps := playspecCreateProps["schedule_config"].(map[string]any)["properties"].(map[string]any)
-	for _, field := range []string{"enabled", "cron", "marquee_id"} {
-		if _, ok := scheduleProps[field]; !ok {
-			t.Fatalf("playspec.schedule_config missing %q: %#v", field, scheduleProps)
+	if _, ok := triggerRepositories["event_type"].(map[string]any)["enum"]; !ok {
+		t.Fatalf("spec.trigger_config.event_type enum missing: %#v", triggerRepositories["event_type"])
+	}
+	mutiRepositories := specCreateRepositories["muti_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "language", "repository_id", "agent_id", "prompt_template"} {
+		if _, ok := mutiRepositories[field]; !ok {
+			t.Fatalf("spec.muti_config missing %q: %#v", field, mutiRepositories)
 		}
 	}
-	if _, _, err := ValidateMutationPayload("playspec", "create", map[string]any{
+	scheduleRepositories := specCreateRepositories["schedule_config"].(map[string]any)["properties"].(map[string]any)
+	for _, field := range []string{"enabled", "cron", "host_id"} {
+		if _, ok := scheduleRepositories[field]; !ok {
+			t.Fatalf("spec.schedule_config missing %q: %#v", field, scheduleRepositories)
+		}
+	}
+	if _, _, err := ValidateMutationPayload("spec", "create", map[string]any{
 		"name":              "ci",
 		"base_compose_yaml": "services:\n  job:\n    image: alpine\n",
 		"job_mode":          true,
 		"schedule_config": map[string]any{
-			"enabled":    true,
-			"cron":       "every 5 minutes",
-			"marquee_id": "runner",
+			"enabled": true,
+			"cron":    "every 5 minutes",
+			"host_id": "runner",
 		},
 		"trigger_config": map[string]any{
 			"enabled":         true,
 			"event_type":      "push",
 			"branch":          "main",
-			"prop_id":         "api",
-			"marquee_id":      "runner",
+			"repository_id":   "api",
+			"host_id":         "runner",
 			"agent_id":        "fixer",
 			"max_retries":     2,
 			"prompt_template": "Fix {{logs}}",
@@ -317,12 +317,12 @@ func TestRegistryCoversConcreteCreateUpdateSchemas(t *testing.T) {
 		"muti_config": map[string]any{
 			"enabled":         true,
 			"language":        "ruby",
-			"prop_id":         "api",
+			"repository_id":   "api",
 			"agent_id":        "fixer",
 			"prompt_template": "Fix {{diff}}",
 		},
 	}); err != nil {
-		t.Fatalf("playspec.create config payload should validate: %v", err)
+		t.Fatalf("spec.create config payload should validate: %v", err)
 	}
 
 	catalog := Catalog()
@@ -381,51 +381,51 @@ func TestRegistryCoversScopedMutationActionSchemas(t *testing.T) {
 		{resource: "agent", operation: "upload_attachment", fields: []string{"id_or_name", "content_path", "content_base64", "filename", "conversation_id"}},
 		{resource: "agent_poke", operation: "create", fields: []string{"agent_id_or_name", "schedule", "prompt", "conversation_id", "enabled"}},
 		{resource: "agent_poke", operation: "update", fields: []string{"agent_id_or_name", "poke_id", "schedule", "prompt", "conversation_id", "enabled"}},
-		{resource: "marquee", operation: "autoconnect_token", fields: []string{"email", "domain", "ip", "ssl_mode", "dns_provider", "dns_credentials"}},
-		{resource: "marquee", operation: "generate_ssh_key", fields: []string{"id_or_name"}},
-		{resource: "marquee", operation: "test_connection", fields: []string{"id_or_name"}},
-		{resource: "prop", operation: "attach", fields: []string{"repo_full_name"}},
-		{resource: "prop", operation: "mirror", fields: []string{"source_url", "name"}},
-		{resource: "prop", operation: "sync", fields: []string{"id_or_name"}},
+		{resource: "host", operation: "autoconnect_token", fields: []string{"email", "domain", "ip", "ssl_mode", "dns_provider", "dns_credentials"}},
+		{resource: "host", operation: "generate_ssh_key", fields: []string{"id_or_name"}},
+		{resource: "host", operation: "test_connection", fields: []string{"id_or_name"}},
+		{resource: "repository", operation: "attach", fields: []string{"repo_full_name"}},
+		{resource: "repository", operation: "mirror", fields: []string{"source_url", "name"}},
+		{resource: "repository", operation: "sync", fields: []string{"id_or_name"}},
 		{resource: "template", operation: "fork", fields: []string{"id_or_name"}},
 		{resource: "template", operation: "source_refresh", fields: []string{"id_or_name"}},
-		{resource: "template", operation: "source_set", fields: []string{"template_id_or_name", "source_prop_id_or_name", "source_path", "source_ref", "source_auto_refresh", "source_auto_upgrade", "ci_enabled", "ci_marquee_id_or_name"}},
-		{resource: "template", operation: "upgrade_playspecs", fields: []string{"template_id_or_name", "version_id"}},
+		{resource: "template", operation: "source_set", fields: []string{"template_id_or_name", "source_repository_id_or_name", "source_path", "source_ref", "source_auto_refresh", "source_auto_upgrade", "ci_enabled", "ci_host_id_or_name"}},
+		{resource: "template", operation: "upgrade_specs", fields: []string{"template_id_or_name", "version_id"}},
 		{resource: "template_version", operation: "toggle_public", fields: []string{"template_id_or_name", "version_id"}},
-		{resource: "trick", operation: "trigger", fields: []string{"playspec_id_or_name", "marquee_id_or_name", "name"}},
-		{resource: "trick", operation: "rerun", fields: []string{"id_or_name"}},
+		{resource: "task", operation: "trigger", fields: []string{"spec_id_or_name", "host_id_or_name", "name"}},
+		{resource: "task", operation: "rerun", fields: []string{"id_or_name"}},
 		{resource: "webhook", operation: "test", fields: []string{"webhook_id"}},
 	} {
 		schema, _, op, ok := SchemaFor(tc.resource, tc.operation)
 		if !ok || op != tc.operation {
 			t.Fatalf("%s.%s schema missing", tc.resource, tc.operation)
 		}
-		props := schema.(map[string]any)["properties"].(map[string]any)
+		repositories := schema.(map[string]any)["properties"].(map[string]any)
 		for _, field := range tc.fields {
-			prop, ok := props[field].(map[string]any)
+			repository, ok := repositories[field].(map[string]any)
 			if !ok {
-				t.Fatalf("%s.%s missing property %q: %#v", tc.resource, tc.operation, field, props)
+				t.Fatalf("%s.%s missing property %q: %#v", tc.resource, tc.operation, field, repositories)
 			}
-			if prop["description"] == "" {
-				t.Fatalf("%s.%s.%s missing description: %#v", tc.resource, tc.operation, field, prop)
+			if repository["description"] == "" {
+				t.Fatalf("%s.%s.%s missing description: %#v", tc.resource, tc.operation, field, repository)
 			}
-			if schemaFieldIsNumericID(field, prop) {
-				min, ok := numericMinimum(prop["minimum"])
+			if schemaFieldIsNumericID(field, repository) {
+				min, ok := numericMinimum(repository["minimum"])
 				if !ok || min < 1 {
-					t.Fatalf("%s.%s.%s missing minimum >= 1: %#v", tc.resource, tc.operation, field, prop)
+					t.Fatalf("%s.%s.%s missing minimum >= 1: %#v", tc.resource, tc.operation, field, repository)
 				}
 			}
 		}
 	}
 
-	if _, _, err := ValidateMutationPayload("template", "source_set", map[string]any{"template_id_or_name": 1, "source_prop_id_or_name": 2, "source_path": "template.yml"}); err != nil {
+	if _, _, err := ValidateMutationPayload("template", "source_set", map[string]any{"template_id_or_name": 1, "source_repository_id_or_name": 2, "source_path": "template.yml"}); err != nil {
 		t.Fatalf("template.source_set should validate: %v", err)
 	}
-	if _, _, err := ValidateMutationPayload("template", "source_set", map[string]any{"template_id_or_name": 0, "source_prop_id_or_name": 2, "source_path": "template.yml"}); err == nil {
+	if _, _, err := ValidateMutationPayload("template", "source_set", map[string]any{"template_id_or_name": 0, "source_repository_id_or_name": 2, "source_path": "template.yml"}); err == nil {
 		t.Fatal("template.source_set should reject non-positive template_id_or_name")
 	}
-	if _, _, err := ValidateMutationPayload("marquee", "autoconnect_token", map[string]any{"ssl_mode": "bogus"}); err == nil {
-		t.Fatal("marquee.autoconnect_token should reject unsupported ssl_mode")
+	if _, _, err := ValidateMutationPayload("host", "autoconnect_token", map[string]any{"ssl_mode": "bogus"}); err == nil {
+		t.Fatal("host.autoconnect_token should reject unsupported ssl_mode")
 	}
 	if _, _, err := ValidateMutationPayload("agent", "upload_attachment", map[string]any{"id_or_name": "builder", "content_base64": "aGVsbG8=", "filename": "hello.txt"}); err != nil {
 		t.Fatalf("agent.upload_attachment should validate: %v", err)
@@ -446,12 +446,12 @@ func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
 	if _, ok := schema["oneOf"]; ok {
 		t.Fatalf("mutation tool schema should not embed oneOf payload variants: %#v", schema)
 	}
-	props := schema["properties"].(map[string]any)
-	resourceEnum := props["resource"].(map[string]any)["enum"].([]any)
+	repositories := schema["properties"].(map[string]any)
+	resourceEnum := repositories["resource"].(map[string]any)["enum"].([]any)
 	if !containsAnySelector(resourceEnum, "template-version") {
 		t.Fatalf("mutation resource enum missing template-version: %#v", resourceEnum)
 	}
-	operationEnum := props["operation"].(map[string]any)["enum"].([]any)
+	operationEnum := repositories["operation"].(map[string]any)["enum"].([]any)
 	if containsAnySelector(operationEnum, "patch_create") {
 		t.Fatalf("mutation operation enum should not include patch_create: %#v", operationEnum)
 	}
@@ -460,11 +460,11 @@ func TestMutationToolSchemaIsCompactAndRuntimeValidated(t *testing.T) {
 			t.Fatalf("mutation operation enum missing %q: %#v", want, operationEnum)
 		}
 	}
-	if _, ok := props["dry_run"].(map[string]any); !ok {
-		t.Fatalf("mutation tool schema missing dry_run: %#v", props)
+	if _, ok := repositories["dry_run"].(map[string]any); !ok {
+		t.Fatalf("mutation tool schema missing dry_run: %#v", repositories)
 	}
-	if _, ok := props["confirm"].(map[string]any); !ok {
-		t.Fatalf("mutation tool schema missing confirm: %#v", props)
+	if _, ok := repositories["confirm"].(map[string]any); !ok {
+		t.Fatalf("mutation tool schema missing confirm: %#v", repositories)
 	}
 
 	if _, _, err := ValidateMutationPayload("agent", "update", map[string]any{"id_or_name": 1}); err == nil {
@@ -494,13 +494,13 @@ func TestNamedResourceMutationSchemasDoNotExposeLegacyTargetAliases(t *testing.T
 		"playground_identifier",
 		"template_id",
 		"secret_id",
-		"trick_id",
-		"playspec_id",
-		"prop_id",
-		"marquee_id",
-		"source_prop_id",
-		"ci_marquee_id",
-		"target_playspec_id",
+		"task_id",
+		"spec_id",
+		"repository_id",
+		"host_id",
+		"source_repository_id",
+		"ci_host_id",
+		"target_spec_id",
 		"target_playground_id",
 		"build_in_public_playground_id",
 		"target_id",
@@ -520,32 +520,32 @@ func TestNamedResourceMutationSchemasDoNotExposeLegacyTargetAliases(t *testing.T
 		{resource: "playground", operation: "update"},
 		{resource: "playground", operation: "action"},
 		{resource: "playground", operation: "switch_template"},
-		{resource: "playspec", operation: "update"},
-		{resource: "prop", operation: "update"},
-		{resource: "prop", operation: "sync"},
-		{resource: "marquee", operation: "update"},
-		{resource: "marquee", operation: "generate_ssh_key"},
-		{resource: "marquee", operation: "test_connection"},
+		{resource: "spec", operation: "update"},
+		{resource: "repository", operation: "update"},
+		{resource: "repository", operation: "sync"},
+		{resource: "host", operation: "update"},
+		{resource: "host", operation: "generate_ssh_key"},
+		{resource: "host", operation: "test_connection"},
 		{resource: "secret", operation: "update"},
 		{resource: "template", operation: "update"},
 		{resource: "template", operation: "change"},
 		{resource: "template", operation: "fork"},
 		{resource: "template", operation: "source_refresh"},
 		{resource: "template", operation: "source_set"},
-		{resource: "template", operation: "upgrade_playspecs"},
+		{resource: "template", operation: "upgrade_specs"},
 		{resource: "template_version", operation: "create"},
 		{resource: "template_version", operation: "toggle_public"},
-		{resource: "trick", operation: "trigger"},
-		{resource: "trick", operation: "rerun"},
+		{resource: "task", operation: "trigger"},
+		{resource: "task", operation: "rerun"},
 	} {
 		schema, _, _, ok := SchemaFor(tc.resource, tc.operation)
 		if !ok {
 			t.Fatalf("%s.%s schema missing", tc.resource, tc.operation)
 		}
-		props := schema.(map[string]any)["properties"].(map[string]any)
+		repositories := schema.(map[string]any)["properties"].(map[string]any)
 		for _, field := range disallowed {
-			if _, ok := props[field]; ok {
-				t.Fatalf("%s.%s exposes legacy field %q: %#v", tc.resource, tc.operation, field, props)
+			if _, ok := repositories[field]; ok {
+				t.Fatalf("%s.%s exposes legacy field %q: %#v", tc.resource, tc.operation, field, repositories)
 			}
 		}
 	}

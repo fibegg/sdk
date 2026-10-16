@@ -108,30 +108,30 @@ func (s *PlaygroundService) logStreamByID(ctx context.Context, id int64, service
 	return events, errs
 }
 
-func (s *TrickService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
+func (s *TaskService) LogsStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) <-chan LogLine {
 	return s.LogsStreamByIdentifier(ctx, int64Identifier(id), service, opts)
 }
 
-func (s *TrickService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
+func (s *TaskService) LogsStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) <-chan LogLine {
 	return s.client.Playgrounds.LogsStreamByIdentifier(ctx, identifier, service, opts)
 }
 
-func (s *TrickService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+func (s *TaskService) LogStream(ctx context.Context, id int64, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
 	return s.client.Playgrounds.logStreamByID(ctx, id, service, opts)
 }
 
-func (s *TrickService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
+func (s *TaskService) LogStreamByIdentifier(ctx context.Context, identifier string, service string, opts *LogsStreamOptions) (<-chan LogStreamEvent, <-chan error) {
 	events := make(chan LogStreamEvent, 64)
 	errs := make(chan error, 1)
 	go func() {
 		defer close(events)
 		defer close(errs)
-		trick, err := s.GetByIdentifier(ctx, identifier)
+		task, err := s.GetByIdentifier(ctx, identifier)
 		if err != nil {
 			sendLogStreamError(ctx, errs, err)
 			return
 		}
-		streamEvents(ctx, s.client.Cable.SubscribeLogStream, trick.ID, service, normalizedLogsStreamOptions(opts), events, errs)
+		streamEvents(ctx, s.client.Cable.SubscribeLogStream, task.ID, service, normalizedLogsStreamOptions(opts), events, errs)
 	}()
 	return events, errs
 }

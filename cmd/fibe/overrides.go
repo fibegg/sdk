@@ -252,7 +252,7 @@ func validateServiceOverrideNames(known []string, services map[string]*fibe.Serv
 	return nil
 }
 
-func playspecServiceNames(ps *fibe.Playspec) []string {
+func specServiceNames(ps *fibe.Spec) []string {
 	if ps == nil {
 		return nil
 	}
@@ -278,7 +278,7 @@ func serviceNameFromAny(item any) string {
 		return strings.TrimSpace(fmt.Sprint(v["name"]))
 	case map[string]string:
 		return strings.TrimSpace(v["name"])
-	case fibe.PlayspecServiceDef:
+	case fibe.SpecServiceDef:
 		return v.Name
 	default:
 		data, err := json.Marshal(v)
@@ -335,16 +335,16 @@ func resolveCategoryID(c *fibe.Client, selector string) (int64, error) {
 	}
 }
 
-func resolveCredentialID(c *fibe.Client, playspecIdentifier, selector string) (string, error) {
+func resolveCredentialID(c *fibe.Client, specIdentifier, selector string) (string, error) {
 	selector = strings.TrimSpace(selector)
 	if selector == "" {
 		return "", nil
 	}
-	ps, err := c.Playspecs.GetByIdentifier(ctx(), playspecIdentifier)
+	ps, err := c.Specs.GetByIdentifier(ctx(), specIdentifier)
 	if err != nil {
 		return "", err
 	}
-	credentials, err := playspecCredentials(ps)
+	credentials, err := specCredentials(ps)
 	if err != nil {
 		return "", err
 	}
@@ -360,15 +360,15 @@ func resolveCredentialID(c *fibe.Client, playspecIdentifier, selector string) (s
 	}
 	switch len(matches) {
 	case 0:
-		return "", fmt.Errorf("credential %q not found on playspec %s", selector, playspecIdentifier)
+		return "", fmt.Errorf("credential %q not found on spec %s", selector, specIdentifier)
 	case 1:
 		return matches[0].ID, nil
 	default:
-		return "", fmt.Errorf("credential %q is ambiguous on playspec %s", selector, playspecIdentifier)
+		return "", fmt.Errorf("credential %q is ambiguous on spec %s", selector, specIdentifier)
 	}
 }
 
-func playspecCredentials(ps *fibe.Playspec) ([]fibe.RegistryCredentialInfo, error) {
+func specCredentials(ps *fibe.Spec) ([]fibe.RegistryCredentialInfo, error) {
 	if ps == nil || ps.Credentials == nil {
 		return nil, nil
 	}
@@ -384,5 +384,5 @@ func playspecCredentials(ps *fibe.Playspec) ([]fibe.RegistryCredentialInfo, erro
 	if err := json.Unmarshal(data, &wrapped); err == nil {
 		return wrapped.Credentials, nil
 	}
-	return nil, fmt.Errorf("could not parse playspec credentials")
+	return nil, fmt.Errorf("could not parse spec credentials")
 }

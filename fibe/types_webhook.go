@@ -29,15 +29,15 @@ var WebhookKnownEvents = []string{
 	"playground.expiration.extended",
 	"playground.expiration.skipped_dirty",
 	"playground.build_drift.detected",
-	"marquee.created",
-	"marquee.updated",
-	"marquee.destroyed",
-	"prop.created",
-	"prop.updated",
-	"prop.destroyed",
-	"playspec.created",
-	"playspec.updated",
-	"playspec.destroyed",
+	"host.created",
+	"host.updated",
+	"host.destroyed",
+	"repository.created",
+	"repository.updated",
+	"repository.destroyed",
+	"spec.created",
+	"spec.updated",
+	"spec.destroyed",
 	"agent.created",
 	"agent.updated",
 	"agent.destroyed",
@@ -65,6 +65,7 @@ var WebhookKnownEvents = []string{
 }
 
 type WebhookEndpoint struct {
+	OwnershipMetadata
 	ID              *int64              `json:"id"`
 	URL             string              `json:"url"`
 	Events          []string            `json:"events"`

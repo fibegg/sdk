@@ -1,6 +1,7 @@
 package localplaygrounds
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 
 func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	root := t.TempDir()
-	t.Setenv("MARQUEE_ROOT", root)
+	t.Setenv("HOST_ROOT", root)
 	pgDir := filepath.Join(root, "pg-123")
 	if err := os.MkdirAll(pgDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -19,9 +20,9 @@ func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
   web:
     image: nginx
     labels:
-      fibe.gg/playspec: tower-defence
+      fibe.gg/spec: tower-defence
     volumes:
-      - "/opt/fibe/playgrounds/pg-123/props/fibegg--tower-defence--77/main:/app"
+      - "/opt/fibe/playgrounds/pg-123/repositories/fibegg--tower-defence--77/main:/app"
 `
 	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
 		t.Fatal(err)
@@ -50,12 +51,19 @@ func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state: %v", err)
 	}
-	if string(state) != "pg-123" {
-		t.Fatalf("state=%q want pg-123", state)
+	var current CurrentState
+	if err := json.Unmarshal(state, &current); err != nil {
+		t.Fatalf("state json: %v", err)
+	}
+	if current.Name != "pg-123" || current.Spec != "tower-defence" || len(current.Repos) != 1 {
+		t.Fatalf("state=%q want pg-123 json with one repo", state)
+	}
+	if current.Repos[0].Service != "web" || current.Repos[0].RepoRoot != result.Links[0].Target {
+		t.Fatalf("unexpected repo state: %#v", current.Repos[0])
 	}
 }
 
-func TestBaseDirResolvesMarqueeRootPlaygroundsSubdirectory(t *testing.T) {
+func TestBaseDirResolvesHostRootPlaygroundsSubdirectory(t *testing.T) {
 	root := t.TempDir()
 	playgroundsRoot := filepath.Join(root, "playgrounds")
 	pgDir := filepath.Join(playgroundsRoot, "pg-123")
@@ -65,7 +73,7 @@ func TestBaseDirResolvesMarqueeRootPlaygroundsSubdirectory(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte("services: {}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("MARQUEE_ROOT", root)
+	t.Setenv("HOST_ROOT", root)
 
 	if got := BaseDir(); got != playgroundsRoot {
 		t.Fatalf("BaseDir()=%q want %q", got, playgroundsRoot)
@@ -93,7 +101,7 @@ func TestScanViewsAndIDResolution(t *testing.T) {
   api:
     image: ruby:latest
     labels:
-      fibe.gg/playspec: mcp-test-dev
+      fibe.gg/spec: mcp-test-dev
       fibe.gg/playground: mcp-test-dev--42
       fibe.gg/subdomain: api
       fibe.gg/port: 3000
@@ -102,12 +110,12 @@ func TestScanViewsAndIDResolution(t *testing.T) {
       traefik.enable: "true"
     volumes:
       - type: bind
-        source: /opt/fibe/playgrounds/mcp-test-dev--42/props/viktorvsk--mcp-test-dev--5/main
+        source: /opt/fibe/playgrounds/mcp-test-dev--42/repositories/viktorvsk--mcp-test-dev--5/main
         target: /app
   worker:
     image: alpine
     labels:
-      - "fibe.gg/playspec=mcp-test-dev"
+      - "fibe.gg/spec=mcp-test-dev"
       - "traefik.enable=false"
 `
 	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
@@ -125,7 +133,7 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Find by ID: %v", err)
 	}
-	if pg.ID != "42" || pg.DirName != "mcp-test-dev--42" || pg.Playspec != "mcp-test-dev" {
+	if pg.ID != "42" || pg.DirName != "mcp-test-dev--42" || pg.Spec != "mcp-test-dev" {
 		t.Fatalf("unexpected playground: %#v", pg)
 	}
 
@@ -134,21 +142,23 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 		t.Fatalf("unexpected names: %#v", names)
 	}
 	urls := URLs(pg, "example.test")
-	if len(urls) != 1 || urls[0].Service != "api" || urls[0].URL != "api.example.test" {
+	if len(urls) != 1 || urls[0].Service != "api" || urls[0].URL != "https://api.example.test" {
 		t.Fatalf("unexpected urls: %#v", urls)
 	}
 	mounts := Mounts(pg)
-	if len(mounts) != 1 || mounts[0].Service != "api" || mounts[0].Branch != "main" || mounts[0].Prop != "mcp-test-dev" {
+	if len(mounts) != 1 || mounts[0].Service != "api" || mounts[0].Branch != "main" || mounts[0].Repository != "mcp-test-dev" {
 		t.Fatalf("unexpected mounts: %#v", mounts)
 	}
 }
 
-func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
+func TestNamesExcludeJobModeAndStaticOnlyPlaygrounds(t *testing.T) {
 	root := t.TempDir()
 	normalDir := filepath.Join(root, "normal-app--1")
+	staticDir := filepath.Join(root, "static-app--4")
 	jobMapDir := filepath.Join(root, "ci-map--2")
 	jobArrayDir := filepath.Join(root, "ci-array--3")
-	for _, dir := range []string{normalDir, jobMapDir, jobArrayDir} {
+	jobMetadataDir := filepath.Join(root, "ci-metadata--5")
+	for _, dir := range []string{normalDir, staticDir, jobMapDir, jobArrayDir, jobMetadataDir} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -157,29 +167,59 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
   web:
     image: nginx
     labels:
-      fibe.gg/playspec: normal-app
+      fibe.gg/spec: normal-app
+    volumes:
+      - "/opt/fibe/playgrounds/normal-app--1/repositories/fibegg--normal-app--77/main:/app"
+`
+	staticCompose := `services:
+  web:
+    image: nginx
+    labels:
+      fibe.gg/spec: static-app
 `
 	jobMapCompose := `services:
   test:
     image: alpine
     labels:
-      fibe.gg/playspec: ci-map
+      fibe.gg/spec: ci-map
       fibe.gg/job_watch: "true"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-map--2/repositories/fibegg--ci-map--78/main:/app"
 `
 	jobArrayCompose := `services:
   test:
     image: alpine
     labels:
-      - "fibe.gg/playspec=ci-array"
+      - "fibe.gg/spec=ci-array"
       - "fibe.gg/job_watch=true"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-array--3/repositories/fibegg--ci-array--79/main:/app"
+`
+	jobMetadataCompose := `x-fibe.gg:
+  metadata:
+    job_mode: true
+services:
+  test:
+    image: alpine
+    labels:
+      fibe.gg/spec: ci-metadata
+      fibe.gg/job_watch: "false"
+    volumes:
+      - "/opt/fibe/playgrounds/ci-metadata--5/repositories/fibegg--ci-metadata--80/main:/app"
 `
 	if err := os.WriteFile(filepath.Join(normalDir, "compose.yml"), []byte(normalCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staticDir, "compose.yml"), []byte(staticCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(jobMapDir, "compose.yml"), []byte(jobMapCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(jobArrayDir, "compose.yml"), []byte(jobArrayCompose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(jobMetadataDir, "compose.yml"), []byte(jobMetadataCompose), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,6 +246,13 @@ func TestNamesExcludeJobModePlaygrounds(t *testing.T) {
 	if !arrayJob.JobMode || !arrayJob.Services["test"].JobWatch {
 		t.Fatalf("array job metadata not set: %#v", arrayJob)
 	}
+	metadataJob, err := Find(playgrounds, "ci-metadata")
+	if err != nil {
+		t.Fatalf("Find ci-metadata: %v", err)
+	}
+	if !metadataJob.JobMode || metadataJob.Services["test"].JobWatch {
+		t.Fatalf("compose metadata job mode not set independently from service job_watch: %#v", metadataJob)
+	}
 }
 
 func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
@@ -218,7 +265,7 @@ func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
   web:
     image: nginx
     labels:
-      fibe.gg/playspec: fallback-app
+      fibe.gg/spec: fallback-app
       fibe.gg/playground: fallback-app--77
 `
 	if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o644); err != nil {
@@ -238,10 +285,10 @@ func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
 	}
 }
 
-func TestFindRejectsAmbiguousPlayspecPrefix(t *testing.T) {
+func TestFindRejectsAmbiguousSpecPrefix(t *testing.T) {
 	playgrounds := []Playground{
-		{ID: "1", DirName: "alpha--1", Playspec: "suite-app"},
-		{ID: "2", DirName: "beta--2", Playspec: "suite-api"},
+		{ID: "1", DirName: "alpha--1", Spec: "suite-app"},
+		{ID: "2", DirName: "beta--2", Spec: "suite-api"},
 	}
 	_, err := Find(playgrounds, "suite")
 	if err == nil {
@@ -252,36 +299,29 @@ func TestFindRejectsAmbiguousPlayspecPrefix(t *testing.T) {
 	}
 }
 
-func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
+func TestLinkAdoptsLegacyDirectoryAndReplacesContents(t *testing.T) {
 	parent := t.TempDir()
 	linkDir := filepath.Join(parent, "playground")
 	if err := os.MkdirAll(linkDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(linkDir, "stale.txt"), []byte("old"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(linkDir, currentStateFilename), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(linkDir, "stale-dir"), 0o755); err != nil {
+	if err := os.Symlink("/tmp/old-target", filepath.Join(linkDir, "old-link")); err != nil {
 		t.Fatal(err)
 	}
-
-	if err := os.Chmod(parent, 0o555); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = os.Chmod(parent, 0o755)
-	})
 
 	hostMount := filepath.Join(t.TempDir(), "main")
 	pg := &Playground{
-		DirName:  "pg-dynamic",
-		Playspec: "dynamic-app",
+		DirName: "pg-dynamic",
+		Spec:    "dynamic-app",
 		Services: map[string]*Service{
 			"app": {
-				Name:      "app",
-				HostMount: hostMount,
-				Prop:      "dynamic-app",
-				Branch:    "main",
+				Name:       "app",
+				HostMount:  hostMount,
+				Repository: "dynamic-app",
+				Branch:     "main",
 			},
 		},
 	}
@@ -296,11 +336,8 @@ func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	if _, err := os.Stat(linkDir); err != nil {
 		t.Fatalf("link dir was not preserved: %v", err)
 	}
-	if _, err := os.Lstat(filepath.Join(linkDir, "stale.txt")); !os.IsNotExist(err) {
-		t.Fatalf("stale file still exists, err=%v", err)
-	}
-	if _, err := os.Lstat(filepath.Join(linkDir, "stale-dir")); !os.IsNotExist(err) {
-		t.Fatalf("stale directory still exists, err=%v", err)
+	if _, err := os.Lstat(filepath.Join(linkDir, "old-link")); !os.IsNotExist(err) {
+		t.Fatalf("old link still exists, err=%v", err)
 	}
 	target, err := os.Readlink(filepath.Join(linkDir, "dynamic-app"))
 	if err != nil {
@@ -309,14 +346,24 @@ func TestLinkPreservesExistingDirectoryAndClearsContents(t *testing.T) {
 	if target != hostMount {
 		t.Fatalf("target=%s want %s", target, hostMount)
 	}
+	state, err := LoadCurrentState(linkDir)
+	if err != nil {
+		t.Fatalf("LoadCurrentState: %v", err)
+	}
+	if state.Name != "pg-dynamic" || len(state.Repos) != 1 {
+		t.Fatalf("unexpected state: %#v", state)
+	}
+	if state.Repos[0].LinkPath != filepath.Join(linkDir, "dynamic-app") || state.Repos[0].RepoRoot != hostMount {
+		t.Fatalf("unexpected repo state: %#v", state.Repos[0])
+	}
 }
 
-func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
+func TestLinkStaticPlaygroundReplacesLegacyContentsAndWritesState(t *testing.T) {
 	linkDir := filepath.Join(t.TempDir(), "playground")
 	if err := os.MkdirAll(linkDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(linkDir, "stale.txt"), []byte("old"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(linkDir, currentStateFilename), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink("/tmp/old-target", filepath.Join(linkDir, "old-link")); err != nil {
@@ -324,8 +371,8 @@ func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
 	}
 
 	pg := &Playground{
-		DirName:  "bagg-app--24",
-		Playspec: "bagg-app",
+		DirName: "bagg-app--24",
+		Spec:    "bagg-app",
 		Services: map[string]*Service{
 			"app": {
 				Name:      "app",
@@ -347,16 +394,100 @@ func TestLinkStaticPlaygroundClearsContentsAndWritesState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("state: %v", err)
 	}
-	if string(state) != "bagg-app--24" {
-		t.Fatalf("state=%q want bagg-app--24", state)
+	var current CurrentState
+	if err := json.Unmarshal(state, &current); err != nil {
+		t.Fatalf("state json: %v", err)
+	}
+	if current.Name != "bagg-app--24" || current.Spec != "bagg-app" {
+		t.Fatalf("state=%q want bagg-app--24 json", state)
 	}
 
 	entries, err := os.ReadDir(linkDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name() != ".current_playground" {
-		t.Fatalf("entries=%v want only .current_playground", entries)
+	if len(entries) != 2 || entries[0].Name() != currentStateFilename || entries[1].Name() != linkOwnerFilename {
+		t.Fatalf("entries=%v want state and ownership marker", entries)
+	}
+}
+
+func TestLinkRejectsUnownedDirectoryWithoutChangingIt(t *testing.T) {
+	linkDir := filepath.Join(t.TempDir(), "playground")
+	if err := os.MkdirAll(linkDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	keep := filepath.Join(linkDir, "keep.txt")
+	if err := os.WriteFile(keep, []byte("important"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	pg := &Playground{DirName: "pg", Spec: "pg", Services: map[string]*Service{}}
+	_, err := LinkPlayground(pg, linkDir)
+	if err == nil || !strings.Contains(err.Error(), "non-empty unowned directory") {
+		t.Fatalf("error=%v want unowned directory rejection", err)
+	}
+	if data, readErr := os.ReadFile(keep); readErr != nil || string(data) != "important" {
+		t.Fatalf("existing data changed: data=%q err=%v", data, readErr)
+	}
+}
+
+func TestLinkRejectsUnsafeComponents(t *testing.T) {
+	for _, field := range []struct {
+		name       string
+		repository string
+		branch     string
+	}{
+		{name: "repository traversal", repository: "../escape"},
+		{name: "branch separator", repository: "app", branch: "feature/x"},
+		{name: "dot", repository: "."},
+	} {
+		t.Run(field.name, func(t *testing.T) {
+			linkDir := filepath.Join(t.TempDir(), "playground")
+			pg := &Playground{DirName: "pg", Services: map[string]*Service{
+				"app": {Name: "app", HostMount: t.TempDir(), Repository: field.repository, Branch: field.branch},
+			}}
+			if _, err := LinkPlayground(pg, linkDir); err == nil {
+				t.Fatal("LinkPlayground succeeded, want component error")
+			}
+			if _, err := os.Lstat(linkDir); !os.IsNotExist(err) {
+				t.Fatalf("link directory created on validation failure: %v", err)
+			}
+		})
+	}
+}
+
+func TestLinkRejectsDangerousDirectories(t *testing.T) {
+	pg := &Playground{DirName: "pg", Services: map[string]*Service{}}
+	if _, err := LinkPlayground(pg, string(filepath.Separator)); err == nil {
+		t.Fatal("filesystem root accepted")
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if _, err := LinkPlayground(pg, home); err == nil {
+		t.Fatal("home directory accepted")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LinkPlayground(pg, cwd); err == nil {
+		t.Fatal("current directory accepted")
+	}
+}
+
+func TestLinkRejectsSymlinkedAncestor(t *testing.T) {
+	parent := t.TempDir()
+	realDir := filepath.Join(parent, "real")
+	if err := os.Mkdir(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(parent, "alias")
+	if err := os.Symlink(realDir, alias); err != nil {
+		t.Fatal(err)
+	}
+	pg := &Playground{DirName: "pg", Services: map[string]*Service{}}
+	if _, err := LinkPlayground(pg, filepath.Join(alias, "playground")); err == nil {
+		t.Fatal("symlinked ancestor accepted")
 	}
 }
 
@@ -371,9 +502,9 @@ func TestLinkRejectsJobModeWithoutClearingTarget(t *testing.T) {
 	}
 
 	pg := &Playground{
-		DirName:  "ci-fibeagent--24",
-		Playspec: "ci-fibeagent",
-		JobMode:  true,
+		DirName: "ci-fibeagent--24",
+		Spec:    "ci-fibeagent",
+		JobMode: true,
 		Services: map[string]*Service{
 			"test": {
 				Name:     "test",
@@ -400,7 +531,7 @@ func TestLinkFailsWhenTargetIsNotDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pg := &Playground{DirName: "pg", Playspec: "pg", Services: map[string]*Service{}}
+	pg := &Playground{DirName: "pg", Spec: "pg", Services: map[string]*Service{}}
 	_, err := LinkPlayground(pg, linkDir)
 	if err == nil {
 		t.Fatal("LinkPlayground succeeded, want error")

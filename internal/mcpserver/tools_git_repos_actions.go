@@ -16,7 +16,7 @@ func (s *Server) registerGitRepoActionTools() {
 		func(ctx context.Context, c *fibe.Client, p *fibe.GitHubRepoCreateParams) (*fibe.GitHubRepo, error) {
 			return c.GitHubRepos.Create(ctx, p)
 		})
-	registerCreate(s, "fibe_gitea_repos_create", "[MODE:GREENFIELD] Create a managed Gitea repo and matching Prop. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.", toolOpts{Tier: tierGreenfield},
+	registerCreate(s, "fibe_gitea_repos_create", "[MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.", toolOpts{Tier: tierGreenfield},
 		func(ctx context.Context, c *fibe.Client, p *fibe.GiteaRepoCreateParams) (*fibe.GiteaRepo, error) {
 			return c.GiteaRepos.Create(ctx, p)
 		})
@@ -38,13 +38,8 @@ func anyInt64Slice(raw any) []int64 {
 	case []any:
 		out := make([]int64, 0, len(v))
 		for _, item := range v {
-			switch x := item.(type) {
-			case float64:
-				out = append(out, int64(x))
-			case int:
-				out = append(out, int64(x))
-			case int64:
-				out = append(out, x)
+			if id, ok := coerceInt64(item); ok && id > 0 {
+				out = append(out, id)
 			}
 		}
 		return out
@@ -106,8 +101,6 @@ func waitForSingleTemplatePatchRollout(ctx context.Context, c *fibe.Client, id i
 	}
 }
 
-// ---------- helpers for file-bearing tools ----------
-
 // decodeFileSource reads either args["content_base64"] or args["content_path"]
 // (local filesystem only) and returns an io.Reader suitable for multipart
 // upload. One of the two must be provided.
@@ -116,6 +109,9 @@ func decodeFileSource(args map[string]any) (io.Reader, error) {
 		data, err := base64.StdEncoding.DecodeString(b)
 		if err != nil {
 			return nil, fmt.Errorf("invalid content_base64: %w", err)
+		}
+		if int64(len(data)) > maxLocalFile {
+			return nil, fmt.Errorf("content_base64 exceeds %d decoded bytes", maxLocalFile)
 		}
 		return bytes.NewReader(data), nil
 	}

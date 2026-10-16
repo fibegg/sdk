@@ -20,7 +20,7 @@ func agentsCmd() *cobra.Command {
 		Use:     "agents",
 		Aliases: []string{"ag", "agent"},
 		Short:   "Manage AI agents",
-		Long: `Manage Fibe agents — AI-powered assistants that work with your playgrounds.
+		Long: `Manage Fibe agents: AI-powered assistants that work with your playgrounds.
 
 Agents can be authenticated with GitHub, have mounted files, store messages
 and activity logs, create artefacts, and interact via chat.
@@ -35,7 +35,7 @@ SUBCOMMANDS:
   update <id-or-name>   Update agent settings
   delete <id-or-name>   Delete an agent
   duplicate <id-or-name> Clone an agent
-  start-chat <id-or-name> Start an interactive chat session on a Marquee
+  start-chat <id-or-name> Start an interactive chat session on a Host
   restart-chat <id-or-name> Restart the current chat container
   runtime-status <id-or-name> Show agent chat live status
   watch                 Watch agent resource events
@@ -226,7 +226,6 @@ EXAMPLES:
 		},
 	}
 }
-
 func agentRuntimeStatusColumns(status *fibe.AgentRuntimeStatus) []string {
 	if status == nil {
 		return []string{"", "", "", ""}
@@ -244,7 +243,7 @@ func agCreateCmd() *cobra.Command {
 	var prompt, systemPromptMode, mainMD, mainMDMode, mcpJSON, postInitScript, customEnv, cliVersion, providerArgs string
 	var skillToggleFlags []string
 	var mountFiles, mountArtefacts []string
-	var playgroundCrumbsID string
+	var playgroundAuditLogsID string
 	var syncEnabled, syscheckEnabled, providerAPIKeyMode, buildInPublic bool
 
 	cmd := &cobra.Command{
@@ -277,8 +276,8 @@ OPTIONAL FLAGS:
   --skill-toggle   Skill toggle as filename=true|false (repeatable)
   --build-in-public
                   Show the agent on the public profile when enabled
-  --playground-crumbs-id
-                  Playground ID or name for public timeline crumbs
+  --playground-audit-logs-id
+                  Playground ID or name for public timeline audit logs
   --mount-file     Local file mount as ./path:%{agent_data}/target.ext (repeatable)
   --mount-artefact Artefact snapshot mount as docs-bundle:%{workspace}/docs/file.md (repeatable)
 
@@ -307,8 +306,8 @@ EXAMPLES:
 			if cmd.Flags().Changed("build-in-public") {
 				params.BuildInPublic = &buildInPublic
 			}
-			if cmd.Flags().Changed("playground-crumbs-id") {
-				params.BuildInPublicPlaygroundIdentifier = playgroundCrumbsID
+			if cmd.Flags().Changed("playground-audit-logs-id") {
+				params.BuildInPublicPlaygroundIdentifier = playgroundAuditLogsID
 			}
 			if cmd.Flags().Changed("provider-api-key-mode") {
 				params.ProviderAPIKeyMode = &providerAPIKeyMode
@@ -386,7 +385,7 @@ EXAMPLES:
 	cmd.Flags().BoolVar(&syncEnabled, "sync", false, "Enable sync")
 	cmd.Flags().BoolVar(&syscheckEnabled, "syscheck", false, "Enable system checks")
 	cmd.Flags().BoolVar(&buildInPublic, "build-in-public", false, "Show this agent on the public profile")
-	cmd.Flags().StringVar(&playgroundCrumbsID, "playground-crumbs-id", "", "Playground ID or name for public timeline crumbs")
+	cmd.Flags().StringVar(&playgroundAuditLogsID, "playground-audit-logs-id", "", "Playground ID or name for public timeline audit logs")
 	cmd.Flags().BoolVar(&providerAPIKeyMode, "provider-api-key-mode", false, "Use provider API key auth mode")
 	cmd.Flags().StringVar(&modelOptions, "model-options", "", "Provider model option")
 	cmd.Flags().StringVar(&memoryLimit, "memory-limit", "", "Memory limit, for example 2G")
@@ -643,27 +642,27 @@ EXAMPLES:
 }
 
 func agStartChatCmd() *cobra.Command {
-	var marquee string
+	var host string
 	cmd := &cobra.Command{
 		Use:   "start-chat <id-or-name>",
 		Short: "Start an interactive chat session for an agent",
-		Long: `Start the agent chat runtime on a target Marquee.
+		Long: `Start the agent chat runtime on a target Host.
 
-The target Marquee must be funded. The server returns
-MARQUEE_NOT_FUNDED when billing is expired or missing.
+The target Host must be funded. The server returns
+HOST_NOT_FUNDED when billing is expired or missing.
 
 REQUIRED FLAGS:
-  --marquee      Target Marquee ID or name
+  --host      Target Host ID or name
 
 EXAMPLES:
-  fibe agents start-chat builder --marquee next
-  fibe ag start-chat my-agent --marquee my-marquee`,
+  fibe agents start-chat builder --host next
+  fibe ag start-chat my-agent --host my-host`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if marquee == "" {
-				return fmt.Errorf("required field 'marquee' not set")
+			if host == "" {
+				return fmt.Errorf("required field 'host' not set")
 			}
-			session, err := newClient().Agents.StartChatByAgentIdentifier(ctx(), args[0], marquee)
+			session, err := newClient().Agents.StartChatByAgentIdentifier(ctx(), args[0], host)
 			if err != nil {
 				return err
 			}
@@ -671,7 +670,7 @@ EXAMPLES:
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&marquee, "marquee", "", "Target Marquee ID or name (required)")
+	cmd.Flags().StringVar(&host, "host", "", "Target Host ID or name (required)")
 	return cmd
 }
 
@@ -1132,18 +1131,7 @@ EXAMPLES:
 			}
 			defer body.Close()
 
-			var dst io.Writer
-			if to == "-" {
-				dst = os.Stdout
-			} else {
-				f, err := os.Create(to)
-				if err != nil {
-					return fmt.Errorf("create output file: %w", err)
-				}
-				defer f.Close()
-				dst = f
-			}
-			n, err := io.Copy(dst, body)
+			n, err := writeDownload(body, to)
 			if err != nil {
 				return fmt.Errorf("write content: %w", err)
 			}
@@ -1356,7 +1344,3 @@ EXAMPLES:
 		},
 	}
 }
-
-// =============================================================================
-// Artefacts: download
-// =============================================================================

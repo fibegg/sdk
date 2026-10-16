@@ -7,7 +7,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 29-webhooks.spec.js (advanced)
 func TestWebhooks_EventTypes(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -37,7 +36,6 @@ func TestWebhooks_EventTypes(t *testing.T) {
 	}
 }
 
-// Migrated from: 29-webhooks.spec.js
 func TestWebhooks_DeliveryHistory(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -115,7 +113,6 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 	})
 }
 
-// Migrated from: 29-webhooks.spec.js
 func TestWebhooks_SecretHandling(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -81,7 +82,7 @@ func TestValidateComposeWithParamsHonorsFIBESchemaURL(t *testing.T) {
 	defer apiServer.Close()
 
 	client := NewClient(WithAPIKey("test"), WithBaseURL(apiServer.URL), WithMaxRetries(0))
-	result, err := client.Playspecs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n")
+	result, err := client.Specs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n")
 	if err != nil {
 		t.Fatalf("ValidateCompose returned error: %v", err)
 	}
@@ -93,6 +94,71 @@ func TestValidateComposeWithParamsHonorsFIBESchemaURL(t *testing.T) {
 	}
 	if apiRequests.Load() != 1 {
 		t.Fatalf("expected one API request, got %d", apiRequests.Load())
+	}
+}
+
+func TestComposeSchemaURLAndBodyAreStrictlyValidated(t *testing.T) {
+	client := NewClient(WithAPIKey("test"), WithBaseURL("https://fibe.gg"), WithMaxRetries(0))
+	for _, raw := range []string{
+		"file:///tmp/schema.json",
+		"https://user:password@example.com/schema.json",
+		"https://example.com/schema.json#fragment",
+		"://broken",
+	} {
+		t.Run(raw, func(t *testing.T) {
+			t.Setenv("FIBE_SCHEMA_URL", raw)
+			if _, _, err := client.Specs.fetchComposeSchema(context.Background()); err == nil {
+				t.Fatal("invalid schema URL accepted")
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{name: "trailing", body: testFibeComposeSchema + ` {}`},
+		{name: "oversized", body: `{"padding":"` + strings.Repeat("x", int(maxResponseBody)) + `"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			schemaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer schemaServer.Close()
+			t.Setenv("FIBE_SCHEMA_URL", schemaServer.URL)
+			if _, _, err := client.Specs.fetchComposeSchema(context.Background()); err == nil {
+				t.Fatal("invalid schema body accepted")
+			}
+		})
+	}
+}
+
+func TestComposeSchemaIsFetchedEveryTimeAndCompiledByDigest(t *testing.T) {
+	var requests atomic.Int64
+	schema := strings.Replace(testFibeComposeSchema, `"type": "object"`, `"title": "cache-test", "type": "object"`, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		_, _ = w.Write([]byte(schema))
+	}))
+	defer server.Close()
+	t.Setenv("FIBE_SCHEMA_URL", server.URL)
+	client := NewClient(WithAPIKey("test"), WithBaseURL("https://fibe.gg"), WithMaxRetries(0))
+	for i := 0; i < 2; i++ {
+		data, schemaURL, err := client.Specs.fetchComposeSchema(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, err := compileComposeSchema(data, schemaURL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := compileComposeSchema(data, schemaURL)
+		if err != nil || first != second {
+			t.Fatalf("compiled schema was not reused: first=%p second=%p err=%v", first, second, err)
+		}
+	}
+	if requests.Load() != 2 {
+		t.Fatalf("schema fetches=%d want 2", requests.Load())
 	}
 }
 
@@ -112,7 +178,7 @@ func TestValidateComposeWithParamsStopsBeforeServerOnSchemaFailure(t *testing.T)
 	defer apiServer.Close()
 
 	client := NewClient(WithAPIKey("test"), WithBaseURL(apiServer.URL), WithMaxRetries(0))
-	result, err := client.Playspecs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n    labels:\n      fibe.gg/unknown: nope\n")
+	result, err := client.Specs.ValidateCompose(context.Background(), "services:\n  web:\n    image: nginx\n    labels:\n      fibe.gg/unknown: nope\n")
 	if err != nil {
 		t.Fatalf("ValidateCompose returned error: %v", err)
 	}

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ func waitCmd() *cobra.Command {
 		timeout      time.Duration
 		interval     time.Duration
 		full         bool
+		readiness    string
 	)
 
 	cmd := &cobra.Command{
@@ -22,41 +25,67 @@ func waitCmd() *cobra.Command {
 		Short: "Wait for a resource to reach a target status",
 		Long: `Poll a resource until it reaches the desired status.
 
-Eliminates retry loops in LLM agent code — delegates
-polling to the CLI with built-in timeout and interval.
+Eliminates retry loops in LLM agent code: delegates
+polling to the CLI with built-in timeout and interval. The timeout bounds
+requests, final resource reads and sleeps; cancellation does not stop remote work.
 
-Supported resources: playground, trick
+Supported resources: playground, task, repository (mirror progress)
 
 Examples:
   fibe wait playground next --status running
-  fibe wait trick nightly-build --status completed
+  fibe wait task nightly-build --status completed
   fibe wait playground 42 --status running --timeout 5m --interval 5s
-  fibe wait trick nightly-build --status completed --full`,
+  fibe wait task nightly-build --status completed --full`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := strings.ToLower(args[0])
 			identifier := args[1]
+			if timeout <= 0 || interval <= 0 {
+				return fmt.Errorf("--timeout and --interval must be positive")
+			}
+			waitCtx, cancel := context.WithTimeout(cmd.Context(), timeout)
+			defer cancel()
+			auth := resolveCLIAuth()
 
 			c := newClient()
-			deadline := time.After(timeout)
+			if resource == "playground" || resource == "pg" {
+				var err error
+				readiness, err = fibe.NormalizePlaygroundWaitReadiness(readiness, targetStatus)
+				if err != nil {
+					return err
+				}
+			} else if cmd.Flags().Changed("readiness") {
+				return fmt.Errorf("--readiness is only supported for playgrounds")
+			}
+			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{FallbackUpdates: true})
+			progress.Start(fmt.Sprintf("waiting for %s %s to reach %s", resource, identifier, targetStatus))
+			defer progress.Stop()
+			resourceError := func(err error) error {
+				if waitCtx.Err() != nil {
+					return waitContextError(waitCtx, timeout, "request did not complete")
+				}
+				return waitResourceError(resource, identifier, auth, err)
+			}
 
 			switch resource {
 			case "playground", "pg":
 				for {
-					status, err := c.Playgrounds.StatusByIdentifier(ctx(), identifier)
+					status, err := c.Playgrounds.RuntimeStatusByIdentifier(waitCtx, identifier)
 					if err != nil {
-						return err
+						return resourceError(err)
 					}
 
 					current := status.Status
 
-					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
+					progress.Update(fmt.Sprintf("status: %s", current))
 
-					if current == targetStatus {
-						pg, err := c.Playgrounds.GetByIdentifier(ctx(), identifier)
+					ready, pendingReason := fibe.PlaygroundRuntimeStatusMatchesWaitTarget(status, targetStatus, readiness)
+					if ready {
+						pg, err := c.Playgrounds.GetByIdentifier(waitCtx, identifier)
 						if err != nil {
-							return err
+							return resourceError(err)
 						}
+						progress.Stop()
 						if full {
 							output(pg)
 						} else {
@@ -65,63 +94,91 @@ Examples:
 						return nil
 					}
 
-					// Terminal failure states
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fibe.NewPlaygroundTerminalStateError(status)
+						return fibe.NewPlaygroundTerminalStateError(&status.PlaygroundStatus)
 					}
 
 					select {
-					case <-deadline:
-						return fmt.Errorf("timeout after %s — last status: %s", timeout, current)
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, pendingReason)
 					case <-time.After(interval):
 					}
 				}
-			case "trick", "tr":
+			case "task", "tr":
 				for {
-					status, err := c.Tricks.StatusByIdentifier(ctx(), identifier)
+					status, err := c.Tasks.StatusByIdentifier(waitCtx, identifier)
 					if err != nil {
-						return err
+						return resourceError(err)
 					}
 
 					current := status.Status
 
-					fmt.Fprintf(cmd.OutOrStderr(), "status: %s\n", current)
+					progress.Update(fmt.Sprintf("status: %s", current))
 
 					if current == targetStatus {
-						if fibe.TrickStatusResultFailed(status) {
-							return fmt.Errorf("trick reached %s with failed result", current)
+						if fibe.TaskStatusResultFailed(status) {
+							return fmt.Errorf("task reached %s with failed result", current)
 						}
 						if full {
-							pg, err := c.Tricks.GetByIdentifier(ctx(), identifier)
+							pg, err := c.Tasks.GetByIdentifier(waitCtx, identifier)
 							if err != nil {
-								return err
+								return resourceError(err)
 							}
+							progress.Stop()
 							output(pg)
 						} else {
+							progress.Stop()
 							output(waitResultFromStatus(status))
 						}
 						return nil
 					}
 
-					// Terminal states for tricks
 					if current == "completed" && targetStatus != "completed" {
-						return fmt.Errorf("trick reached terminal state: %s", current)
+						return fmt.Errorf("task reached terminal state: %s", current)
 					}
-					if current == "completed" && fibe.TrickStatusResultFailed(status) {
-						return fmt.Errorf("trick reached completed with failed result")
+					if current == "completed" && fibe.TaskStatusResultFailed(status) {
+						return fmt.Errorf("task reached completed with failed result")
 					}
 					if current == "error" || current == "failed" || current == "destroyed" {
-						return fmt.Errorf("trick reached terminal state: %s", current)
+						return fmt.Errorf("task reached terminal state: %s", current)
 					}
 
 					select {
-					case <-deadline:
-						return fmt.Errorf("timeout after %s — last status: %s", timeout, current)
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, "last status: "+current)
+					case <-time.After(interval):
+					}
+				}
+			case "repository":
+				if !cmd.Flags().Changed("status") {
+					targetStatus = "completed"
+				}
+				for {
+					repository, err := c.Repositories.GetMirrorStateByIdentifier(waitCtx, identifier)
+					if err != nil {
+						return resourceError(err)
+					}
+					current := repository.MirrorStatus
+					if current == "" {
+						current = repository.Status
+					}
+					progress.Update("status: " + current)
+					if current == "failed" {
+						return fmt.Errorf("mirror failed: %s", repository.MirrorError)
+					}
+					if current == targetStatus {
+						progress.Stop()
+						output(repository)
+						return nil
+					}
+					select {
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, "mirror status: "+current+": "+repository.MirrorError)
 					case <-time.After(interval):
 					}
 				}
 			default:
-				return fmt.Errorf("unsupported resource %q — supported: playground, trick", resource)
+				return fmt.Errorf("unsupported resource %q: supported: playground, task, repository", resource)
 			}
 		},
 	}
@@ -130,8 +187,46 @@ Examples:
 	cmd.Flags().DurationVar(&timeout, "timeout", 10*time.Minute, "Maximum time to wait")
 	cmd.Flags().DurationVar(&interval, "interval", 3*time.Second, "Polling interval")
 	cmd.Flags().BoolVar(&full, "full", false, "Print the full resource payload after success")
+	cmd.Flags().StringVar(&readiness, "readiness", "", "Playground readiness: services (default for running) or lifecycle")
 
 	return cmd
+}
+
+type waitNotFoundError struct {
+	resource   string
+	identifier string
+	profile    string
+	domain     string
+	err        error
+}
+
+func (e *waitNotFoundError) Error() string {
+	listCommand := "fibe playgrounds list --only id,name,status"
+	if e.resource == "task" || e.resource == "tr" {
+		listCommand = "fibe tasks list --only id,name,status"
+	} else if e.resource == "repository" {
+		listCommand = "fibe repositories list --only id,name,status,mirror_status"
+	}
+	return fmt.Sprintf("%s %q was not found in profile %q (%s). Use --profile/--domain to select another environment, or run `%s` to find the correct name or ID",
+		e.resource, e.identifier, e.profile, effectiveBaseURL(e.domain), listCommand)
+}
+
+func (e *waitNotFoundError) Unwrap() error {
+	return e.err
+}
+
+func waitResourceError(resource string, identifier string, auth resolvedAuth, err error) error {
+	var apiErr *fibe.APIError
+	if errors.As(err, &apiErr) && apiErr.IsNotFound() {
+		return &waitNotFoundError{
+			resource:   resource,
+			identifier: identifier,
+			profile:    auth.Profile,
+			domain:     auth.Domain,
+			err:        err,
+		}
+	}
+	return err
 }
 
 func waitResultFromPlayground(pg *fibe.Playground) map[string]any {
@@ -169,4 +264,11 @@ func waitResultFromStatus(status *fibe.PlaygroundStatus) map[string]any {
 		out["job_summary"] = status.JobResult.Summary
 	}
 	return out
+}
+
+func waitContextError(ctx context.Context, timeout time.Duration, detail string) error {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return fmt.Errorf("timeout after %s: %s: %w", timeout, detail, ctx.Err())
+	}
+	return ctx.Err()
 }

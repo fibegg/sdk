@@ -13,7 +13,7 @@ func serverInfoCmd() *cobra.Command {
 		Long: `Show the Fibe server's current UTC time plus the build identity
 (build time and git commit SHA) baked into the server image.
 
-Hits the unauthenticated /up endpoint — works without an API key.
+Hits the unauthenticated /up endpoint: works without an API key.
 Useful for clock-drift checks and identifying which server build
 you're talking to.`,
 		RunE: func(cmd *cobra.Command, args []string) error {

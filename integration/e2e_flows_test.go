@@ -8,55 +8,51 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// TestE2E_PlayspecToPlayground exercises the primary user flow:
-//  1. Create playspec with real compose
-//  2. Deploy playground from that playspec on the shared marquee
+// TestE2E_SpecToPlayground exercises the primary user flow:
+//  1. Create spec with real compose
+//  2. Deploy playground from that spec on the shared host
 //  3. Verify status polling works
-//  4. Verify compose reflects the playspec
+//  4. Verify compose reflects the spec
 //  5. Clean up
-func TestE2E_PlayspecToPlayground(t *testing.T) {
+func TestE2E_SpecToPlayground(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	marqueeID := testMarqueeID(t)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run E2E flow")
+	hostID := testHostID(t)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to run E2E flow")
 	}
 
-	// Step 1: playspec with distinct service names for reliable verification
 	specName := uniqueName("e2e-spec")
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            specName,
 		BaseComposeYAML: realComposeYAML(),
-		Services: []fibe.PlayspecServiceDef{
+		Services: []fibe.SpecServiceDef{
 			{Name: "web", Type: fibe.ServiceTypeStatic},
 			{Name: "db", Type: fibe.ServiceTypeStatic},
 			{Name: "cache", Type: fibe.ServiceTypeStatic},
 		},
 	})
-	requireNoError(t, err, "create e2e playspec")
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	requireNoError(t, err, "create e2e spec")
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
-	// Step 2: services endpoint must reflect 3 services
-	services, err := c.Playspecs.Services(ctx(), *spec.ID)
+	services, err := c.Specs.Services(ctx(), *spec.ID)
 	requireNoError(t, err)
 	if services == nil {
 		t.Error("expected non-nil services response")
 	}
 
-	// Step 3: deploy playground
 	pgName := uniqueName("e2e-pg")
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       pgName,
-		PlayspecID: *spec.ID,
-		MarqueeID:  &marqueeID,
+		Name:   pgName,
+		SpecID: *spec.ID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err, "create e2e playground")
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
 
-	// Step 4: compose YAML must contain our service names (web/db/cache), poll for render
 	var lastComposeErr error
-	cmp, found := pollUntil(120, time.Second, func() (*fibe.PlaygroundCompose, bool) {
+	cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
 		c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
 		if err != nil {
 			lastComposeErr = err
@@ -67,9 +63,9 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 	})
 	if !found {
 		if lastComposeErr != nil {
-			t.Skipf("compose YAML not rendered in time; last compose error: %v", lastComposeErr)
+			t.Fatalf("compose YAML not rendered within %s; last compose error: %v", PlaygroundLaunchWaitTimeout, lastComposeErr)
 		}
-		t.Skip("compose YAML not rendered in time")
+		t.Fatalf("compose YAML not rendered within %s", PlaygroundLaunchWaitTimeout)
 	}
 	for _, svc := range []string{"web", "db", "cache"} {
 		if !strings.Contains(cmp.ComposeYAML, svc+":") {
@@ -77,7 +73,6 @@ func TestE2E_PlayspecToPlayground(t *testing.T) {
 		}
 	}
 
-	// Step 5: status polling works
 	status := waitForPlaygroundStatus(t, c, pg.ID, []string{"running", "error", "failed", "in_progress"}, CapWaitTimeout)
 	if status == "" {
 		t.Error("playground never left empty status")
@@ -109,7 +104,6 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 			}
 			requireNoError(t, err)
 		}
-		// Verify fixed Create returns real Artefact (not nil)
 		if art == nil || art.ID == 0 {
 			t.Errorf("expected Artefact.Create to return populated struct, got %+v", art)
 		}
@@ -118,14 +112,13 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 		}
 	}
 
-	// List should include all 3
 	list, err := c.Artefacts.List(ctx(), ag.ID, &fibe.ArtefactListParams{PerPage: 50})
 	requireNoError(t, err)
 	if list.Meta.Total < 3 {
 		t.Logf("expected >= 3 artefacts, got %d (may be async)", list.Meta.Total)
 	}
 
-	// Download the first one — the backend may return content as bytes
+	// Download the first one: the backend may return content as bytes
 	if len(list.Data) > 0 {
 		first := list.Data[0]
 		body, _, _, err := c.Artefacts.Download(ctx(), ag.ID, first.ID)
@@ -146,7 +139,7 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 	}
 }
 
-// TestE2E_SecretRotation verifies full secret lifecycle — create, read, update value, re-read, delete.
+// TestE2E_SecretRotation verifies full secret lifecycle: create, read, update value, re-read, delete.
 func TestE2E_SecretRotation(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -161,19 +154,16 @@ func TestE2E_SecretRotation(t *testing.T) {
 		}
 	})
 
-	// Read
 	got, err := c.Secrets.Get(ctx(), *s.ID, true)
 	requireNoError(t, err)
 	if got.Value == nil || *got.Value != original {
 		t.Errorf("expected Value=%q, got %v", original, got.Value)
 	}
 
-	// Rotate
 	rotated := "rotated-" + uniqueName("")
 	_, err = c.Secrets.Update(ctx(), *s.ID, &fibe.SecretUpdateParams{Value: &rotated})
 	requireNoError(t, err)
 
-	// Read new value
 	got2, err := c.Secrets.Get(ctx(), *s.ID, true)
 	requireNoError(t, err)
 	if got2.Value == nil || *got2.Value != rotated {

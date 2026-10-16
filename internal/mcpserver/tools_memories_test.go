@@ -33,28 +33,28 @@ func TestMemoryToolSchemas(t *testing.T) {
 	}
 
 	schema := srv.toolSchemas["fibe_memorize"]
-	props, ok := schema["properties"].(map[string]any)
+	repositories, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("memorize schema properties missing: %#v", schema)
 	}
 	for _, want := range []string{"conversation_id", "content", "agent_id_or_name", "tags", "confidence", "groundings", "only"} {
-		if _, ok := props[want]; !ok {
-			t.Fatalf("memorize schema property %q missing: %#v", want, props)
+		if _, ok := repositories[want]; !ok {
+			t.Fatalf("memorize schema property %q missing: %#v", want, repositories)
 		}
 	}
-	if _, ok := props["agent_id"]; ok {
-		t.Fatalf("memorize schema should expose agent_id_or_name, not agent_id: %#v", props)
+	if _, ok := repositories["agent_id"]; ok {
+		t.Fatalf("memorize schema should expose agent_id_or_name, not agent_id: %#v", repositories)
 	}
-	if _, ok := props["conversation"]; ok {
-		t.Fatalf("memorize schema should not expose conversation object: %#v", props)
+	if _, ok := repositories["conversation"]; ok {
+		t.Fatalf("memorize schema should not expose conversation object: %#v", repositories)
 	}
 	for _, disallowed := range []string{"messages", "raw_content", "provider"} {
-		if _, ok := props[disallowed]; ok {
-			t.Fatalf("memorize schema should not ask agents for %s: %#v", disallowed, props)
+		if _, ok := repositories[disallowed]; ok {
+			t.Fatalf("memorize schema should not ask agents for %s: %#v", disallowed, repositories)
 		}
 	}
-	if _, ok := props["output_path"]; ok {
-		t.Fatalf("memorize schema should not expose output_path: %#v", props)
+	if _, ok := repositories["output_path"]; ok {
+		t.Fatalf("memorize schema should not expose output_path: %#v", repositories)
 	}
 }
 

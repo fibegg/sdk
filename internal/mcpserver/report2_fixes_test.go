@@ -9,8 +9,6 @@ import (
 )
 
 // TestRun2_FibeCallForwardsConfirm verifies that fibe_call(tool: "<destructive>",
-// confirm: true) reaches the dispatcher with confirm true (so the destructive
-// gate does NOT trip). Regression for Run 2 NEW-3.
 func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
@@ -19,7 +17,6 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Top-level confirm should be forwarded into args.
 	_, err := srv.dispatcher.dispatch(ctx, "fibe_call", map[string]any{
 		"tool":    "fibe_resource_delete",
 		"args":    map[string]any{"resource": "audit_log", "id": 42},
@@ -34,15 +31,12 @@ func TestRun2_FibeCallForwardsConfirm(t *testing.T) {
 		}
 	}
 
-	// confirm inside args should also work.
 	_, err = srv.dispatcher.dispatch(ctx, "fibe_call", map[string]any{
 		"tool": "fibe_resource_delete",
 		"args": map[string]any{"resource": "audit_log", "id": 42, "confirm": true},
 	})
-	if err != nil {
-		if _, ok := err.(*confirmRequiredError); ok {
-			t.Fatalf("nested args.confirm:true on fibe_call should NOT trigger confirm-required gate, got: %v", err)
-		}
+	if _, ok := err.(*confirmRequiredError); ok {
+		t.Fatalf("nested args.confirm:true on fibe_call should NOT trigger confirm-required gate, got: %v", err)
 	}
 
 	// Without confirm anywhere, gate must trip.
@@ -81,12 +75,8 @@ func TestRun2_TemplatesVersionsHelpResolvesCreate(t *testing.T) {
 	}
 }
 
-
-
 func buildRootForHelpTest(t *testing.T) *cobra.Command {
 	t.Helper()
-	// Build a minimal cobra tree mirroring the production layout for the
-	// templates command, since we can't import the main package from here.
 	root := &cobra.Command{Use: "fibe"}
 	templates := &cobra.Command{Use: "templates"}
 	versions := &cobra.Command{Use: "versions", Short: "Manage template versions"}

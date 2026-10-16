@@ -11,7 +11,7 @@ import (
 )
 
 // TestServerBootstrap verifies the MCP server can be constructed, tools can
-// be registered, and dispatcher lookups find every registered tool — all
+// be registered, and dispatcher lookups find every registered tool: all
 // without touching the network.
 func TestServerBootstrap(t *testing.T) {
 	srv := New(Config{
@@ -229,7 +229,7 @@ func TestCoreModeAdvertisesTemplateIterationAndDiagnosticsTools(t *testing.T) {
 	if _, ok := srv.dispatcher.lookup("fibe_templates_change"); !ok {
 		t.Errorf("fibe_templates_change should remain registered as a hidden callable tool")
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -291,13 +291,13 @@ func TestAdvertisedToolInputSchemasHaveObjectProperties(t *testing.T) {
 						t.Fatalf("%s inputSchema has top-level %q, which breaks OpenAI/Codex-style MCP clients: %#v", tool.Tool.Name, keyword, schema[keyword])
 					}
 				}
-				props, ok := schema["properties"].(map[string]any)
+				repositories, ok := schema["properties"].(map[string]any)
 				if !ok {
 					t.Fatalf("%s inputSchema.properties is %T, want object", tool.Tool.Name, schema["properties"])
 				}
-				for name, prop := range props {
-					if _, ok := prop.(map[string]any); !ok {
-						t.Fatalf("%s inputSchema.properties.%s is %T (%#v), want object schema", tool.Tool.Name, name, prop, prop)
+				for name, repository := range repositories {
+					if _, ok := repository.(map[string]any); !ok {
+						t.Fatalf("%s inputSchema.properties.%s is %T (%#v), want object schema", tool.Tool.Name, name, repository, repository)
 					}
 				}
 			}
@@ -421,7 +421,7 @@ func TestToolsCatalogNamePatternMatchesDescriptions(t *testing.T) {
 	}
 
 	out, err := srv.dispatcher.dispatch(context.Background(), "fibe_tools_catalog", map[string]any{
-		"name_pattern": "registered and available",
+		"name_pattern": "registered Fibe MCP tool",
 	})
 	if err != nil {
 		t.Fatalf("fibe_tools_catalog: %v", err)
@@ -434,25 +434,25 @@ func TestToolsCatalogNamePatternMatchesDescriptions(t *testing.T) {
 
 func assertSchemaDescriptionsAndIDMinimums(t *testing.T, path string, schema map[string]any) {
 	t.Helper()
-	props, _ := schema["properties"].(map[string]any)
-	for name, raw := range props {
-		prop, ok := raw.(map[string]any)
+	repositories, _ := schema["properties"].(map[string]any)
+	for name, raw := range repositories {
+		repository, ok := raw.(map[string]any)
 		if !ok {
 			continue
 		}
 		fieldPath := path + "." + name
-		desc, _ := prop["description"].(string)
+		desc, _ := repository["description"].(string)
 		if strings.TrimSpace(desc) == "" {
 			t.Fatalf("%s is missing description", fieldPath)
 		}
-		if isNumericIDSchema(name, prop) {
-			minimum, ok := numericMinimum(prop["minimum"])
+		if isNumericIDSchema(name, repository) {
+			minimum, ok := numericMinimum(repository["minimum"])
 			if !ok || minimum < 1 {
-				t.Fatalf("%s missing minimum >= 1: %#v", fieldPath, prop)
+				t.Fatalf("%s missing minimum >= 1: %#v", fieldPath, repository)
 			}
 		}
-		assertSchemaDescriptionsAndIDMinimums(t, fieldPath, prop)
-		if items, ok := prop["items"].(map[string]any); ok {
+		assertSchemaDescriptionsAndIDMinimums(t, fieldPath, repository)
+		if items, ok := repository["items"].(map[string]any); ok {
 			assertSchemaDescriptionsAndIDMinimums(t, fieldPath+"[]", items)
 		}
 	}
@@ -460,17 +460,17 @@ func assertSchemaDescriptionsAndIDMinimums(t *testing.T, path string, schema map
 
 func schemaPropertyEnum(t *testing.T, schema map[string]any, property string) []string {
 	t.Helper()
-	props, ok := schema["properties"].(map[string]any)
+	repositories, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema properties is %T", schema["properties"])
 	}
-	prop, ok := props[property].(map[string]any)
+	repository, ok := repositories[property].(map[string]any)
 	if !ok {
-		t.Fatalf("schema property %q is %T", property, props[property])
+		t.Fatalf("schema property %q is %T", property, repositories[property])
 	}
-	raw, ok := prop["enum"].([]any)
+	raw, ok := repository["enum"].([]any)
 	if !ok {
-		t.Fatalf("schema property %q enum is %T", property, prop["enum"])
+		t.Fatalf("schema property %q enum is %T", property, repository["enum"])
 	}
 	out := make([]string, 0, len(raw))
 	for _, value := range raw {
@@ -537,17 +537,14 @@ func TestCoreTierFilter(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	// Dispatcher has everything regardless of tier.
 	full := srv.dispatcher.names()
 
-	// Meta tools are included by the core shortcut.
 	for _, meta := range []string{"fibe_pipeline", "fibe_help", "fibe_run"} {
 		if _, ok := srv.dispatcher.lookup(meta); !ok {
 			t.Errorf("%s should always be registered", meta)
 		}
 	}
 
-	// Generic resource tools replace the old flat list/get/delete MCP tools.
 	if _, ok := srv.dispatcher.lookup("fibe_resource_delete"); !ok {
 		t.Errorf("fibe_resource_delete should be reachable via dispatcher in core mode")
 	}
@@ -555,7 +552,6 @@ func TestCoreTierFilter(t *testing.T) {
 		t.Errorf("old flat fibe_api_keys_delete should not be registered")
 	}
 
-	// Count scaled with tier.
 	t.Logf("registered %d tools in core mode (dispatcher-level)", len(full))
 }
 
@@ -593,7 +589,7 @@ func TestCoreAdvertisesMainPlaygroundToolsAndMeta(t *testing.T) {
 	if advertised["fibe_templates_change"] {
 		t.Errorf("fibe_templates_change should not be advertised in core mode")
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if advertised[name] {
 			t.Errorf("%s should not be advertised in core mode", name)
 		}
@@ -723,7 +719,7 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	if tool["hidden"] != true || tool["advertised"] != false {
 		t.Fatalf("hidden catalog entry fibe_templates_change should be hidden and unadvertised: %#v", tool)
 	}
-		for _, name := range []string{"fibe_templates_develop"} {
+	for _, name := range []string{"fibe_templates_develop"} {
 		if catalogHasTool(coreTools, name) {
 			t.Fatalf("core catalog should not include removed deprecated alias %s", name)
 		}
@@ -746,8 +742,6 @@ func TestToolsCatalogTierShortcuts(t *testing.T) {
 	}
 }
 
-// TestConfirmGate verifies destructive tools require confirm:true unless
-// --yolo is set.
 func TestConfirmGate(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "core"})
 	if err := srv.RegisterAll(); err != nil {
@@ -756,7 +750,6 @@ func TestConfirmGate(t *testing.T) {
 
 	ctx := context.Background()
 
-	// fibe_resource_delete without confirm should error.
 	_, err := srv.dispatcher.dispatch(ctx, "fibe_resource_delete", map[string]any{
 		"resource": "playground",
 		"id":       42,
@@ -765,17 +758,13 @@ func TestConfirmGate(t *testing.T) {
 		t.Fatalf("expected confirm-required error, got nil")
 	}
 	if _, ok := err.(*confirmRequiredError); !ok {
-		// Could also fail at client resolution for other reasons, but the
-		// confirm gate runs first.
+		// Some dispatch paths wrap the confirmation error.
 		if !strings.Contains(err.Error(), "confirm:true") && !strings.Contains(err.Error(), "destructive") {
 			t.Fatalf("expected confirm-required error, got: %v", err)
 		}
 	}
 }
 
-// TestYoloSkipsConfirm: with Yolo=true, destructive tools run without confirm.
-// We can't actually call the API (no network), but we can verify the gate is
-// bypassed by substituting a stub client path.
 func TestYoloSkipsConfirm(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "core", Yolo: true})
 	if err := srv.RegisterAll(); err != nil {
@@ -787,17 +776,14 @@ func TestYoloSkipsConfirm(t *testing.T) {
 		"resource": "audit_log",
 		"id":       42,
 	})
-	// Should NOT fail with confirm-required. Will likely fail trying to hit
-	// the network, which is fine — we just care that the confirm gate was skipped.
-	if err != nil {
-		if _, ok := err.(*confirmRequiredError); ok {
-			t.Fatalf("yolo mode should bypass confirm gate, but got confirm-required error")
-		}
+	// No API is available; this only proves that the confirmation gate was bypassed.
+	if _, ok := err.(*confirmRequiredError); ok {
+		t.Fatalf("yolo mode should bypass confirm gate, but got confirm-required error")
 	}
 }
 
 // TestPipelineRefs exercises the JSONPath binding resolver without hitting
-// the network: we register a fake tool that just echoes its args.
+// the network: register a fake tool that echoes its args.
 func TestPipelineRefs(t *testing.T) {
 	srv := New(Config{APIKey: "pk_test", ToolSet: "full", PipelineCacheSize: 4, PipelineMaxSteps: 10})
 	if err := srv.RegisterAll(); err != nil {
@@ -864,7 +850,6 @@ func TestPipelineCache(t *testing.T) {
 		t.Fatal("expected non-empty pipeline_id")
 	}
 
-	// Re-query via fibe_pipeline_result.
 	result, err := srv.dispatcher.dispatch(ctx, "fibe_pipeline_result", map[string]any{
 		"pipeline_id": pid,
 		"path":        "$.steps.a.v",

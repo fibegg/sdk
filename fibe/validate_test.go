@@ -8,14 +8,14 @@ import (
 
 func TestPlaygroundCreateParams_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		p := &PlaygroundCreateParams{Name: "test", PlayspecID: 1}
+		p := &PlaygroundCreateParams{Name: "test", SpecID: 1}
 		if err := p.Validate(); err != nil {
 			t.Errorf("expected no error, got: %v", err)
 		}
 	})
 
 	t.Run("missing name", func(t *testing.T) {
-		p := &PlaygroundCreateParams{PlayspecID: 1}
+		p := &PlaygroundCreateParams{SpecID: 1}
 		err := p.Validate()
 		if err == nil {
 			t.Fatal("expected error")
@@ -29,7 +29,7 @@ func TestPlaygroundCreateParams_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("missing playspec_id", func(t *testing.T) {
+	t.Run("missing spec_id", func(t *testing.T) {
 		p := &PlaygroundCreateParams{Name: "test"}
 		err := p.Validate()
 		if err == nil {
@@ -39,8 +39,8 @@ func TestPlaygroundCreateParams_Validate(t *testing.T) {
 
 	t.Run("invalid subdomain in service", func(t *testing.T) {
 		p := &PlaygroundCreateParams{
-			Name:       "test",
-			PlayspecID: 1,
+			Name:   "test",
+			SpecID: 1,
 			Services: map[string]*ServiceConfig{
 				"web": {Exposure: &ServiceExposure{Subdomain: "INVALID SUBDOMAIN!"}},
 			},
@@ -86,16 +86,16 @@ func TestAgentCreateParams_Validate(t *testing.T) {
 	})
 }
 
-func TestPlayspecCreateParams_Validate(t *testing.T) {
+func TestSpecCreateParams_Validate(t *testing.T) {
 	t.Run("valid minimal", func(t *testing.T) {
-		p := &PlayspecCreateParams{Name: "test", BaseComposeYAML: "services:\n  web:\n    image: nginx\n"}
+		p := &SpecCreateParams{Name: "test", BaseComposeYAML: "services:\n  web:\n    image: nginx\n"}
 		if err := p.Validate(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("missing compose", func(t *testing.T) {
-		p := &PlayspecCreateParams{Name: "test"}
+		p := &SpecCreateParams{Name: "test"}
 		err := p.Validate()
 		if err == nil {
 			t.Fatal("expected error")
@@ -103,10 +103,10 @@ func TestPlayspecCreateParams_Validate(t *testing.T) {
 	})
 
 	t.Run("duplicate service names", func(t *testing.T) {
-		p := &PlayspecCreateParams{
+		p := &SpecCreateParams{
 			Name:            "test",
 			BaseComposeYAML: "services:\n  web:\n    image: nginx\n",
-			Services: []PlayspecServiceDef{
+			Services: []SpecServiceDef{
 				{Name: "web", Type: ServiceTypeStatic},
 				{Name: "web", Type: ServiceTypeStatic},
 			},
@@ -118,10 +118,10 @@ func TestPlayspecCreateParams_Validate(t *testing.T) {
 	})
 
 	t.Run("invalid service type", func(t *testing.T) {
-		p := &PlayspecCreateParams{
+		p := &SpecCreateParams{
 			Name:            "test",
 			BaseComposeYAML: "yaml",
-			Services:        []PlayspecServiceDef{{Name: "web", Type: "invalid"}},
+			Services:        []SpecServiceDef{{Name: "web", Type: "invalid"}},
 		}
 		err := p.Validate()
 		if err == nil {
@@ -130,16 +130,16 @@ func TestPlayspecCreateParams_Validate(t *testing.T) {
 	})
 }
 
-func TestMarqueeCreateParams_Validate(t *testing.T) {
+func TestHostCreateParams_Validate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		p := &MarqueeCreateParams{Name: "test", Host: "10.0.1.5", Port: 22, User: "deploy", SSHPrivateKey: "key"}
+		p := &HostCreateParams{Name: "test", Host: "10.0.1.5", Port: 22, User: "deploy", SSHPrivateKey: "key"}
 		if err := p.Validate(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("invalid port", func(t *testing.T) {
-		p := &MarqueeCreateParams{Name: "test", Host: "host", Port: 99999, User: "u", SSHPrivateKey: "k"}
+		p := &HostCreateParams{Name: "test", Host: "host", Port: 99999, User: "u", SSHPrivateKey: "k"}
 		err := p.Validate()
 		if err == nil {
 			t.Fatal("expected error for invalid port")
@@ -148,7 +148,7 @@ func TestMarqueeCreateParams_Validate(t *testing.T) {
 
 	t.Run("dockerhub enabled without credentials", func(t *testing.T) {
 		enabled := true
-		p := &MarqueeCreateParams{
+		p := &HostCreateParams{
 			Name: "test", Host: "host", Port: 22, User: "u", SSHPrivateKey: "k",
 			DockerhubAuthEnabled: &enabled,
 		}

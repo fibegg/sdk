@@ -10,14 +10,13 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 08-error-handling.spec.js + 20-edge-cases.spec.js
 func TestEdgeCases_ErrorHandling(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
 	t.Run("nonexistent resource returns structured error", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Marquees.Get(ctx(), 999999)
+		_, err := c.Hosts.Get(ctx(), 999999)
 		apiErr := requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 		if apiErr.Message == "" {
 			t.Error("expected error message")
@@ -30,9 +29,9 @@ func TestEdgeCases_ErrorHandling(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("delete nonexistent prop returns 404", func(t *testing.T) {
+	t.Run("delete nonexistent repository returns 404", func(t *testing.T) {
 		t.Parallel()
-		err := c.Props.Delete(ctx(), 999999)
+		err := c.Repositories.Delete(ctx(), 999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
@@ -43,7 +42,6 @@ func TestEdgeCases_ErrorHandling(t *testing.T) {
 	})
 }
 
-// Migrated from: 20-edge-cases.spec.js
 func TestEdgeCases_OversizedInputs(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -57,7 +55,7 @@ func TestEdgeCases_OversizedInputs(t *testing.T) {
 		})
 		if err == nil {
 			t.Cleanup(func() { c.Agents.Delete(ctx(), agent.ID) })
-			t.Error("server accepted oversized agent name (1000 chars) — should reject with 422")
+			t.Error("server accepted oversized agent name (1000 chars): should reject with 422")
 		}
 	})
 
@@ -70,7 +68,7 @@ func TestEdgeCases_OversizedInputs(t *testing.T) {
 		})
 		if err == nil {
 			t.Cleanup(func() { c.Secrets.Delete(ctx(), *s.ID) })
-			t.Error("server accepted oversized secret value (100KB) — should reject with 422")
+			t.Error("server accepted oversized secret value (100KB): should reject with 422")
 		}
 	})
 }
@@ -115,7 +113,7 @@ func TestEdgeCases_APIContract(t *testing.T) {
 			t.Skip("FIBE_API_KEY not set")
 		}
 
-		paths := []string{"/api/me", "/api/agents", "/api/playspecs"}
+		paths := []string{"/api/me", "/api/agents", "/api/specs"}
 		for _, path := range paths {
 			req, _ := http.NewRequestWithContext(context.Background(), "GET", c.BaseURL()+path, nil)
 			req.Header.Set("Authorization", "Bearer "+apiKey)
@@ -130,7 +128,6 @@ func TestEdgeCases_APIContract(t *testing.T) {
 	})
 }
 
-// Migrated from: 20-edge-cases.spec.js
 func TestEdgeCases_ContentType(t *testing.T) {
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -107,7 +106,10 @@ func fbGetCmd() *cobra.Command {
 		Use: "get <agent-id-or-name> <id>", Short: "Show feedback", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[1], 10, 64)
+			id, err := positiveInputID(args[1], "id")
+			if err != nil {
+				return err
+			}
 			fb, err := c.Feedbacks.GetByAgentIdentifier(ctx(), args[0], id)
 			if err != nil {
 				return err
@@ -158,7 +160,10 @@ func fbDeleteCmd() *cobra.Command {
 		Use: "delete <agent-id-or-name> <id>", Short: "Delete feedback", Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[1], 10, 64)
+			id, err := positiveInputID(args[1], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.Feedbacks.DeleteByAgentIdentifier(ctx(), args[0], id); err != nil {
 				return err
 			}

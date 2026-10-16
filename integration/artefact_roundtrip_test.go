@@ -25,7 +25,7 @@ func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 	}, strings.NewReader(content), filename)
 	requireNoError(t, err)
 	if art == nil {
-		t.Fatal("Artefact.Create returned nil struct — REGRESSION (see fix in svc_artefacts.go)")
+		t.Fatal("Artefact.Create returned nil struct: REGRESSION (see fix in svc_artefacts.go)")
 	}
 	if art.ID == 0 {
 		t.Errorf("Artefact.ID should be > 0, got %d", art.ID)
@@ -74,7 +74,6 @@ func TestArtefact_ContentRoundtrip(t *testing.T) {
 				t.Skip("artefact create returned no ID; skipping roundtrip")
 			}
 
-			// Download
 			body, _, _, err := c.Artefacts.Download(ctx(), ag.ID, art.ID)
 			if err != nil {
 				if apiErr, ok := err.(*fibe.APIError); ok && apiErr.StatusCode == 404 {
@@ -87,7 +86,6 @@ func TestArtefact_ContentRoundtrip(t *testing.T) {
 			got, err := io.ReadAll(body)
 			requireNoError(t, err)
 			if !bytes.Equal(got, tc.content) {
-				// Content mismatch — log size info for debugging
 				t.Errorf("content mismatch: want %d bytes, got %d bytes", len(tc.content), len(got))
 			}
 		})

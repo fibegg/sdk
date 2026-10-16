@@ -21,18 +21,16 @@ import (
 // call. Most are meta tools, with auth/local helpers assigned to their
 // explicit advertised tiers.
 func (s *Server) registerMetaTools() {
-	// ---------- fibe_status ----------
 	s.addTool(&toolImpl{
-		name: "fibe_status", description: "[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, and rate limits across your account.", tier: tierMeta,
+		name: "fibe_status", description: "[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.Status.Get(ctx)
 		},
 	}, mcp.NewTool("fibe_status",
-		mcp.WithDescription("[MODE:DIALOG] Display a comprehensive dashboard of resource counts, quotas, rate limits, and subscription info."),
+		mcp.WithDescription("[MODE:DIALOG] Show resource counts, quotas, rate limits, and subscription details."),
 	))
 
-	// ---------- fibe_doctor ----------
 	s.addTool(&toolImpl{
 		name: "fibe_doctor", description: "[MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -69,17 +67,9 @@ func (s *Server) registerMetaTools() {
 		mcp.WithDescription("[MODE:DIALOG] Run self-diagnostic checks: verify API key validity, server connectivity, SDK version, and display user profile (ID, username, GitHub handle, email, avatar, scopes)."),
 	))
 
-	// ---------- fibe_auth_set ----------
-	// Session-scoped credential override — useful for multi-tenant HTTP
-	// deployments where different sessions need different API keys.
-	//
-	// By default fibe_auth_set runs a Ping() against /api/me with the new
-	// creds before committing them to session state. If the ping fails the
-	// old creds are left intact, preventing the "poisoned session" failure
-	// mode where subsequent calls keep returning 401 because a typo'd key
-	// was silently installed. Pass validate:false to skip the ping.
+	// Validate before replacing session credentials; validate:false skips the ping.
 	s.addTool(&toolImpl{
-		name: "fibe_auth_set", description: "[MODE:SIDEEFFECTS] Configure session-scoped authentication credentials for multi-tenant setups in case you have to work with multiple FIBE_API_KEY+FIBE_DOMAIN combinations", tier: tierOther,
+		name: "fibe_auth_set", description: "[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.", tier: tierOther,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, _ *fibe.Client, args map[string]any) (any, error) {
 			apiKey := argString(args, "api_key")
@@ -94,24 +84,22 @@ func (s *Server) registerMetaTools() {
 				}
 			}
 
-			// Snapshot prior state so we can roll back on validation failure.
 			prev := s.sessionFor(ctx)
 			prev.mu.RLock()
-			prevKey, prevDomain := prev.apiKey, prev.domain
+			prevProfile, prevKey, prevDomain := prev.profile, prev.apiKey, prev.domain
 			prev.mu.RUnlock()
 
 			s.setSessionAuth(ctx, apiKey, domain)
 
 			if validate {
-				// Force a rebuild of the cached client so the ping uses the
-				// new creds.
 				newClient, err := s.resolveClient(ctx)
-				if err == nil && newClient != nil {
-					if pingErr := newClient.Ping(ctx); pingErr != nil {
-						// Roll back — leave the session in its prior state.
-						s.setSessionAuth(ctx, prevKey, prevDomain)
-						return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", pingErr)
-					}
+				if err != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", err)
+				}
+				if pingErr := newClient.Ping(ctx); pingErr != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_set validation failed (credentials NOT saved): %w", pingErr)
 				}
 			}
 
@@ -137,7 +125,6 @@ one-off credentials supplied explicitly by the user.`),
 		mcp.WithBoolean("validate", mcp.Description("Ping /api/me with the new creds before saving (default: true)")),
 	))
 
-	// ---------- fibe_auth_list ----------
 	s.addTool(&toolImpl{
 		name: "fibe_auth_list", description: "[MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -154,7 +141,6 @@ one-off credentials supplied explicitly by the user.`),
 		mcp.WithDescription("List local Fibe auth profiles available to this MCP server. API keys are masked and never returned in full."),
 	))
 
-	// ---------- fibe_auth_status ----------
 	s.addTool(&toolImpl{
 		name: "fibe_auth_status", description: "[MODE:DIALOG] Show the current MCP session auth target and selected profile, if any.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -185,7 +171,6 @@ one-off credentials supplied explicitly by the user.`),
 		mcp.WithDescription("Show the current MCP session auth target and selected profile, if any."),
 	))
 
-	// ---------- fibe_auth_use ----------
 	s.addTool(&toolImpl{
 		name: "fibe_auth_use", description: "[MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately.", tier: tierMeta,
 		annotations: toolAnnotations{},
@@ -213,11 +198,13 @@ one-off credentials supplied explicitly by the user.`),
 			s.setSessionProfile(ctx, profile, apiKey, domain)
 			if validate {
 				newClient, err := s.resolveClient(ctx)
-				if err == nil && newClient != nil {
-					if pingErr := newClient.Ping(ctx); pingErr != nil {
-						s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
-						return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
-					}
+				if err != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", err)
+				}
+				if pingErr := newClient.Ping(ctx); pingErr != nil {
+					s.setSessionProfile(ctx, prevProfile, prevKey, prevDomain)
+					return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
 				}
 			}
 			return map[string]any{
@@ -239,9 +226,8 @@ selected profile with /api/me before keeping the new session client.`),
 		mcp.WithBoolean("validate", mcp.Description("Ping /api/me with the selected profile before saving (default: true).")),
 	))
 
-	// ---------- local playground helpers ----------
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, URLs, mounts, or details from /opt/fibe/playgrounds or MARQUEE_ROOT.", tier: tierBrownfield,
+		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or HOST_ROOT.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))
@@ -256,20 +242,23 @@ selected profile with /api/me before keeping the new session client.`),
 			if err != nil {
 				return nil, err
 			}
-			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain())
+			return localplaygrounds.View(playgrounds, view, selector, localplaygrounds.RootDomain(), argString(args, "link_dir"))
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_info",
-		mcp.WithDescription(`Inspect local playgrounds from the Marquee filesystem without calling the Fibe API.
+		mcp.WithDescription(`Inspect local playgrounds from the Host filesystem without calling the Fibe API.
 
 Views:
-  names    list selector-visible local playground names, playspecs, IDs, and paths; omit id_or_name
+  names    list selector-visible mountable local playground names, specs, IDs, and paths; omit id_or_name
+  current  currently linked playground JSON state; omit id_or_name
+  repos    git repository roots for the currently linked playground; omit id_or_name
   urls     exposed service URLs for one playground
   mounts   source-code mount locations for one playground
   details  full local metadata for one playground
 
-Selectors accept local numeric playground ID, compose project/name, playspec, or unique playspec prefix.`),
-		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, urls, mounts, or details.")),
-		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix. Omit for view=names.")),
+Selectors accept local numeric playground ID, compose project/name, spec, or unique spec prefix.`),
+		mcp.WithString("view", mcp.Required(), mcp.Enum(localplaygrounds.Views...), mcp.Description("Output view: names, current, repos, urls, mounts, or details.")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix. Omit for view=names.")),
+		mcp.WithString("link_dir", mcp.Description("Current-link directory for view=current or view=repos (default: /app/playground).")),
 	))
 
 	s.addTool(&toolImpl{
@@ -288,12 +277,10 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 		},
 	}, mcp.NewTool("fibe_local_playgrounds_link",
 		mcp.WithDescription("[MODE:BROWNFIELD] Link local playground mounts into a working directory."),
-		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, playspec, or unique playspec prefix")),
+		mcp.WithString("id_or_name", mcp.Description("Local playground ID, name, compose project, spec, or unique spec prefix")),
 		mcp.WithString("link_dir", mcp.Description("Target directory for symlinks (default: /app/playground)")),
 	))
 
-	// ---------- fibe_help ----------
-	// Returns cobra Long help for any fibe subcommand.
 	s.addTool(&toolImpl{
 		name: "fibe_help", description: "[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -321,13 +308,15 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 		mcp.WithString("path", mcp.Description("Space-separated command path, e.g. \"playgrounds create\". Empty = root help.")),
 	))
 
-	// ---------- fibe_run ----------
-	// Escape hatch: invoke any fibe CLI command programmatically.
 	s.addTool(&toolImpl{
 		name: "fibe_run", description: "[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if fibeRunRequiresConfirm(args) && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
+			requiresConfirm, err := s.fibeRunRequiresConfirm(args)
+			if err != nil && !s.cfg.Yolo && !yoloFromContext(ctx) {
+				return nil, err
+			}
+			if requiresConfirm && !s.cfg.Yolo && !yoloFromContext(ctx) && !argBool(args, "confirm") {
 				return nil, &confirmRequiredError{tool: "fibe_run"}
 			}
 			return s.runCobra(ctx, args)
@@ -335,16 +324,15 @@ Selectors accept local numeric playground ID, compose project/name, playspec, or
 	}, mcp.NewTool("fibe_run",
 		mcp.WithDescription(`Last-resort escape hatch for arbitrary CLI commands.
 
-Prefer dedicated MCP tools first (for example fibe_launch, fibe_greenfield_create, fibe_playgrounds_*, fibe_props_*, etc.). If the target tool already exists but is not advertised in the current tier, prefer fibe_call over fibe_run.
+Prefer dedicated MCP tools first (for example fibe_launch, fibe_greenfield_create, fibe_playgrounds_*, fibe_repositories_*, etc.). If the target tool already exists but is not advertised in the current tier, prefer fibe_call over fibe_run.
 
 Use timeout_ms to bound risky calls that might otherwise outlive the host's tool-call budget.`),
 		mcp.WithArray("args", mcp.Required(), mcp.WithStringItems(),
 			mcp.Description("Command args as if typed after `fibe`. Scalar items (string, number, boolean) are accepted and stringified into CLI tokens in-order.")),
 		mcp.WithNumber("timeout_ms", mcp.Description("Optional per-call timeout in milliseconds. Recommended for risky escape-hatch calls.")),
-		mcp.WithBoolean("confirm", mcp.Description("Required for delete/destroy/remove CLI paths unless server runs with --yolo.")),
+		mcp.WithBoolean("confirm", mcp.Description("Required for destructive CLI commands unless server runs with --yolo.")),
 	))
 
-	// ---------- fibe_schema ----------
 	// Returns the shared resource schema registry. Generic resource tools
 	// validate against this registry before dispatch, so fibe_schema is the
 	// authoritative source for resource-operation payload shapes.
@@ -386,7 +374,7 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 						jobMode := argBool(payload, "job_mode")
 						params.JobMode = &jobMode
 					}
-					return c.Playspecs.ValidateComposeWithParams(ctx, params)
+					return c.Specs.ValidateComposeWithParams(ctx, params)
 				}
 			}
 			schema, _, op, ok := resourceschema.SchemaFor(canonical, operation)
@@ -403,23 +391,9 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 	))
 }
 
-// runCobra implements the fibe_run escape hatch. In real MCP sessions it runs
-// the configured fibe executable as a subprocess so behavior matches the
-// installed CLI. Embedded tests and hosts without CobraExecutable use the
-// in-process cobra fallback below.
-//
-// This is particularly sensitive: every cmd_*.go handler uses fmt.Println /
-// fmt.Printf which writes directly to os.Stdout. Under the MCP stdio
-// transport, os.Stdout IS the JSON-RPC pipe, and a stray byte there
-// permanently corrupts the connection. ServeStdio already redirects the
-// global os.Stdout to os.Stderr (see server.go), so cobra-originated output
-// normally lands on stderr — safe but invisible to the caller.
-//
-// For fibe_run specifically we want to RETURN the command output to the
-// agent. So we additionally swap os.Stdout to a pipe for the duration of
-// Execute() and drain the pipe into a buffer. When Execute() returns we
-// restore the previous os.Stdout (still stderr, not the MCP pipe) so later
-// tool calls remain isolated.
+// runCobra backs fibe_run with the installed CLI, or in-process Cobra in tests.
+// The fallback captures Cobra's stdout so command output is returned without
+// corrupting the stdio JSON-RPC stream, then restores the previous descriptor.
 func (s *Server) runCobra(ctx context.Context, args map[string]any) (any, error) {
 	raw, ok := args["args"]
 	if !ok {
@@ -543,23 +517,38 @@ func containsCLIFlag(args []string, flag string) bool {
 	return false
 }
 
-func fibeRunRequiresConfirm(args map[string]any) bool {
+func (s *Server) fibeRunRequiresConfirm(args map[string]any) (bool, error) {
 	rawSlice, ok := args["args"].([]any)
 	if !ok {
-		return false
+		return false, fmt.Errorf("field 'args' must be a JSON array")
 	}
+	strs := make([]string, 0, len(rawSlice))
 	for _, raw := range rawSlice {
 		token, err := stringifyCLIArg(raw)
 		if err != nil {
-			continue
+			return false, err
 		}
-		token = strings.ToLower(strings.TrimSpace(token))
-		switch token {
-		case "delete", "destroy", "destroy-version", "remove", "remove-mounted-file", "remove-registry-credential":
-			return true
-		}
+		strs = append(strs, token)
 	}
-	return false
+	if s.cfg.CobraRoot == nil {
+		return false, fmt.Errorf("fibe_run command safety cannot be classified without Cobra command metadata")
+	}
+	command, _, err := s.cfg.CobraRoot.Find(strs)
+	if err != nil {
+		return false, fmt.Errorf("fibe_run command safety classification failed: %w", err)
+	}
+	classification := ""
+	if command.Annotations != nil {
+		classification = command.Annotations["fibe.gg/safety"]
+	}
+	switch classification {
+	case "destructive":
+		return true, nil
+	case "read-only", "mutating", "local-only":
+		return false, nil
+	default:
+		return false, fmt.Errorf("fibe_run command %q has no safety classification; refusing to execute without --yolo", command.CommandPath())
+	}
 }
 
 func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs []string, timeoutMs int64) (any, error) {
@@ -572,6 +561,7 @@ func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs
 	var stderrBuf truncatingBuffer
 	stderrBuf.limit = limit
 
+	// #nosec G204 -- the configured binary is invoked with an argv slice and never through a shell.
 	cmd := exec.CommandContext(ctx, s.cfg.CobraExecutable, strs...)
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
@@ -676,22 +666,14 @@ func fibeRunCaptureLimit() int {
 	return limit
 }
 
-func (s *Server) runCobraArgs(ctx context.Context, args ...string) (any, error) {
-	raw := make([]any, len(args))
-	for i, arg := range args {
-		raw[i] = arg
-	}
-	return s.runCobra(ctx, map[string]any{"args": raw})
-}
-
 func localPlaygroundSelectorFromArgs(args map[string]any, view string) (string, error) {
 	selector, err := localPlaygroundOptionalSelectorFromArgs(args)
 	if err != nil {
 		return "", err
 	}
-	if view == "names" {
+	if view == "names" || view == "current" || view == "repos" {
 		if selector != "" {
-			return "", fmt.Errorf("view 'names' does not accept id_or_name")
+			return "", fmt.Errorf("view '%s' does not accept id_or_name", view)
 		}
 		return "", nil
 	}
@@ -795,14 +777,14 @@ func isCLIResourceMutationPath(path []string) bool {
 		"agents create":                   true,
 		"agents update":                   true,
 		"api-keys create":                 true,
-		"marquees create":                 true,
-		"marquees update":                 true,
+		"hosts create":                    true,
+		"hosts update":                    true,
 		"playgrounds create":              true,
 		"playgrounds update":              true,
-		"playspecs create":                true,
-		"playspecs update":                true,
-		"props create":                    true,
-		"props update":                    true,
+		"specs create":                    true,
+		"specs update":                    true,
+		"repositories create":             true,
+		"repositories update":             true,
 		"secrets create":                  true,
 		"secrets update":                  true,
 		"templates create":                true,

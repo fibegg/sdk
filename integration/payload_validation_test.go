@@ -7,21 +7,20 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// TestPayload_PlaygroundDetail verifies that Get returns full detail fields,
-// not just the slim list view.
+// TestPayload_PlaygroundDetail verifies fields available only in detail responses.
 func TestPayload_PlaygroundDetail(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	specID, marqueeID := setupPlaygroundDeps(t, c)
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to run this test")
+	specID, hostID := setupPlaygroundDeps(t, c)
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to run this test")
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("payload-pg"),
-		PlayspecID: specID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("payload-pg"),
+		SpecID: specID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
@@ -39,11 +38,10 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 		if detail.Status == "" {
 			t.Error("expected Status")
 		}
-		// TimeRemaining and ExpirationPercentage become available once expiration set
 	})
 
 	t.Run("Compose returns yaml + project (poll until ready)", func(t *testing.T) {
-		cmp, found := pollUntil(120, time.Second, func() (*fibe.PlaygroundCompose, bool) {
+		cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
 			c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
 			if err != nil {
 				return nil, false
@@ -51,7 +49,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 			return c2, c2.ComposeYAML != ""
 		})
 		if !found {
-			t.Skip("ComposeYAML not ready within timeout")
+			t.Fatalf("ComposeYAML not ready within %s", PlaygroundLaunchWaitTimeout)
 		}
 		if cmp.ComposeYAML == "" {
 			t.Error("expected non-empty ComposeYAML")
@@ -67,22 +65,22 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 		if env.Metadata == nil {
 			t.Error("expected non-nil Metadata map")
 		}
-		// SystemKeys may be empty; just check non-nil
+		// An empty SystemKeys map must still be initialized.
 		if env.SystemKeys == nil {
 			t.Error("expected non-nil SystemKeys slice")
 		}
 	})
 }
 
-// TestPayload_PlayspecDetail verifies detailed playspec fields.
-func TestPayload_PlayspecDetail(t *testing.T) {
+// TestPayload_SpecDetail verifies detailed spec fields.
+func TestPayload_SpecDetail(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	spec := seedPlayspec(t, c)
+	spec := seedSpec(t, c)
 
 	t.Run("Get returns services and mounted_files", func(t *testing.T) {
-		d, err := c.Playspecs.Get(ctx(), *spec.ID)
+		d, err := c.Specs.Get(ctx(), *spec.ID)
 		requireNoError(t, err)
 		if d.Name == "" {
 			t.Error("expected Name on detail")
@@ -93,7 +91,7 @@ func TestPayload_PlayspecDetail(t *testing.T) {
 	})
 
 	t.Run("Services returns expected service definitions", func(t *testing.T) {
-		services, err := c.Playspecs.Services(ctx(), *spec.ID)
+		services, err := c.Specs.Services(ctx(), *spec.ID)
 		requireNoError(t, err)
 		// Services may be a wrapper; at least check it's non-nil
 		if services == nil {
@@ -125,7 +123,6 @@ func TestPayload_APIKeyTokenExposure(t *testing.T) {
 		t.Error("expected MaskedToken always present")
 	}
 
-	// Now re-list: Token should NOT be exposed again
 	list, err := c.APIKeys.List(ctx(), nil)
 	requireNoError(t, err)
 	for _, kk := range list.Data {
@@ -159,7 +156,6 @@ func TestPayload_WebhookDelivery(t *testing.T) {
 		}
 	})
 
-	// Fire a test event
 	if ep.ID != nil {
 		_ = c.WebhookEndpoints.Test(ctx(), *ep.ID)
 	}
@@ -200,7 +196,6 @@ func TestPayload_PlayerMe(t *testing.T) {
 	}
 	// APIKeyScopes may be empty for full-access keys but the field should be present (non-nil when scopes configured)
 
-	// Verify scoped key reports its scopes
 	scoped := createScopedKey(t, c, "me-scopes", []string{"agents:read", "playgrounds:read"})
 	me2, err := scoped.APIKeys.Me(ctx())
 	requireNoError(t, err)
@@ -240,7 +235,6 @@ func TestPayload_SecretValueRoundtrip(t *testing.T) {
 		}
 	})
 
-	// List: value should NOT be exposed
 	list, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Key: key})
 	requireNoError(t, err)
 	for _, ls := range list.Data {
@@ -249,7 +243,6 @@ func TestPayload_SecretValueRoundtrip(t *testing.T) {
 		}
 	}
 
-	// Get: value SHOULD be exposed with explicit reveal
 	if s.ID != nil {
 		got, err := c.Secrets.Get(ctx(), *s.ID, true)
 		requireNoError(t, err)

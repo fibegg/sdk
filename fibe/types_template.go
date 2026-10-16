@@ -6,6 +6,7 @@ import (
 )
 
 type ImportTemplate struct {
+	OwnershipMetadata
 	ID               *int64                `json:"id"`
 	Name             string                `json:"name"`
 	Description      *string               `json:"description"`
@@ -22,7 +23,6 @@ type ImportTemplate struct {
 	CreatedAt        *time.Time            `json:"created_at"`
 	UpdatedAt        *time.Time            `json:"updated_at"`
 
-	// Detail fields
 	Versions []ImportTemplateVersion `json:"versions,omitempty"`
 }
 
@@ -43,6 +43,7 @@ func (t *ImportTemplate) UnmarshalJSON(data []byte) error {
 }
 
 type ImportTemplateVersion struct {
+	OwnershipMetadata
 	ID                *int64                       `json:"id"`
 	Version           *int64                       `json:"version"`
 	Public            *bool                        `json:"public"`
@@ -71,22 +72,22 @@ func (v *ImportTemplateVersion) UnmarshalJSON(data []byte) error {
 }
 
 type ImportTemplateSource struct {
-	ID                *int64     `json:"id,omitempty"`
-	PropID            *int64     `json:"prop_id,omitempty"`
-	PropName          *string    `json:"prop_name,omitempty"`
-	PropRepositoryURL *string    `json:"prop_repository_url,omitempty"`
-	Path              string     `json:"path"`
-	Ref               string     `json:"ref"`
-	AutoRefresh       *bool      `json:"auto_refresh,omitempty"`
-	AutoUpgrade       *bool      `json:"auto_upgrade,omitempty"`
-	CIEnabled         *bool      `json:"ci_enabled,omitempty"`
-	CIMarqueeID       *int64     `json:"ci_marquee_id,omitempty"`
-	CIMarqueeName     *string    `json:"ci_marquee_name,omitempty"`
-	LastStatus        *string    `json:"last_status,omitempty"`
-	LastCommitSHA     *string    `json:"last_commit_sha,omitempty"`
-	LastContentSHA    *string    `json:"last_content_sha,omitempty"`
-	LastRefreshedAt   *time.Time `json:"last_refreshed_at,omitempty"`
-	LastError         *string    `json:"last_error,omitempty"`
+	ID                      *int64     `json:"id,omitempty"`
+	RepositoryID            *int64     `json:"repository_id,omitempty"`
+	RepositoryName          *string    `json:"repository_name,omitempty"`
+	RepositoryRepositoryURL *string    `json:"repository_repository_url,omitempty"`
+	Path                    string     `json:"path"`
+	Ref                     string     `json:"ref"`
+	AutoRefresh             *bool      `json:"auto_refresh,omitempty"`
+	AutoUpgrade             *bool      `json:"auto_upgrade,omitempty"`
+	CIEnabled               *bool      `json:"ci_enabled,omitempty"`
+	CIHostID                *int64     `json:"ci_host_id,omitempty"`
+	CIHostName              *string    `json:"ci_host_name,omitempty"`
+	LastStatus              *string    `json:"last_status,omitempty"`
+	LastCommitSHA           *string    `json:"last_commit_sha,omitempty"`
+	LastContentSHA          *string    `json:"last_content_sha,omitempty"`
+	LastRefreshedAt         *time.Time `json:"last_refreshed_at,omitempty"`
+	LastError               *string    `json:"last_error,omitempty"`
 }
 
 func (s *ImportTemplateSource) UnmarshalJSON(data []byte) error {
@@ -105,13 +106,13 @@ func (s *ImportTemplateSource) UnmarshalJSON(data []byte) error {
 }
 
 type ImportTemplateVersionSource struct {
-	PropID            *int64  `json:"prop_id,omitempty"`
-	PropName          *string `json:"prop_name,omitempty"`
-	PropRepositoryURL *string `json:"prop_repository_url,omitempty"`
-	Path              string  `json:"path,omitempty"`
-	Ref               string  `json:"ref,omitempty"`
-	CommitSHA         *string `json:"commit_sha,omitempty"`
-	ContentSHA        *string `json:"content_sha,omitempty"`
+	RepositoryID            *int64  `json:"repository_id,omitempty"`
+	RepositoryName          *string `json:"repository_name,omitempty"`
+	RepositoryRepositoryURL *string `json:"repository_repository_url,omitempty"`
+	Path                    string  `json:"path,omitempty"`
+	Ref                     string  `json:"ref,omitempty"`
+	CommitSHA               *string `json:"commit_sha,omitempty"`
+	ContentSHA              *string `json:"content_sha,omitempty"`
 }
 
 type ImportTemplateCreateParams struct {
@@ -159,8 +160,8 @@ type TemplateVersionPatchParams struct {
 	Edits                      []TemplatePatchEdit `json:"edits,omitempty"`
 	Public                     *bool               `json:"public,omitempty"`
 	Changelog                  *string             `json:"changelog,omitempty"`
-	TargetPlayspecID           *int64              `json:"target_playspec_id,omitempty"`
-	TargetPlayspecIdentifier   string              `json:"-"`
+	TargetSpecID               *int64              `json:"target_spec_id,omitempty"`
+	TargetSpecIdentifier       string              `json:"-"`
 	RolloutMode                string              `json:"rollout_mode,omitempty"`
 	TargetPlaygroundID         *int64              `json:"target_playground_id,omitempty"`
 	TargetPlaygroundIdentifier string              `json:"-"`
@@ -181,8 +182,8 @@ func (p TemplateVersionPatchParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.TargetPlayspecIdentifier != "" {
-		body["target_playspec_id"] = p.TargetPlayspecIdentifier
+	if p.TargetSpecIdentifier != "" {
+		body["target_spec_id"] = p.TargetSpecIdentifier
 	}
 	if p.TargetPlaygroundIdentifier != "" {
 		body["target_playground_id"] = p.TargetPlaygroundIdentifier
@@ -193,22 +194,22 @@ func (p TemplateVersionPatchParams) MarshalJSON() ([]byte, error) {
 type TemplateVersionPatchResult map[string]any
 
 type ImportTemplateSourceParams struct {
-	SourcePropID         int64  `json:"source_prop_id"`
-	SourcePropIdentifier string `json:"-"`
-	SourcePath           string `json:"source_path"`
-	SourceRef            string `json:"source_ref,omitempty"`
-	SourceAutoRefresh    *bool  `json:"source_auto_refresh,omitempty"`
-	SourceAutoUpgrade    *bool  `json:"source_auto_upgrade,omitempty"`
-	CIEnabled            *bool  `json:"ci_enabled,omitempty"`
-	CIMarqueeID          *int64 `json:"ci_marquee_id,omitempty"`
-	CIMarqueeIdentifier  string `json:"-"`
-	MarqueeID            *int64 `json:"marquee_id,omitempty"`
-	MarqueeIdentifier    string `json:"-"`
+	SourceRepositoryID         int64  `json:"source_repository_id"`
+	SourceRepositoryIdentifier string `json:"-"`
+	SourcePath                 string `json:"source_path"`
+	SourceRef                  string `json:"source_ref,omitempty"`
+	SourceAutoRefresh          *bool  `json:"source_auto_refresh,omitempty"`
+	SourceAutoUpgrade          *bool  `json:"source_auto_upgrade,omitempty"`
+	CIEnabled                  *bool  `json:"ci_enabled,omitempty"`
+	CIHostID                   *int64 `json:"ci_host_id,omitempty"`
+	CIHostIdentifier           string `json:"-"`
+	HostID                     *int64 `json:"host_id,omitempty"`
+	HostIdentifier             string `json:"-"`
 }
 
 func (p *ImportTemplateSourceParams) Validate() error {
 	v := &validator{}
-	v.requiredIDOrIdentifier("source_prop_id", p.SourcePropID, p.SourcePropIdentifier)
+	v.requiredIDOrIdentifier("source_repository_id", p.SourceRepositoryID, p.SourceRepositoryIdentifier)
 	v.required("source_path", p.SourcePath)
 	return v.err()
 }
@@ -223,14 +224,14 @@ func (p ImportTemplateSourceParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.SourcePropIdentifier != "" {
-		body["source_prop_id"] = p.SourcePropIdentifier
+	if p.SourceRepositoryIdentifier != "" {
+		body["source_repository_id"] = p.SourceRepositoryIdentifier
 	}
-	if p.CIMarqueeIdentifier != "" {
-		body["ci_marquee_id"] = p.CIMarqueeIdentifier
+	if p.CIHostIdentifier != "" {
+		body["ci_host_id"] = p.CIHostIdentifier
 	}
-	if p.MarqueeIdentifier != "" {
-		body["marquee_id"] = p.MarqueeIdentifier
+	if p.HostIdentifier != "" {
+		body["host_id"] = p.HostIdentifier
 	}
 	return json.Marshal(body)
 }
@@ -254,20 +255,24 @@ type ImportTemplateUpgradeLinkedResult struct {
 }
 
 type ImportTemplateLaunchParams struct {
-	MarqueeID         int64             `json:"marquee_id"`
-	MarqueeIdentifier string            `json:"-"`
-	Version           *int64            `json:"version,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	PersistVolumes    *bool             `json:"persist_volumes,omitempty"`
-	Variables         map[string]any    `json:"variables,omitempty"`
-	EnvOverrides      map[string]string `json:"env_overrides,omitempty"`
-	ServiceSubdomains map[string]string `json:"service_subdomains,omitempty"`
-	Services          map[string]any    `json:"services,omitempty"`
+	EnvPackAttachments *[]EnvPackAttachmentInput `json:"env_pack_attachments,omitempty"`
+	HostID             int64                     `json:"host_id"`
+	HostIdentifier     string                    `json:"-"`
+	Version            *int64                    `json:"version,omitempty"`
+	Name               string                    `json:"name,omitempty"`
+	PersistVolumes     *bool                     `json:"persist_volumes,omitempty"`
+	Variables          map[string]any            `json:"variables,omitempty"`
+	EnvOverrides       map[string]string         `json:"env_overrides,omitempty"`
+	ServiceSubdomains  map[string]string         `json:"service_subdomains,omitempty"`
+	Services           map[string]any            `json:"services,omitempty"`
 }
 
 func (p *ImportTemplateLaunchParams) Validate() error {
+	if err := (&EnvPackAttachmentsParams{Attachments: p.EnvPackAttachments}).Validate(); err != nil {
+		return err
+	}
 	v := &validator{}
-	v.requiredIDOrIdentifier("marquee_id", p.MarqueeID, p.MarqueeIdentifier)
+	v.requiredIDOrIdentifier("host_id", p.HostID, p.HostIdentifier)
 	return v.err()
 }
 
@@ -281,8 +286,8 @@ func (p ImportTemplateLaunchParams) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(data, &body); err != nil {
 		return nil, err
 	}
-	if p.MarqueeIdentifier != "" {
-		body["marquee_id"] = p.MarqueeIdentifier
+	if p.HostIdentifier != "" {
+		body["host_id"] = p.HostIdentifier
 	}
 	return json.Marshal(body)
 }

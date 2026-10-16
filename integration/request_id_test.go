@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -66,7 +65,7 @@ func TestIdempotencyKey(t *testing.T) {
 	resp1.Body.Close()
 
 	if resp1.StatusCode != 201 {
-		t.Fatalf("first request: expected 201, got %d — %s", resp1.StatusCode, string(body1))
+		t.Fatalf("first request: expected 201, got %d: %s", resp1.StatusCode, string(body1))
 	}
 
 	var agent1 struct {
@@ -88,8 +87,4 @@ func TestIdempotencyKey(t *testing.T) {
 	if resp2.StatusCode != 201 {
 		t.Errorf("replayed request: expected same 201 status, got %d", resp2.StatusCode)
 	}
-}
-
-func jsonBody(s string) io.Reader {
-	return bytes.NewBufferString(s)
 }

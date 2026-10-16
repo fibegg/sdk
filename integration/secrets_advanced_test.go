@@ -7,7 +7,6 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-// Migrated from: 43-secrets-crud.spec.js
 func TestSecrets_Pagination(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -54,7 +53,6 @@ func TestSecrets_Pagination(t *testing.T) {
 	})
 }
 
-// Migrated from: 43-secrets-crud.spec.js
 func TestSecrets_EncryptionVerification(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
@@ -93,7 +91,6 @@ func TestSecrets_EncryptionVerification(t *testing.T) {
 	})
 }
 
-// Migrated from: 44-audit-logs-api.spec.js
 func TestAuditLogs_AfterSecretOperations(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)

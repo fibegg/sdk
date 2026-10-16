@@ -98,8 +98,8 @@ func TestPlaygroundsLogsSchemaServiceIsOptional(t *testing.T) {
 	}
 
 	schema := srv.toolSchemas["fibe_playgrounds_logs"]
-	props := schema["properties"].(map[string]any)
-	if _, ok := props["service"]; !ok {
+	repositories := schema["properties"].(map[string]any)
+	if _, ok := repositories["service"]; !ok {
 		t.Fatalf("fibe_playgrounds_logs schema missing service: %#v", schema)
 	}
 	required, _ := schema["required"].([]any)

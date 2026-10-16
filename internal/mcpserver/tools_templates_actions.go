@@ -38,5 +38,3 @@ func (s *Server) registerImportTemplateActionTools() {
 	))
 
 }
-
-// ---------- Job ENV ----------

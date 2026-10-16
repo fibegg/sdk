@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
-	"github.com/spf13/cobra"
 )
 
 func TestAgentDefaultsFromFileAcceptsEnvelope(t *testing.T) {
@@ -52,24 +50,11 @@ func TestAgentDefaultsScopeWritesProviderOverrides(t *testing.T) {
 }
 
 func TestParseSkillToggleFlags(t *testing.T) {
-	toggles, err := parseSkillToggleFlags([]string{"fibe-hunks.md=false", "search.md=true"})
+	toggles, err := parseSkillToggleFlags([]string{"example-skill.md=false", "search.md=true"})
 	if err != nil {
 		t.Fatalf("parseSkillToggleFlags: %v", err)
 	}
-	if toggles["fibe-hunks.md"] != false || toggles["search.md"] != true {
+	if toggles["example-skill.md"] != false || toggles["search.md"] != true {
 		t.Fatalf("toggles=%#v", toggles)
 	}
-}
-
-func commandHelp(t *testing.T, cmd *cobra.Command) string {
-	t.Helper()
-
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetErr(&out)
-	cmd.SetArgs([]string{"--help"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("execute help: %v", err)
-	}
-	return out.String()
 }

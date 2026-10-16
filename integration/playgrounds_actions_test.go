@@ -9,16 +9,16 @@ import (
 
 func TestPlaygrounds_Actions(t *testing.T) {
 	c := userClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	specID, hostID := setupPlaygroundDeps(t, c)
 
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test playground actions")
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to test playground actions")
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("pg-actions"),
-		PlayspecID: specID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("pg-actions"),
+		SpecID: specID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err, "create playground for actions test")
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
@@ -148,16 +148,16 @@ func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
 func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	specID, hostID := setupPlaygroundDeps(t, c)
 
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test playground action scopes")
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to test playground action scopes")
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("pg-scope-actions"),
-		PlayspecID: specID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("pg-scope-actions"),
+		SpecID: specID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
@@ -239,18 +239,18 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
-	specID, marqueeID := setupPlaygroundDeps(t, c)
+	specID, hostID := setupPlaygroundDeps(t, c)
 
-	if marqueeID == 0 {
-		t.Skip("set FIBE_TEST_MARQUEE_ID to test playground creation with service config")
+	if hostID == 0 {
+		t.Skip("set FIBE_TEST_HOST_ID to test playground creation with service config")
 	}
 
 	t.Run("create with _global env_vars", func(t *testing.T) {
 		t.Parallel()
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("pg-global-env"),
-			PlayspecID: specID,
-			MarqueeID:  &marqueeID,
+			Name:   uniqueName("pg-global-env"),
+			SpecID: specID,
+			HostID: &hostID,
 			Services: map[string]*fibe.ServiceConfig{
 				"_global": {
 					EnvVars: map[string]string{
@@ -271,9 +271,9 @@ func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 		t.Parallel()
 		sub := fmt.Sprintf("sub-%d", nameCounter.Add(1))
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("pg-subdomain"),
-			PlayspecID: specID,
-			MarqueeID:  &marqueeID,
+			Name:   uniqueName("pg-subdomain"),
+			SpecID: specID,
+			HostID: &hostID,
 			Services: map[string]*fibe.ServiceConfig{
 				"web": {
 					Subdomain: sub,
@@ -291,9 +291,9 @@ func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 	t.Run("create with env_vars per service", func(t *testing.T) {
 		t.Parallel()
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       uniqueName("pg-svc-env"),
-			PlayspecID: specID,
-			MarqueeID:  &marqueeID,
+			Name:   uniqueName("pg-svc-env"),
+			SpecID: specID,
+			HostID: &hostID,
 			Services: map[string]*fibe.ServiceConfig{
 				"web": {
 					EnvVars: map[string]string{
@@ -315,30 +315,30 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)
-	spec, err := c.Playspecs.Create(ctx(), &fibe.PlayspecCreateParams{
+	spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
 		Name:            uniqueName("pg-idor-spec"),
 		BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
-		Services:        []fibe.PlayspecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
+		Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 	})
-	requireNoError(t, err, "create playspec for playground IDOR")
-	t.Cleanup(func() { c.Playspecs.Delete(ctx(), *spec.ID) })
+	requireNoError(t, err, "create spec for playground IDOR")
+	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
-	privateMarquee, dockerE2EPrivateMarquee := ensureFundedPrivateE2EMarquee(t, "pg-idor-marquee")
-	marqueeID := privateMarquee.ID
-	if !dockerE2EPrivateMarquee {
-		marquee, err := c.Marquees.Create(ctx(), testMarqueeParams("pg-idor-marquee"))
-		requireNoError(t, err, "create private marquee for playground IDOR")
-		marqueeID = marquee.ID
-		t.Cleanup(func() { c.Marquees.Delete(ctx(), marqueeID) })
-		if !marquee.BillingRuntimeActive {
-			t.Skip("private Marquee is not funded; enable SDK_E2E_BOOTSTRAP/FIBE_E2E_BOOTSTRAP to provision a funded private Marquee")
+	privateHost, dockerE2EPrivateHost := ensureFundedPrivateE2EHost(t, "pg-idor-host")
+	hostID := privateHost.ID
+	if !dockerE2EPrivateHost {
+		host, err := c.Hosts.Create(ctx(), testHostParams("pg-idor-host"))
+		requireNoError(t, err, "create private host for playground IDOR")
+		hostID = host.ID
+		t.Cleanup(func() { c.Hosts.Delete(ctx(), hostID) })
+		if !host.BillingRuntimeActive {
+			t.Skip("private Host is not funded; enable SDK_E2E_BOOTSTRAP/FIBE_E2E_BOOTSTRAP to provision a funded private Host")
 		}
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-		Name:       uniqueName("pg-idor"),
-		PlayspecID: *spec.ID,
-		MarqueeID:  &marqueeID,
+		Name:   uniqueName("pg-idor"),
+		SpecID: *spec.ID,
+		HostID: &hostID,
 	})
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })

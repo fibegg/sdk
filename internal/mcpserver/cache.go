@@ -21,6 +21,7 @@ type pipelineCache struct {
 	maxEntryLen int // bytes; 0 = unlimited
 	entries     map[cacheKey]*list.Element
 	order       *list.List
+	now         func() time.Time
 }
 
 type cacheKey struct {
@@ -44,6 +45,7 @@ func newPipelineCache(maxEntries, maxEntryLen int) *pipelineCache {
 		maxEntryLen: maxEntryLen,
 		entries:     make(map[cacheKey]*list.Element),
 		order:       list.New(),
+		now:         time.Now,
 	}
 }
 
@@ -70,11 +72,12 @@ func (c *pipelineCache) Put(sessionID string, value any) (pipelineID string, tru
 		key:       key,
 		payload:   payload,
 		truncated: truncated,
-		storedAt:  time.Now(),
+		storedAt:  c.now(),
 	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.expireLocked(c.now())
 
 	elem := c.order.PushFront(entry)
 	c.entries[key] = elem
@@ -102,28 +105,51 @@ func (c *pipelineCache) Get(sessionID, pipelineID string) (json.RawMessage, bool
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.expireLocked(c.now())
 
 	elem, ok := c.entries[key]
 	if !ok {
 		return nil, false
 	}
 	entry := elem.Value.(*cacheEntry)
-	if time.Since(entry.storedAt) > pipelineCacheTTL {
-		c.order.Remove(elem)
-		delete(c.entries, key)
-		return nil, false
-	}
 	c.order.MoveToFront(elem)
-	return entry.payload, true
+	return append(json.RawMessage(nil), entry.payload...), true
 }
 
-// Stats returns a snapshot of cache health. Kept internal for now; may be
-// surfaced via an admin resource in a later phase.
+func (c *pipelineCache) DeleteSession(sessionID string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for key, elem := range c.entries {
+		if key.sessionID != sessionID {
+			continue
+		}
+		c.order.Remove(elem)
+		delete(c.entries, key)
+	}
+}
+
+// Stats returns current cache use and capacity.
 func (c *pipelineCache) Stats() (entries, capacity int) {
 	if c == nil {
 		return 0, 0
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.expireLocked(c.now())
 	return c.order.Len(), c.maxEntries
+}
+
+func (c *pipelineCache) expireLocked(now time.Time) {
+	for elem := c.order.Back(); elem != nil; {
+		previous := elem.Prev()
+		entry := elem.Value.(*cacheEntry)
+		if now.Sub(entry.storedAt) >= pipelineCacheTTL {
+			c.order.Remove(elem)
+			delete(c.entries, entry.key)
+		}
+		elem = previous
+	}
 }

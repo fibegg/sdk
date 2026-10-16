@@ -26,15 +26,15 @@ func TestErrors_NotFound(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent playspec", func(t *testing.T) {
+	t.Run("nonexistent spec", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Playspecs.Get(ctx(), 999999999)
+		_, err := c.Specs.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent prop", func(t *testing.T) {
+	t.Run("nonexistent repository", func(t *testing.T) {
 		t.Parallel()
-		_, err := c.Props.Get(ctx(), 999999999)
+		_, err := c.Repositories.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
@@ -109,10 +109,10 @@ func TestErrors_ValidationFailed(t *testing.T) {
 
 	t.Run("server-side validation", func(t *testing.T) {
 		t.Parallel()
-		spec := seedPlayspec(t, c)
+		spec := seedSpec(t, c)
 		_, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:       "Invalid Playground " + uniqueName("bad-pg"),
-			PlayspecID: *spec.ID,
+			Name:   "Invalid Playground " + uniqueName("bad-pg"),
+			SpecID: *spec.ID,
 		})
 		apiErr := requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
 		if !apiErr.IsValidation() {
