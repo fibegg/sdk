@@ -3,6 +3,7 @@ package localplaygrounds
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -151,6 +152,87 @@ func TestScanViewsAndIDResolution(t *testing.T) {
 	}
 }
 
+func TestWatchedServiceDoesNotHideOrBlockPlayground(t *testing.T) {
+	for _, metadata := range []struct {
+		name string
+		yaml string
+	}{
+		{name: "no job metadata"},
+		{name: "metadata false", yaml: "x-fibe.gg:\n  metadata:\n    job_mode: false\n"},
+		{name: "namespace false", yaml: "x-fibe.gg:\n  job_mode: false\n"},
+	} {
+		for _, labels := range []struct {
+			name string
+			yaml string
+		}{
+			{name: "map labels", yaml: "      fibe.gg/job_watch: \"true\""},
+			{name: "list labels", yaml: "      - fibe.gg/job_watch=true"},
+		} {
+			t.Run(metadata.name+"/"+labels.name, func(t *testing.T) {
+				root := t.TempDir()
+				t.Setenv("HOST_ROOT", root)
+				pgDir := filepath.Join(root, "alice-vibrez--549")
+				apiDir := filepath.Join(pgDir, "repositories", "example--demo-api--31", "joan")
+				mobileDir := filepath.Join(pgDir, "repositories", "example--demo-mobile--30", "joan")
+				for _, dir := range []string{apiDir, mobileDir} {
+					if err := os.MkdirAll(dir, 0o755); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(filepath.Join(dir, "source.txt"), []byte("source"), 0o600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				compose := metadata.yaml + fmt.Sprintf(`services:
+  api:
+    image: example/api
+    labels:
+      fibe.gg/spec: joan
+    volumes:
+      - "%s:/app"
+  metro:
+    image: example/mobile
+    volumes:
+      - "%s:/app"
+  seed-cars:
+    image: example/api
+    labels:
+%s
+    volumes:
+      - "%s:/app"
+`, apiDir, mobileDir, labels.yaml, apiDir)
+				if err := os.WriteFile(filepath.Join(pgDir, "compose.yml"), []byte(compose), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				playgrounds, err := Scan(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				names := Names(playgrounds)
+				if len(names) != 1 || names[0].ID != "549" || names[0].Spec != "joan" {
+					t.Errorf("selector must include Joan with its watched setup service: %#v", names)
+				}
+				linkDir := filepath.Join(t.TempDir(), "playground")
+				if _, err := Link("549", linkDir); err != nil {
+					t.Fatalf("link mixed-service playground: %v", err)
+				}
+				state, err := LoadCurrentState(linkDir)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if state.JobMode || !state.Services["seed-cars"].JobWatch || len(state.Repos) != 2 {
+					t.Fatalf("linked state must retain service watch and both repositories: %#v", state)
+				}
+				for _, repo := range []string{"demo-api", "demo-mobile"} {
+					data, err := os.ReadFile(filepath.Join(linkDir, repo, "source.txt"))
+					if err != nil || string(data) != "source" {
+						t.Fatalf("linked %s source unreadable: data=%q err=%v", repo, data, err)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestNamesExcludeJobModeAndStaticOnlyPlaygrounds(t *testing.T) {
 	root := t.TempDir()
 	normalDir := filepath.Join(root, "normal-app--1")
@@ -177,7 +259,10 @@ func TestNamesExcludeJobModeAndStaticOnlyPlaygrounds(t *testing.T) {
     labels:
       fibe.gg/spec: static-app
 `
-	jobMapCompose := `services:
+	jobMapCompose := `x-fibe.gg:
+  metadata:
+    job_mode: true
+services:
   test:
     image: alpine
     labels:
@@ -186,7 +271,9 @@ func TestNamesExcludeJobModeAndStaticOnlyPlaygrounds(t *testing.T) {
     volumes:
       - "/opt/fibe/playgrounds/ci-map--2/repositories/fibegg--ci-map--78/main:/app"
 `
-	jobArrayCompose := `services:
+	jobArrayCompose := `x-fibe.gg:
+  job_mode: true
+services:
   test:
     image: alpine
     labels:
@@ -252,6 +339,15 @@ services:
 	}
 	if !metadataJob.JobMode || metadataJob.Services["test"].JobWatch {
 		t.Fatalf("compose metadata job mode not set independently from service job_watch: %#v", metadataJob)
+	}
+	for _, job := range []*Playground{mapJob, arrayJob, metadataJob} {
+		linkDir := filepath.Join(t.TempDir(), "playground")
+		if _, err := LinkPlayground(job, linkDir); err == nil || !strings.Contains(err.Error(), "cannot link job-mode playground") {
+			t.Fatalf("link task %s: got %v, want job-mode rejection", job.DirName, err)
+		}
+		if _, err := os.Lstat(linkDir); !os.IsNotExist(err) {
+			t.Fatalf("rejected task created link directory: %v", err)
+		}
 	}
 }
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-16
+
+### Fixed
+
+- Local Playground discovery and linking no longer classify a long-running
+  environment as a Task because one setup service has `fibe.gg/job_watch=true`.
+  Project job mode comes from `x-fibe.gg` runtime metadata; service watch flags
+  remain available, and actual Tasks remain hidden from the picker and blocked
+  from linking. This fixes mixed environments such as Joan.
+
 ## [0.3.0] - 2026-10-15
 
 ### Changed

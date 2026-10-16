@@ -712,9 +712,6 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 			StartCmd:  trimCommand(labels["fibe.gg/start_command"]),
 			JobWatch:  truthy(labels["fibe.gg/job_watch"]),
 		}
-		if service.JobWatch {
-			pg.JobMode = true
-		}
 		if pg.Spec == dirName {
 			if spec := labels["fibe.gg/spec"]; spec != "" {
 				pg.Spec = spec
@@ -740,6 +737,8 @@ func parseCompose(dirName, dirPath string, data []byte) Playground {
 }
 
 func composeJobMode(doc map[string]any) bool {
+	// Job watching belongs to a service (including setup services in long-running
+	// Playgrounds). Only runtime metadata identifies the whole project as a Task.
 	namespace := asMap(doc["x-fibe.gg"])
 	metadata := asMap(namespace["metadata"])
 	return truthy(scalarString(metadata["job_mode"])) || truthy(scalarString(namespace["job_mode"]))
