@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
@@ -81,7 +80,10 @@ func jobEnvGetCmd() *cobra.Command {
 		Long:  "Retrieve a job ENV entry. Secret values are omitted unless --reveal is set.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			entry, err := newClient().JobEnv.Get(ctx(), id, reveal)
 			if err != nil {
 				return err
@@ -154,7 +156,10 @@ func jobEnvUpdateCmd() *cobra.Command {
 		Short: "Update a job ENV entry",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			params := &fibe.JobEnvUpdateParams{}
 			if cmd.Flags().Changed("value") {
 				params.Value = &value
@@ -189,7 +194,10 @@ func jobEnvDeleteCmd() *cobra.Command {
 		Short: "Delete a job ENV entry",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := newClient().JobEnv.Delete(ctx(), id); err != nil {
 				return err
 			}

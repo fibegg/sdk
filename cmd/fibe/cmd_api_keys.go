@@ -221,7 +221,10 @@ func keyDeleteCmd() *cobra.Command {
 		Long: "Delete an API key. The key will immediately stop working.\n\nEXAMPLES:\n  fibe api-keys delete 15",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.APIKeys.Delete(ctx(), id); err != nil {
 				return err
 			}

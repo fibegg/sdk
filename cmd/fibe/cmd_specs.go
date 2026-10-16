@@ -223,7 +223,11 @@ EXAMPLES:
 				params.Name = name
 			}
 			if cmd.Flags().Changed("compose") {
-				params.BaseComposeYAML = resolveStringValue(compose)
+				value, err := readTextValue(compose)
+				if err != nil {
+					return err
+				}
+				params.BaseComposeYAML = value
 			}
 			if cmd.Flags().Changed("description") {
 				params.Description = &description
@@ -234,7 +238,9 @@ EXAMPLES:
 			if cmd.Flags().Changed("job-mode") {
 				params.JobMode = &jobMode
 			}
-			applySpecCreateConfigFlags(cmd, params, configFlags)
+			if err := applySpecCreateConfigFlags(cmd, params, configFlags); err != nil {
+				return err
+			}
 
 			if params.BaseComposeYAML == "" && len(rawPayload) > 0 {
 				params.BaseComposeYAML = string(rawPayload)
@@ -309,7 +315,10 @@ EXAMPLES:
 				params.Description = &description
 			}
 			if cmd.Flags().Changed("base-compose") {
-				v := resolveStringValue(baseCompose)
+				v, err := readTextValue(baseCompose)
+				if err != nil {
+					return err
+				}
 				params.BaseComposeYAML = &v
 			}
 			if cmd.Flags().Changed("persist-volumes") {

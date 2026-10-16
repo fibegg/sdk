@@ -52,7 +52,11 @@ EXAMPLES:
 				params.TemplateVersionID = templateVersion
 			}
 			if cmd.Flags().Changed("template-body") {
-				params.TemplateBody = normalizeTemplateBodyValue(resolveStringValue(templateBody))
+				value, err := readTextValue(templateBody)
+				if err != nil {
+					return err
+				}
+				params.TemplateBody = normalizeTemplateBodyValue(value)
 			}
 			if templateName != "" {
 				params.TemplateName = templateName

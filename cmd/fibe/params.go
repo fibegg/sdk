@@ -6,6 +6,7 @@ import (
 	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -72,14 +73,12 @@ func applyFromFile(dest any) error {
 	return fmt.Errorf("failed to parse file %q as JSON or YAML. JSON error: %v, YAML error: %v", flagFromFile, err, errYAML)
 }
 
-func resolveStringValue(val string) string {
-	if strings.HasPrefix(val, "@") {
-		data, err := os.ReadFile(strings.TrimPrefix(val, "@"))
-		if err == nil {
-			return string(data)
-		}
+func positiveInputID(value, label string) (int64, error) {
+	id, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("%s must be a positive integer ID", label)
 	}
-	return val
+	return id, nil
 }
 
 // readTextValue accepts literal text or @path, and reports unreadable files

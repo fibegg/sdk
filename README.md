@@ -103,6 +103,37 @@ Inspect deployment failures with
 `fibe playgrounds debug <id-or-name> --build-logs --output json`. New builds retain
 their complete logs; older truncated logs cannot be reconstructed.
 
+`wait --timeout` bounds the entire wait, including blocked HTTP requests, final
+resource reads and polling sleeps. `--timeout` and `--interval` must be positive.
+Cancelling the command cancels its requests and wait, preserving a typed context
+error; it does not cancel work already running on the server. Created-Playground
+waits and SDK async polling likewise give their requests the polling deadline.
+
+`launch` rejects explicitly supplied flags that its selected source cannot apply:
+
+| Source | Additional supported flags |
+| --- | --- |
+| Existing Spec | `--service` runtime overrides; use these instead of `--var`, `--env`, `--subdomain` or `--persist-volumes` |
+| Template | `--version`, `--var`, `--env`, `--subdomain`, `--persist-volumes`, `--service` |
+| Exact template version | Same overrides as Template, without `--version` |
+| Compose | Template-style overrides plus `--repository`, `--job-mode`, `--create-playground` or `--no-create-playground` |
+| Repository | Compose options plus `--file`, `--ref`, `--github-account`, `--github-installation-id` |
+
+Common `--name`, `--host`, `--env-pack-attachments` and `--wait` options remain
+available. `--wait` requires Playground creation. The two creation flags cannot
+be supplied together. Supported boolean flags preserve explicit false values.
+`--repository REPOSITORY=ID_OR_NAME` requires nonempty, unique keys and positive
+numeric targets. ID-only arguments in job ENV, installations, template versions,
+webhooks, feedback and API-key deletion reject invalid, zero, negative and
+overflowing IDs before making a request. Names remain supported where the command
+advertises an ID-or-name argument.
+
+Text options documented as `@path` read that file or return an error before the
+request; they no longer fall back to sending an unreadable `@path` literally.
+Inline text and readable files retain their existing behavior. For `launch`,
+`--from-file`/redirected regular-file input supplies the Compose source body;
+it is not a generic launch-options payload. Pipes require explicit `--from-file -`.
+
 Repository mirroring is asynchronous. `fibe wait repository <id-or-name>` waits for
 `mirror_status: completed` and reports the persisted failure reason. The Go SDK
 exposes these diagnostics through `Playgrounds.RuntimeStatusByIdentifier`,

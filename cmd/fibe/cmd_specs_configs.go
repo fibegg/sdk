@@ -49,7 +49,12 @@ func registerSpecConfigFlags(cmd *cobra.Command, flags *specConfigFlags) {
 	cmd.Flags().StringVar(&flags.mutiPromptTemplate, "muti-prompt-template", "", "Muti prompt template text or @file path; supports {{diff}} and mutation metadata placeholders")
 }
 
-func applySpecCreateConfigFlags(cmd *cobra.Command, params *fibe.SpecCreateParams, flags specConfigFlags) {
+func applySpecCreateConfigFlags(cmd *cobra.Command, params *fibe.SpecCreateParams, flags specConfigFlags) error {
+	var err error
+	flags, err = readSpecPromptInputs(cmd, flags)
+	if err != nil {
+		return err
+	}
 	if specScheduleFlagsChanged(cmd) {
 		params.ScheduleConfig = applySpecScheduleFlags(params.ScheduleConfig, cmd, flags)
 	}
@@ -59,9 +64,15 @@ func applySpecCreateConfigFlags(cmd *cobra.Command, params *fibe.SpecCreateParam
 	if specMutiFlagsChanged(cmd) {
 		params.MutiConfig = applySpecMutiFlags(params.MutiConfig, cmd, flags)
 	}
+	return nil
 }
 
 func applySpecUpdateConfigFlags(cmd *cobra.Command, client *fibe.Client, identifier string, params *fibe.SpecUpdateParams, flags specConfigFlags) error {
+	var err error
+	flags, err = readSpecPromptInputs(cmd, flags)
+	if err != nil {
+		return err
+	}
 	var existing *fibe.Spec
 	if specUpdateNeedsExistingConfig(cmd, params) {
 		var err error
@@ -139,7 +150,7 @@ func applySpecTriggerFlags(base map[string]any, cmd *cobra.Command, flags specCo
 		config["max_retries"] = flags.triggerMaxRetries
 	}
 	if cmd.Flags().Changed("trigger-prompt-template") {
-		config["prompt_template"] = resolveStringValue(flags.triggerPromptTemplate)
+		config["prompt_template"] = flags.triggerPromptTemplate
 	}
 	return config
 }
@@ -159,7 +170,7 @@ func applySpecMutiFlags(base map[string]any, cmd *cobra.Command, flags specConfi
 		config["agent_id"] = flags.mutiAgentID
 	}
 	if cmd.Flags().Changed("muti-prompt-template") {
-		config["prompt_template"] = resolveStringValue(flags.mutiPromptTemplate)
+		config["prompt_template"] = flags.mutiPromptTemplate
 	}
 	return config
 }
@@ -195,4 +206,22 @@ func cloneStringAnyMap(in map[string]any) map[string]any {
 		out[key] = value
 	}
 	return out
+}
+
+func readSpecPromptInputs(cmd *cobra.Command, flags specConfigFlags) (specConfigFlags, error) {
+	for _, input := range []struct {
+		name  string
+		value *string
+	}{
+		{"trigger-prompt-template", &flags.triggerPromptTemplate}, {"muti-prompt-template", &flags.mutiPromptTemplate},
+	} {
+		if cmd.Flags().Changed(input.name) {
+			value, err := readTextValue(*input.value)
+			if err != nil {
+				return flags, fmt.Errorf("--%s: %w", input.name, err)
+			}
+			*input.value = value
+		}
+	}
+	return flags, nil
 }

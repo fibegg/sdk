@@ -114,7 +114,10 @@ func whGetCmd() *cobra.Command {
 		Use: "get <id>", Short: "Show endpoint details", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			ep, err := c.WebhookEndpoints.Get(ctx(), id)
 			if err != nil {
 				return err
@@ -279,7 +282,10 @@ EXAMPLES:
   fibe wh update 5 --event-filter playground.created=12,15`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			params := &fibe.WebhookEndpointUpdateParams{}
 			if err := applyFromFile(params); err != nil {
 				return err
@@ -367,7 +373,10 @@ func whDeleteCmd() *cobra.Command {
 		Use: "delete <id>", Short: "Delete a webhook endpoint", Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.WebhookEndpoints.Delete(ctx(), id); err != nil {
 				return err
 			}
@@ -383,7 +392,10 @@ func whTestCmd() *cobra.Command {
 		Long: "Queue a test webhook delivery to verify the endpoint is working.\n\nEXAMPLES:\n  fibe webhooks test 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			if err := c.WebhookEndpoints.Test(ctx(), id); err != nil {
 				return err
 			}
@@ -399,7 +411,10 @@ func whDeliveriesCmd() *cobra.Command {
 		Long: "List webhook delivery attempts for an endpoint.\n\nEXAMPLES:\n  fibe webhooks deliveries 3",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			id, _ := strconv.ParseInt(args[0], 10, 64)
+			id, err := positiveInputID(args[0], "id")
+			if err != nil {
+				return err
+			}
 			deliveries, err := c.WebhookEndpoints.ListDeliveries(ctx(), id, nil)
 			if err != nil {
 				return err

@@ -60,6 +60,11 @@ FIBE_HOST_ID or infers the only launchable Host.
 SERVICE OVERRIDES:
   --service SERVICE.FIELD=VALUE applies runtime Playground config only. It does
   not edit the compose file, TemplateVersion, or Spec.
+  Existing Spec launches use --service; --var, --env, --subdomain and
+  --persist-volumes are rejected for that source. --version requires --template.
+  --repository and creation/job flags require Compose or repository sources.
+  --file, --ref and GitHub installation selectors require repository sources.
+  Text supplied as @path must be readable; a failed read is never literal text.
 
 EXAMPLES:
   fibe launch --template billing-app --name billing-staging --host next --persist-volumes --subdomain web=billing-staging --service web.exposure_port=3000 --service web.exposure_visibility=external
@@ -90,6 +95,42 @@ EXAMPLES:
 			})
 			if err != nil {
 				return err
+			}
+			if err := validateLaunchSourceFlags(cmd, source.Kind); err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("version") && version <= 0 {
+				return fmt.Errorf("--version must be a positive integer")
+			}
+			if source.Kind == launchSourceTemplateVersion {
+				if _, err := positiveInputID(source.Value, "--template-version"); err != nil {
+					return err
+				}
+			}
+			if cmd.Flags().Changed("github-installation-id") && githubInstallationID <= 0 {
+				return fmt.Errorf("--github-installation-id must be a positive integer ID")
+			}
+			if cmd.Flags().Changed("create-playground") && cmd.Flags().Changed("no-create-playground") {
+				return fmt.Errorf("use only one of --create-playground and --no-create-playground")
+			}
+			if cmd.Flags().Changed("wait-timeout") && waitTimeout <= 0 {
+				return fmt.Errorf("--wait-timeout must be positive")
+			}
+			if cmd.Flags().Changed("wait-timeout") && !wait {
+				return fmt.Errorf("--wait-timeout requires --wait")
+			}
+			if wait && (noCreatePlayground || (cmd.Flags().Changed("create-playground") && !createPlayground)) {
+				return fmt.Errorf("--wait requires playground creation")
+			}
+			if err := applyLaunchRepositories(&fibe.LaunchParams{}, launchRepositories); err != nil {
+				return err
+			}
+			if source.Kind == launchSourceCompose {
+				value, err := readTextValue(source.Value)
+				if err != nil {
+					return err
+				}
+				source.Value = value
 			}
 
 			serviceOverrides, err := parsePlaygroundServiceOverrides(serviceFlags)
@@ -279,7 +320,7 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 	params := &fibe.LaunchParams{
 		EnvPackAttachments: firstLaunchEnvPacks(envPacks), Name: name, HostIdentifier: host}
 	if source.Kind == launchSourceCompose {
-		params.ComposeYAML = resolveStringValue(source.Value)
+		params.ComposeYAML = source.Value // Explicit @file input was resolved before Host lookup.
 		if params.ComposeYAML == "" && len(rawPayload) > 0 {
 			params.ComposeYAML = string(rawPayload)
 		}
@@ -300,16 +341,15 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 		id := githubInstallationID
 		params.GitHubInstallationID = &id
 	}
-	if cmd.Flags().Changed("job-mode") && jobMode {
-		t := true
-		params.JobMode = &t
+	if cmd.Flags().Changed("job-mode") {
+		params.JobMode = &jobMode
 	}
 	if cmd.Flags().Changed("create-playground") {
 		v := createPlayground
 		params.CreatePlayground = &v
 	}
-	if cmd.Flags().Changed("no-create-playground") && noCreatePlayground {
-		v := false
+	if cmd.Flags().Changed("no-create-playground") {
+		v := !noCreatePlayground
 		params.CreatePlayground = &v
 	}
 	if persistChanged {
@@ -320,7 +360,9 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 	params.ServiceSubdomains = subdomains
 	params.Services = serviceConfigMapAny(services)
 	params.Variables = mapStringAnyToString(variables)
-	applyLaunchRepositories(params, launchRepositories)
+	if err := applyLaunchRepositories(params, launchRepositories); err != nil {
+		return nil, 0, err
+	}
 	if source.Kind == launchSourceRepo {
 		repoRequest, err := resolveGitHubRepoRequest(cmd, c, nil, githubRepoRequestOptions{
 			ExistingURL:            params.RepositoryURL,
@@ -361,23 +403,60 @@ func runComposeOrRepoLaunch(cmd *cobra.Command, c *fibe.Client, source launchSou
 	return result, result.PlaygroundID, nil
 }
 
-func applyLaunchRepositories(params *fibe.LaunchParams, values []string) {
+func applyLaunchRepositories(params *fibe.LaunchParams, values []string) error {
 	if len(values) == 0 {
-		return
+		return nil
 	}
 	params.RepositoryMappings = make(map[string]int64)
 	params.RepositoryMappingIdentifiers = make(map[string]string)
 	for _, value := range values {
 		key, target, ok := strings.Cut(value, "=")
-		if !ok {
-			continue
+		key, target = strings.TrimSpace(key), strings.TrimSpace(target)
+		if !ok || key == "" || target == "" || strings.Contains(target, "=") {
+			return fmt.Errorf("--repository expects REPOSITORY=ID_OR_NAME with nonempty values")
+		}
+		if _, exists := params.RepositoryMappings[key]; exists {
+			return fmt.Errorf("--repository repeats mapping for %q", key)
+		}
+		if _, exists := params.RepositoryMappingIdentifiers[key]; exists {
+			return fmt.Errorf("--repository repeats mapping for %q", key)
 		}
 		if id, err := strconv.ParseInt(target, 10, 64); err == nil {
+			if id <= 0 {
+				return fmt.Errorf("--repository numeric target must be a positive ID")
+			}
 			params.RepositoryMappings[key] = id
 		} else {
+			if strings.Trim(target, "+-0123456789") == "" {
+				return fmt.Errorf("--repository numeric target must be a positive ID")
+			}
 			params.RepositoryMappingIdentifiers[key] = target
 		}
 	}
+	return nil
+}
+
+func validateLaunchSourceFlags(cmd *cobra.Command, kind launchSourceKind) error {
+	for _, name := range []string{"version", "var", "env", "subdomain", "persist-volumes", "repository", "job-mode", "create-playground", "no-create-playground", "file", "ref", "github-account", "github-installation-id"} {
+		if !cmd.Flags().Changed(name) {
+			continue
+		}
+		allowed := false
+		switch name {
+		case "version":
+			allowed = kind == launchSourceTemplate
+		case "var", "env", "subdomain", "persist-volumes":
+			allowed = kind != launchSourceSpec
+		case "repository", "job-mode", "create-playground", "no-create-playground":
+			allowed = kind == launchSourceCompose || kind == launchSourceRepo
+		default:
+			allowed = kind == launchSourceRepo
+		}
+		if !allowed {
+			return fmt.Errorf("--%s is not supported for %s launch sources; existing Spec runtime overrides use --service", name, kind)
+		}
+	}
+	return nil
 }
 
 func mapStringAnyToString(values map[string]any) map[string]string {

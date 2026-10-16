@@ -97,7 +97,11 @@ Examples:
 				params.Version = version
 			}
 			if cmd.Flags().Changed("template-body") {
-				params.TemplateBody = normalizeTemplateBodyValue(resolveStringValue(templateBody))
+				value, err := readTextValue(templateBody)
+				if err != nil {
+					return err
+				}
+				params.TemplateBody = normalizeTemplateBodyValue(value)
 			}
 			if cmd.Flags().Changed("file") {
 				params.ConfigPath = repoFile
@@ -322,7 +326,8 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 	if err != nil {
 		return nil, err
 	}
-	deadline := time.After(timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	for {
 		status, err := c.Playgrounds.RuntimeStatus(ctx, id)
 		if err != nil {
@@ -340,12 +345,8 @@ func waitForPlayground(ctx context.Context, c *fibe.Client, id int64, target str
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-deadline:
-			if pendingReason == "" {
-				pendingReason = fmt.Sprintf("last status: %s", status.Status)
-			}
-			return nil, fmt.Errorf("timeout after %s: %s", timeout, pendingReason)
+			return nil, waitContextError(ctx, timeout, pendingReason)
+
 		case <-time.After(interval):
 		}
 	}

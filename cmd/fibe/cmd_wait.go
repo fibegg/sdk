@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,7 +26,8 @@ func waitCmd() *cobra.Command {
 		Long: `Poll a resource until it reaches the desired status.
 
 Eliminates retry loops in LLM agent code: delegates
-polling to the CLI with built-in timeout and interval.
+polling to the CLI with built-in timeout and interval. The timeout bounds
+requests, final resource reads and sleeps; cancellation does not stop remote work.
 
 Supported resources: playground, task, repository (mirror progress)
 
@@ -38,6 +40,11 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resource := strings.ToLower(args[0])
 			identifier := args[1]
+			if timeout <= 0 || interval <= 0 {
+				return fmt.Errorf("--timeout and --interval must be positive")
+			}
+			waitCtx, cancel := context.WithTimeout(cmd.Context(), timeout)
+			defer cancel()
 			auth := resolveCLIAuth()
 
 			c := newClient()
@@ -53,14 +60,19 @@ Examples:
 			progress := newStatusLine(cmd.ErrOrStderr(), statusLineOptions{FallbackUpdates: true})
 			progress.Start(fmt.Sprintf("waiting for %s %s to reach %s", resource, identifier, targetStatus))
 			defer progress.Stop()
-			deadline := time.After(timeout)
+			resourceError := func(err error) error {
+				if waitCtx.Err() != nil {
+					return waitContextError(waitCtx, timeout, "request did not complete")
+				}
+				return waitResourceError(resource, identifier, auth, err)
+			}
 
 			switch resource {
 			case "playground", "pg":
 				for {
-					status, err := c.Playgrounds.RuntimeStatusByIdentifier(ctx(), identifier)
+					status, err := c.Playgrounds.RuntimeStatusByIdentifier(waitCtx, identifier)
 					if err != nil {
-						return waitResourceError(resource, identifier, auth, err)
+						return resourceError(err)
 					}
 
 					current := status.Status
@@ -69,9 +81,9 @@ Examples:
 
 					ready, pendingReason := fibe.PlaygroundRuntimeStatusMatchesWaitTarget(status, targetStatus, readiness)
 					if ready {
-						pg, err := c.Playgrounds.GetByIdentifier(ctx(), identifier)
+						pg, err := c.Playgrounds.GetByIdentifier(waitCtx, identifier)
 						if err != nil {
-							return waitResourceError(resource, identifier, auth, err)
+							return resourceError(err)
 						}
 						progress.Stop()
 						if full {
@@ -87,16 +99,16 @@ Examples:
 					}
 
 					select {
-					case <-deadline:
-						return fmt.Errorf("timeout after %s: %s", timeout, pendingReason)
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, pendingReason)
 					case <-time.After(interval):
 					}
 				}
 			case "task", "tr":
 				for {
-					status, err := c.Tasks.StatusByIdentifier(ctx(), identifier)
+					status, err := c.Tasks.StatusByIdentifier(waitCtx, identifier)
 					if err != nil {
-						return waitResourceError(resource, identifier, auth, err)
+						return resourceError(err)
 					}
 
 					current := status.Status
@@ -108,9 +120,9 @@ Examples:
 							return fmt.Errorf("task reached %s with failed result", current)
 						}
 						if full {
-							pg, err := c.Tasks.GetByIdentifier(ctx(), identifier)
+							pg, err := c.Tasks.GetByIdentifier(waitCtx, identifier)
 							if err != nil {
-								return waitResourceError(resource, identifier, auth, err)
+								return resourceError(err)
 							}
 							progress.Stop()
 							output(pg)
@@ -132,8 +144,8 @@ Examples:
 					}
 
 					select {
-					case <-deadline:
-						return fmt.Errorf("timeout after %s: last status: %s", timeout, current)
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, "last status: "+current)
 					case <-time.After(interval):
 					}
 				}
@@ -142,9 +154,9 @@ Examples:
 					targetStatus = "completed"
 				}
 				for {
-					repository, err := c.Repositories.GetMirrorStateByIdentifier(ctx(), identifier)
+					repository, err := c.Repositories.GetMirrorStateByIdentifier(waitCtx, identifier)
 					if err != nil {
-						return waitResourceError(resource, identifier, auth, err)
+						return resourceError(err)
 					}
 					current := repository.MirrorStatus
 					if current == "" {
@@ -160,8 +172,8 @@ Examples:
 						return nil
 					}
 					select {
-					case <-deadline:
-						return fmt.Errorf("timeout after %s: mirror status %s: %s", timeout, current, repository.MirrorError)
+					case <-waitCtx.Done():
+						return waitContextError(waitCtx, timeout, "mirror status: "+current+": "+repository.MirrorError)
 					case <-time.After(interval):
 					}
 				}
@@ -252,4 +264,11 @@ func waitResultFromStatus(status *fibe.PlaygroundStatus) map[string]any {
 		out["job_summary"] = status.JobResult.Summary
 	}
 	return out
+}
+
+func waitContextError(ctx context.Context, timeout time.Duration, detail string) error {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return fmt.Errorf("timeout after %s: %s: %w", timeout, detail, ctx.Err())
+	}
+	return ctx.Err()
 }

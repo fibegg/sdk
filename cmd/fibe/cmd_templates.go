@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/spf13/cobra"
@@ -102,6 +101,8 @@ EXAMPLES:
 			} else if system == "false" {
 				f := false
 				params.System = &f
+			} else if cmd.Flags().Changed("system") {
+				return fmt.Errorf("--system must be true or false")
 			}
 			if sort != "" {
 				params.Sort = sort
@@ -547,7 +548,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			versionID, _ := strconv.ParseInt(args[1], 10, 64)
+			versionID, err := positiveInputID(args[1], "versionID")
+			if err != nil {
+				return err
+			}
 			if err := c.ImportTemplates.DestroyVersionByIdentifier(ctx(), args[0], versionID); err != nil {
 				return err
 			}
@@ -568,7 +572,10 @@ EXAMPLES:
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			versionID, _ := strconv.ParseInt(args[1], 10, 64)
+			versionID, err := positiveInputID(args[1], "versionID")
+			if err != nil {
+				return err
+			}
 			version, err := c.ImportTemplates.TogglePublicByIdentifier(ctx(), args[0], versionID)
 			if err != nil {
 				return err
