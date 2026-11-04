@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/mcpserver"
 )
 
 const (
@@ -172,6 +173,11 @@ func resolveCLIAuth() resolvedAuth {
 	if flagDomain != "" {
 		domain = flagDomain
 		domainSource = "--domain flag"
+	}
+	if runKey := strings.TrimSpace(os.Getenv(mcpserver.RunAPIKeyEnv)); runKey != "" && flagAPIKey == "" {
+		apiKey = runKey
+		apiKeyID = 0
+		authSource = "fibe_run session"
 	}
 	if flagAPIKey != "" {
 		apiKey = flagAPIKey

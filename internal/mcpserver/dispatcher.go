@@ -162,7 +162,10 @@ func isLocalCapability(tool *toolImpl, args map[string]any) bool {
 		return true
 	}
 	switch tool.name {
-	case "fibe_run", "fibe_auth_list", "fibe_auth_use":
+	case "fibe_run", "fibe_auth_list", "fibe_auth_use", "fibe_memorize":
+		return true
+	}
+	if strings.HasPrefix(tool.name, "fibe_local_") {
 		return true
 	}
 	return containsLocalCapabilityArg(args)

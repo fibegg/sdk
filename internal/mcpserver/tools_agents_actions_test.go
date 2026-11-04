@@ -450,3 +450,74 @@ func TestAgentConversationToolsDispatchScopedRequests(t *testing.T) {
 		t.Fatalf("expected 4 requests, got %d", step)
 	}
 }
+
+func TestAgentStartChatToolHostSelection(t *testing.T) {
+	cases := []struct {
+		name     string
+		envHost  string
+		args     map[string]any
+		wantHost any
+	}{
+		{name: "explicit name wins over env", envHost: "88", args: map[string]any{"host_id_or_name": "next"}, wantHost: "next"},
+		{name: "explicit numeric id", args: map[string]any{"host_id_or_name": float64(21)}, wantHost: "21"},
+		{name: "falls back to FIBE_HOST_ID", envHost: "88", args: map[string]any{}, wantHost: "88"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("FIBE_HOST_ID", tc.envHost)
+			var gotHost any
+			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost || r.URL.Path != "/api/agents/builder/chats" {
+					t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatalf("decode body: %v", err)
+				}
+				gotHost = body["host_id"]
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(map[string]any{"status": "starting"})
+			}))
+			defer api.Close()
+
+			srv := New(Config{APIKey: "pk_test", Domain: api.URL, ToolSet: "full"})
+			if err := srv.RegisterAll(); err != nil {
+				t.Fatalf("RegisterAll: %v", err)
+			}
+			args := map[string]any{"id_or_name": "builder"}
+			for key, value := range tc.args {
+				args[key] = value
+			}
+			if _, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_start_chat", args); err != nil {
+				t.Fatalf("dispatch: %v", err)
+			}
+			if gotHost != tc.wantHost {
+				t.Fatalf("host_id = %#v, want %#v", gotHost, tc.wantHost)
+			}
+		})
+	}
+}
+
+func TestAgentStartChatToolRequiresHostWithoutEnv(t *testing.T) {
+	t.Setenv("FIBE_HOST_ID", "")
+	srv := New(mockServerConfig())
+	srv.cfg.ToolSet = "full"
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatalf("RegisterAll: %v", err)
+	}
+	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_agents_start_chat", map[string]any{"id_or_name": "builder"})
+	if err == nil || !strings.Contains(err.Error(), "host_id_or_name") || !strings.Contains(err.Error(), "FIBE_HOST_ID is not set") {
+		t.Fatalf("expected missing host error, got %v", err)
+	}
+}
+
+func TestAgentStartChatToolAdvertisesOptionalHost(t *testing.T) {
+	schema := agentStartChatInputSchema()
+	properties := schema["properties"].(map[string]any)
+	if _, ok := properties["host_id_or_name"]; !ok {
+		t.Fatalf("host_id_or_name missing from schema: %#v", properties)
+	}
+	if required := schema["required"].([]string); len(required) != 1 || required[0] != "id_or_name" {
+		t.Fatalf("required = %#v, want only id_or_name", required)
+	}
+}

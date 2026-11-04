@@ -561,11 +561,12 @@ func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs
 	var stderrBuf truncatingBuffer
 	stderrBuf.limit = limit
 
+	authFlags, env := s.fibeRunAuth(ctx, userArgs)
 	// #nosec G204 -- the configured binary is invoked with an argv slice and never through a shell.
-	cmd := exec.CommandContext(ctx, s.cfg.CobraExecutable, strs...)
+	cmd := exec.CommandContext(ctx, s.cfg.CobraExecutable, append(authFlags, strs...)...)
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-	cmd.Env = os.Environ()
+	cmd.Env = env
 	execErr := cmd.Run()
 
 	result := fibeRunResult(strs, userArgs, timeoutMs, stdoutBuf, stderrBuf, execErr, ctx, s.recommendedToolForCLIArgs(userArgs))
