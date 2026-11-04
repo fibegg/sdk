@@ -620,12 +620,105 @@ func TestLinkRejectsDangerousDirectories(t *testing.T) {
 	if _, err := LinkPlayground(pg, home); err == nil {
 		t.Fatal("home directory accepted")
 	}
+	// The working directory itself is allowed now; an unowned one is still
+	// protected by the ownership check.
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LinkPlayground(pg, cwd); err == nil {
-		t.Fatal("current directory accepted")
+	if _, err := LinkPlayground(pg, cwd); err == nil || !strings.Contains(err.Error(), "non-empty unowned directory") {
+		t.Fatalf("unowned current directory: err=%v", err)
+	}
+}
+
+func TestRelinkFromInsideKeepsDirectoryAndUserFiles(t *testing.T) {
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	linkDir := filepath.Join(base, "playground")
+	first := &Playground{DirName: "first--1", Spec: "first", Services: map[string]*Service{
+		"api": {Name: "api", HostMount: t.TempDir(), Repository: "first-api", Branch: "main"},
+	}}
+	if _, err := LinkPlayground(first, linkDir); err != nil {
+		t.Fatalf("first link: %v", err)
+	}
+	before, err := os.Stat(linkDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	notes := filepath.Join(linkDir, "notes.md")
+	if err := os.WriteFile(notes, []byte("keep me"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// A fibe-agent terminal and its agent session live in this directory.
+	t.Chdir(linkDir)
+	secondMount := t.TempDir()
+	second := &Playground{DirName: "second--2", Spec: "second", Services: map[string]*Service{
+		"api": {Name: "api", HostMount: secondMount, Repository: "second-api", Branch: "main"},
+	}}
+	if _, err := LinkPlayground(second, linkDir); err != nil {
+		t.Fatalf("relink from inside: %v", err)
+	}
+
+	after, err := os.Stat(linkDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(before, after) {
+		t.Fatal("relink replaced the link directory instead of updating it in place")
+	}
+	if cwd, err := os.Getwd(); err != nil || cwd != linkDir {
+		t.Fatalf("working directory after relink=%q err=%v", cwd, err)
+	}
+	if target, err := os.Readlink(filepath.Join(linkDir, "second-api")); err != nil || target != secondMount {
+		t.Fatalf("new link target=%q err=%v", target, err)
+	}
+	if _, err := os.Lstat(filepath.Join(linkDir, "first-api")); !os.IsNotExist(err) {
+		t.Fatalf("previous playground link still present, err=%v", err)
+	}
+	if data, err := os.ReadFile(notes); err != nil || string(data) != "keep me" {
+		t.Fatalf("user file changed: data=%q err=%v", data, err)
+	}
+	state, err := LoadCurrentState(linkDir)
+	if err != nil || state.Name != "second--2" {
+		t.Fatalf("state=%#v err=%v", state, err)
+	}
+	entries, err := os.ReadDir(linkDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	if strings.Join(names, ",") != strings.Join([]string{currentStateFilename, linkOwnerFilename, "notes.md", "second-api"}, ",") {
+		t.Fatalf("entries=%v (temporary files left behind?)", names)
+	}
+}
+
+func TestRelinkRefusesToReplaceRealEntryWithLink(t *testing.T) {
+	linkDir := filepath.Join(t.TempDir(), "playground")
+	pg := &Playground{DirName: "pg--1", Spec: "pg", Services: map[string]*Service{
+		"api": {Name: "api", HostMount: t.TempDir(), Repository: "api", Branch: "main"},
+	}}
+	if _, err := LinkPlayground(&Playground{DirName: "empty--1", Spec: "empty", Services: map[string]*Service{}}, linkDir); err != nil {
+		t.Fatal(err)
+	}
+	work := filepath.Join(linkDir, "api")
+	if err := os.MkdirAll(work, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(work, "draft.txt"), []byte("draft"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := LinkPlayground(pg, linkDir); err == nil || !strings.Contains(err.Error(), "not a link") {
+		t.Fatalf("err=%v want refusal to replace a real directory", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(work, "draft.txt")); err != nil || string(data) != "draft" {
+		t.Fatalf("real directory changed: data=%q err=%v", data, err)
 	}
 }
 

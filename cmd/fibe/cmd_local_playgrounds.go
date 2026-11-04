@@ -257,8 +257,9 @@ func lpLinkCmd() *cobra.Command {
 		Long: `Create symlinks from playground mount points into a target directory.
 
 Uses PLAYGROUNDS_DIR when set, otherwise /app/playground.
-Use --link-dir to override the shared directory. The target parent must be writable
-so the link directory can be replaced atomically.`,
+Use --link-dir to override the shared directory. An existing link directory is
+updated in place, so it can be run from inside it; only links are added or
+removed, and other files there are kept.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			playgrounds, err := localplaygrounds.Scan(localplaygrounds.BaseDir())

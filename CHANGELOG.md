@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `fibe local playgrounds link` updates an existing link directory in place
+  instead of replacing it with a new directory. Each link is swapped with its own
+  rename and `.current_playground.json` is written last. Processes working inside
+  the directory (a fibe-agent terminal or agent session) and file watchers keep
+  working after a relink, and the command no longer refuses to run from inside
+  the directory. Only links are added or removed: regular files and directories
+  there are kept, and a link that would replace one is refused instead of
+  deleting it.
+
 ## [0.3.4] - 2026-11-04
 
 ### Added
