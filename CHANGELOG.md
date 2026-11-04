@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-04
+
 ### Added
 
 - `fibe_agents_start_chat` accepts an optional `host_id_or_name`, matching the
