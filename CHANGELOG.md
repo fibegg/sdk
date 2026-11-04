@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `fibe local playgrounds link` run from inside its link directory (where a
+  fibe-agent terminal opens) still refuses, and now says why and what to do:
+  run from the parent directory (`cd <parent>`) or pass `--link-dir`.
+
 ## [0.3.4] - 2026-11-04
 
 ### Added

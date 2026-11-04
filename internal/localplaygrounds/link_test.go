@@ -68,6 +68,28 @@ func TestCurrentStatePathPrecedence(t *testing.T) {
 	}
 }
 
+func TestLinkRefusesCurrentDirectoryWithParentHint(t *testing.T) {
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	linkDir := filepath.Join(base, "playground")
+	if err := os.MkdirAll(linkDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(linkDir)
+
+	_, err = prepareLinkDir(linkDir)
+	if err == nil {
+		t.Fatal("expected the current working directory to be refused")
+	}
+	for _, want := range []string{"refusing to use current working directory " + linkDir, "cd " + base, "--link-dir"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error %q does not contain %q", err, want)
+		}
+	}
+}
+
 func TestLinkCreatesSymlinksAndStateFile(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOST_ROOT", root)

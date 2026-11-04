@@ -551,7 +551,7 @@ func prepareLinkDir(linkDir string) (bool, error) {
 		return false, fmt.Errorf("refusing to use home directory %s as a link directory", linkDir)
 	}
 	if cwd, err := os.Getwd(); err == nil && sameCleanPath(linkDir, cwd) {
-		return false, fmt.Errorf("refusing to use current working directory %s as a link directory", linkDir)
+		return false, fmt.Errorf("refusing to use current working directory %s as a link directory: linking replaces it; run from its parent (cd %s) or pass --link-dir", linkDir, filepath.Dir(linkDir))
 	}
 	if err := rejectSymlinkedAncestors(linkDir); err != nil {
 		return false, err
