@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `fibe_agents_start_chat` accepts an optional `host_id_or_name`, matching the
+  CLI's `--host`. Without it the tool still uses `FIBE_HOST_ID`.
+
+### Changed
+
+- Require Go 1.26.10 for the `crypto/x509` fix (GO-2026-6809). The Homebrew
+  cask uses GoReleaser 2.19 `install_steps` (`postflight_steps`) for the same
+  macOS quarantine removal, replacing Homebrew's deprecated `postflight`.
+
+### Fixed
+
+- `fibe_run` now runs the CLI with the MCP session's credentials instead of the
+  machine's active profile. A selected profile (`--profile` on the server or
+  `fibe_auth_use`) is passed by name. Any other key (`--api-key`,
+  `FIBE_API_KEY`, `fibe_auth_set` or an HTTP bearer) reaches the child through
+  `FIBE_MCP_RUN_API_KEY`, never argv or the tool result.
+- HTTP MCP transports without `--allow-local-access` now also deny
+  `fibe_memorize` and every `fibe_local_*` tool, as the README already stated.
+  stdio is unchanged.
+- The README cited a nonexistent `fibe logs follow`; it now points to
+  `fibe playgrounds logs --follow` and `fibe tasks logs --follow`.
+
 ## [0.3.3] - 2026-10-16
 
 ### Fixed

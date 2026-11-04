@@ -10,7 +10,7 @@ their own cutover; candidate binaries of unreleased source are built from
 matched source without release tags. See [`COMPATIBILITY.md`](COMPATIBILITY.md)
 for the migration contract.
 
-Requires Go 1.26.9 or newer when building from source. See
+Requires Go 1.26.10 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
@@ -216,9 +216,17 @@ HTTP MCP requires authentication on non-loopback binds. Alternate API origins
 must be explicitly allowlisted with repeatable `--allowed-domain` flags and use
 request/session credentials. Browser origins must match the request host or an
 exact `--allowed-domain` origin. Local filesystem, profile, conversation,
-playground, and process capabilities are denied over HTTP by default. A
-loopback-only deployment may opt in with `--allow-local-access`; stdio retains
-the existing local tools.
+playground, and process capabilities are denied over HTTP by default: `fibe_run`,
+`fibe_auth_list`, `fibe_auth_use`, `fibe_memorize`, every `fibe_local_*` tool, and
+any call that passes a local path argument. A loopback-only deployment may opt in
+with `--allow-local-access`; stdio retains the existing local tools.
+
+`fibe_run` starts the CLI with the session's credentials. When the session uses a
+profile (the server's `--profile` or `fibe_auth_use`), the child gets
+`--profile <name>`. Any other key (`--api-key`, `FIBE_API_KEY`, `fibe_auth_set` or
+an HTTP bearer) reaches the child through its `FIBE_MCP_RUN_API_KEY` environment
+variable, never argv or the tool result. `--profile`, `--api-key` or `--domain`
+passed in `fibe_run` args take precedence.
 
 ### Tool surface
 
@@ -254,7 +262,7 @@ Use `parallel` for independent steps and `for_each` for arrays. Results stay in 
 
 ### Streaming
 
-`fibe_playgrounds_wait` and `fibe_logs_follow` send MCP progress notifications. Long SDK operations do the same when the client supplies a progress token. Use `fibe logs follow <id-or-name>` for continuous Playground or Task logs from the CLI.
+`fibe_playgrounds_wait` and `fibe_logs_follow` send MCP progress notifications. Long SDK operations do the same when the client supplies a progress token. Use `fibe playgrounds logs <id-or-name> --follow` or `fibe tasks logs <id-or-name> --follow` for continuous Playground or Task logs from the CLI.
 
 SDK WebSocket streams use the configured HTTP transport, enforce a 10 MiB
 frame limit, and close their channels on cancellation or terminal failure.

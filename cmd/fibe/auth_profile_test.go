@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/mcpserver"
 )
 
 func TestResolveCLIAuthDefaultsToProductionProfile(t *testing.T) {
@@ -163,6 +164,7 @@ func setupAuthTest(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", home)
 	t.Setenv("FIBE_API_KEY", "")
 	t.Setenv("FIBE_DOMAIN", "")
+	t.Setenv(mcpserver.RunAPIKeyEnv, "")
 
 	prevAPIKey, prevDomain, prevProfile := flagAPIKey, flagDomain, flagProfile
 	prevOutput, prevOnly, prevFromFile := flagOutput, flagOnly, flagFromFile
@@ -221,5 +223,33 @@ func TestResolvedCredentialContextMatchesSharedMetadataFixture(t *testing.T) {
 				t.Fatalf("resolved %+v, want %+v", got, want)
 			}
 		})
+	}
+}
+
+func TestResolveCLIAuthUsesFibeRunSessionKeyOverProfile(t *testing.T) {
+	setupAuthTest(t)
+	if err := saveAuthProfile("staging", "next.fibe.live", "fibe_test_profile", 42); err != nil {
+		t.Fatalf("save profile: %v", err)
+	}
+	t.Setenv(mcpserver.RunAPIKeyEnv, "fibe_test_session")
+	flagDomain = "session.example.com"
+
+	got := resolveCLIAuth()
+	if got.APIKey != "fibe_test_session" || got.APIKeyID != 0 || got.AuthSource != "fibe_run session" {
+		t.Fatalf("auth = %q (id %d) from %q, want fibe_run session key", got.APIKey, got.APIKeyID, got.AuthSource)
+	}
+	if got.Domain != "session.example.com" {
+		t.Fatalf("domain = %q, want session.example.com", got.Domain)
+	}
+}
+
+func TestResolveCLIAuthAPIKeyFlagBeatsFibeRunSessionKey(t *testing.T) {
+	setupAuthTest(t)
+	t.Setenv(mcpserver.RunAPIKeyEnv, "fibe_test_session")
+	flagAPIKey = "fibe_test_flag"
+
+	got := resolveCLIAuth()
+	if got.APIKey != "fibe_test_flag" || got.AuthSource != "--api-key flag" {
+		t.Fatalf("auth = %q from %q, want --api-key flag", got.APIKey, got.AuthSource)
 	}
 }

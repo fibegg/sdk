@@ -146,6 +146,23 @@ func TestHTTPTransportDeniesLocalCapabilitiesByDefault(t *testing.T) {
 	}
 }
 
+func TestHTTPTransportDeniesLocalPlaygroundAndMemoryTools(t *testing.T) {
+	srv := New(Config{APIKey: "server", Domain: "fibe.gg", ToolSet: "full"})
+	if err := srv.RegisterAll(); err != nil {
+		t.Fatal(err)
+	}
+	srv.httpMode = true
+	for name, args := range map[string]map[string]any{
+		"fibe_local_playgrounds_info": {"view": "names"},
+		"fibe_local_playgrounds_link": {"id_or_name": "demo"},
+		"fibe_memorize":               {"conversation_id": "thread-1", "content": "note"},
+	} {
+		if _, err := srv.dispatcher.dispatch(context.Background(), name, args); err == nil || !strings.Contains(err.Error(), "local access") {
+			t.Fatalf("%s error = %v, want local access denial", name, err)
+		}
+	}
+}
+
 func TestHTTPTransportDetectsNestedLocalCapabilities(t *testing.T) {
 	tool := &toolImpl{name: "fibe_resource_mutate", tier: tierBase}
 	args := map[string]any{"payload": map[string]any{"content_path": "/tmp/private"}}

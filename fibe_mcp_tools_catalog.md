@@ -511,13 +511,26 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.
+[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.
 
 ### Input Schema
 ```json
 {
   "additionalProperties": false,
   "properties": {
+    "host_id_or_name": {
+      "description": "Target Host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID.",
+      "oneOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "minLength": 1,
+          "type": "string"
+        }
+      ]
+    },
     "id_or_name": {
       "description": "Agent ID or name.",
       "oneOf": [

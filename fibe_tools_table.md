@@ -23,7 +23,7 @@ Generated from the MCP registry.
 | `fibe_agents_messages` | overseer | yes | [MODE:OVERSEER] Read agent messages, optionally scoped to a conversation. |
 | `fibe_agents_runtime_status` | overseer | yes | [MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid. |
 | `fibe_agents_send_message` | overseer | yes | [MODE:OVERSEER] Send one text message to an agent chat. Fails with HOST_NOT_FUNDED when the chat Host is unpaid. |
-| `fibe_agents_start_chat` | overseer | yes | [MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED. |
+| `fibe_agents_start_chat` | overseer | yes | [MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED. |
 | `fibe_artefact_upload` | base | yes | [MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly |
 | `fibe_auth_list` | meta | yes | [MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys. |
 | `fibe_auth_set` | other | yes | [MODE:SIDEEFFECTS] Set the API key and domain for this MCP session. |

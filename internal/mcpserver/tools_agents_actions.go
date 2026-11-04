@@ -47,22 +47,22 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.", tier: tierOverseer,
+		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
 			if err != nil {
 				return nil, err
 			}
-			hostID, err := parseHostIDEnv()
+			hostIdentifier, err := startChatHostIdentifier(args)
 			if err != nil {
-				return nil, fmt.Errorf("fibe_agents_start_chat requires an implicit Host: %w", err)
+				return nil, fmt.Errorf("fibe_agents_start_chat requires host_id_or_name or an implicit Host: %w", err)
 			}
-			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, strconv.FormatInt(hostID, 10))
+			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, hostIdentifier)
 		},
 	}, mcp.NewTool("fibe_agents_start_chat",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on the current Host from FIBE_HOST_ID. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED."),
-		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host from FIBE_HOST_ID when it is omitted. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED."),
+		withRawInputSchema(agentStartChatInputSchema()),
 	))
 
 	s.addTool(&toolImpl{
@@ -214,6 +214,27 @@ func agentIdentifierOnlyInputSchema(description string) map[string]any {
 			"id_or_name": identifierInputProperty(description),
 		},
 	}
+}
+
+func agentStartChatInputSchema() map[string]any {
+	schema := agentIdentifierOnlyInputSchema("Agent ID or name.")
+	schema["properties"].(map[string]any)["host_id_or_name"] = identifierInputProperty("Target Host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID.")
+	return schema
+}
+
+// startChatHostIdentifier prefers an explicit Host, like the CLI's --host,
+// and falls back to FIBE_HOST_ID without inferring one from the Host list.
+func startChatHostIdentifier(args map[string]any) (string, error) {
+	if id, identifier := explicitMCPHost(args); id != nil {
+		return strconv.FormatInt(*id, 10), nil
+	} else if identifier != "" {
+		return identifier, nil
+	}
+	hostID, err := parseHostIDEnv()
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatInt(hostID, 10), nil
 }
 
 func agentConversationInputSchema(description string, requireConversation bool) map[string]any {
