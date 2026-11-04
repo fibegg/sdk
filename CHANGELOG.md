@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `fibe_agents_start_chat` accepts an optional `host_id_or_name`, matching the
   CLI's `--host`. Without it the tool still uses `FIBE_HOST_ID`.
 
+### Changed
+
+- Require Go 1.26.10 for the `crypto/x509` fix (GO-2026-6809). The Homebrew
+  cask uses GoReleaser 2.19 `install_steps` (`postflight_steps`) for the same
+  macOS quarantine removal, replacing Homebrew's deprecated `postflight`.
+
 ### Fixed
 
 - `fibe_run` now runs the CLI with the MCP session's credentials instead of the
