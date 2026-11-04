@@ -454,6 +454,15 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 		return nil, fmt.Errorf("failed to serialize state file: %w", err)
 	}
 
+	if existed {
+		// Agent terminals, agent sessions and file watchers hold the existing
+		// directory open, so it is updated in place rather than replaced.
+		if err := relinkInPlace(linkDir, linkNames, result.Links, append(data, '\n')); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
 	parent := filepath.Dir(linkDir)
 	staged, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".staged-")
 	if err != nil {
@@ -483,11 +492,83 @@ func LinkPlayground(pg *Playground, linkDir string) (*fibe.GreenfieldLinkResult,
 	if err := syncDirectory(staged); err != nil {
 		return nil, fmt.Errorf("failed to sync staged directory: %w", err)
 	}
-	if err := replaceLinkDir(linkDir, staged, existed); err != nil {
-		return nil, err
+	if err := os.Rename(staged, linkDir); err != nil {
+		return nil, fmt.Errorf("failed to install link directory: %w", err)
 	}
 	keepStaged = true
+	if err := syncDirectory(parent); err != nil {
+		return nil, fmt.Errorf("failed to sync installed link directory: %w", err)
+	}
 	return result, nil
+}
+
+// relinkInPlace swaps each link with a rename of its own and writes the state
+// file last, so a reader sees every link name either old or new and a
+// consistent state file. Only symlinks are added or removed; regular files and
+// directories in the link directory are never touched.
+func relinkInPlace(linkDir string, names []string, links []fibe.GreenfieldLinkedPath, state []byte) error {
+	if err := replaceFileInPlace(linkDir, linkOwnerFilename, []byte("managed by fibe local playground linking\n")); err != nil {
+		return fmt.Errorf("failed to write ownership marker: %w", err)
+	}
+	wanted := make(map[string]bool, len(names))
+	for i, name := range names {
+		wanted[name] = true
+		final := filepath.Join(linkDir, name)
+		if info, err := os.Lstat(final); err == nil && info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("refusing to replace %s: it is not a link", final)
+		} else if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to inspect %s: %w", final, err)
+		}
+		temporary := filepath.Join(linkDir, "."+name+".fibe-link-"+strconv.Itoa(os.Getpid()))
+		if err := os.Remove(temporary); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to clear temporary link %s: %w", temporary, err)
+		}
+		if err := os.Symlink(links[i].Target, temporary); err != nil {
+			return fmt.Errorf("failed to create symlink %s -> %s: %w", final, links[i].Target, err)
+		}
+		if err := os.Rename(temporary, final); err != nil {
+			_ = os.Remove(temporary)
+			return fmt.Errorf("failed to install symlink %s: %w", final, err)
+		}
+	}
+
+	entries, err := os.ReadDir(linkDir)
+	if err != nil {
+		return fmt.Errorf("failed to read link directory %s: %w", linkDir, err)
+	}
+	for _, entry := range entries {
+		if entry.Type()&os.ModeSymlink == 0 || wanted[entry.Name()] {
+			continue
+		}
+		if err := os.Remove(filepath.Join(linkDir, entry.Name())); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove previous link %s: %w", entry.Name(), err)
+		}
+	}
+
+	if err := replaceFileInPlace(linkDir, currentStateFilename, state); err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
+	}
+	return syncDirectory(linkDir)
+}
+
+func replaceFileInPlace(dir, name string, data []byte) error {
+	temporary, err := os.CreateTemp(dir, "."+name+".tmp-")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temporary.Name())
+	if _, err := temporary.Write(data); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporary.Name(), filepath.Join(dir, name))
 }
 
 func currentStateFromLinks(pg *Playground, linkDir, stateFile string, links []fibe.GreenfieldLinkedPath) CurrentState {
@@ -549,9 +630,6 @@ func prepareLinkDir(linkDir string) (bool, error) {
 	}
 	if home, err := os.UserHomeDir(); err == nil && sameCleanPath(linkDir, home) {
 		return false, fmt.Errorf("refusing to use home directory %s as a link directory", linkDir)
-	}
-	if cwd, err := os.Getwd(); err == nil && sameCleanPath(linkDir, cwd) {
-		return false, fmt.Errorf("refusing to use current working directory %s as a link directory", linkDir)
 	}
 	if err := rejectSymlinkedAncestors(linkDir); err != nil {
 		return false, err
@@ -644,39 +722,8 @@ func rejectSymlinkedAncestors(path string) error {
 	return nil
 }
 
-func replaceLinkDir(linkDir, staged string, existed bool) error {
-	parent := filepath.Dir(linkDir)
-	if !existed {
-		if err := os.Rename(staged, linkDir); err != nil {
-			return fmt.Errorf("failed to install link directory: %w", err)
-		}
-		return syncDirectory(parent)
-	}
-	backup, err := os.MkdirTemp(parent, "."+filepath.Base(linkDir)+".backup-")
-	if err != nil {
-		return fmt.Errorf("failed to reserve link directory backup: %w", err)
-	}
-	if err := os.Remove(backup); err != nil {
-		return fmt.Errorf("failed to prepare link directory backup: %w", err)
-	}
-	if err := os.Rename(linkDir, backup); err != nil {
-		return fmt.Errorf("failed to preserve previous link directory: %w", err)
-	}
-	if err := os.Rename(staged, linkDir); err != nil {
-		_ = os.Rename(backup, linkDir)
-		return fmt.Errorf("failed to install link directory: %w", err)
-	}
-	if err := syncDirectory(parent); err != nil {
-		return fmt.Errorf("failed to sync installed link directory: %w", err)
-	}
-	if err := os.RemoveAll(backup); err != nil {
-		return fmt.Errorf("failed to remove previous link directory: %w", err)
-	}
-	return syncDirectory(parent)
-}
-
 func syncDirectory(path string) error {
-	// #nosec G304 -- path is the validated parent directory being fsynced after an atomic swap.
+	// #nosec G304 -- path is a validated link directory or its parent, fsynced after a rename.
 	dir, err := os.Open(path)
 	if err != nil {
 		return err
