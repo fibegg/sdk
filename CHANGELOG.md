@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Require Go 1.26.11 for the net/http MaxBytesReader race fix (GO-2026-6859).
+
 ### Fixed
 
 - Live MCP/CLI GET parity tests create their own resources or use the configured

@@ -10,7 +10,7 @@ their own cutover; candidate binaries of unreleased source are built from
 matched source without release tags. See [`COMPATIBILITY.md`](COMPATIBILITY.md)
 for the migration contract.
 
-Requires Go 1.26.10 or newer when building from source. See
+Requires Go 1.26.11 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
