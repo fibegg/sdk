@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Live MCP/CLI GET parity tests create their own resources or use the configured
+  suite Host, and fail when those resources cannot be read instead of skipping
+  when an unrelated resource disappears.
+
 ## [0.3.5] - 2026-11-04
 
 ### Fixed

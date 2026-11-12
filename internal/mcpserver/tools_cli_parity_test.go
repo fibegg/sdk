@@ -8,8 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/fibegg/sdk/fibe"
 )
 
 // requireRealServer returns the active test credentials.
@@ -318,47 +322,13 @@ func TestCLIParity_GetTools(t *testing.T) {
 
 	for _, res := range resources {
 		t.Run(res, func(t *testing.T) {
-			listResRaw, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{"resource": res})
-			if err != nil {
-				t.Fatalf("Failed to fetch list for %s: %v", res, err)
-			}
-
-			// We need to extract the ID. The result is typically a fibe.ListResult[T] or map[string]any.
-			listBytes, _ := json.Marshal(listResRaw)
-			var listMap map[string]any
-			json.Unmarshal(listBytes, &listMap)
-
-			var id any
-			var agentID any
-			if data, ok := listMap["Data"].([]any); ok && len(data) > 0 {
-				if item, ok := data[0].(map[string]any); ok {
-					id = item["id"]
-					agentID = item["agent_id"]
-				}
-			}
-
-			if id == nil {
-				t.Skipf("No %s found to test GET", res)
-			}
-
-			var idVal any
-			switch v := id.(type) {
-			case float64:
-				idVal = int(v) // for CLI arg
-			case string:
-				idVal = v
-			default:
-				idVal = id
-			}
+			idVal, agentID := getParityFixture(t, srv, res)
 
 			mcpRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
 				"resource": res,
 				"id":       idVal,
 			})
 			if err != nil {
-				if strings.Contains(err.Error(), "404") {
-					t.Skipf("Resource likely deleted by parallel test, skipping GET parity: %v", err)
-				}
 				t.Fatalf("MCP tool GET failed: %v", err)
 			}
 			mcpBytes, _ := json.Marshal(mcpRes)
@@ -495,6 +465,108 @@ func TestCLIParity_GetTools(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Each fixture lives until its resource subcase finishes. Other live tests only
+// clean up their own IDs; the configured Host belongs to the suite bootstrap.
+func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
+	t.Helper()
+	ctx := context.Background()
+	client := srv.buildBaseClient()
+	name := fmt.Sprintf("get-parity-%d", time.Now().UnixNano())
+	create := func(resource string, payload map[string]any) int64 {
+		t.Helper()
+		result, err := srv.dispatcher.dispatch(ctx, "fibe_resource_mutate", map[string]any{
+			"resource": resource, "operation": "create", "payload": payload,
+		})
+		if err != nil {
+			t.Fatalf("create owned %s fixture: %v", resource, err)
+		}
+		data, err := json.Marshal(result)
+		if err != nil {
+			t.Fatalf("marshal %s fixture: %v", resource, err)
+		}
+		var object struct {
+			ID int64 `json:"id"`
+		}
+		if err := json.Unmarshal(data, &object); err != nil || object.ID <= 0 {
+			t.Fatalf("create %s fixture returned no valid ID: %v", resource, err)
+		}
+		t.Cleanup(func() {
+			if _, err := srv.dispatcher.dispatch(ctx, "fibe_resource_delete", map[string]any{
+				"resource": resource, "id": object.ID, "confirm": true,
+			}); err != nil {
+				t.Errorf("delete owned %s fixture: %v", resource, err)
+			}
+		})
+		return object.ID
+	}
+	host := func() int64 {
+		t.Helper()
+		id, err := strconv.ParseInt(os.Getenv("FIBE_TEST_HOST_ID"), 10, 64)
+		if err != nil || id <= 0 {
+			t.Fatal("GET parity requires the suite's FIBE_TEST_HOST_ID fixture")
+		}
+		if _, err := client.Hosts.Get(ctx, id); err != nil {
+			t.Fatalf("get suite Host fixture: %v", err)
+		}
+		return id
+	}
+	switch resource {
+	case "hosts":
+		return host(), nil
+	case "playgrounds", "tasks", "specs":
+		compose := "services:\n  web:\n    image: nginx:alpine\n"
+		payload := map[string]any{"name": name + "-spec", "base_compose_yaml": compose}
+		if resource == "tasks" {
+			payload["base_compose_yaml"] = "services:\n  worker:\n    image: alpine:3\n    command: [sh, -c, 'echo done']\n    labels:\n      fibe.gg/job_watch: 'true'\n"
+			payload["job_mode"] = true
+			payload["services"] = []any{map[string]any{"name": "worker", "type": "static", "job_watch": true}}
+		}
+		specID := create("specs", payload)
+		if resource == "specs" {
+			return specID, nil
+		}
+		return create("playgrounds", map[string]any{"name": name, "spec_id": specID, "host_id": host()}), nil
+	case "agents", "artefacts":
+		agentID := create("agents", map[string]any{"name": name, "provider": fibe.ProviderGemini})
+		if resource == "agents" {
+			return agentID, nil
+		}
+		artefact, err := client.Artefacts.Create(ctx, agentID, &fibe.ArtefactCreateParams{Name: name + ".txt"}, strings.NewReader("GET parity fixture"), name+".txt")
+		if err != nil {
+			t.Fatalf("create owned artefact fixture: %v", err)
+		}
+		return artefact.ID, float64(agentID)
+	case "repositories":
+		autoInit := true
+		repo, err := client.GiteaRepos.Create(ctx, &fibe.GiteaRepoCreateParams{Name: name, AutoInit: &autoInit})
+		if err != nil {
+			t.Fatalf("create owned repository fixture: %v", err)
+		}
+		if repo.RepositoryID <= 0 {
+			t.Fatal("Gitea fixture returned no Repository ID")
+		}
+		t.Cleanup(func() {
+			if err := client.Repositories.Delete(ctx, repo.RepositoryID); err != nil {
+				t.Errorf("delete owned repository fixture: %v", err)
+			}
+		})
+		return repo.RepositoryID, nil
+	case "secrets", "job_envs":
+		return create(resource, map[string]any{"key": fmt.Sprintf("GET_PARITY_%d", time.Now().UnixNano()), "value": "fixture"}), nil
+	case "webhooks":
+		return create(resource, map[string]any{"url": "https://example.com/" + name, "events": []string{"playground.created"}}), nil
+	case "templates":
+		categories, err := client.TemplateCategories.List(ctx, nil)
+		if err != nil || len(categories.Data) == 0 {
+			t.Fatalf("GET parity requires a template category fixture: %v", err)
+		}
+		return create(resource, map[string]any{"name": name, "category_id": categories.Data[0].ID, "template_body": "services:\n  web:\n    image: nginx:alpine\n"}), nil
+	default:
+		t.Fatalf("missing GET parity fixture for %s", resource)
+		return nil, nil
 	}
 }
 
