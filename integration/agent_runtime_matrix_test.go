@@ -104,7 +104,7 @@ func TestAgentRuntimeMatrix(t *testing.T) {
 			name:               "OpenCode OpenAI",
 			provider:           fibe.ProviderOpenCode,
 			providerAPIKeyMode: true,
-			modelOptions:       "openai/gpt-5-mini",
+			modelOptions:       "openai/gpt-4o-mini",
 			credentialEnv:      "OPENAI_API_KEY",
 			opencodeProvider:   "openai",
 		},

@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Use a low-latency OpenAI model for the live OpenCode runtime proof while
+  retaining the initial tool probe and all five follow-up turns.
 - Bound live integration waits to 90 seconds and wait for owned Agent chat
   purge completion before deleting the Agent (E103).
 - Live MCP/CLI GET parity tests create their own resources or use the configured
