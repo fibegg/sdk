@@ -470,6 +470,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 
 // Each fixture lives until its resource subcase finishes. Other live tests only
 // clean up their own IDs; the configured Host belongs to the suite bootstrap.
+// Cleanup is best-effort, like the suite seed helpers: runtime deletion is async.
 func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
 	t.Helper()
 	ctx := context.Background()
@@ -497,7 +498,7 @@ func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
 			if _, err := srv.dispatcher.dispatch(ctx, "fibe_resource_delete", map[string]any{
 				"resource": resource, "id": object.ID, "confirm": true,
 			}); err != nil {
-				t.Errorf("delete owned %s fixture: %v", resource, err)
+				t.Logf("cleanup owned %s fixture: %v", resource, err)
 			}
 		})
 		return object.ID
@@ -551,7 +552,7 @@ func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
 		}
 		t.Cleanup(func() {
 			if err := client.Repositories.Delete(ctx, repo.RepositoryID); err != nil {
-				t.Errorf("delete owned repository fixture: %v", err)
+				t.Logf("cleanup owned repository fixture: %v", err)
 			}
 		})
 		return repo.RepositoryID, nil
