@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -48,8 +49,8 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 3. Detail fields populated (may require waiting for provisioning)
 	t.Run("detail has expiration and service info", func(t *testing.T) {
-		d, _ := pollUntil(20, time.Second, func() (*fibe.Playground, bool) {
-			got, err := c.Playgrounds.Get(ctx(), pg.ID)
+		d, _ := pollUntil(20, time.Second, func(pollCtx context.Context) (*fibe.Playground, bool) {
+			got, err := c.Playgrounds.Get(pollCtx, pg.ID)
 			if err != nil {
 				return nil, false
 			}
@@ -68,8 +69,8 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 	// 4. Compose endpoint returns usable YAML (may take time to render)
 	t.Run("compose returns structured YAML", func(t *testing.T) {
-		cmp, found := pollUntil(120, time.Second, func() (*fibe.PlaygroundCompose, bool) {
-			c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
+		cmp, found := pollUntil(120, time.Second, func(pollCtx context.Context) (*fibe.PlaygroundCompose, bool) {
+			c2, err := c.Playgrounds.Compose(pollCtx, pg.ID)
 			if err != nil {
 				return nil, false
 			}

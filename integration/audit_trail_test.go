@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -16,8 +17,8 @@ func TestAuditTrail_SecretCreationLogged(t *testing.T) {
 
 	s := seedSecret(t, c, "audit")
 
-	entry, found := pollUntil(8, time.Second, func() (*fibe.AuditLog, bool) {
-		list, err := c.AuditLogs.List(ctx(), &fibe.AuditLogListParams{
+	entry, found := pollUntil(8, time.Second, func(pollCtx context.Context) (*fibe.AuditLog, bool) {
+		list, err := c.AuditLogs.List(pollCtx, &fibe.AuditLogListParams{
 			ResourceType: "Secret",
 			Sort:         "created_at_desc",
 			PerPage:      25,

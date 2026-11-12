@@ -107,11 +107,11 @@ func integrationClient(key, domain string, maxRetries int) *fibe.Client {
 func integrationHTTPTimeout() time.Duration {
 	raw := os.Getenv("FIBE_INTEGRATION_HTTP_TIMEOUT")
 	if raw != "" {
-		if parsed, err := time.ParseDuration(raw); err == nil && parsed > 0 {
+		if parsed, err := time.ParseDuration(raw); err == nil && parsed > 0 && parsed <= 90*time.Second {
 			return parsed
 		}
 	}
-	return 120 * time.Second
+	return 90 * time.Second
 }
 
 func userScopes(t *testing.T) []string {
@@ -147,6 +147,9 @@ func ctx() context.Context {
 }
 
 func ctxTimeout(d time.Duration) (context.Context, context.CancelFunc) {
+	if d > 90*time.Second {
+		d = 90 * time.Second
+	}
 	return context.WithTimeout(testCtx, d)
 }
 

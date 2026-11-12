@@ -16,8 +16,7 @@ const (
 	agentChatHealthProbeAttempts = 10
 	agentChatHealthProbeDelay    = 2 * time.Second
 	agentChatHealthProbeTimeout  = 3 * time.Second
-	// Must exceed the server-side agent chat reachability window
-	// (45 attempts * 2s delay) so the SDK doesn't give up first.
+	// Attempts remain bounded by the shared 90-second response deadline.
 	agentChatProbeAttempts = 50
 	agentChatProbeDelay    = 2 * time.Second
 	agentChatProbeTimeout  = 5 * time.Second
@@ -55,9 +54,10 @@ func sendAgentChatWithTimeout(c *fibe.Client, agentID int64, params *fibe.AgentC
 }
 
 func chatEventuallyAcceptedResult(c *fibe.Client, agentID int64, params *fibe.AgentChatParams, attempts int, delay, timeout time.Duration) (map[string]any, error) {
+	deadline := time.Now().Add(90 * time.Second)
 	var lastErr error
-	for attempt := 1; attempt <= attempts; attempt++ {
-		result, err := sendAgentChatWithTimeout(c, agentID, params, timeout)
+	for attempt := 1; attempt <= attempts && time.Now().Before(deadline); attempt++ {
+		result, err := sendAgentChatWithTimeout(c, agentID, params, minWaitDuration(timeout, time.Until(deadline)))
 		if err == nil {
 			return result, nil
 		}
@@ -66,7 +66,7 @@ func chatEventuallyAcceptedResult(c *fibe.Client, agentID int64, params *fibe.Ag
 			return nil, err
 		}
 		if attempt < attempts {
-			time.Sleep(delay)
+			time.Sleep(minWaitDuration(delay, time.Until(deadline)))
 		}
 	}
 	if lastErr == nil {
@@ -132,7 +132,7 @@ func bootstrapOpencodeChat(t *testing.T, c *fibe.Client) *fibe.Agent {
 
 	ag, err := c.Agents.Create(ctx(), params)
 	requireNoError(t, err, "seed opencode agent")
-	t.Cleanup(func() { c.Agents.Delete(ctx(), ag.ID) })
+	t.Cleanup(func() { cleanupAgentRuntimeMatrixCase(t, c, ag.ID) })
 	t.Logf("using OpenCode credential from %s", credentialSource)
 
 	authParams := &fibe.AgentAuthenticateParams{Token: &secret, OpenCodeProvider: &opencodeProvider}

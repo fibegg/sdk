@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Bound live integration waits to 90 seconds and wait for owned Agent chat
+  purge completion before deleting the Agent (E103).
 - Live MCP/CLI GET parity tests create their own resources or use the configured
   suite Host, and fail when those resources cannot be read instead of skipping
   when an unrelated resource disappears.

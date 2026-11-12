@@ -1423,7 +1423,7 @@ func (m mcpSurface) call(t *testing.T, tool string, args map[string]any, out any
 	req := mcp.CallToolRequest{}
 	req.Params.Name = tool
 	req.Params.Arguments = args
-	callCtx, cancel := context.WithTimeout(ctx(), 3*time.Minute)
+	callCtx, cancel := context.WithTimeout(ctx(), 90*time.Second)
 	defer cancel()
 	res, err := m.c.CallTool(callCtx, req)
 	requireNoError(t, err, "mcp transport for "+tool)

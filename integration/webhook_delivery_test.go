@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -74,7 +75,7 @@ func pollWebhookRequest(timeout time.Duration, requests <-chan capturedWebhookRe
 	if attempts < 1 {
 		attempts = 1
 	}
-	return pollUntil(attempts, time.Second, func() (capturedWebhookRequest, bool) {
+	return pollUntil(attempts, time.Second, func(pollCtx context.Context) (capturedWebhookRequest, bool) {
 		select {
 		case req := <-requests:
 			return req, true
@@ -89,8 +90,8 @@ func pollWebhookDeliveries(c *fibe.Client, endpointID int64, timeout time.Durati
 	if attempts < 1 {
 		attempts = 1
 	}
-	return pollUntil(attempts, time.Second, func() ([]fibe.WebhookDelivery, bool) {
-		list, err := c.WebhookEndpoints.ListDeliveries(ctx(), endpointID, nil)
+	return pollUntil(attempts, time.Second, func(pollCtx context.Context) ([]fibe.WebhookDelivery, bool) {
+		list, err := c.WebhookEndpoints.ListDeliveries(pollCtx, endpointID, nil)
 		if err != nil {
 			return nil, false
 		}

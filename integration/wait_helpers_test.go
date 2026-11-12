@@ -25,16 +25,18 @@ func waitForPlaygroundStatus(t *testing.T, c *fibe.Client, id int64, targets []s
 
 func waitForPlaygroundStatusWithin(t *testing.T, c *fibe.Client, id int64, targets []string, timeout time.Duration) string {
 	t.Helper()
-	deadline := time.Now().Add(timeout)
+	waitCtx, waitCancel := ctxTimeout(minWaitDuration(timeout, 90*time.Second))
+	defer waitCancel()
+	deadline, _ := waitCtx.Deadline()
 	interval := 2 * time.Second
 	lastStatus := ""
 	for time.Now().Before(deadline) {
-		cctx, cancel := context.WithTimeout(ctx(), 5*time.Second)
+		cctx, cancel := context.WithTimeout(waitCtx, 5*time.Second)
 		s, err := c.Playgrounds.Status(cctx, id)
 		cancel()
 		if err != nil {
 			t.Logf("status poll error: %v", err)
-			time.Sleep(interval)
+			time.Sleep(minWaitDuration(interval, time.Until(deadline)))
 			continue
 		}
 		lastStatus = s.Status
@@ -43,7 +45,7 @@ func waitForPlaygroundStatusWithin(t *testing.T, c *fibe.Client, id int64, targe
 				return s.Status
 			}
 		}
-		time.Sleep(interval)
+		time.Sleep(minWaitDuration(interval, time.Until(deadline)))
 	}
 	t.Logf("wait timeout after %s: last status=%q, wanted one of %v", timeout, lastStatus, targets)
 	return lastStatus
@@ -52,8 +54,8 @@ func waitForPlaygroundStatusWithin(t *testing.T, c *fibe.Client, id int64, targe
 // CapWaitTimeout caps any wait to this value so a single test can't consume
 // the full suite timeout.
 const CapWaitTimeout = 20 * time.Second
-const PlaygroundLaunchWaitTimeout = 6 * time.Minute
-const playgroundActionRetryTimeout = 3 * time.Minute
+const PlaygroundLaunchWaitTimeout = 90 * time.Second
+const playgroundActionRetryTimeout = 90 * time.Second
 
 // waitForTaskTerminal polls task status until completed/error/failed.
 func waitForTaskTerminal(t *testing.T, c *fibe.Client, id int64, timeout time.Duration) string {
@@ -63,7 +65,7 @@ func waitForTaskTerminal(t *testing.T, c *fibe.Client, id int64, timeout time.Du
 
 // webhookTimeout returns the canonical timeout for webhook delivery polling.
 func webhookTimeout() time.Duration {
-	return 120 * time.Second
+	return 90 * time.Second
 }
 
 func skipIfPlaygroundActionStateRejected(t *testing.T, err error, action string) bool {
@@ -79,10 +81,12 @@ func skipIfPlaygroundActionStateRejected(t *testing.T, err error, action string)
 func playgroundActionEventuallyAccepted(t *testing.T, c *fibe.Client, id int64, actionType string, actionLabel string) *fibe.PlaygroundStatus {
 	t.Helper()
 
-	deadline := time.Now().Add(playgroundActionRetryTimeout)
+	waitCtx, cancel := ctxTimeout(playgroundActionRetryTimeout)
+	defer cancel()
+	deadline, _ := waitCtx.Deadline()
 	var lastErr error
 	for attempt := 1; ; attempt++ {
-		accepted, err := c.Playgrounds.Action(ctx(), id, &fibe.PlaygroundActionParams{ActionType: actionType})
+		accepted, err := c.Playgrounds.Action(waitCtx, id, &fibe.PlaygroundActionParams{ActionType: actionType})
 		if err == nil {
 			return accepted
 		}
@@ -95,7 +99,7 @@ func playgroundActionEventuallyAccepted(t *testing.T, c *fibe.Client, id int64, 
 			t.Fatalf("%s was not accepted within %s after %d attempts: %s", actionLabel, playgroundActionRetryTimeout, attempt, describeAPIError(lastErr))
 		}
 		t.Logf("%s waiting for playground action readiness: %s", actionLabel, message)
-		time.Sleep(3 * time.Second)
+		time.Sleep(minWaitDuration(3*time.Second, time.Until(deadline)))
 	}
 }
 
@@ -114,14 +118,17 @@ func playgroundActionStateRejected(err error) (string, bool) {
 }
 
 // pollUntil retries fn up to `attempts` times with delay; returns first non-nil result.
-func pollUntil[T any](attempts int, delay time.Duration, fn func() (T, bool)) (T, bool) {
+func pollUntil[T any](attempts int, delay time.Duration, fn func(context.Context) (T, bool)) (T, bool) {
 	var zero T
-	for i := 0; i < attempts; i++ {
-		v, ok := fn()
+	pollCtx, cancel := ctxTimeout(90 * time.Second)
+	defer cancel()
+	deadline, _ := pollCtx.Deadline()
+	for i := 0; i < attempts && time.Now().Before(deadline); i++ {
+		v, ok := fn(pollCtx)
 		if ok {
 			return v, true
 		}
-		time.Sleep(delay)
+		time.Sleep(minWaitDuration(delay, time.Until(deadline)))
 	}
 	return zero, false
 }
@@ -135,4 +142,11 @@ func describeAPIError(err error) string {
 		return fmt.Sprintf("%s (%d) %s [req:%s]", apiErr.Code, apiErr.StatusCode, apiErr.Message, apiErr.RequestID)
 	}
 	return err.Error()
+}
+
+func minWaitDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+	return b
 }

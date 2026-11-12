@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -52,8 +53,8 @@ func TestE2E_SpecToPlayground(t *testing.T) {
 	t.Cleanup(func() { c.Playgrounds.Delete(ctx(), pg.ID) })
 
 	var lastComposeErr error
-	cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
-		c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
+	cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func(pollCtx context.Context) (*fibe.PlaygroundCompose, bool) {
+		c2, err := c.Playgrounds.Compose(pollCtx, pg.ID)
 		if err != nil {
 			lastComposeErr = err
 			return nil, false

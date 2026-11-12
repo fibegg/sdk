@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -41,8 +42,8 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 	})
 
 	t.Run("Compose returns yaml + project (poll until ready)", func(t *testing.T) {
-		cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func() (*fibe.PlaygroundCompose, bool) {
-			c2, err := c.Playgrounds.Compose(ctx(), pg.ID)
+		cmp, found := pollUntil(int(PlaygroundLaunchWaitTimeout/time.Second), time.Second, func(pollCtx context.Context) (*fibe.PlaygroundCompose, bool) {
+			c2, err := c.Playgrounds.Compose(pollCtx, pg.ID)
 			if err != nil {
 				return nil, false
 			}

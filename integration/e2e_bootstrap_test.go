@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +63,7 @@ func bootstrapDockerE2E() (func() error, error) {
 		return nil, err
 	}
 
-	requestTimeout := time.Duration(envInt("FIBE_E2E_BOOTSTRAP_REQUEST_TIMEOUT_SECONDS", 180)) * time.Second
+	requestTimeout := minWaitDuration(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_REQUEST_TIMEOUT_SECONDS", 180))*time.Second, 90*time.Second)
 	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: requestTimeout}}
 	if err := client.waitForFibe(); err != nil {
 		return nil, err
@@ -146,10 +147,16 @@ type e2eBootstrapPayload struct {
 }
 
 func (c *e2eBootstrapClient) waitForFibe() error {
-	deadline := time.Now().Add(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_TIMEOUT_SECONDS", 600)) * time.Second)
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), minWaitDuration(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_TIMEOUT_SECONDS", 600))*time.Second, 90*time.Second))
+	defer waitCancel()
+	deadline, _ := waitCtx.Deadline()
 	var lastErr error
 	for time.Now().Before(deadline) {
-		resp, err := c.http.Get(c.baseURL + "/up")
+		req, err := http.NewRequestWithContext(waitCtx, http.MethodGet, c.baseURL+"/up", nil)
+		if err != nil {
+			return err
+		}
+		resp, err := c.http.Do(req)
 		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			resp.Body.Close()
 			return nil
@@ -252,7 +259,7 @@ func dockerE2ESSHPrivateKey() (string, error) {
 	if path == "" {
 		return "", errors.New("TEST_HOST_PRIVATE_KEY or TEST_HOST_PRIVATE_KEY_PATH is required for SDK e2e bootstrap")
 	}
-	deadline := time.Now().Add(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_FILE_TIMEOUT_SECONDS", 600)) * time.Second)
+	deadline := time.Now().Add(minWaitDuration(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_FILE_TIMEOUT_SECONDS", 600))*time.Second, 90*time.Second))
 	for time.Now().Before(deadline) {
 		raw, err := os.ReadFile(path)
 		if err == nil && len(raw) > 0 {

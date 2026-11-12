@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,9 +15,9 @@ import (
 )
 
 const (
-	agentRuntimeReadyTimeout   = 12 * time.Minute
-	agentRuntimeIdleTimeout    = 8 * time.Minute
-	agentRuntimeSyncTimeout    = 5 * time.Minute
+	agentRuntimeReadyTimeout   = 90 * time.Second
+	agentRuntimeIdleTimeout    = 90 * time.Second
+	agentRuntimeSyncTimeout    = 90 * time.Second
 	agentRuntimeSendTimeout    = 60 * time.Second
 	agentRuntimeConversationID = "runtime-matrix"
 )
@@ -452,13 +453,15 @@ func waitForAgentRuntimeStatus(
 ) *fibe.AgentRuntimeStatus {
 	t.Helper()
 
-	deadline := time.Now().Add(timeout)
+	waitCtx, waitCancel := ctxTimeout(minWaitDuration(timeout, 90*time.Second))
+	defer waitCancel()
+	deadline, _ := waitCtx.Deadline()
 	var lastStatus *fibe.AgentRuntimeStatus
 	var lastErr error
 	lastProgressAt := time.Now()
 
 	for time.Now().Before(deadline) {
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		reqCtx, cancel := context.WithTimeout(waitCtx, 10*time.Second)
 		status, err := c.Agents.RuntimeStatus(reqCtx, agentID)
 		cancel()
 		if err == nil {
@@ -480,7 +483,7 @@ func waitForAgentRuntimeStatus(
 			)
 			lastProgressAt = time.Now()
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(minWaitDuration(pollInterval, time.Until(deadline)))
 	}
 
 	t.Fatalf("timed out waiting for %s; last_status=%s last_error=%v", description, prettyAgentRuntimeJSON(lastStatus), lastErr)
@@ -518,7 +521,9 @@ func waitForAgentRuntimeIdle(t *testing.T, c *fibe.Client, agentID int64, caseNa
 func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int64, conversationID string, timeout time.Duration, minAssistantMessages int) (*fibe.AgentData, *fibe.AgentData) {
 	t.Helper()
 
-	deadline := time.Now().Add(timeout)
+	waitCtx, waitCancel := ctxTimeout(minWaitDuration(timeout, 90*time.Second))
+	defer waitCancel()
+	deadline, _ := waitCtx.Deadline()
 	var messages *fibe.AgentData
 	var activity *fibe.AgentData
 	var messagesErr error
@@ -531,15 +536,15 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 
 	for time.Now().Before(deadline) {
 		params := &fibe.AgentDataParams{ConversationID: conversationID}
-		reqCtx, cancel := ctxTimeout(10 * time.Second)
+		reqCtx, cancel := context.WithTimeout(waitCtx, 10*time.Second)
 		messages, messagesErr = c.Agents.GetMessagesByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
-		reqCtx, cancel = ctxTimeout(10 * time.Second)
+		reqCtx, cancel = context.WithTimeout(waitCtx, 10*time.Second)
 		activity, activityErr = c.Agents.GetActivityByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
-		reqCtx, cancel = ctxTimeout(10 * time.Second)
+		reqCtx, cancel = context.WithTimeout(waitCtx, 10*time.Second)
 		providerTraffic, providerTrafficErr := c.Agents.GetProviderTrafficByIdentifierWithParams(reqCtx, fmt.Sprint(agentID), params)
 		cancel()
 
@@ -557,7 +562,7 @@ func waitForAgentRuntimeAssistantData(t *testing.T, c *fibe.Client, agentID int6
 			}
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(minWaitDuration(2*time.Second, time.Until(deadline)))
 	}
 
 	lastStatus, statusErr := agentRuntimeLatestStatus(c, agentID)
@@ -840,23 +845,51 @@ func agentRuntimeMessageRole(item any) string {
 func cleanupAgentRuntimeMatrixCase(t *testing.T, c *fibe.Client, agentID int64) {
 	t.Helper()
 
-	reqCtx, cancel := ctxTimeout(5 * time.Minute)
-	_, err := c.Agents.PurgeChat(reqCtx, agentID)
-	cancel()
-	if err != nil {
-		if apiErr, ok := err.(*fibe.APIError); !ok || apiErr.StatusCode != 404 {
-			t.Logf("cleanup purge_chat failed for agent %d: %v", agentID, err)
+	cleanupCtx, cancel := ctxTimeout(20 * time.Second)
+	defer cancel()
+	_, purgeErr := c.Agents.PurgeChat(cleanupCtx, agentID)
+	if purgeErr != nil {
+		if apiErr, ok := purgeErr.(*fibe.APIError); !ok || apiErr.StatusCode != 404 {
+			t.Logf("cleanup purge_chat failed for agent %d: %v", agentID, purgeErr)
 		}
 	}
-
-	reqCtx, cancel = ctxTimeout(2 * time.Minute)
-	err = c.Agents.Delete(reqCtx, agentID)
-	cancel()
-	if err != nil {
-		if apiErr, ok := err.(*fibe.APIError); !ok || apiErr.StatusCode != 404 {
+	// Purge is asynchronous. Wait for the owned chat to stop before deleting
+	// the Agent, rather than racing an accepted purge with DELETE.
+	for cleanupCtx.Err() == nil {
+		status, err := c.Agents.RuntimeStatus(cleanupCtx, agentID)
+		if err != nil || status.Status == "stopped" || status.Status == "missing" || status.Status == "destroyed" {
+			break
+		}
+		select {
+		case <-cleanupCtx.Done():
+		case <-time.After(time.Second):
+		}
+	}
+	if cleanupCtx.Err() != nil {
+		t.Logf("cleanup purge_chat did not settle for agent %d before cleanup deadline", agentID)
+		return
+	}
+	for cleanupCtx.Err() == nil {
+		err := c.Agents.Delete(cleanupCtx, agentID)
+		if err == nil {
+			return
+		}
+		apiErr, ok := err.(*fibe.APIError)
+		if ok && apiErr.StatusCode == 404 {
+			return
+		}
+		// A stopped public status may precede completion of the purge job.
+		// Retry only that active-job refusal, within the same cleanup budget.
+		if !ok || apiErr.StatusCode != 422 || !strings.Contains(apiErr.Message, "Stop or purge the running Agent chat") {
 			t.Logf("cleanup delete failed for agent %d: %v", agentID, err)
+			return
+		}
+		select {
+		case <-cleanupCtx.Done():
+		case <-time.After(time.Second):
 		}
 	}
+	t.Logf("cleanup Agent %d still has an active purge job at the cleanup deadline", agentID)
 }
 
 func prettyAgentRuntimeJSON(value any) string {

@@ -176,7 +176,7 @@ func githubFixturePAT(t *testing.T) string {
 }
 
 func githubFixtureLaunchWaitTimeout() time.Duration {
-	return time.Duration(envInt("FIBE_GITHUB_FIXTURE_LAUNCH_WAIT_MINUTES", githubFixtureLaunchWaitMinutes)) * time.Minute
+	return minWaitDuration(time.Duration(envInt("FIBE_GITHUB_FIXTURE_LAUNCH_WAIT_MINUTES", githubFixtureLaunchWaitMinutes))*time.Minute, 90*time.Second)
 }
 
 func attachGitHubPATToCurrentPlayer(t *testing.T, pat string) {
@@ -189,7 +189,7 @@ func attachGitHubPATToCurrentPlayer(t *testing.T, pat string) {
 	if adminToken == "" {
 		adminToken = defaultE2EAdminAPIKey
 	}
-	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: 120 * time.Second}}
+	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: 90 * time.Second}}
 
 	player, err := client.currentPlayer(os.Getenv("FIBE_API_KEY"))
 	requireNoError(t, err, "resolve current SDK e2e player")
