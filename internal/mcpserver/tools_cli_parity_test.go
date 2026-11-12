@@ -518,7 +518,8 @@ func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
 		return host(), nil
 	case "playgrounds", "tasks", "specs":
 		compose := "services:\n  web:\n    image: nginx:alpine\n"
-		payload := map[string]any{"name": name + "-spec", "base_compose_yaml": compose}
+		payload := map[string]any{"name": name + "-spec", "base_compose_yaml": compose,
+			"services": []any{map[string]any{"name": "web", "type": "static"}}}
 		if resource == "tasks" {
 			payload["base_compose_yaml"] = "services:\n  worker:\n    image: alpine:3\n    command: [sh, -c, 'echo done']\n    labels:\n      fibe.gg/job_watch: 'true'\n"
 			payload["job_mode"] = true
@@ -528,7 +529,7 @@ func getParityFixture(t *testing.T, srv *Server, resource string) (any, any) {
 		if resource == "specs" {
 			return specID, nil
 		}
-		return create("playgrounds", map[string]any{"name": name, "spec_id": specID, "host_id": host()}), nil
+		return create("playgrounds", map[string]any{"name": name, "spec_id_or_name": specID, "host_id_or_name": host()}), nil
 	case "agents", "artefacts":
 		agentID := create("agents", map[string]any{"name": name, "provider": fibe.ProviderGemini})
 		if resource == "agents" {
