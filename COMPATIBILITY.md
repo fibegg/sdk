@@ -1,17 +1,13 @@
 # Compatibility policy
 
-v0.3.0 (released 2026-10-15) implements the coordinated domain-name break to
-Host, Spec, Repository, Task, Team and Library; Agent and Audit Logs retain their
-canonical model identities. Since 0.3.6 the SDK does not recognise the retired
-names: they are unknown commands, flags, fields, tools and resource names like
-any other. Installations that still serve the previous vocabulary require a
-0.2.x CLI until their own cutover.
+Since v0.3.0 (released 2026-10-15) the SDK uses the domain names Host, Spec,
+Repository, Task, Team and Library; Agent and Audit Logs keep their canonical
+model identities.
 
 `contracts/go-public-api-v0.2.45.json` records the v0.2.45 public API in the
-current domain names. The compatibility check permits only the approved domain
-rename; unrelated
-exported signatures and struct layouts remain checked. The current generated
-Go, REST, CLI and MCP contracts describe the v0.3 surface.
+current domain names. The compatibility check rejects any removal or exported
+signature/struct layout change; new declarations remain additive. The current
+generated Go, REST, CLI and MCP contracts describe the v0.3 surface.
 
 A 0.2.x hotfix must come from a branch at the `v0.2.48` tag. Candidate builds of
 unreleased source are built without tags as `0.3.0-rc.1+<sdk-sha7>`; they do not
@@ -31,7 +27,7 @@ is performed by either target.
 Within the current major version, releases preserve exported Go names and
 signatures, struct field ordering, JSON tags, public interfaces, HTTP wire
 shapes, CLI commands and flags, and MCP tool names and schemas. Additive APIs
-are allowed. The coordinated v0.3 rename accepts no compatibility aliases.
+are allowed.
 
 Security defects, crashes, resource leaks, unsafe filesystem behavior,
 credential exposure, malformed-input acceptance, and plainly erroneous retry
