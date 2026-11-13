@@ -11,7 +11,7 @@
   "serialization": {
     "request_content_type": "application/json",
     "response_content_type": "application/json",
-    "unknown_fields": "accepted except removed FIBE naming fields; application-owned extension maps retain their properties",
+    "unknown_fields": "accepted",
     "trailing_json": "rejected",
     "query_encoding": "RFC 3986 via net/url.Values.Encode",
     "success_body_limit_bytes": 10485760,

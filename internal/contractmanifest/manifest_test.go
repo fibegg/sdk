@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -43,12 +42,11 @@ func TestV03PreservesExistingAPIOutsideApprovedFeatures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The v0.2.45 artifact remains immutable. Its declarations are translated
-	// only for the approved v0.3 domain break. Exact additive Teams and ENV-pack
-	// fields are projected out below; all existing fields and methods stay checked.
+	// The v0.2.45 artifact records that release's API in the current domain
+	// names. Exact additive Teams and ENV-pack fields are projected out below;
+	// all existing fields and methods stay checked.
 	for i := range baseline.Declarations {
-		baseline.Declarations[i].ID = canonicalDomainDeclaration(baseline.Declarations[i].ID)
-		baseline.Declarations[i].Signature = strings.Join(strings.Fields(canonicalDomainDeclaration(baseline.Declarations[i].Signature)), " ")
+		baseline.Declarations[i].Signature = strings.Join(strings.Fields(baseline.Declarations[i].Signature), " ")
 	}
 	for i := range current.Declarations {
 		declaration := &current.Declarations[i]
@@ -132,25 +130,4 @@ func repositoryRoot(t *testing.T) string {
 		t.Fatal("resolve test location")
 	}
 	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-}
-
-func canonicalDomainDeclaration(value string) string {
-	replacements := strings.NewReplacer(
-		"Marquees", "Hosts", "Marquee", "Host", "marquees", "hosts", "marquee", "host",
-		"Playspecs", "Specs", "Playspec", "Spec", "playspecs", "specs", "playspec", "spec",
-		"Tricks", "Tasks", "Trick", "Task", "tricks", "tasks", "trick", "task",
-		"MARQUEE", "HOST", "PLAYSPEC", "SPEC", "PROP_", "REPOSITORY_", "TRICK", "TASK",
-	)
-	value = replacements.Replace(value)
-	value = strings.ReplaceAll(value, "prop_", "repository_")
-	value = strings.ReplaceAll(value, "props_", "repositories_")
-	value = strings.ReplaceAll(value, "_props", "_repositories")
-	value = strings.ReplaceAll(value, "_prop", "_repository")
-	value = regexp.MustCompile(`Props([A-Z]|\b)`).ReplaceAllString(value, `Repositories${1}`)
-	value = regexp.MustCompile(`Prop([A-Z]|\b)`).ReplaceAllString(value, `Repository${1}`)
-	value = regexp.MustCompile(`(^|_)prop_`).ReplaceAllString(value, `${1}repository_`)
-	value = regexp.MustCompile(`\bprops\b`).ReplaceAllString(value, "repositories")
-	value = regexp.MustCompile(`\bprop\b`).ReplaceAllString(value, "repository")
-	value = regexp.MustCompile(`\bprop([A-Z])`).ReplaceAllString(value, `repository${1}`)
-	return value
 }

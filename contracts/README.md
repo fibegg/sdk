@@ -11,12 +11,12 @@ Public response types intentionally omit runtime key identities and token bytes.
 - `go-public-api.json` freezes every exported Go type, field order, JSON tag,
   constant, function, method, and public `Unwrap` signature for the current
   candidate.
-- `go-public-api-v0.2.45.json` is immutable historical release evidence. The
-  v0.3 gate translates only the approved domain names, then rejects any other
-  removal or source-signature/layout change. New declarations remain additive.
-- `naming/v2.json` is copied byte-identically from the Rails-owned shared
+- `go-public-api-v0.2.45.json` records the v0.2.45 public API in the current
+  domain names. The v0.3 gate rejects any removal or source-signature/layout
+  change from it. New declarations remain additive.
+- `naming/v2.json` holds the current-name examples of the shared naming
   fixture. Actual SDK response and CLI file decoders consume its canonical
-  fields and reject its removed-key examples with replacement guidance.
+  fields.
 - `reliability.json` records cross-language transport behavior that cannot be
   inferred from endpoint examples alone.
 - `rest.json` inventories every exported service method, its HTTP method/path
