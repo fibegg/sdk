@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"os"
 	"path/filepath"
@@ -97,9 +96,6 @@ DOCUMENTATION:
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := domainnames.CheckEnvironment(); err != nil {
-				return err
-			}
 			setCommandContext(cmd.Context())
 			return nil
 		},
@@ -206,7 +202,6 @@ DOCUMENTATION:
 	})
 
 	cmd.SetUsageTemplate(usageTemplateWithAliases)
-	installRemovedNameErrors(cmd)
 	annotateCommandSafety(cmd)
 
 	return cmd

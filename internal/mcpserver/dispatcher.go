@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"math"
 	"reflect"
 	"strconv"
@@ -105,19 +104,8 @@ func (d *dispatcher) names() []string {
 // running with --yolo. The confirm field is stripped before the handler
 // sees args so tool implementations don't have to ignore it.
 func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]any) (any, error) {
-	if err := domainnames.RejectFields(args); err != nil {
-		return nil, err
-	}
-	if resource, ok := args["resource"].(string); ok {
-		if err := domainnames.RemovedError(resource); err != nil {
-			return nil, err
-		}
-	}
 	t, ok := d.lookup(name)
 	if !ok {
-		if replacement, ok := domainnames.ToolReplacement(name); ok {
-			return nil, fmt.Errorf("FIBE tool %q was removed; use %q", name, replacement)
-		}
 		return nil, fmt.Errorf("unknown tool %q", name)
 	}
 
@@ -261,9 +249,6 @@ func argInt64(args map[string]any, key string) (int64, bool) {
 // snake_case / stringified-number shapes without losing the benefits of typed
 // tool structs.
 func bindArgs(args map[string]any, dest any) error {
-	if err := domainnames.RejectFields(args); err != nil {
-		return err
-	}
 	if dest == nil {
 		return errors.New("nil destination")
 	}

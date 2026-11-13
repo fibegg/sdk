@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"time"
 
@@ -61,9 +60,6 @@ func (s *Server) registerResourceTools() {
 			resource := argString(args, "resource")
 			canonical, ok := resourceschema.CanonicalResource(resource)
 			if !ok {
-				if err := domainnames.RemovedError(resource); err != nil {
-					return nil, err
-				}
 				return nil, fmt.Errorf("unknown resource %q", resource)
 			}
 			if _, _, _, ok := resourceschema.SchemaFor(canonical, "watch"); !ok {
@@ -576,9 +572,6 @@ func resolveFlatResource(resources map[string]flatResourceTool, args map[string]
 	}
 	name, ok := resourceschema.CanonicalResource(raw)
 	if !ok {
-		if err := domainnames.RemovedError(raw); err != nil {
-			return "", flatResourceTool{}, err
-		}
 		return "", flatResourceTool{}, fmt.Errorf("unknown resource %q; supported flat resources: %s", raw, resourceschema.FlatResourceNamesString())
 	}
 	rt, ok := resources[name]

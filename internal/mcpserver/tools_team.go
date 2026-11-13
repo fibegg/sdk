@@ -20,9 +20,6 @@ func (s *Server) registerTeamTools() {
 		}
 		schema := map[string]any{"type": "object", "properties": fields, "required": required, "additionalProperties": false}
 		s.addTool(&toolImpl{name: name, description: "[MODE:DIALOG] " + description, tier: tierOther, annotations: toolAnnotations{ReadOnly: read, Destructive: destructive, Idempotent: read}, handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
-			if _, removed := args["company_id"]; removed {
-				return nil, fmt.Errorf("FIBE field %q was removed; use %q", "company_id", "team_id")
-			}
 			for field := range args {
 				if _, supported := fields[field]; !supported {
 					return nil, fmt.Errorf("unsupported Team operation field %q", field)

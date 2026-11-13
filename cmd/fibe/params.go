@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"io"
 	"os"
 	"strconv"
@@ -42,12 +41,6 @@ func applyFromFile(dest any) error {
 
 	if len(data) == 0 {
 		return nil
-	}
-	var structural any
-	if err := yaml.Unmarshal(data, &structural); err == nil {
-		if err := domainnames.RejectFields(structural); err != nil {
-			return err
-		}
 	}
 	rawPayload = data
 

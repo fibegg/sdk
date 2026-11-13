@@ -160,7 +160,6 @@ func New(cfg Config) *Server {
 		mcpserver.WithResourceCapabilities(false, true),
 	}
 	hooks := &mcpserver.Hooks{}
-	hooks.AddOnRequestInitialization(rejectRemovedMCPRequest)
 	hooks.AddOnUnregisterSession(func(_ context.Context, session mcpserver.ClientSession) {
 		s.sessions.drop(session.SessionID())
 		s.cache.DeleteSession(session.SessionID())

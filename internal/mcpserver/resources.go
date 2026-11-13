@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"strings"
 
 	"github.com/fibegg/sdk/internal/resourceschema"
@@ -95,9 +94,6 @@ func (s *Server) registerResourceTemplates() {
 		}
 		schemas, canonical, ok := resourceschema.SchemasFor(resource)
 		if !ok {
-			if err := domainnames.RemovedError(resource); err != nil {
-				return nil, err
-			}
 			return nil, fmt.Errorf("unknown resource %q", resource)
 		}
 		if op != "" {

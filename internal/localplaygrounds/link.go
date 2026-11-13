@@ -3,7 +3,6 @@ package localplaygrounds
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fibegg/sdk/internal/domainnames"
 	"os"
 	"path/filepath"
 	"sort"
@@ -141,9 +140,6 @@ func RootDomain() string {
 }
 
 func Scan(baseDir string) ([]Playground, error) {
-	if err := domainnames.CheckEnvironment(); err != nil {
-		return nil, err
-	}
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
 		if os.IsNotExist(err) {
