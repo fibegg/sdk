@@ -1667,7 +1667,7 @@ func TestWebhookEndpoints_EventTypes(t *testing.T) {
 	}
 }
 
-func TestProps_Sync(t *testing.T) {
+func TestRepositories_Sync(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || r.URL.Path != "/api/repositories/7/syncs" {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)

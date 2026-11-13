@@ -24,13 +24,13 @@ func TestE2E_TemplatesChangeFlow(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
-	mqRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
+	hostRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", map[string]any{
 		"resource": "host",
 	})
 	if err != nil {
 		t.Fatalf("list hosts failed: %v", err)
 	}
-	hosts := mqRes.(*fibe.ListResult[fibe.Host]).Data
+	hosts := hostRes.(*fibe.ListResult[fibe.Host]).Data
 	var activeHostID int64
 	for _, m := range hosts {
 		if m.Status == "active" {

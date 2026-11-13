@@ -13,23 +13,23 @@ func TestHostValidation(t *testing.T) {
 
 	t.Run("create with minimum port", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: uniqueName("port-min"), Host: "10.0.0.1", Port: 1, User: "root",
 			SSHPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
 		})
 		if err == nil {
-			t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+			t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 		}
 	})
 
 	t.Run("create with maximum port", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: uniqueName("port-max"), Host: "10.0.0.2", Port: 65535, User: "root",
 			SSHPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest\n-----END OPENSSH PRIVATE KEY-----",
 		})
 		if err == nil {
-			t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+			t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 		}
 	})
 

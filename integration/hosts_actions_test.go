@@ -39,7 +39,7 @@ func TestHosts_GenerateSSHKey(t *testing.T) {
 
 	t.Run("read-only key cannot generate ssh key", func(t *testing.T) {
 		t.Parallel()
-		readOnly := createScopedKey(t, c, "mq-ssh-ro", []string{"hosts:read"})
+		readOnly := createScopedKey(t, c, "host-ssh-ro", []string{"hosts:read"})
 		_, err := readOnly.Hosts.GenerateSSHKey(ctx(), hostID)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
@@ -61,9 +61,9 @@ func testSSHKeyHostID(t *testing.T, c *fibe.Client) int64 {
 	id, err := strconv.ParseInt(raw, 10, 64)
 	requireNoError(t, err, "parse FIBE_TEST_SSH_KEY_HOST_ID")
 
-	mq, err := c.Hosts.Get(ctx(), id)
+	host, err := c.Hosts.Get(ctx(), id)
 	requireNoError(t, err, "load FIBE_TEST_SSH_KEY_HOST_ID")
-	if !mq.BillingRuntimeActive {
+	if !host.BillingRuntimeActive {
 		t.Fatalf("FIBE_TEST_SSH_KEY_HOST_ID=%d must reference a funded Host", id)
 	}
 
@@ -89,7 +89,7 @@ func TestHosts_TestConnection(t *testing.T) {
 
 	t.Run("wrong scope returns 403", func(t *testing.T) {
 		t.Parallel()
-		noScope := createScopedKey(t, c, "mq-conn-noscope", []string{"repositories:read"})
+		noScope := createScopedKey(t, c, "host-conn-noscope", []string{"repositories:read"})
 		_, err := noScope.Hosts.TestConnection(ctx(), hostID)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
@@ -107,20 +107,20 @@ func TestHosts_StatusTransitions(t *testing.T) {
 
 	t.Run("create with disabled status", func(t *testing.T) {
 		t.Parallel()
-		params := testHostParams("mq-disabled")
+		params := testHostParams("host-disabled")
 		params.Status = ptr("disabled")
-		mq, err := c.Hosts.Create(ctx(), params)
+		host, err := c.Hosts.Create(ctx(), params)
 		requireNoError(t, err)
-		t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+		t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-		if mq.Status != "disabled" {
-			t.Errorf("expected status 'disabled', got %q", mq.Status)
+		if host.Status != "disabled" {
+			t.Errorf("expected status 'disabled', got %q", host.Status)
 		}
 	})
 
 	t.Run("reject invalid status on create", func(t *testing.T) {
 		t.Parallel()
-		params := testHostParams("mq-bogus")
+		params := testHostParams("host-bogus")
 		params.Status = ptr("bogus")
 		_, err := c.Hosts.Create(ctx(), params)
 		requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
@@ -128,11 +128,11 @@ func TestHosts_StatusTransitions(t *testing.T) {
 
 	t.Run("disable active host via update", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Hosts.Create(ctx(), testHostParams("mq-to-disable"))
+		host, err := c.Hosts.Create(ctx(), testHostParams("host-to-disable"))
 		requireNoError(t, err)
-		t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+		t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-		updated, err := c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		updated, err := c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			Status: ptr("disabled"),
 		})
 		requireNoError(t, err)
@@ -144,11 +144,11 @@ func TestHosts_StatusTransitions(t *testing.T) {
 
 	t.Run("update with empty name returns validation error", func(t *testing.T) {
 		t.Parallel()
-		mq, err := c.Hosts.Create(ctx(), testHostParams("mq-badupdate"))
+		host, err := c.Hosts.Create(ctx(), testHostParams("host-badupdate"))
 		requireNoError(t, err)
-		t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+		t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-		_, err = c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		_, err = c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			Name: ptr(""),
 		})
 		requireAPIError(t, err, fibe.ErrCodeValidationFailed, 422)
@@ -167,7 +167,7 @@ func TestHosts_DeleteConflicts(t *testing.T) {
 	t.Run("delete host with playgrounds returns 409", func(t *testing.T) {
 		t.Parallel()
 		spec, err := c.Specs.Create(ctx(), &fibe.SpecCreateParams{
-			Name:            uniqueName("mq-conflict-spec"),
+			Name:            uniqueName("host-conflict-spec"),
 			BaseComposeYAML: "services:\n  web:\n    image: nginx:alpine\n",
 			Services:        []fibe.SpecServiceDef{{Name: "web", Type: fibe.ServiceTypeStatic}},
 		})
@@ -175,7 +175,7 @@ func TestHosts_DeleteConflicts(t *testing.T) {
 		t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
 		pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{
-			Name:   uniqueName("mq-conflict-pg"),
+			Name:   uniqueName("host-conflict-pg"),
 			SpecID: *spec.ID,
 			HostID: &hostID,
 		})
@@ -192,19 +192,19 @@ func TestHosts_IDOR(t *testing.T) {
 	c := userClient(t)
 	userB := userBClient(t)
 
-	mq, err := c.Hosts.Create(ctx(), testHostParams("mq-idor"))
+	host, err := c.Hosts.Create(ctx(), testHostParams("host-idor"))
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
 	t.Run("user B cannot get primary host", func(t *testing.T) {
 		t.Parallel()
-		_, err := userB.Hosts.Get(ctx(), mq.ID)
+		_, err := userB.Hosts.Get(ctx(), host.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
 	t.Run("user B cannot update primary host", func(t *testing.T) {
 		t.Parallel()
-		_, err := userB.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		_, err := userB.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			Name: ptr("hacked"),
 		})
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
@@ -212,19 +212,19 @@ func TestHosts_IDOR(t *testing.T) {
 
 	t.Run("user B cannot delete primary host", func(t *testing.T) {
 		t.Parallel()
-		err := userB.Hosts.Delete(ctx(), mq.ID)
+		err := userB.Hosts.Delete(ctx(), host.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
 	t.Run("user B cannot generate ssh key for primary host", func(t *testing.T) {
 		t.Parallel()
-		_, err := userB.Hosts.GenerateSSHKey(ctx(), mq.ID)
+		_, err := userB.Hosts.GenerateSSHKey(ctx(), host.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
 	t.Run("user B cannot test connection for primary host", func(t *testing.T) {
 		t.Parallel()
-		_, err := userB.Hosts.TestConnection(ctx(), mq.ID)
+		_, err := userB.Hosts.TestConnection(ctx(), host.ID)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 }
@@ -233,24 +233,24 @@ func TestHosts_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	mq, err := c.Hosts.Create(ctx(), testHostParams("mq-scope"))
+	host, err := c.Hosts.Create(ctx(), testHostParams("host-scope"))
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
 	t.Run("read key can list and get", func(t *testing.T) {
 		t.Parallel()
-		readOnly := createScopedKey(t, c, "mq-read", []string{"hosts:read"})
+		readOnly := createScopedKey(t, c, "host-read", []string{"hosts:read"})
 
 		_, err := readOnly.Hosts.List(ctx(), nil)
 		requireNoError(t, err)
 
-		_, err = readOnly.Hosts.Get(ctx(), mq.ID)
+		_, err = readOnly.Hosts.Get(ctx(), host.ID)
 		requireNoError(t, err)
 	})
 
 	t.Run("read key cannot create", func(t *testing.T) {
 		t.Parallel()
-		readOnly := createScopedKey(t, c, "mq-read-create", []string{"hosts:read"})
+		readOnly := createScopedKey(t, c, "host-read-create", []string{"hosts:read"})
 		params := testHostParams("nope")
 		_, err := readOnly.Hosts.Create(ctx(), params)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
@@ -258,8 +258,8 @@ func TestHosts_ScopeEnforcement(t *testing.T) {
 
 	t.Run("read key cannot update", func(t *testing.T) {
 		t.Parallel()
-		readOnly := createScopedKey(t, c, "mq-read-update", []string{"hosts:read"})
-		_, err := readOnly.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		readOnly := createScopedKey(t, c, "host-read-update", []string{"hosts:read"})
+		_, err := readOnly.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			Name: ptr("nope"),
 		})
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
@@ -267,14 +267,14 @@ func TestHosts_ScopeEnforcement(t *testing.T) {
 
 	t.Run("read key cannot delete", func(t *testing.T) {
 		t.Parallel()
-		readOnly := createScopedKey(t, c, "mq-read-delete", []string{"hosts:read"})
-		err := readOnly.Hosts.Delete(ctx(), mq.ID)
+		readOnly := createScopedKey(t, c, "host-read-delete", []string{"hosts:read"})
+		err := readOnly.Hosts.Delete(ctx(), host.ID)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
 	t.Run("no host scope denied", func(t *testing.T) {
 		t.Parallel()
-		noScope := createScopedKey(t, c, "mq-noscope", []string{"agents:read"})
+		noScope := createScopedKey(t, c, "host-noscope", []string{"agents:read"})
 		_, err := noScope.Hosts.List(ctx(), nil)
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})

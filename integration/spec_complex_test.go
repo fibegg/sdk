@@ -11,7 +11,7 @@ func TestSpec_WithTriggerConfig(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	host, err := c.Hosts.Create(ctx(), testHostParams("trigger-mq"))
+	host, err := c.Hosts.Create(ctx(), testHostParams("trigger-host"))
 	requireNoError(t, err)
 	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 	hostID := host.ID

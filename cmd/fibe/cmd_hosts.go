@@ -30,11 +30,11 @@ SUBCOMMANDS:
   autoconnect-token     Generate autoconnect token`,
 	}
 
-	cmd.AddCommand(mqListCmd(), mqGetCmd(), mqCreateCmd(), mqUpdateCmd(), mqDeleteCmd(), mqSSHKeyCmd(), mqTestCmd(), mqAutoconnectCmd())
+	cmd.AddCommand(hostListCmd(), hostGetCmd(), hostCreateCmd(), hostUpdateCmd(), hostDeleteCmd(), hostSSHKeyCmd(), hostTestCmd(), hostAutoconnectCmd())
 	return cmd
 }
 
-func mqListCmd() *cobra.Command {
+func hostListCmd() *cobra.Command {
 	var query, status, name, sort, createdAfter, createdBefore string
 	cmd := &cobra.Command{
 		Use: "list", Short: "List all hosts",
@@ -61,8 +61,8 @@ OUTPUT:
 
 EXAMPLES:
   fibe hosts list
-  fibe mq list -q "prod" --status active
-  fibe mq list --sort name_asc -o json`,
+  fibe hosts list -q "prod" --status active
+  fibe hosts list --sort name_asc -o json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
 			params := &fibe.HostListParams{}
@@ -116,27 +116,27 @@ EXAMPLES:
 	return cmd
 }
 
-func mqGetCmd() *cobra.Command {
+func hostGetCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "get <id-or-name>", Short: "Show host details", Args: cobra.ExactArgs(1),
 		Long: "Get detailed information about a host.\n\nEXAMPLES:\n  fibe hosts get 2",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := newClient()
-			mq, err := c.Hosts.GetByIdentifier(ctx(), args[0])
+			host, err := c.Hosts.GetByIdentifier(ctx(), args[0])
 			if err != nil {
 				return err
 			}
 			if effectiveOutput() != "table" {
-				outputJSON(mq)
+				outputJSON(host)
 				return nil
 			}
-			fmt.Printf("ID:     %d\nName:   %s\nHost:   %s:%d\nUser:   %s\nStatus: %s\n", mq.ID, mq.Name, mq.Host, mq.Port, mq.User, mq.Status)
+			fmt.Printf("ID:     %d\nName:   %s\nHost:   %s:%d\nUser:   %s\nStatus: %s\n", host.ID, host.Name, host.Host, host.Port, host.User, host.Status)
 			return nil
 		},
 	}
 }
 
-func mqCreateCmd() *cobra.Command {
+func hostCreateCmd() *cobra.Command {
 	var name, host, user, sshKey, status, dnsProvider, tlsCertificateSource, tlsCertificatePEM, tlsPrivateKeyPEM string
 	var port int
 	var httpsEnabled bool
@@ -196,15 +196,15 @@ func mqCreateCmd() *cobra.Command {
 				return fmt.Errorf("required field 'ssh-key' not set")
 			}
 
-			mq, err := c.Hosts.Create(ctx(), params)
+			host, err := c.Hosts.Create(ctx(), params)
 			if err != nil {
 				return err
 			}
 			if effectiveOutput() != "table" {
-				outputJSON(mq)
+				outputJSON(host)
 				return nil
 			}
-			fmt.Printf("Created host %d (%s)\n", mq.ID, mq.Name)
+			fmt.Printf("Created host %d (%s)\n", host.ID, host.Name)
 			return nil
 		},
 	}
@@ -222,7 +222,7 @@ func mqCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func mqUpdateCmd() *cobra.Command {
+func hostUpdateCmd() *cobra.Command {
 	var name, status, dnsProvider, tlsCertificateSource, tlsCertificatePEM, tlsPrivateKeyPEM string
 	var httpsEnabled bool
 	cmd := &cobra.Command{
@@ -255,15 +255,15 @@ func mqUpdateCmd() *cobra.Command {
 			if cmd.Flags().Changed("dns-provider") {
 				params.DnsProvider = &dnsProvider
 			}
-			mq, err := c.Hosts.UpdateByIdentifier(ctx(), args[0], params)
+			host, err := c.Hosts.UpdateByIdentifier(ctx(), args[0], params)
 			if err != nil {
 				return err
 			}
 			if effectiveOutput() != "table" {
-				outputJSON(mq)
+				outputJSON(host)
 				return nil
 			}
-			fmt.Printf("Updated host %d\n", mq.ID)
+			fmt.Printf("Updated host %d\n", host.ID)
 			return nil
 		},
 	}
@@ -277,7 +277,7 @@ func mqUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-func mqDeleteCmd() *cobra.Command {
+func hostDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "delete <id-or-name>", Short: "Delete a host", Args: cobra.ExactArgs(1),
 		Long: "Delete a host. Cannot delete if active playgrounds exist.\n\nEXAMPLES:\n  fibe hosts delete 2",
@@ -292,7 +292,7 @@ func mqDeleteCmd() *cobra.Command {
 	}
 }
 
-func mqSSHKeyCmd() *cobra.Command {
+func hostSSHKeyCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "generate-ssh-key <id-or-name>", Short: "Generate SSH key pair for host", Args: cobra.ExactArgs(1),
 		Long: "Generate a new SSH key pair for a host.\nReturns the public key that should be added to the server's authorized_keys.\n\nEXAMPLES:\n  fibe hosts generate-ssh-key 2",
@@ -312,7 +312,7 @@ func mqSSHKeyCmd() *cobra.Command {
 	}
 }
 
-func mqTestCmd() *cobra.Command {
+func hostTestCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "test-connection <id-or-name>", Short: "Test SSH connection to host", Args: cobra.ExactArgs(1),
 		Long: "Test the SSH connection to a host server.\n\nEXAMPLES:\n  fibe hosts test-connection 2",
@@ -336,7 +336,7 @@ func mqTestCmd() *cobra.Command {
 	}
 }
 
-func mqAutoconnectCmd() *cobra.Command {
+func hostAutoconnectCmd() *cobra.Command {
 	var email, domain, ip, sslMode, dnsProvider string
 	cmd := &cobra.Command{
 		Use: "autoconnect-token", Short: "Generate autoconnect token",

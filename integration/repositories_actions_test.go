@@ -76,7 +76,7 @@ func repositoryWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Repository,
 	return fibe.Repository{}, ""
 }
 
-func TestProps_EnvDefaults(t *testing.T) {
+func TestRepositories_EnvDefaults(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
@@ -120,7 +120,7 @@ func TestProps_EnvDefaults(t *testing.T) {
 	})
 }
 
-func TestProps_EnvDefaults_NonexistentRepository(t *testing.T) {
+func TestRepositories_EnvDefaults_NonexistentRepository(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
@@ -131,7 +131,7 @@ func TestProps_EnvDefaults_NonexistentRepository(t *testing.T) {
 	})
 }
 
-func TestProps_EnvDefaults_ScopeEnforcement(t *testing.T) {
+func TestRepositories_EnvDefaults_ScopeEnforcement(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
@@ -168,7 +168,7 @@ func TestProps_EnvDefaults_ScopeEnforcement(t *testing.T) {
 	})
 }
 
-func TestProps_EnvDefaults_IDOR(t *testing.T) {
+func TestRepositories_EnvDefaults_IDOR(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)

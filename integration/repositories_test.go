@@ -6,7 +6,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestProps_CRUD(t *testing.T) {
+func TestRepositories_CRUD(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 

@@ -10,24 +10,24 @@ func TestHostsLifecycle(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	params := testHostParams("test-mq")
+	params := testHostParams("test-host")
 	name := params.Name
-	mq, err := c.Hosts.Create(ctx(), params)
+	host, err := c.Hosts.Create(ctx(), params)
 	requireNoError(t, err, "failed to create host")
 
-	if mq.Name != name {
-		t.Errorf("expected host name %s, got %s", name, mq.Name)
+	if host.Name != name {
+		t.Errorf("expected host name %s, got %s", name, host.Name)
 	}
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-	fetched, err := c.Hosts.Get(ctx(), mq.ID)
+	fetched, err := c.Hosts.Get(ctx(), host.ID)
 	requireNoError(t, err, "failed to get host")
-	if fetched.ID != mq.ID {
-		t.Errorf("expected host id %d, got %d", mq.ID, fetched.ID)
+	if fetched.ID != host.ID {
+		t.Errorf("expected host id %d, got %d", host.ID, fetched.ID)
 	}
 
 	newName := name + "-updated"
-	updated, err := c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+	updated, err := c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 		Name: &newName,
 	})
 	requireNoError(t, err, "failed to update host")
@@ -40,19 +40,19 @@ func TestHostsLifecycle(t *testing.T) {
 
 	found := false
 	for _, m := range list.Data {
-		if m.ID == mq.ID {
+		if m.ID == host.ID {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("expected to find host %d in list", mq.ID)
+		t.Errorf("expected to find host %d in list", host.ID)
 	}
 
-	err = c.Hosts.Delete(ctx(), mq.ID)
+	err = c.Hosts.Delete(ctx(), host.ID)
 	requireNoError(t, err, "failed to delete host")
 
-	_, err = c.Hosts.Get(ctx(), mq.ID)
+	_, err = c.Hosts.Get(ctx(), host.ID)
 	if err == nil {
 		t.Errorf("expected error getting deleted host")
 	}

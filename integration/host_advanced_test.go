@@ -19,8 +19,8 @@ func TestHost_CreateWithDockerhubAuth(t *testing.T) {
 	token := "fake-dockerhub-pat"
 	email := "fx-" + uniqueName("") + "@example.com"
 	domains := uniqueName("dh") + ".example.com"
-	mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-		Name:                 uniqueName("mq-dh"),
+	host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		Name:                 uniqueName("host-dh"),
 		Host:                 uniqueHost(),
 		Port:                 22,
 		User:                 "deploy",
@@ -32,9 +32,9 @@ func TestHost_CreateWithDockerhubAuth(t *testing.T) {
 		DockerhubToken:       &token,
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-	got, err := c.Hosts.Get(ctx(), mq.ID)
+	got, err := c.Hosts.Get(ctx(), host.ID)
 	requireNoError(t, err)
 	if got.DockerhubAuthEnabled == nil || !*got.DockerhubAuthEnabled {
 		t.Errorf("expected DockerhubAuthEnabled=true, got %v", got.DockerhubAuthEnabled)
@@ -51,8 +51,8 @@ func TestHost_CreateWithDNSProvider(t *testing.T) {
 	}
 	email := "fx-" + uniqueName("") + "@example.com"
 	domains := uniqueName("dns") + ".example.com"
-	mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-		Name:           uniqueName("mq-dns"),
+	host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		Name:           uniqueName("host-dns"),
 		Host:           uniqueHost(),
 		Port:           22,
 		User:           "deploy",
@@ -68,7 +68,7 @@ func TestHost_CreateWithDNSProvider(t *testing.T) {
 		}
 		requireNoError(t, err)
 	}
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 }
 
 func TestHost_CreateWithBuildPlatform(t *testing.T) {
@@ -78,8 +78,8 @@ func TestHost_CreateWithBuildPlatform(t *testing.T) {
 	platform := "linux/amd64"
 	email := "fx-" + uniqueName("") + "@example.com"
 	domains := uniqueName("plat") + ".example.com"
-	mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-		Name:          uniqueName("mq-plat"),
+	host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		Name:          uniqueName("host-plat"),
 		Host:          uniqueHost(),
 		Port:          2222,
 		User:          "ubuntu",
@@ -89,9 +89,9 @@ func TestHost_CreateWithBuildPlatform(t *testing.T) {
 		BuildPlatform: &platform,
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
-	got, err := c.Hosts.Get(ctx(), mq.ID)
+	got, err := c.Hosts.Get(ctx(), host.ID)
 	requireNoError(t, err)
 	if got.BuildPlatform == nil || *got.BuildPlatform != platform {
 		t.Errorf("expected BuildPlatform=%s, got %v", platform, got.BuildPlatform)
@@ -150,8 +150,8 @@ func TestHost_UpdatePartialFields(t *testing.T) {
 
 	email := "fx-" + uniqueName("") + "@example.com"
 	domains := uniqueName("upd") + ".example.com"
-	mq, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-		Name:          uniqueName("mq-upd"),
+	host, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
+		Name:          uniqueName("host-upd"),
 		Host:          uniqueHost(),
 		Port:          22,
 		User:          "deploy",
@@ -160,11 +160,11 @@ func TestHost_UpdatePartialFields(t *testing.T) {
 		DomainsInput:  &domains,
 	})
 	requireNoError(t, err)
-	t.Cleanup(func() { c.Hosts.Delete(ctx(), mq.ID) })
+	t.Cleanup(func() { c.Hosts.Delete(ctx(), host.ID) })
 
 	t.Run("update port", func(t *testing.T) {
 		newPort := 2223
-		upd, err := c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		upd, err := c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			Port: &newPort,
 		})
 		requireNoError(t, err)
@@ -175,7 +175,7 @@ func TestHost_UpdatePartialFields(t *testing.T) {
 
 	t.Run("update user", func(t *testing.T) {
 		newUser := "ubuntu-" + uniqueName("")
-		upd, err := c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		upd, err := c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			User: &newUser,
 		})
 		requireNoError(t, err)
@@ -186,7 +186,7 @@ func TestHost_UpdatePartialFields(t *testing.T) {
 
 	t.Run("update acme email", func(t *testing.T) {
 		email := "integration-" + uniqueName("") + "@example.com"
-		upd, err := c.Hosts.Update(ctx(), mq.ID, &fibe.HostUpdateParams{
+		upd, err := c.Hosts.Update(ctx(), host.ID, &fibe.HostUpdateParams{
 			AcmeEmail: &email,
 		})
 		requireNoError(t, err)
@@ -203,7 +203,7 @@ func TestHost_CreateValidationErrors(t *testing.T) {
 	t.Run("missing host returns validation error", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-			Name:          uniqueName("mq-bad"),
+			Name:          uniqueName("host-bad"),
 			Host:          "",
 			Port:          22,
 			User:          "deploy",
@@ -217,7 +217,7 @@ func TestHost_CreateValidationErrors(t *testing.T) {
 	t.Run("invalid port returns error", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Hosts.Create(ctx(), &fibe.HostCreateParams{
-			Name:          uniqueName("mq-badport"),
+			Name:          uniqueName("host-badport"),
 			Host:          uniqueHost(),
 			Port:          99999,
 			User:          "deploy",

@@ -6,7 +6,7 @@ import (
 	"github.com/fibegg/sdk/fibe"
 )
 
-func TestProps_Attach(t *testing.T) {
+func TestRepositories_Attach(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
@@ -34,7 +34,7 @@ func TestProps_Attach(t *testing.T) {
 	})
 }
 
-func TestProps_Mirror(t *testing.T) {
+func TestRepositories_Mirror(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
