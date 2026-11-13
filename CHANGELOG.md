@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.6] - 2026-11-12
 
+### Removed
+
+- The SDK, CLI and MCP server no longer recognise retired domain names; they
+  are handled like any other unknown command, flag, field, tool or key.
+
 ### Security
 
 - Require Go 1.26.11 for the net/http MaxBytesReader race fix (GO-2026-6859).
