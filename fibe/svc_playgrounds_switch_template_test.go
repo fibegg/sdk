@@ -55,7 +55,7 @@ func TestTransformCreatesTemplateSwitchesAndWaits(t *testing.T) {
 			json.NewEncoder(w).Encode(Playground{ID: 7, Name: "pg", Status: "running", SpecID: &specID})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/specs/9":
 			id := int64(9)
-			json.NewEncoder(w).Encode(Spec{ID: &id, Name: "ps", SourceTemplateVersionID: &sourceVersionID})
+			json.NewEncoder(w).Encode(Spec{ID: &id, Name: "spec", SourceTemplateVersionID: &sourceVersionID})
 		case r.Method == http.MethodPost && r.URL.Path == "/api/import_templates":
 			if err := json.NewDecoder(r.Body).Decode(&createBody); err != nil {
 				t.Fatalf("decode template create body: %v", err)

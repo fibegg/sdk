@@ -104,7 +104,7 @@ Examples:
 					case <-time.After(interval):
 					}
 				}
-			case "task", "tr":
+			case "task":
 				for {
 					status, err := c.Tasks.StatusByIdentifier(waitCtx, identifier)
 					if err != nil {
@@ -202,7 +202,7 @@ type waitNotFoundError struct {
 
 func (e *waitNotFoundError) Error() string {
 	listCommand := "fibe playgrounds list --only id,name,status"
-	if e.resource == "task" || e.resource == "tr" {
+	if e.resource == "task" {
 		listCommand = "fibe tasks list --only id,name,status"
 	} else if e.resource == "repository" {
 		listCommand = "fibe repositories list --only id,name,status,mirror_status"
