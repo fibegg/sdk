@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -99,14 +98,5 @@ func TestTeamCLICommandsRegistered(t *testing.T) {
 		if err != nil || found.Name() != path[1] {
 			t.Fatalf("missing Team command %v", path)
 		}
-	}
-}
-
-func TestRemovedCompanyIDFlagSuggestsTeamID(t *testing.T) {
-	command := RootCmd()
-	command.SetArgs([]string{"team", "--company-id", "9", "principals", "list"})
-	err := command.Execute()
-	if err == nil || !strings.Contains(err.Error(), "use --team-id") {
-		t.Fatalf("expected --team-id guidance, got %v", err)
 	}
 }

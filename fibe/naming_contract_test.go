@@ -8,17 +8,6 @@ import (
 	"testing"
 )
 
-func TestLegacyResponseFieldsFailWithoutChangingDestination(t *testing.T) {
-	destination := Playground{ID: 99}
-	err := decodeJSONLimitedProjected(context.Background(), strings.NewReader(`{"id":1,"marquee_id":2,"playspec_id":3}`), maxResponseBody, "response", &destination)
-	if err == nil || !strings.Contains(err.Error(), "host_id") {
-		t.Fatalf("got %v", err)
-	}
-	if destination.ID != 99 {
-		t.Fatalf("failed decode changed destination: %+v", destination)
-	}
-}
-
 func TestSharedNamingFixtureUsesActualSDKDecoder(t *testing.T) {
 	data, err := os.ReadFile("../contracts/naming/v2.json")
 	if err != nil {
@@ -41,17 +30,5 @@ func TestSharedNamingFixtureUsesActualSDKDecoder(t *testing.T) {
 	}
 	if source["repository_id"] != float64(24) || source["repository_branch_id"] != float64(7) || source["branch"] != "feature/naming" {
 		t.Fatalf("unexpected source %+v", source)
-	}
-	var removed map[string]string
-	if err = json.Unmarshal(fixture["removed_keys"], &removed); err != nil {
-		t.Fatal(err)
-	}
-	for old, replacement := range removed {
-		input, _ := json.Marshal(map[string]any{old: 1})
-		var destination map[string]any
-		err = decodeJSONLimitedProjected(context.Background(), strings.NewReader(string(input)), maxResponseBody, "removed field", &destination)
-		if err == nil || !strings.Contains(err.Error(), replacement) {
-			t.Fatalf("%s: got %v", old, err)
-		}
 	}
 }

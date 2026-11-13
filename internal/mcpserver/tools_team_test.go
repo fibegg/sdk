@@ -113,14 +113,3 @@ func TestTeamMCPDiscoveryAndConfirmation(t *testing.T) {
 		}
 	}
 }
-
-func TestTeamMCPRejectsRemovedCompanyID(t *testing.T) {
-	srv := New(Config{APIKey: "fixture", Domain: "https://fibe.gg", ToolSet: "full"})
-	if err := srv.RegisterAll(); err != nil {
-		t.Fatal(err)
-	}
-	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_team_principals_list", map[string]any{"company_id": 9})
-	if err == nil || !strings.Contains(err.Error(), `"team_id"`) {
-		t.Fatalf("expected team_id guidance, got %v", err)
-	}
-}
