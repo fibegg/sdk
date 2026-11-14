@@ -8,7 +8,7 @@ import (
 )
 
 func TestSharedAgentSettingsFixtureUsesActualCLIFileDecoder(t *testing.T) {
-	data, err := os.ReadFile("../../contracts/naming/v2.json")
+	data, err := os.ReadFile("../../contracts/decoder-fixtures.json")
 	if err != nil {
 		t.Fatal(err)
 	}

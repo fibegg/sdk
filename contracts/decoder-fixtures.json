@@ -1,0 +1,21 @@
+{
+  "api_playground": {
+    "id": 20,
+    "name": "naming-fixture",
+    "host_id": 21,
+    "spec_id": 120,
+    "status": "running",
+    "job_mode": false
+  },
+  "source_reference": {
+    "repository_id": 24,
+    "repository_branch_id": 7,
+    "branch": "feature/naming"
+  },
+  "agent_settings": {
+    "agentProvider": "claude-code",
+    "dataDir": "/app/data",
+    "hostRoot": "/opt/fibe",
+    "hostRootDomain": "host.example.test"
+  }
+}

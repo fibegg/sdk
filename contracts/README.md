@@ -14,9 +14,8 @@ Public response types intentionally omit runtime key identities and token bytes.
 - `go-public-api-v0.2.45.json` records the v0.2.45 public API in the current
   domain names. The v0.3 gate rejects any removal or source-signature/layout
   change from it. New declarations remain additive.
-- `naming/v2.json` holds the current-name examples of the shared naming
-  fixture. Actual SDK response and CLI file decoders consume its canonical
-  fields.
+- `decoder-fixtures.json` holds current Playground, source-reference and Agent
+  settings examples consumed by the actual SDK response and CLI file decoders.
 - `reliability.json` records cross-language transport behavior that cannot be
   inferred from endpoint examples alone.
 - `rest.json` inventories every exported service method, its HTTP method/path
