@@ -4,10 +4,12 @@ Since v0.3.0 (released 2026-10-15) the SDK uses the domain names Host, Spec,
 Repository, Task, Team and Library; Agent and Audit Logs keep their canonical
 model identities.
 
-`contracts/go-public-api-v0.2.45.json` records the v0.2.45 public API in the
-current domain names. The compatibility check rejects any removal or exported
-signature/struct layout change; new declarations remain additive. The current
-generated Go, REST, CLI and MCP contracts describe the v0.3 surface.
+`contracts/go-public-api-v0.2.45.json` is the unmodified public API manifest
+generated from tag `v0.2.45`. The historical compatibility test translates the
+approved v0.3 domain renames in memory, then rejects any removal or exported
+signature/struct layout change outside the explicitly approved additive feature
+fields. New declarations remain additive. The current generated Go, REST, CLI
+and MCP contracts describe the v0.3 surface.
 
 A 0.2.x hotfix must come from a branch at the `v0.2.48` tag. Candidate builds of
 unreleased source are built without tags as `0.3.0-rc.1+<sdk-sha7>`; they do not

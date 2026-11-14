@@ -11,9 +11,10 @@ Public response types intentionally omit runtime key identities and token bytes.
 - `go-public-api.json` freezes every exported Go type, field order, JSON tag,
   constant, function, method, and public `Unwrap` signature for the current
   candidate.
-- `go-public-api-v0.2.45.json` records the v0.2.45 public API in the current
-  domain names. The v0.3 gate rejects any removal or source-signature/layout
-  change from it. New declarations remain additive.
+- `go-public-api-v0.2.45.json` is unmodified generator output from tag `v0.2.45`.
+  The historical compatibility test projects the approved v0.3 domain renames
+  in memory and checks removals and source-signature/layout changes outside
+  explicitly approved additive feature fields. New declarations remain additive.
 - `decoder-fixtures.json` holds current Playground, source-reference and Agent
   settings examples consumed by the actual SDK response and CLI file decoders.
 - `reliability.json` records cross-language transport behavior that cannot be
