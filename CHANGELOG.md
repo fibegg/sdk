@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-11-14
+
+### Fixed
+
+- Preserve current SDK response and CLI Agent settings decoder fixtures without
+  the obsolete versioned naming-contract wrapper or unused examples.
+- Restore the v0.2.45 public API baseline as unmodified generator output from
+  that tag; apply the approved v0.3 domain renames only in the historical
+  compatibility test and document its provenance accurately.
+
 ## [0.3.6] - 2026-11-13
 
 ### Removed
