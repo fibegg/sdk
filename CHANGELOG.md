@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restore the v0.2.45 public API baseline as unmodified generator output from
   that tag; apply the approved v0.3 domain renames only in the historical
   compatibility test and document its provenance accurately.
+- Use a nonexistent Playground ID in the MCP action-dispatch test so the case
+  does not depend on which Playground holds a small ID.
 
 ## [0.3.6] - 2026-11-13
 

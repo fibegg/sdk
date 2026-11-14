@@ -277,8 +277,9 @@ func TestPlaygroundActionDispatchesToActionEndpoint(t *testing.T) {
 		t.Fatalf("RegisterAll: %v", err)
 	}
 
+	// Prove action-endpoint dispatch without depending on which Playground holds a small ID.
 	_, err := srv.dispatcher.dispatch(context.Background(), "fibe_playgrounds_action", map[string]any{
-		"id_or_name":  7,
+		"id_or_name":  2147483647,
 		"action_type": "hard_restart",
 		"force":       true,
 	})
