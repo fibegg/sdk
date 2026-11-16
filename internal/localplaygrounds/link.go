@@ -226,6 +226,12 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 		return nil, ambiguousError(target, matches)
 	}
 
+	if matches := bareNameMatches(playgrounds, target); len(matches) == 1 {
+		return matches[0], nil
+	} else if len(matches) > 1 {
+		return nil, ambiguousError(target, matches)
+	}
+
 	if matches := specPrefixMatches(playgrounds, target); len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
@@ -987,6 +993,16 @@ func exactSpecMatches(playgrounds []Playground, target string) []*Playground {
 	var matches []*Playground
 	for i := range playgrounds {
 		if playgrounds[i].Spec == target {
+			matches = append(matches, &playgrounds[i])
+		}
+	}
+	return matches
+}
+
+func bareNameMatches(playgrounds []Playground, target string) []*Playground {
+	var matches []*Playground
+	for i := range playgrounds {
+		if id := trailingID(playgrounds[i].DirName); id != "" && playgrounds[i].DirName == target+"--"+id {
 			matches = append(matches, &playgrounds[i])
 		}
 	}
