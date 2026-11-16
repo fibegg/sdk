@@ -439,6 +439,99 @@ func TestFindUsesPlaygroundLabelIDFallback(t *testing.T) {
 	}
 }
 
+func TestFindBarePlaygroundName(t *testing.T) {
+	mapPlayground := Playground{ID: "16", DirName: "map--16", Spec: "vibrez-map"}
+	for _, tc := range []struct {
+		name        string
+		playgrounds []Playground
+		target      string
+		wantDir     string
+		wantErr     string
+	}{
+		{
+			name: "bare name resolves different Spec", playgrounds: []Playground{mapPlayground},
+			target: "map", wantDir: "map--16",
+		},
+		{
+			name: "bare name is ambiguous",
+			playgrounds: []Playground{
+				{ID: "17", DirName: "map--17", Spec: "vibrez-map"}, mapPlayground,
+			},
+			target:  "map",
+			wantErr: "multiple playgrounds found matching 'map': map--16 (spec: vibrez-map, id: 16), map--17 (spec: vibrez-map, id: 17)",
+		},
+		{
+			name:        "exact Spec wins",
+			playgrounds: []Playground{mapPlayground, {ID: "18", DirName: "other--18", Spec: "map"}},
+			target:      "map", wantDir: "other--18",
+		},
+		{
+			name:        "exact folder wins",
+			playgrounds: []Playground{mapPlayground, {DirName: "map", Spec: "other"}},
+			target:      "map", wantDir: "map",
+		},
+		{
+			name:        "bare name wins over Spec prefix",
+			playgrounds: []Playground{mapPlayground, {ID: "18", DirName: "other--18", Spec: "map-extra"}},
+			target:      "map", wantDir: "map--16",
+		},
+		{
+			name: "partial folder name does not match", playgrounds: []Playground{mapPlayground},
+			target:  "ma",
+			wantErr: "no playground found matching 'ma' (list them with: fibe local playgrounds info --view names)",
+		},
+		{
+			name: "numeric ID still resolves", playgrounds: []Playground{mapPlayground},
+			target: "16", wantDir: "map--16",
+		},
+		{
+			name:        "numeric ID wins over exact folder",
+			playgrounds: []Playground{{ID: "18", DirName: "16", Spec: "other"}, mapPlayground},
+			target:      "16", wantDir: "map--16",
+		},
+		{
+			name:        "numeric exact folder fallback",
+			playgrounds: []Playground{{DirName: "16", Spec: "other"}},
+			target:      "16", wantDir: "16",
+		},
+		{
+			name:        "numeric target does not use bare name or Spec",
+			playgrounds: []Playground{{ID: "18", DirName: "16--18", Spec: "16"}},
+			target:      "16",
+			wantErr:     "no playground found matching '16' (list them with: fibe local playgrounds info --view names)",
+		},
+		{
+			name:        "job suffix does not match",
+			playgrounds: []Playground{{DirName: "ci-x--abcd", Spec: "build", JobMode: true}},
+			target:      "ci-x",
+			wantErr:     "no playground found matching 'ci-x' (list them with: fibe local playgrounds info --view names)",
+		},
+		{
+			name:        "empty suffix does not match",
+			playgrounds: []Playground{{DirName: "map--", Spec: "other"}},
+			target:      "map",
+			wantErr:     "no playground found matching 'map' (list them with: fibe local playgrounds info --view names)",
+		},
+		{
+			name: "Spec prefix fallback still resolves", playgrounds: []Playground{mapPlayground},
+			target: "vibrez", wantDir: "map--16",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pg, err := Find(tc.playgrounds, tc.target)
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr || pg != nil {
+					t.Fatalf("Find(%q) = %#v, %v; want nil, %q", tc.target, pg, err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil || pg == nil || pg.DirName != tc.wantDir {
+				t.Fatalf("Find(%q) = %#v, %v; want folder %q", tc.target, pg, err, tc.wantDir)
+			}
+		})
+	}
+}
+
 func TestFindRejectsAmbiguousSpecPrefix(t *testing.T) {
 	playgrounds := []Playground{
 		{ID: "1", DirName: "alpha--1", Spec: "suite-app"},
