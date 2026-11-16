@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Resolve bare local Playground names to their `<name>--<id>` folders and suggest listing names when no Playground matches.
+
 ## [0.3.7] - 2026-11-14
 
 ### Fixed
