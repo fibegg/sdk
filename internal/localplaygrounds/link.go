@@ -211,7 +211,7 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 		} else if len(matches) > 1 {
 			return nil, ambiguousError(target, matches)
 		}
-		return nil, fmt.Errorf("no playground found matching '%s'", target)
+		return nil, fmt.Errorf("no playground found matching '%s' (list them with: fibe local playgrounds info --view names)", target)
 	}
 
 	if matches := exactNameMatches(playgrounds, target); len(matches) == 1 {
@@ -238,7 +238,7 @@ func Find(playgrounds []Playground, target string) (*Playground, error) {
 		return nil, ambiguousError(target, matches)
 	}
 
-	return nil, fmt.Errorf("no playground found matching '%s'", target)
+	return nil, fmt.Errorf("no playground found matching '%s' (list them with: fibe local playgrounds info --view names)", target)
 }
 
 func Names(playgrounds []Playground) []NameEntry {
