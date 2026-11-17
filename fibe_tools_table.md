@@ -2,8 +2,8 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 73
-- Advertised with `FIBE_MCP_TOOLS=full`: 72
+- Registered tools: 71
+- Advertised with `FIBE_MCP_TOOLS=full`: 70
 - Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
@@ -78,8 +78,6 @@ Generated from the MCP registry.
 | `fibe_team_repository_operation_reconcile` | other | yes | [MODE:DIALOG] Require a live human and current Team installation authority to reconcile this exact remote destination. Do not overwrite/delete an unknown destination. |
 | `fibe_team_repository_operations_list` | other | yes | [MODE:DIALOG] Read exact Team Repository operation receipts and unknown outcomes. |
 | `fibe_team_runtime_principal_recover` | other | yes | [MODE:DIALOG] Recover a revoked runtime principal using a live human Team admin. Explicit [] creates a replacement without rebinding agents. Completed identical selections replay; changed selections conflict. Returns adoption states, never runtime key IDs or tokens. |
-| `fibe_team_subscription_cancel` | other | yes | [MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt. |
-| `fibe_team_subscriptions_list` | other | yes | [MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts. |
 | `fibe_templates_change` | brownfield | no | [MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. |
 | `fibe_templates_search` | greenfield | yes | [MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering. |
 | `fibe_tools_catalog` | meta | yes | [MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly. |

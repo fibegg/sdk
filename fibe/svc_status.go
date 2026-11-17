@@ -26,10 +26,6 @@ type Status struct {
 	Hosts        int `json:"hosts"`
 	Secrets      int `json:"secrets"`
 	APIKeys      int `json:"api_keys"`
-	Subscription struct {
-		Plan            string `json:"plan"`
-		PlaygroundLimit int    `json:"playground_limit"`
-	} `json:"subscription"`
 
 	ResourceQuotas map[string]ResourceQuotaEntry `json:"resource_quotas,omitempty"`
 	PerParentCaps  map[string]*int               `json:"per_parent_caps,omitempty"`

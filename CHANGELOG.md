@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-11-17
+
+### Removed
+
+- Removed Team billing subscriptions from the SDK, CLI, MCP tools and status responses; self-hosted Fibe has no billing.
+
 ## [0.3.9] - 2026-11-17
 
 ### Removed

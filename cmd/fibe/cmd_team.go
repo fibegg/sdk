@@ -9,7 +9,7 @@ import (
 
 func teamCmd() *cobra.Command {
 	var teamID int64
-	root := &cobra.Command{Use: "team", Short: "Inspect and recover operations in an explicitly selected Team", Long: "Team IDs are credential-owner expectations, not authority grants. Recovery, cancellation, repository reconciliation/adoption and installation management require the server's live human authority checks. Use a Team-owned human credential/profile."}
+	root := &cobra.Command{Use: "team", Short: "Inspect and recover operations in an explicitly selected Team", Long: "Team IDs are credential-owner expectations, not authority grants. Recovery, repository reconciliation/adoption and installation management require the server's live human authority checks. Use a Team-owned human credential/profile."}
 	root.PersistentFlags().Int64Var(&teamID, "team-id", 0, "Required Team owner ID (verified through request and response headers)")
 	action := func(use, help string, nargs int, call func(*cobra.Command, []string, *fibe.Client) (any, error)) *cobra.Command {
 		return &cobra.Command{Use: use, Short: help, Args: cobra.ExactArgs(nargs), RunE: func(cmd *cobra.Command, args []string) error {
@@ -63,20 +63,6 @@ func teamCmd() *cobra.Command {
 	})
 	recover.Flags().StringVar(&selection, "agent-ids", "", "Required explicit JSON list, e.g. '[12,34]' or '[]'; alternatively --from-file replacement_agent_ids")
 	principals.AddCommand(recover)
-	subscriptions := &cobra.Command{Use: "subscriptions", Short: "Durable Team subscription cancellation and current status"}
-	subscriptions.AddCommand(action("list", "Read subscription and durable cancellation states", 0, func(_ *cobra.Command, _ []string, c *fibe.Client) (any, error) {
-		return c.TeamSubscriptions(ctx(), teamID)
-	}))
-	var retry bool
-	cancel := action("cancel <id>", "Request cancellation (202 is durable intent); use list for reconciled status", 1, func(_ *cobra.Command, args []string, c *fibe.Client) (any, error) {
-		id, err := envPackID(args[0])
-		if err != nil {
-			return nil, err
-		}
-		return c.CancelTeamSubscription(ctx(), teamID, id, retry)
-	})
-	cancel.Flags().BoolVar(&retry, "retry-failed", false, "Explicitly retry a failed cancellation with current human authority")
-	subscriptions.AddCommand(cancel)
 	operations := &cobra.Command{Use: "repository-operations", Short: "Reconcile exact remote destinations before independent local adoption"}
 	operations.AddCommand(action("list", "List durable Team Repository receipts", 0, func(_ *cobra.Command, _ []string, c *fibe.Client) (any, error) {
 		return c.TeamRepositoryOperations(ctx(), teamID)
@@ -114,6 +100,6 @@ func teamCmd() *cobra.Command {
 		}
 		return nil, c.RemoveTeamGitInstallation(ctx(), teamID, id)
 	}))
-	root.AddCommand(principals, subscriptions, operations, installations)
+	root.AddCommand(principals, operations, installations)
 	return root
 }

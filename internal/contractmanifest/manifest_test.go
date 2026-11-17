@@ -67,6 +67,9 @@ func TestV03PreservesExistingAPIOutsideApprovedFeatures(t *testing.T) {
 			}
 			signature = strings.Join(lines, "\n")
 		}
+		if declaration.ID == "type.Status" {
+			signature = strings.Replace(signature, "\tSubscription struct {\n\t\tPlan            string `json:\"plan\"`\n\t\tPlaygroundLimit int    `json:\"playground_limit\"`\n\t} `json:\"subscription\"`\n", "", 1)
+		}
 		declaration.Signature = strings.Join(strings.Fields(signature), " ")
 		declarations = append(declarations, declaration)
 	}

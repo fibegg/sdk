@@ -62,24 +62,6 @@ func (s *Server) registerTeamTools() {
 		}
 		return c.RecoverRuntimePrincipal(ctx, team, principal, selection.IDs)
 	})
-	add("fibe_team_subscriptions_list", "Read current subscriptions and durable cancellation states, including failed/authority-lost receipts.", true, false, map[string]any{}, nil, func(ctx context.Context, c *fibe.Client, team int64, _ map[string]any) (any, error) {
-		return c.TeamSubscriptions(ctx, team)
-	})
-	add("fibe_team_subscription_cancel", "Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt.", false, true, map[string]any{"subscription_id": id("Team subscription ID"), "retry_failed": map[string]any{"type": "boolean"}}, []string{"subscription_id"}, func(ctx context.Context, c *fibe.Client, team int64, args map[string]any) (any, error) {
-		subscription, err := requiredPositiveID(args, "subscription_id")
-		if err != nil {
-			return nil, err
-		}
-		retry := false
-		if value, present := args["retry_failed"]; present {
-			var valid bool
-			retry, valid = value.(bool)
-			if !valid {
-				return nil, fmt.Errorf("retry_failed must be a boolean")
-			}
-		}
-		return c.CancelTeamSubscription(ctx, team, subscription, retry)
-	})
 	add("fibe_team_repository_operations_list", "Read exact Team Repository operation receipts and unknown outcomes.", true, false, map[string]any{}, nil, func(ctx context.Context, c *fibe.Client, team int64, _ map[string]any) (any, error) {
 		return c.TeamRepositoryOperations(ctx, team)
 	})

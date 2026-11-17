@@ -20,8 +20,6 @@ func TestTeamOperationsTransportAndPublicReceipts(t *testing.T) {
 		{"principal-create", "POST", "/api/team_service_principals", `{"service_principal":{"name":"service"}}`, `{"id":3,"name":"service","owner_type":"Team","owner_id":9}`, 201, func(c *Client) (any, error) { return c.CreateTeamServicePrincipal(context.Background(), 9, "service") }},
 		{"principal-revoke", "DELETE", "/api/team_service_principals/2", "", "", 204, func(c *Client) (any, error) { return nil, c.RevokeTeamServicePrincipal(context.Background(), 9, 2) }},
 		{"recovery", "POST", "/api/team_service_principals/2/recover", `{"replacement_agent_ids":[]}`, `{"principal_id":3,"supersedes_id":2,"replacement_agent_ids":[],"recovery_status":"completed","status":201,"adoption":[{"agent_id":5,"status":"redeploy_pending","key_id":77,"previous_key_id":66,"token":"synthetic-secret"}],"original_authority":{"api_key_id":99}}`, 201, func(c *Client) (any, error) { return c.RecoverRuntimePrincipal(context.Background(), 9, 2, []int64{}) }},
-		{"subscriptions", "GET", "/api/team_billing/subscriptions", "", `[{"id":4,"owner_type":"Team","owner_id":9,"status":"active","cancellation_state":"failed","cancellation_error_code":"AUTHORITY_LOST"}]`, 200, func(c *Client) (any, error) { return c.TeamSubscriptions(context.Background(), 9) }},
-		{"cancel", "POST", "/api/team_billing/cancel_subscription", `{"subscription_id":4,"retry_failed":true}`, `{"id":4,"subscription_id":4,"owner_type":"Team","owner_id":9,"status":"pending","cancellation_state":"pending","cancellation_request_id":"cancel-exact"}`, 202, func(c *Client) (any, error) { return c.CancelTeamSubscription(context.Background(), 9, 4, true) }},
 		{"operations", "GET", "/api/team_repository_operations", "", `[{"team_repository_operation_id":8,"operation_request_id":"exact-id","operation_state":"unknown","outcome_unknown":true,"owner_type":"Team","owner_id":9}]`, 200, func(c *Client) (any, error) { return c.TeamRepositoryOperations(context.Background(), 9) }},
 		{"reconcile", "POST", "/api/team_repository_operations/exact-id/reconcile", `{"connection_id":6}`, `{"team_repository_operation_id":8,"operation_request_id":"exact-id","operation_state":"remote_created","destination":{"id":100,"full_name":"org/repo","html_url":"https://github.com/org/repo"}}`, 200, func(c *Client) (any, error) {
 			id := int64(6)
@@ -122,7 +120,7 @@ func TestTeamRecoveryExplicitSelectionsAndReplayErrors(t *testing.T) {
 	if !errors.As(err, &apiError) || apiError.StatusCode != 409 || apiError.Code != "RECOVERY_CONFLICT" {
 		t.Fatalf("conflict lost: %v", err)
 	}
-	if _, err = c.TeamSubscriptions(context.Background(), 0); err == nil {
+	if _, err = c.TeamRepositoryOperations(context.Background(), 0); err == nil {
 		t.Fatal("invalid Team accepted")
 	}
 	if _, err = c.ReconcileTeamRepositoryOperation(context.Background(), 9, "../another", nil); err == nil {
@@ -142,7 +140,7 @@ func TestTeamOperationsRejectForeignResponseOwner(t *testing.T) {
 	}))
 	defer server.Close()
 	c := NewClient(WithDisableAutoConfig(), WithBaseURL(server.URL), WithAPIKey("fixture"), WithMaxRetries(0))
-	if _, err := c.TeamSubscriptions(context.Background(), 9); err == nil {
+	if _, err := c.TeamRepositoryOperations(context.Background(), 9); err == nil {
 		t.Fatal("foreign response owner accepted")
 	}
 }
@@ -160,7 +158,7 @@ func TestTeamOperationsRetainExistingProfileOwnerProof(t *testing.T) {
 	defer server.Close()
 	client := NewClient(WithDisableAutoConfig(), WithBaseURL(server.URL), WithAPIKey("fixture"), WithMaxRetries(0),
 		WithOwnerContext(OwnerContext{OwnerType: "Team", OwnerID: 10}))
-	if _, err := client.TeamSubscriptions(context.Background(), 9); err == nil {
+	if _, err := client.TeamRepositoryOperations(context.Background(), 9); err == nil {
 		t.Fatal("explicit Team expectation discarded the conflicting profile proof")
 	}
 }

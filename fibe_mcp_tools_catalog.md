@@ -2,8 +2,8 @@
 
 Generated from the MCP registry.
 
-- Registered tools: 73
-- Advertised with `FIBE_MCP_TOOLS=full`: 72
+- Registered tools: 71
+- Advertised with `FIBE_MCP_TOOLS=full`: 70
 - Advertised with `FIBE_MCP_TOOLS=core`: 40
 - Hidden dispatcher-only tools: 1
 
@@ -3882,90 +3882,6 @@ Generated from the MCP registry.
     "team_id",
     "principal_id",
     "replacement_agent_ids"
-  ],
-  "type": "object"
-}
-```
-
-## `fibe_team_subscription_cancel`
-**Tier:** other | **Hidden:** false | **Destructive:** true | **Idempotent:** false | **Read-only:** false
-
-### Description
-[MODE:DIALOG] Request durable cancellation with live human admin authority. HTTP 202 means accepted intent; read subscriptions for reconciled status. retry_failed explicitly reauthorizes a failed attempt.
-
-### Input Schema
-```json
-{
-  "additionalProperties": false,
-  "properties": {
-    "confirm": {
-      "description": "Confirm this operation",
-      "type": "boolean"
-    },
-    "only": {
-      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "output_path": {
-      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
-      "type": "string"
-    },
-    "retry_failed": {
-      "description": "Retry Failed for this team_subscription_cancel request.",
-      "type": "boolean"
-    },
-    "subscription_id": {
-      "description": "Team subscription ID",
-      "minimum": 1,
-      "type": "integer"
-    },
-    "team_id": {
-      "description": "Explicit Team owner expectation; never grants authority",
-      "minimum": 1,
-      "type": "integer"
-    }
-  },
-  "required": [
-    "team_id",
-    "subscription_id"
-  ],
-  "type": "object"
-}
-```
-
-## `fibe_team_subscriptions_list`
-**Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
-
-### Description
-[MODE:DIALOG] Read current subscriptions and durable cancellation states, including failed/authority-lost receipts.
-
-### Input Schema
-```json
-{
-  "additionalProperties": false,
-  "properties": {
-    "only": {
-      "description": "Fields to keep in each result item. Example: [\"uuid\",\"title\",\"project\"]. Envelope metadata remains.",
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "output_path": {
-      "description": "JSONPath into the tool result, not a filesystem path. Example: \"$.conversations[0].uuid\" returns the first UUID; \"$.conversations\" returns only the array.",
-      "type": "string"
-    },
-    "team_id": {
-      "description": "Explicit Team owner expectation; never grants authority",
-      "minimum": 1,
-      "type": "integer"
-    }
-  },
-  "required": [
-    "team_id"
   ],
   "type": "object"
 }

@@ -26,35 +26,6 @@ type TeamServicePrincipal struct {
 	Name      string     `json:"name"`
 	RevokedAt *time.Time `json:"revoked_at"`
 }
-type TeamSubscription struct {
-	OwnerContext
-	ID                       int64      `json:"id"`
-	PlanType                 string     `json:"plan_type"`
-	BillingInterval          string     `json:"billing_interval"`
-	Status                   string     `json:"status"`
-	BillingProvider          string     `json:"billing_provider"`
-	CurrentPeriodStart       *time.Time `json:"current_period_start"`
-	CurrentPeriodEnd         *time.Time `json:"current_period_end"`
-	CanceledAt               *time.Time `json:"canceled_at"`
-	CancellationState        string     `json:"cancellation_state"`
-	CancellationRequestID    *string    `json:"cancellation_request_id"`
-	CancellationRequestedAt  *time.Time `json:"cancellation_requested_at"`
-	CancellationReconciledAt *time.Time `json:"cancellation_reconciled_at"`
-	CancellationErrorCode    *string    `json:"cancellation_error_code"`
-}
-
-// TeamCancellation is a durable intent receipt, not proof of provider cancellation.
-type TeamCancellation struct {
-	OwnerContext
-	ID                       int64      `json:"id"`
-	SubscriptionID           int64      `json:"subscription_id"`
-	Status                   string     `json:"status"`
-	CancellationState        string     `json:"cancellation_state"`
-	CancellationRequestID    *string    `json:"cancellation_request_id"`
-	CancellationRequestedAt  *time.Time `json:"cancellation_requested_at"`
-	CancellationReconciledAt *time.Time `json:"cancellation_reconciled_at"`
-	CancellationErrorCode    *string    `json:"cancellation_error_code"`
-}
 type TeamRepositoryOperation struct {
 	OwnerContext
 	ID                int64                      `json:"team_repository_operation_id"`

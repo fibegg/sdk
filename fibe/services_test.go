@@ -1690,7 +1690,6 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 			"hosts":        1,
 			"secrets":      0,
 			"api_keys":     2,
-			"subscription": map[string]any{"plan": "single", "playground_limit": 1000},
 			"resource_quotas": map[string]any{
 				"playgrounds": map[string]any{"used": 2, "limit": limit1000, "status": "ok"},
 				"agents":      map[string]any{"used": 3, "limit": limit10, "status": "ok"},
@@ -1724,9 +1723,6 @@ func TestStatus_Get_WithLimitsSections(t *testing.T) {
 	if status.RateLimits.API.Limit != 5000 || status.RateLimits.API.Remaining != 4987 {
 		t.Errorf("unexpected rate limit values: %+v", status.RateLimits.API)
 	}
-	if status.Subscription.Plan != "single" {
-		t.Errorf("expected Enterprise subscription, got %+v", status.Subscription)
-	}
 }
 
 func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
@@ -1755,8 +1751,5 @@ func TestStatus_Get_WithoutLimitsSections(t *testing.T) {
 	}
 	if status.RateLimits != nil {
 		t.Errorf("expected nil rate_limits when omitted, got %+v", status.RateLimits)
-	}
-	if status.Subscription.Plan != "" {
-		t.Errorf("expected empty subscription when omitted by Core, got %+v", status.Subscription)
 	}
 }

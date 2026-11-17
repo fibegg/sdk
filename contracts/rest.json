@@ -776,14 +776,6 @@
       "response_type": "*Repository, error"
     },
     {
-      "name": "Client.CancelTeamSubscription",
-      "http_method": "POST",
-      "path_template": "/api/team_billing/cancel_subscription",
-      "path_expression": "\"/api/team_billing/cancel_subscription\"",
-      "codec": "json",
-      "response_type": "*TeamCancellation, error"
-    },
-    {
       "name": "Client.ConnectTeamGitInstallation",
       "http_method": "POST",
       "path_template": "/api/team_git_installations",
@@ -880,14 +872,6 @@
       "path_expression": "\"/api/team_service_principals\"",
       "codec": "json",
       "response_type": "[]TeamServicePrincipal, error"
-    },
-    {
-      "name": "Client.TeamSubscriptions",
-      "http_method": "GET",
-      "path_template": "/api/team_billing/subscriptions",
-      "path_expression": "\"/api/team_billing/subscriptions\"",
-      "codec": "json",
-      "response_type": "[]TeamSubscription, error"
     },
     {
       "name": "EnvPackService.Attachments",

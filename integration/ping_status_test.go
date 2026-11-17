@@ -52,9 +52,6 @@ func TestStatus_Get(t *testing.T) {
 		if s.APIKeys < 0 {
 			t.Errorf("expected APIKeys >= 0, got %d", s.APIKeys)
 		}
-		if s.Subscription.Plan == "" {
-			t.Error("expected non-empty Subscription.Plan")
-		}
 	})
 
 	t.Run("status counts update after creating a secret", func(t *testing.T) {

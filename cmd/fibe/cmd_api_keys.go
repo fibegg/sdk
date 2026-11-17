@@ -36,7 +36,6 @@ AVAILABLE SCOPES:
   mcp:access
   secrets:read, secrets:write, secrets:delete, secrets:manage
   env_packs:read, env_packs:write, env_packs:delete, env_packs:manage
-  billing:read, billing:write
   * (full access)
 
 SUBCOMMANDS:

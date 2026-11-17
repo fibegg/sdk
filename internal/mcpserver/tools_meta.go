@@ -28,7 +28,7 @@ func (s *Server) registerMetaTools() {
 			return c.Status.Get(ctx)
 		},
 	}, mcp.NewTool("fibe_status",
-		mcp.WithDescription("[MODE:DIALOG] Show resource counts, quotas, rate limits, and subscription details."),
+		mcp.WithDescription("[MODE:DIALOG] Show resource counts, quotas, and rate limits."),
 	))
 
 	s.addTool(&toolImpl{

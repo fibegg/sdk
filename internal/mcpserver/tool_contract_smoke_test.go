@@ -52,16 +52,14 @@ func TestToolContractSmoke(t *testing.T) {
 	server.httpMode = true
 
 	names := server.dispatcher.names()
-	if len(names) != 73 {
-		t.Fatalf("registered tools = %d, want frozen contract count 73 (61 existing plus 12 Team tools)", len(names))
+	if len(names) != 71 {
+		t.Fatalf("registered tools = %d, want frozen contract count 71 (61 existing plus 10 Team tools)", len(names))
 	}
 	teamContracts := map[string][]string{
 		"fibe_team_principals_list":                {"team_id"},
 		"fibe_team_principal_create":               {"team_id", "name"},
 		"fibe_team_principal_revoke":               {"team_id", "principal_id"},
 		"fibe_team_runtime_principal_recover":      {"team_id", "principal_id", "replacement_agent_ids"},
-		"fibe_team_subscriptions_list":             {"team_id"},
-		"fibe_team_subscription_cancel":            {"team_id", "subscription_id"},
 		"fibe_team_repository_operations_list":     {"team_id"},
 		"fibe_team_repository_operation_reconcile": {"team_id", "request_id"},
 		"fibe_team_repository_operation_adopt":     {"team_id", "request_id"},

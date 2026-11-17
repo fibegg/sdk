@@ -1073,11 +1073,6 @@
       "signature": "func (c *Client) BaseURL() string"
     },
     {
-      "id": "method.Client.CancelTeamSubscription",
-      "kind": "method",
-      "signature": "func (c *Client) CancelTeamSubscription(ctx context.Context, teamID, subscriptionID int64, retryFailed bool) (*TeamCancellation, error)"
-    },
-    {
       "id": "method.Client.ConnectTeamGitInstallation",
       "kind": "method",
       "signature": "func (c *Client) ConnectTeamGitInstallation(ctx context.Context, teamID, installationID, verificationConnectionID int64) (*TeamGitInstallation, error)"
@@ -1161,11 +1156,6 @@
       "id": "method.Client.TeamServicePrincipals",
       "kind": "method",
       "signature": "func (c *Client) TeamServicePrincipals(ctx context.Context, teamID int64) ([]TeamServicePrincipal, error)"
-    },
-    {
-      "id": "method.Client.TeamSubscriptions",
-      "kind": "method",
-      "signature": "func (c *Client) TeamSubscriptions(ctx context.Context, teamID int64) ([]TeamSubscription, error)"
     },
     {
       "id": "method.Client.WithKey",
@@ -3695,7 +3685,7 @@
     {
       "id": "type.Status",
       "kind": "type",
-      "signature": "type Status struct {\n\tPlaygrounds struct {\n\t\tTotal   int `json:\"total\"`\n\t\tActive  int `json:\"active\"`\n\t\tStopped int `json:\"stopped\"`\n\t} `json:\"playgrounds\"`\n\tAgents struct {\n\t\tTotal         int `json:\"total\"`\n\t\tAuthenticated int `json:\"authenticated\"`\n\t} `json:\"agents\"`\n\tRepositories int `json:\"repositories\"`\n\tSpecs        int `json:\"specs\"`\n\tHosts        int `json:\"hosts\"`\n\tSecrets      int `json:\"secrets\"`\n\tAPIKeys      int `json:\"api_keys\"`\n\tSubscription struct {\n\t\tPlan            string `json:\"plan\"`\n\t\tPlaygroundLimit int    `json:\"playground_limit\"`\n\t} `json:\"subscription\"`\n\n\tResourceQuotas map[string]ResourceQuotaEntry `json:\"resource_quotas,omitempty\"`\n\tPerParentCaps  map[string]*int               `json:\"per_parent_caps,omitempty\"`\n\tRateLimits     *RateLimitsSection            `json:\"rate_limits,omitempty\"`\n}"
+      "signature": "type Status struct {\n\tPlaygrounds struct {\n\t\tTotal   int `json:\"total\"`\n\t\tActive  int `json:\"active\"`\n\t\tStopped int `json:\"stopped\"`\n\t} `json:\"playgrounds\"`\n\tAgents struct {\n\t\tTotal         int `json:\"total\"`\n\t\tAuthenticated int `json:\"authenticated\"`\n\t} `json:\"agents\"`\n\tRepositories int `json:\"repositories\"`\n\tSpecs        int `json:\"specs\"`\n\tHosts        int `json:\"hosts\"`\n\tSecrets      int `json:\"secrets\"`\n\tAPIKeys      int `json:\"api_keys\"`\n\n\tResourceQuotas map[string]ResourceQuotaEntry `json:\"resource_quotas,omitempty\"`\n\tPerParentCaps  map[string]*int               `json:\"per_parent_caps,omitempty\"`\n\tRateLimits     *RateLimitsSection            `json:\"rate_limits,omitempty\"`\n}"
     },
     {
       "id": "type.StatusService",
@@ -3711,11 +3701,6 @@
       "id": "type.TaskTriggerParams",
       "kind": "type",
       "signature": "type TaskTriggerParams struct {\n\tEnvPackAttachments *[]EnvPackAttachmentInput `json:\"env_pack_attachments,omitempty\"`\n\tSpecID             int64                     `json:\"spec_id\"`\n\tSpecIdentifier     string                    `json:\"-\"`\n\tHostID             *int64                    `json:\"host_id,omitempty\"`\n\tHostIdentifier     string                    `json:\"-\"`\n\tName               string                    `json:\"name,omitempty\"`\n\tEnvOverrides       map[string]string         `json:\"env_overrides,omitempty\"`\n\tOnlyServices       []string                  `json:\"only_services,omitempty\"`\n\tExceptServices     []string                  `json:\"except_services,omitempty\"`\n}"
-    },
-    {
-      "id": "type.TeamCancellation",
-      "kind": "type",
-      "signature": "type TeamCancellation struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tSubscriptionID           int64      `json:\"subscription_id\"`\n\tStatus                   string     `json:\"status\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
     },
     {
       "id": "type.TeamGitAuthority",
@@ -3746,11 +3731,6 @@
       "id": "type.TeamServicePrincipal",
       "kind": "type",
       "signature": "type TeamServicePrincipal struct {\n\tOwnershipMetadata\n\tID        int64      `json:\"id\"`\n\tSubject   string     `json:\"subject\"`\n\tName      string     `json:\"name\"`\n\tRevokedAt *time.Time `json:\"revoked_at\"`\n}"
-    },
-    {
-      "id": "type.TeamSubscription",
-      "kind": "type",
-      "signature": "type TeamSubscription struct {\n\tOwnerContext\n\tID                       int64      `json:\"id\"`\n\tPlanType                 string     `json:\"plan_type\"`\n\tBillingInterval          string     `json:\"billing_interval\"`\n\tStatus                   string     `json:\"status\"`\n\tBillingProvider          string     `json:\"billing_provider\"`\n\tCurrentPeriodStart       *time.Time `json:\"current_period_start\"`\n\tCurrentPeriodEnd         *time.Time `json:\"current_period_end\"`\n\tCanceledAt               *time.Time `json:\"canceled_at\"`\n\tCancellationState        string     `json:\"cancellation_state\"`\n\tCancellationRequestID    *string    `json:\"cancellation_request_id\"`\n\tCancellationRequestedAt  *time.Time `json:\"cancellation_requested_at\"`\n\tCancellationReconciledAt *time.Time `json:\"cancellation_reconciled_at\"`\n\tCancellationErrorCode    *string    `json:\"cancellation_error_code\"`\n}"
     },
     {
       "id": "type.TemplateCategory",

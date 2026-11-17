@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestTeamMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
+func TestTeamMCPExplicitRecoveryAndRepositoryReceipts(t *testing.T) {
 	hits := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits++
@@ -32,18 +32,6 @@ func TestTeamMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 			}
 			w.WriteHeader(201)
 			_, _ = w.Write([]byte(`{"principal_id":3,"replacement_agent_ids":[],"adoption":[{"agent_id":5,"status":"adopted","key_id":99}]}`))
-		case "/api/team_billing/cancel_subscription":
-			var p struct {
-				Retry bool `json:"retry_failed"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-				t.Error(err)
-			}
-			if !p.Retry {
-				t.Error("explicit retry lost")
-			}
-			w.WriteHeader(202)
-			_, _ = w.Write([]byte(`{"subscription_id":4,"cancellation_state":"pending","status":"pending"}`))
 		case "/api/team_repository_operations/exact/reconcile":
 			_, _ = w.Write([]byte(`{"operation_request_id":"exact","operation_state":"remote_created"}`))
 		case "/api/team_git_installations":
@@ -83,7 +71,6 @@ func TestTeamMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 		name string
 		args map[string]any
 	}{
-		{"fibe_team_subscription_cancel", map[string]any{"team_id": 9, "subscription_id": 4, "retry_failed": true, "confirm": true}},
 		{"fibe_team_repository_operation_reconcile", map[string]any{"team_id": 9, "request_id": "exact"}},
 		{"fibe_team_git_installations_list", map[string]any{"team_id": 9}},
 	} {
@@ -91,7 +78,7 @@ func TestTeamMCPExplicitRecoveryAndCancellationReceipts(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if hits != 4 {
+	if hits != 3 {
 		t.Fatalf("hits %d", hits)
 	}
 }
@@ -101,12 +88,12 @@ func TestTeamMCPDiscoveryAndConfirmation(t *testing.T) {
 	if err := srv.RegisterAll(); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"fibe_team_principals_list", "fibe_team_principal_create", "fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_subscriptions_list", "fibe_team_subscription_cancel", "fibe_team_repository_operations_list", "fibe_team_repository_operation_reconcile", "fibe_team_repository_operation_adopt", "fibe_team_git_installations_list", "fibe_team_git_installation_connect", "fibe_team_git_installation_remove"} {
+	for _, name := range []string{"fibe_team_principals_list", "fibe_team_principal_create", "fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_repository_operations_list", "fibe_team_repository_operation_reconcile", "fibe_team_repository_operation_adopt", "fibe_team_git_installations_list", "fibe_team_git_installation_connect", "fibe_team_git_installation_remove"} {
 		if _, ok := srv.dispatcher.lookup(name); !ok {
 			t.Fatalf("missing tool %s", name)
 		}
 	}
-	for _, name := range []string{"fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_subscription_cancel", "fibe_team_repository_operation_adopt", "fibe_team_git_installation_remove"} {
+	for _, name := range []string{"fibe_team_principal_revoke", "fibe_team_runtime_principal_recover", "fibe_team_repository_operation_adopt", "fibe_team_git_installation_remove"} {
 		tool, _ := srv.dispatcher.lookup(name)
 		if !tool.annotations.Destructive {
 			t.Fatalf("confirmation not required: %s", name)

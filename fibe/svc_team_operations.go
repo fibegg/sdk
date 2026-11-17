@@ -83,30 +83,6 @@ func (c *Client) RecoverRuntimePrincipal(ctx context.Context, teamID, principalI
 	err = client.do(ctx, http.MethodPost, fmt.Sprintf("/api/team_service_principals/%d/recover", principalID), map[string]any{"replacement_agent_ids": agentIDs}, &result)
 	return &result, err
 }
-func (c *Client) TeamSubscriptions(ctx context.Context, teamID int64) ([]TeamSubscription, error) {
-	client, err := c.teamClient(teamID)
-	if err != nil {
-		return nil, err
-	}
-	var result []TeamSubscription
-	err = client.do(ctx, http.MethodGet, "/api/team_billing/subscriptions", nil, &result)
-	return result, err
-}
-
-// CancelTeamSubscription accepts HTTP 202 as a durable request receipt.
-// retryFailed is an explicit retry of failed intent; read subscriptions for status.
-func (c *Client) CancelTeamSubscription(ctx context.Context, teamID, subscriptionID int64, retryFailed bool) (*TeamCancellation, error) {
-	client, err := c.teamClient(teamID)
-	if err != nil {
-		return nil, err
-	}
-	if err = positiveTeamResource(subscriptionID); err != nil {
-		return nil, err
-	}
-	var result TeamCancellation
-	err = client.do(ctx, http.MethodPost, "/api/team_billing/cancel_subscription", map[string]any{"subscription_id": subscriptionID, "retry_failed": retryFailed}, &result)
-	return &result, err
-}
 func (c *Client) TeamRepositoryOperations(ctx context.Context, teamID int64) ([]TeamRepositoryOperation, error) {
 	client, err := c.teamClient(teamID)
 	if err != nil {
