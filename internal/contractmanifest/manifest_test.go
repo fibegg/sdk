@@ -47,10 +47,30 @@ func TestV03PreservesExistingAPIOutsideApprovedFeatures(t *testing.T) {
 	// Translate only the approved v0.3 domain break in this historical check;
 	// runtime code does not recognise these names. Exact additive Teams and
 	// ENV-pack fields are projected out below; existing APIs stay checked.
-	for i := range baseline.Declarations {
-		baseline.Declarations[i].ID = canonicalDomainDeclaration(baseline.Declarations[i].ID)
-		baseline.Declarations[i].Signature = strings.Join(strings.Fields(canonicalDomainDeclaration(baseline.Declarations[i].Signature)), " ")
+	// The frozen baseline also predates the approved removal of hosted billing.
+	// Exclude those historical declarations and fields from this comparison only.
+	var declarations []Declaration
+	for _, declaration := range baseline.Declarations {
+		declaration.ID = canonicalDomainDeclaration(declaration.ID)
+		if declaration.ID == "const.ErrCodeHostNotFunded" || declaration.ID == "method.APIError.IsHostNotFunded" {
+			continue
+		}
+		signature := canonicalDomainDeclaration(declaration.Signature)
+		if declaration.ID == "type.Host" {
+			var lines []string
+			for _, line := range strings.Split(signature, "\n") {
+				field := strings.Fields(line)
+				if len(field) > 0 && (field[0] == "PaidUntil" || field[0] == "BillingRequestedUntil" || field[0] == "BillingRuntimeActive") {
+					continue
+				}
+				lines = append(lines, line)
+			}
+			signature = strings.Join(lines, "\n")
+		}
+		declaration.Signature = strings.Join(strings.Fields(signature), " ")
+		declarations = append(declarations, declaration)
 	}
+	baseline.Declarations = declarations
 	for i := range current.Declarations {
 		declaration := &current.Declarations[i]
 		declaration.Signature = strings.Join(strings.Fields(withoutApprovedFeatureFields(*declaration)), " ")

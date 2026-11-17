@@ -648,9 +648,6 @@ func agStartChatCmd() *cobra.Command {
 		Short: "Start an interactive chat session for an agent",
 		Long: `Start the agent chat runtime on a target Host.
 
-The target Host must be funded. The server returns
-HOST_NOT_FUNDED when billing is expired or missing.
-
 REQUIRED FLAGS:
   --host      Target Host ID or name
 

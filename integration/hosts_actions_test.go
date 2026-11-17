@@ -55,17 +55,14 @@ func testSSHKeyHostID(t *testing.T, c *fibe.Client) int64 {
 	t.Helper()
 	raw := os.Getenv("FIBE_TEST_SSH_KEY_HOST_ID")
 	if raw == "" {
-		t.Skip("set FIBE_TEST_SSH_KEY_HOST_ID to test SSH key generation against a dedicated funded host")
+		t.Skip("set FIBE_TEST_SSH_KEY_HOST_ID to test SSH key generation against a dedicated host")
 	}
 
 	id, err := strconv.ParseInt(raw, 10, 64)
 	requireNoError(t, err, "parse FIBE_TEST_SSH_KEY_HOST_ID")
 
-	host, err := c.Hosts.Get(ctx(), id)
+	_, err = c.Hosts.Get(ctx(), id)
 	requireNoError(t, err, "load FIBE_TEST_SSH_KEY_HOST_ID")
-	if !host.BillingRuntimeActive {
-		t.Fatalf("FIBE_TEST_SSH_KEY_HOST_ID=%d must reference a funded Host", id)
-	}
 
 	return id
 }

@@ -16,8 +16,6 @@ func hostsCmd() *cobra.Command {
 
 A host is a server (VPS, bare metal, etc.) that hosts your playgrounds.
 Hosts are connected via SSH and managed by Fibe.
-Actions on unpaid Hosts fail with HOST_NOT_FUNDED; billing/funding
-and cleanup remain allowed.
 
 SUBCOMMANDS:
   list                  List all hosts

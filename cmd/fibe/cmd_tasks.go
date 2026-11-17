@@ -207,8 +207,6 @@ func trTriggerCmd() *cobra.Command {
 
 A task name is auto-generated as "{spec-name}-{random}" unless
 you provide one explicitly with --name.
-The selected Host must be funded; unpaid Hosts fail
-with HOST_NOT_FUNDED.
 
 REQUIRED FLAGS:
   --spec      ID or name of the job-mode spec

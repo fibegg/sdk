@@ -31,7 +31,7 @@ func resolveMCPHost(ctx context.Context, c *fibe.Client, args map[string]any) (*
 	}
 	var candidates []fibe.Host
 	for _, host := range result.Data {
-		if host.ChatLaunchable || host.BillingRuntimeActive {
+		if host.ChatLaunchable {
 			candidates = append(candidates, host)
 		}
 	}

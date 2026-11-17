@@ -390,7 +390,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid.
+[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state.
 
 ### Input Schema
 ```json
@@ -433,7 +433,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:OVERSEER] Send one text message to an agent chat. Fails with HOST_NOT_FUNDED when the chat Host is unpaid.
+[MODE:OVERSEER] Send one text message to an agent chat.
 
 ### Input Schema
 ```json
@@ -511,7 +511,7 @@ Generated from the MCP registry.
 **Tier:** overseer | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.
+[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host.
 
 ### Input Schema
 ```json
@@ -1121,7 +1121,7 @@ Generated from the MCP registry.
 **Tier:** greenfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. Deployment requires a funded Host.
+[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally.
 
 ### Input Schema
 ```json
@@ -1153,7 +1153,7 @@ Generated from the MCP registry.
       "type": "string"
     },
     "host_id_or_name": {
-      "description": "Target host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID. Must be funded.",
+      "description": "Target host ID or name. Optional; defaults to the current Host from FIBE_HOST_ID.",
       "type": "string"
     },
     "name": {
@@ -1255,7 +1255,7 @@ Generated from the MCP registry.
 **Tier:** greenfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:GREENFIELD] Launch from exactly one source: template, template version, spec, compose YAML, or repository config. Deployment requires a funded Host; unpaid Hosts return HOST_NOT_FUNDED.
+[MODE:GREENFIELD] Launch from exactly one source: template, template version, spec, compose YAML, or repository config.
 
 ### Input Schema
 ```json
@@ -2299,7 +2299,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** true | **Idempotent:** true | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance. Actions that use the Host fail with HOST_NOT_FUNDED when unpaid; stop cleanup remains allowed.
+[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.
 
 ### Input Schema
 ```json
@@ -2408,7 +2408,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. Live refresh fails with HOST_NOT_FUNDED when the Host is unpaid.
+[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services.
 
 ### Input Schema
 ```json
@@ -2450,7 +2450,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Host and fails with HOST_NOT_FUNDED when unpaid.
+[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create.
 
 ### Input Schema
 ```json
@@ -3056,7 +3056,7 @@ Generated from the MCP registry.
 **Tier:** base | **Hidden:** false | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request. Actions that use a Host require it to be funded.
+[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request.
 
 ### Input Schema
 ```json
@@ -3975,7 +3975,7 @@ Generated from the MCP registry.
 **Tier:** brownfield | **Hidden:** true | **Destructive:** false | **Idempotent:** false | **Read-only:** false
 
 ### Description
-[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. Rollout/trigger actions require a funded Host and fail with HOST_NOT_FUNDED when unpaid.
+[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run.
 
 ### Input Schema
 ```json

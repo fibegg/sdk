@@ -18,7 +18,6 @@ const (
 	ErrCodeInternalError    = "INTERNAL_ERROR"
 	ErrCodeFeatureDisabled  = "FEATURE_DISABLED"
 	ErrCodeRateLimited      = "RATE_LIMITED"
-	ErrCodeHostNotFunded    = "HOST_NOT_FUNDED"
 )
 
 type APIError struct {
@@ -64,8 +63,6 @@ func (e *APIError) IsUnauthorized() bool { return e.Code == ErrCodeUnauthorized 
 func (e *APIError) IsRateLimited() bool { return e.StatusCode == 429 }
 
 func (e *APIError) IsValidation() bool { return e.Code == ErrCodeValidationFailed }
-
-func (e *APIError) IsHostNotFunded() bool { return e.Code == ErrCodeHostNotFunded }
 
 type CircuitOpenError struct {
 	Resource string

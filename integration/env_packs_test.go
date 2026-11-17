@@ -892,16 +892,16 @@ func teamEnvPackActor(t *testing.T) *envPackActor {
 		ownerType: me.OwnerType, ownerID: me.OwnerID, principal: fmt.Sprintf("%s:%d", me.PrincipalType, me.PrincipalID)}
 }
 
-// envPackHost returns the funded lane Host used for Playground and Task targets.
+// envPackHost returns the lane Host used for Playground and Task targets.
 // Skipping is limited to runs with no Host at all (no bootstrap, no FIBE_TEST_HOST_ID).
 func envPackHost(t *testing.T) int64 {
 	t.Helper()
 	id := testHostID(t)
 	if id == 0 {
 		if envBool("FIBE_E2E_BOOTSTRAP") || envBool("SDK_E2E_BOOTSTRAP") {
-			t.Fatal("the SDK e2e bootstrap must provide a funded Host (FIBE_TEST_HOST_ID)")
+			t.Fatal("the SDK e2e bootstrap must provide a Host (FIBE_TEST_HOST_ID)")
 		}
-		t.Skip("no funded Host available: set FIBE_TEST_HOST_ID (provided by the SDK e2e bootstrap)")
+		t.Skip("no Host available: set FIBE_TEST_HOST_ID (provided by the SDK e2e bootstrap)")
 	}
 	return id
 }

@@ -13,7 +13,7 @@ import (
 
 func (s *Server) registerAgentActionTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat. Fails with HOST_NOT_FUNDED when the chat Host is unpaid.", tier: tierOverseer,
+		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -42,12 +42,12 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.ChatByIdentifier(ctx, identifier, &p)
 		},
 	}, mcp.NewTool("fibe_agents_send_message",
-		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent chat, optionally uploading local attachments first. Fails with HOST_NOT_FUNDED when the chat Host is unpaid."),
+		mcp.WithDescription("[MODE:OVERSEER] Send one text message to an agent chat, optionally uploading local attachments first."),
 		withRawInputSchema(agentSendMessageInputSchema()),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED.", tier: tierOverseer,
+		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -61,12 +61,12 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.StartChatByAgentIdentifier(ctx, identifier, hostIdentifier)
 		},
 	}, mcp.NewTool("fibe_agents_start_chat",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host from FIBE_HOST_ID when it is omitted. Requires a funded Host; unpaid Hosts fail with HOST_NOT_FUNDED."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host from FIBE_HOST_ID when it is omitted."),
 		withRawInputSchema(agentStartChatInputSchema()),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid.", tier: tierOverseer,
+		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -76,7 +76,7 @@ func (s *Server) registerAgentActionTools() {
 			return c.Agents.RuntimeStatusByIdentifier(ctx, identifier)
 		},
 	}, mcp.NewTool("fibe_agents_runtime_status",
-		mcp.WithDescription("[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state. Live checks fail with HOST_NOT_FUNDED when unpaid."),
+		mcp.WithDescription("[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state."),
 		withRawInputSchema(agentIdentifierOnlyInputSchema("Agent ID or name.")),
 	))
 

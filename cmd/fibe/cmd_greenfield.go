@@ -41,8 +41,6 @@ func greenfieldCmd() *cobra.Command {
 
 The command calls the Fibe greenfield API, waits for the playground to run,
 and links the local checkout into PLAYGROUNDS_DIR (fallback: /app/playground).
-The target Host must be funded; unpaid Hosts fail with
-HOST_NOT_FUNDED before deployment starts.
 
 Examples:
   fibe greenfield owner/repo --host 12

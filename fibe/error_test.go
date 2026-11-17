@@ -80,11 +80,6 @@ func TestAPIError_Helpers(t *testing.T) {
 	if !validation.IsValidation() {
 		t.Error("expected IsValidation")
 	}
-
-	notFunded := &APIError{Code: ErrCodeHostNotFunded}
-	if !notFunded.IsHostNotFunded() {
-		t.Error("expected IsHostNotFunded")
-	}
 }
 
 func TestAPIError_ErrorsAs(t *testing.T) {

@@ -57,7 +57,7 @@ func (s *Server) registerTemplateChangeTools() {
 func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	schema, _, _, _ := resourceschema.SchemaFor("template", "change")
 	inputSchema, _ := schema.(map[string]any)
-	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run. Rollout/trigger actions require a funded Host and fail with HOST_NOT_FUNDED when unpaid."
+	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run."
 	s.addTool(&toolImpl{
 		name:        name,
 		description: description,

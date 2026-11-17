@@ -323,16 +323,13 @@ func TestPlaygrounds_IDOR(t *testing.T) {
 	requireNoError(t, err, "create spec for playground IDOR")
 	t.Cleanup(func() { c.Specs.Delete(ctx(), *spec.ID) })
 
-	privateHost, dockerE2EPrivateHost := ensureFundedPrivateE2EHost(t, "pg-idor-host")
+	privateHost, dockerE2EPrivateHost := ensurePrivateE2EHost(t, "pg-idor-host")
 	hostID := privateHost.ID
 	if !dockerE2EPrivateHost {
 		host, err := c.Hosts.Create(ctx(), testHostParams("pg-idor-host"))
 		requireNoError(t, err, "create private host for playground IDOR")
 		hostID = host.ID
 		t.Cleanup(func() { c.Hosts.Delete(ctx(), hostID) })
-		if !host.BillingRuntimeActive {
-			t.Skip("private Host is not funded; enable SDK_E2E_BOOTSTRAP/FIBE_E2E_BOOTSTRAP to provision a funded private Host")
-		}
 	}
 
 	pg, err := c.Playgrounds.Create(ctx(), &fibe.PlaygroundCreateParams{

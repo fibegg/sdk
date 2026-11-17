@@ -28,7 +28,7 @@ func resolveLaunchHostIdentifier(c *fibe.Client, explicit string) (string, error
 	}
 	var candidates []fibe.Host
 	for _, host := range result.Data {
-		if host.ChatLaunchable || host.BillingRuntimeActive {
+		if host.ChatLaunchable {
 			candidates = append(candidates, host)
 		}
 	}

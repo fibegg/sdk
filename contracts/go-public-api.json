@@ -33,11 +33,6 @@
       "signature": "const ErrCodeForbidden = \"FORBIDDEN\""
     },
     {
-      "id": "const.ErrCodeHostNotFunded",
-      "kind": "const",
-      "signature": "const ErrCodeHostNotFunded = \"HOST_NOT_FUNDED\""
-    },
-    {
       "id": "const.ErrCodeInternalError",
       "kind": "const",
       "signature": "const ErrCodeInternalError = \"INTERNAL_ERROR\""
@@ -446,11 +441,6 @@
       "id": "method.APIError.IsForbidden",
       "kind": "method",
       "signature": "func (e *APIError) IsForbidden() bool"
-    },
-    {
-      "id": "method.APIError.IsHostNotFunded",
-      "kind": "method",
-      "signature": "func (e *APIError) IsHostNotFunded() bool"
     },
     {
       "id": "method.APIError.IsNotFound",
@@ -2995,7 +2985,7 @@
     {
       "id": "type.Host",
       "kind": "type",
-      "signature": "type Host struct {\n\tOwnershipMetadata\n\tID                    int64      `json:\"id\"`\n\tName                  string     `json:\"name\"`\n\tHost                  string     `json:\"host\"`\n\tPort                  int        `json:\"port\"`\n\tUser                  string     `json:\"user\"`\n\tStatus                string     `json:\"status\"`\n\tDomainsInput          *string    `json:\"domains_input\"`\n\tHttpsEnabled          *bool      `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource  *string    `json:\"tls_certificate_source,omitempty\"`\n\tAcmeEmail             *string    `json:\"acme_email\"`\n\tDockerhubAuthEnabled  *bool      `json:\"dockerhub_auth_enabled\"`\n\tBuildPlatform         *string    `json:\"build_platform\"`\n\tRepositoryID          *int64     `json:\"repository_id\"`\n\tPaidUntil             *time.Time `json:\"paid_until,omitempty\"`\n\tBillingRequestedUntil *time.Time `json:\"billing_requested_until,omitempty\"`\n\tBillingRuntimeActive  bool       `json:\"billing_runtime_active\"`\n\tChatLaunchable        bool       `json:\"chat_launchable\"`\n\tCreatedAt             time.Time  `json:\"created_at\"`\n\tUpdatedAt             time.Time  `json:\"updated_at\"`\n}"
+      "signature": "type Host struct {\n\tOwnershipMetadata\n\tID                   int64     `json:\"id\"`\n\tName                 string    `json:\"name\"`\n\tHost                 string    `json:\"host\"`\n\tPort                 int       `json:\"port\"`\n\tUser                 string    `json:\"user\"`\n\tStatus               string    `json:\"status\"`\n\tDomainsInput         *string   `json:\"domains_input\"`\n\tHttpsEnabled         *bool     `json:\"https_enabled,omitempty\"`\n\tTlsCertificateSource *string   `json:\"tls_certificate_source,omitempty\"`\n\tAcmeEmail            *string   `json:\"acme_email\"`\n\tDockerhubAuthEnabled *bool     `json:\"dockerhub_auth_enabled\"`\n\tBuildPlatform        *string   `json:\"build_platform\"`\n\tRepositoryID         *int64    `json:\"repository_id\"`\n\tChatLaunchable       bool      `json:\"chat_launchable\"`\n\tCreatedAt            time.Time `json:\"created_at\"`\n\tUpdatedAt            time.Time `json:\"updated_at\"`\n}"
     },
     {
       "id": "type.HostCreateParams",

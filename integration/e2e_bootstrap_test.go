@@ -282,7 +282,7 @@ func e2eRunID() string {
 	return e2eSlug(raw, 24)
 }
 
-func ensureFundedPrivateE2EHost(t *testing.T, prefix string) (e2eResource, bool) {
+func ensurePrivateE2EHost(t *testing.T, prefix string) (e2eResource, bool) {
 	t.Helper()
 	if !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
 		return e2eResource{}, false

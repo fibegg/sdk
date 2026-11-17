@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - Unreleased
+
+### Removed
+
+- Removed hosted-billing wording and HOST_NOT_FUNDED handling; self-hosted Fibe has no Host funding.
+
 ## [0.3.8] - 2026-11-16
 
 ### Fixed

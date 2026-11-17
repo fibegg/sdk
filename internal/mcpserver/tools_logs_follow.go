@@ -20,7 +20,7 @@ func (s *Server) registerLogsFollowTool() {
 	}, mcp.NewTool("fibe_logs_follow",
 		mcp.WithDescription(`Stream playground or task logs. Omitting service streams all services. Each new log line becomes an MCP progress notification. Returns when duration elapses or max_lines is reached.
 
-Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear. Unpaid Hosts fail with HOST_NOT_FUNDED.`),
+Prefer fibe_playgrounds_logs for a one-shot snapshot. Use follow mode when you need to wait for a specific log pattern to appear.`),
 		mcp.WithString("id_or_name", mcp.Required(), mcp.Description("Playground or task numeric ID or slug-safe name")),
 		mcp.WithString("target", mcp.Enum("playground", "task"), mcp.Description("Target type (default: playground).")),
 		mcp.WithString("service", mcp.Description("Optional Compose service name, for example web or worker. Omit to stream all services.")),

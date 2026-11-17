@@ -574,30 +574,6 @@ func TestHosts_UpdateSerializesHTTPSModeAndProvidedTLS(t *testing.T) {
 	}
 }
 
-func TestHostDecodesBillingRuntimeFields(t *testing.T) {
-	raw := []byte(`{
-		"id": 42,
-		"name": "runtime",
-		"paid_until": "2026-05-22T23:59:59Z",
-		"billing_requested_until": "2026-05-25T23:59:59Z",
-		"billing_runtime_active": true,
-		"chat_launchable": true
-	}`)
-	var host Host
-	if err := json.Unmarshal(raw, &host); err != nil {
-		t.Fatalf("unmarshal host: %v", err)
-	}
-	if host.PaidUntil == nil || host.PaidUntil.UTC().Format(time.RFC3339) != "2026-05-22T23:59:59Z" {
-		t.Fatalf("unexpected paid_until: %#v", host.PaidUntil)
-	}
-	if host.BillingRequestedUntil == nil || host.BillingRequestedUntil.UTC().Format(time.RFC3339) != "2026-05-25T23:59:59Z" {
-		t.Fatalf("unexpected billing_requested_until: %#v", host.BillingRequestedUntil)
-	}
-	if !host.BillingRuntimeActive || !host.ChatLaunchable {
-		t.Fatalf("expected runtime booleans true, got billing_runtime_active=%v chat_launchable=%v", host.BillingRuntimeActive, host.ChatLaunchable)
-	}
-}
-
 func TestHosts_GenerateSSHKeyPollsAccepted(t *testing.T) {
 	c, calls := testAsyncAcceptedEndpoint(
 		t,

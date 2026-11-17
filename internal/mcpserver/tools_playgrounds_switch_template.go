@@ -20,7 +20,7 @@ func (s *Server) registerPlaygroundSwitchTemplateTool(name string) {
 	schema, _, _, _ := resourceschema.SchemaFor("playground", "switch_template")
 	inputSchema, _ := schema.(map[string]any)
 
-	description := "[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. Apply mode requires a funded Host and fails with HOST_NOT_FUNDED when unpaid."
+	description := "[MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create."
 
 	s.addTool(&toolImpl{
 		name:        name,

@@ -140,29 +140,29 @@ func TestPollAsync_Error(t *testing.T) {
 func TestPollAsync_ErrorPreservesStructuredFields(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
-			"request_id":    "req-funded",
+			"request_id":    "req-forbidden",
 			"status":        "error",
-			"error":         "This Host is not funded. Fund it to continue.",
-			"error_code":    ErrCodeHostNotFunded,
-			"error_status":  http.StatusPaymentRequired,
+			"error":         "Permission denied.",
+			"error_code":    ErrCodeForbidden,
+			"error_status":  http.StatusForbidden,
 			"error_details": map[string]any{"host_id": float64(42), "operation": "playground_creation"},
 		})
 	}))
 	defer srv.Close()
 
 	c := NewClient(WithBaseURL(srv.URL), WithAPIKey("test"), WithMaxRetries(0))
-	result, err := c.PollAsync(context.Background(), "/status/req-funded", &AsyncPollOptions{
+	result, err := c.PollAsync(context.Background(), "/status/req-forbidden", &AsyncPollOptions{
 		Interval: 50 * time.Millisecond,
 		Timeout:  1 * time.Second,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.ErrorCode != ErrCodeHostNotFunded {
-		t.Fatalf("expected code %q, got %q", ErrCodeHostNotFunded, result.ErrorCode)
+	if result.ErrorCode != ErrCodeForbidden {
+		t.Fatalf("expected code %q, got %q", ErrCodeForbidden, result.ErrorCode)
 	}
-	if result.ErrorStatus != http.StatusPaymentRequired {
-		t.Fatalf("expected status 402, got %d", result.ErrorStatus)
+	if result.ErrorStatus != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", result.ErrorStatus)
 	}
 	if result.ErrorDetails["operation"] != "playground_creation" {
 		t.Fatalf("expected operation detail, got %#v", result.ErrorDetails)
@@ -415,17 +415,17 @@ func TestDoAsync_202ThenPollStructuredError(t *testing.T) {
 		if n == 1 {
 			w.WriteHeader(http.StatusAccepted)
 			json.NewEncoder(w).Encode(map[string]any{
-				"request_id": "req-funded",
+				"request_id": "req-forbidden",
 				"status":     "queued",
 			})
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]any{
-			"request_id":    "req-funded",
+			"request_id":    "req-forbidden",
 			"status":        "error",
-			"error":         "This Host is not funded. Fund it to continue.",
-			"error_code":    ErrCodeHostNotFunded,
-			"error_status":  http.StatusPaymentRequired,
+			"error":         "Permission denied.",
+			"error_code":    ErrCodeForbidden,
+			"error_status":  http.StatusForbidden,
 			"error_details": map[string]any{"operation": "agent_chat_start"},
 		})
 	}))
@@ -440,11 +440,11 @@ func TestDoAsync_202ThenPollStructuredError(t *testing.T) {
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected *APIError, got %T", err)
 	}
-	if apiErr.Code != ErrCodeHostNotFunded {
-		t.Fatalf("expected code %q, got %q", ErrCodeHostNotFunded, apiErr.Code)
+	if apiErr.Code != ErrCodeForbidden {
+		t.Fatalf("expected code %q, got %q", ErrCodeForbidden, apiErr.Code)
 	}
-	if apiErr.StatusCode != http.StatusPaymentRequired {
-		t.Fatalf("expected status 402, got %d", apiErr.StatusCode)
+	if apiErr.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", apiErr.StatusCode)
 	}
 	if apiErr.Details["operation"] != "agent_chat_start" {
 		t.Fatalf("expected operation detail, got %#v", apiErr.Details)
