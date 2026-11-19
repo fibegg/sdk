@@ -152,6 +152,7 @@ func Validate(root string, m Manifest) error {
 						return fmt.Errorf("live test has no edition guard: %s", k)
 					}
 					literals, dynamic, unguarded := subtests(fn)
+					literals = append(literals, literalActionSubtests(fn)...)
 					if r.Edition == "mixed" && unguarded {
 						return fmt.Errorf("mixed suite has an unguarded t.Run: %s", k)
 					}
@@ -307,6 +308,77 @@ func subtests(fn *ast.FuncDecl) ([]string, bool, bool) {
 	walk(fn.Body, "")
 	return names, dynamic, unguarded
 }
+
+// Action tables use resource+"."+operation as their runEdition name. Check
+// their literal rows as well as the function digest: a reviewed digest alone
+// cannot detect a row accidentally omitted from the initial manual inventory.
+func literalActionSubtests(fn *ast.FuncDecl) []string {
+	pairs := [][2]string{}
+	ast.Inspect(fn, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok || len(call.Args) < 2 {
+			return true
+		}
+		callee, ok := call.Fun.(*ast.Ident)
+		if !ok || callee.Name != "runEdition" {
+			return true
+		}
+		last, ok := call.Args[1].(*ast.BinaryExpr)
+		if !ok || last.Op != token.ADD {
+			return true
+		}
+		first, ok := last.X.(*ast.BinaryExpr)
+		if !ok || first.Op != token.ADD {
+			return true
+		}
+		dot, ok := first.Y.(*ast.BasicLit)
+		if !ok || dot.Kind != token.STRING {
+			return true
+		}
+		separator, _ := strconv.Unquote(dot.Value)
+		if separator != "." {
+			return true
+		}
+		left, lok := first.X.(*ast.SelectorExpr)
+		right, rok := last.Y.(*ast.SelectorExpr)
+		if !lok || !rok {
+			return true
+		}
+		leftVar, lok := left.X.(*ast.Ident)
+		rightVar, rok := right.X.(*ast.Ident)
+		if lok && rok && leftVar.Name == rightVar.Name {
+			pairs = append(pairs, [2]string{left.Sel.Name, right.Sel.Name})
+		}
+		return true
+	})
+	names := []string{}
+	for _, fields := range pairs {
+		ast.Inspect(fn, func(n ast.Node) bool {
+			row, ok := n.(*ast.CompositeLit)
+			if !ok {
+				return true
+			}
+			values := map[string]string{}
+			for _, element := range row.Elts {
+				entry, ok := element.(*ast.KeyValueExpr)
+				if !ok {
+					continue
+				}
+				key, kok := entry.Key.(*ast.Ident)
+				value, vok := entry.Value.(*ast.BasicLit)
+				if kok && vok && value.Kind == token.STRING {
+					values[key.Name], _ = strconv.Unquote(value.Value)
+				}
+			}
+			if a, b := values[fields[0]], values[fields[1]]; a != "" && b != "" {
+				names = append(names, a+"."+b)
+			}
+			return true
+		})
+	}
+	return names
+}
+
 func calls(fn *ast.FuncDecl, name string) bool {
 	found := false
 	ast.Inspect(fn, func(n ast.Node) bool {

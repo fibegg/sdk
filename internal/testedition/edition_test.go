@@ -121,3 +121,35 @@ func TestCommunityServerIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestLiteralActionTableCoverage(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "integration")
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	source := `package integration; import "testing"
+func TestKnown(t *testing.T) {
+ requireEdition(t)
+ cases := []struct{resource, operation string}{
+  {resource:"agent",operation:"restart_chat"},
+  {resource:"host",operation:"autoconnect_token"},
+ }
+ for _, tc := range cases {runEdition(t,tc.resource+"."+tc.operation,func(t *testing.T){})}
+}`
+	if err := os.WriteFile(filepath.Join(dir, "actions_test.go"), []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	digest, err := Fingerprint(root, "integration/TestKnown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := Manifest{Version: 1, Rules: []Rule{{Package: "integration", Name: "TestKnown", Edition: "mixed", Reason: "reviewed", Review: digest, Cases: map[string]string{"agent.restart_chat": Community}}}}
+	if err := Validate(root, m); err == nil || !strings.Contains(err.Error(), "host.autoconnect_token") {
+		t.Fatalf("omitted table row: %v", err)
+	}
+	m.Rules[0].Cases["host.autoconnect_token"] = Community
+	if err := Validate(root, m); err != nil {
+		t.Fatal(err)
+	}
+}

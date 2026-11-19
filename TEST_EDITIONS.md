@@ -69,8 +69,8 @@ The existing Docker runner accepts offline enumeration before its wrapper or
 fixture waits:
 
 ```sh
-FIBE_TEST_EDITION=community docker/fibe-e2e-go-tests --edition-list
-FIBE_TEST_EDITION=community docker/fibe-e2e-go-tests --edition-evaluate \
+FIBE_TEST_EDITION=community bash docker/fibe-e2e-go-tests --edition-list
+FIBE_TEST_EDITION=community bash docker/fibe-e2e-go-tests --edition-evaluate \
   --package integration --run '^TestLaunch_Create$'
 ```
 
@@ -119,3 +119,23 @@ current dynamic-function digests for review tooling; it does not update the
 manifest or classify any case automatically. The guard tests exercise new test
 and literal discovery, mixed-case refusals, unknown names, empty selections,
 pattern semantics and Community server verification.
+
+The Library boundary includes Artefacts, Agent-attached Artefacts, Feedbacks and
+Mutters. Their CLI and MCP checks remain in the full suite. Agent chat messages,
+activity and ordinary mounted files remain Community checks. Mixed Agent flows
+gate only the Library operations and retain the surrounding core assertions.
+The status-summary case remains Community; its sibling that creates a Vault
+secret is Enterprise.
+
+The GitHub fixture launch test can bind the designated PAT through Community's
+normal browser login, recent-auth and Git connection endpoint. Supply the
+existing operator's `FIBE_NATIVE_ADMIN_EMAIL` and `FIBE_NATIVE_ADMIN_PASSWORD`
+(or `FIBE_NATIVE_EMAIL` / `FIBE_NATIVE_PASSWORD`) when running that opted-in
+fixture workflow. The browser identity must match the SDK key's Player. This
+uses an in-memory cookie jar and does not create another Player or write a CLI
+profile. Full-suite fixture setup is unchanged.
+
+Literal keyed action tables whose case names join two fields with a dot are
+also enumerated from the Go AST. A missing classification fails offline even
+when the dynamic function's review digest is current. Opaque dynamic generators
+still require explicit review and reject unknown names at execution time.

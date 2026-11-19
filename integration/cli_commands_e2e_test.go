@@ -270,15 +270,18 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		_, err = runCompiledCLI(t, "agents", "list")
 		require.NoError(t, err)
 
-		out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10))
-		require.Error(t, err)
-		assert.True(t, strings.Contains(out, "required field 'type' not set") || strings.Contains(out, "required"), "expected type error: %s", out)
+		runEdition(t, "mutters", func(t *testing.T) {
+			out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10))
+			require.Error(t, err)
+			assert.True(t, strings.Contains(out, "required field 'type' not set") || strings.Contains(out, "required"), "expected type error: %s", out)
 
-		out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10), "--type", "observation", "--body", "test observation")
-		require.NoError(t, err, "failed to create mutter: %s", out)
+			out, err = runCompiledCLI(t, "mutters", "create", strconv.FormatInt(id, 10), "--type", "observation", "--body", "test observation")
+			require.NoError(t, err, "failed to create mutter: %s", out)
 
-		out, err = runCompiledCLI(t, "mutters", "get", strconv.FormatInt(id, 10))
-		require.NoError(t, err, "failed to get mutters: %s", out)
+			out, err = runCompiledCLI(t, "mutters", "get", strconv.FormatInt(id, 10))
+			require.NoError(t, err, "failed to get mutters: %s", out)
+
+		})
 
 		out, err = runCompiledCLI(t, "agents", "duplicate", strconv.FormatInt(id, 10))
 		require.NoError(t, err, "failed to duplicate agent: %s", out)

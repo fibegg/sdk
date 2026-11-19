@@ -30,7 +30,7 @@ func TestStatus_Get(t *testing.T) {
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("status returns resource summary", func(t *testing.T) {
+	runEdition(t, "status returns resource summary", func(t *testing.T) {
 		t.Parallel()
 		s, err := c.Status.Get(ctx())
 		requireNoError(t, err)
@@ -56,7 +56,7 @@ func TestStatus_Get(t *testing.T) {
 		}
 	})
 
-	t.Run("status counts update after creating a secret", func(t *testing.T) {
+	runEdition(t, "status counts update after creating a secret", func(t *testing.T) {
 		t.Parallel()
 		s := seedSecret(t, c, "status-count")
 		after, err := c.Status.Get(ctx())

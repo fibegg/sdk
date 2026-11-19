@@ -182,6 +182,13 @@ func githubFixtureLaunchWaitTimeout() time.Duration {
 
 func attachGitHubPATToCurrentPlayer(t *testing.T, pat string) {
 	t.Helper()
+	if communityEdition() {
+		c := userClient(t)
+		player, err := c.APIKeys.Me(ctx())
+		requireNoError(t, err, "resolve SDK fixture Player")
+		bindCommunityGitHubFixture(t, c.BaseURL(), pat, player.ID)
+		return
+	}
 	baseURL := strings.TrimRight(firstEnv("FIBE_DOMAIN", "FIBE_URL", "FIBE_BASE_URL"), "/")
 	if baseURL == "" {
 		baseURL = "http://localhost:3000"

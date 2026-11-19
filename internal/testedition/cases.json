@@ -183,8 +183,8 @@
     {
       "package": "integration",
       "name": "TestArtefact_ContentRoundtrip",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "dynamic_review": "8ccfc8783baa8f88b0fb4f4dd1671ba502485f234499086d20908d5dd53953e8",
       "inventory": [
         "utf8 text",
@@ -196,14 +196,14 @@
     {
       "package": "integration",
       "name": "TestArtefact_CreateReturnsPopulatedStruct",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "integration",
       "name": "TestArtefacts_Download",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "download returns content",
         "download nonexistent artefact returns 404"
@@ -212,8 +212,8 @@
     {
       "package": "integration",
       "name": "TestArtefacts_FilteringAndSorting",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "filter by query",
         "filter by name",
@@ -236,8 +236,8 @@
     {
       "package": "integration",
       "name": "TestArtefacts_Immutability",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "list returns empty for new agent"
       ]
@@ -245,8 +245,8 @@
     {
       "package": "integration",
       "name": "TestArtefacts_List",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "list returns empty for new agent",
         "filtering params accepted"
@@ -255,8 +255,8 @@
     {
       "package": "integration",
       "name": "TestArtefacts_ScopeEnforcement",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "artefacts:read scope can list",
         "no artefacts scope gets 403"
@@ -337,12 +337,13 @@
         "specs": "community",
         "repositories": "enterprise",
         "agents": "community",
-        "artefacts": "community",
+        "artefacts": "enterprise",
         "templates_versions": "enterprise",
         "tasks": "enterprise",
         "gitea_repos": "enterprise",
         "monitor": "community",
-        "misc_commands": "community"
+        "misc_commands": "community",
+        "agents/mutters": "enterprise"
       }
     },
     {
@@ -442,8 +443,8 @@
     {
       "package": "integration",
       "name": "TestE2E_AgentArtefactRoundtrip",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "integration",
@@ -637,8 +638,8 @@
     {
       "package": "integration",
       "name": "TestFeedbacks_CRUD",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "create feedback",
         "list feedbacks",
@@ -956,8 +957,8 @@
     {
       "package": "integration",
       "name": "TestMutters_Read",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "get mutter for agent without data",
         "nonexistent agent returns 404",
@@ -1314,8 +1315,8 @@
     {
       "package": "integration",
       "name": "TestScopeEnforcement_AgentSubResources",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "agents:read can read feedbacks",
         "no feedbacks scope gets 403"
@@ -1661,12 +1662,12 @@
     {
       "package": "integration",
       "name": "TestStatus_Get",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
-      "inventory": [
-        "status returns resource summary",
-        "status counts update after creating a secret"
-      ]
+      "edition": "mixed",
+      "reason": "Ordinary resource summaries are core; the secret-count child requires Secret Vault.",
+      "cases": {
+        "status returns resource summary": "community",
+        "status counts update after creating a secret": "enterprise"
+      }
     },
     {
       "package": "integration",
@@ -1893,14 +1894,14 @@
     {
       "package": "internal/mcpserver",
       "name": "TestArtefactUploadUsesFilePayload",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestArtefactUploadWorkspaceWrite",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
@@ -1918,8 +1919,8 @@
         "repositories_not_found": "community",
         "tasks": "enterprise",
         "tasks_not_found": "enterprise",
-        "artefacts": "community",
-        "artefacts_not_found": "community",
+        "artefacts": "enterprise",
+        "artefacts_not_found": "enterprise",
         "specs": "community",
         "specs_not_found": "community",
         "secrets": "enterprise",
@@ -1944,7 +1945,7 @@
         "fibe_resource_list_hosts": "community",
         "fibe_resource_list_repositories": "community",
         "fibe_resource_list_tasks": "enterprise",
-        "fibe_resource_list_artefacts": "community",
+        "fibe_resource_list_artefacts": "enterprise",
         "fibe_resource_list_specs": "community",
         "fibe_resource_list_secrets": "enterprise",
         "fibe_resource_list_api-keys": "community",
@@ -1960,9 +1961,9 @@
         "fibe_repo_status_check_repo-status": "community",
         "fibe_find_github_repos_installations": "community",
         "fibe_monitor_list_monitor": "community",
-        "fibe_feedbacks_list_feedbacks": "community",
-        "fibe_feedbacks_get_feedbacks": "community",
-        "fibe_mutters_get_mutters": "community",
+        "fibe_feedbacks_list_feedbacks": "enterprise",
+        "fibe_feedbacks_get_feedbacks": "enterprise",
+        "fibe_mutters_get_mutters": "enterprise",
         "fibe_playgrounds_logs_playgrounds": "community",
         "fibe_playgrounds_debug_playgrounds": "community",
         "fibe_local_playgrounds_info_local": "community",
@@ -1974,15 +1975,15 @@
     {
       "package": "internal/mcpserver",
       "name": "TestE2EMCPTools",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
-      "inventory": [
-        "fibe_status",
-        "fibe_resource_list",
-        "fibe_update_name",
-        "fibe_artefact_upload",
-        "fibe_mutter"
-      ]
+      "edition": "mixed",
+      "reason": "Agent status, Playground list and Agent rename are core; Library Artefact upload and Mutter creation are Enterprise-only.",
+      "cases": {
+        "fibe_status": "community",
+        "fibe_resource_list": "community",
+        "fibe_update_name": "community",
+        "fibe_artefact_upload": "enterprise",
+        "fibe_mutter": "enterprise"
+      }
     },
     {
       "package": "internal/mcpserver",
@@ -1993,14 +1994,14 @@
     {
       "package": "internal/mcpserver",
       "name": "TestMutterToolCreatesAgentMutter",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestMuttersGetUsesAgentIDAndFilters",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
@@ -2023,8 +2024,8 @@
     {
       "package": "internal/mcpserver",
       "name": "TestResourceGetDispatchesArtefactAndAttachment",
-      "edition": "community",
-      "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
@@ -2035,14 +2036,14 @@
     {
       "package": "internal/mcpserver",
       "name": "TestResourceListDispatchesNewConsolidatedResources",
-      "edition": "mixed",
-      "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
-      "cases": {
-        "artefact": "community",
-        "template_version": "enterprise",
-        "webhook_delivery": "enterprise"
-      },
-      "dynamic_review": "4c33c4f3b58e6374eb2901cdc04778bcc75d130a545ffa314b6b1dc13c274874"
+      "edition": "enterprise",
+      "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
+      "dynamic_review": "4c33c4f3b58e6374eb2901cdc04778bcc75d130a545ffa314b6b1dc13c274874",
+      "inventory": [
+        "artefact",
+        "template_version",
+        "webhook_delivery"
+      ]
     },
     {
       "package": "internal/mcpserver",
@@ -2074,7 +2075,9 @@
         "template_version.toggle_public": "enterprise",
         "task.trigger": "enterprise",
         "task.rerun": "enterprise",
-        "webhook.test": "enterprise"
+        "webhook.test": "enterprise",
+        "agent.restart_chat": "community",
+        "host.autoconnect_token": "community"
       },
       "dynamic_review": "3d708bbaf3183ea3392dedba6f10a53cb7d9af7d9ab545d2c1e3cf6e0c0d558b"
     }

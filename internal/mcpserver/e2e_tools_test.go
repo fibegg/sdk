@@ -26,7 +26,7 @@ func TestE2EMCPTools(t *testing.T) {
 	ctx := context.Background()
 	client := srv.buildBaseClient()
 
-	t.Run("fibe_status", func(t *testing.T) {
+	runEdition(t, "fibe_status", func(t *testing.T) {
 		res, err := srv.dispatcher.dispatch(ctx, "fibe_status", map[string]any{})
 		if err != nil {
 			t.Fatalf("fibe_status: %v", err)
@@ -40,7 +40,7 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	t.Run("fibe_resource_list", func(t *testing.T) {
+	runEdition(t, "fibe_resource_list", func(t *testing.T) {
 		res, err := srv.dispatcher.dispatch(ctx, "fibe_resource_list", map[string]any{
 			"resource": "playground",
 			"params": map[string]any{
@@ -75,7 +75,7 @@ func TestE2EMCPTools(t *testing.T) {
 
 	agentIDStr := fmt.Sprintf("%d", ag.ID)
 
-	t.Run("fibe_update_name", func(t *testing.T) {
+	runEdition(t, "fibe_update_name", func(t *testing.T) {
 		os.Unsetenv("FIBE_AGENT_ID")
 		_, err := srv.dispatcher.dispatch(ctx, "fibe_update_name", map[string]any{
 			"name": "Should Fail",
@@ -106,7 +106,7 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	t.Run("fibe_artefact_upload", func(t *testing.T) {
+	runEdition(t, "fibe_artefact_upload", func(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")
 
@@ -142,7 +142,7 @@ func TestE2EMCPTools(t *testing.T) {
 		}
 	})
 
-	t.Run("fibe_mutter", func(t *testing.T) {
+	runEdition(t, "fibe_mutter", func(t *testing.T) {
 		os.Setenv("FIBE_AGENT_ID", agentIDStr)
 		defer os.Unsetenv("FIBE_AGENT_ID")
 
