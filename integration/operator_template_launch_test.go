@@ -35,16 +35,17 @@ func TestOperatorTemplate_LaunchPinnedVersion(t *testing.T) {
 	}
 	result, err := c.ImportTemplates.LaunchWithParams(ctx(), templateID, &fibe.ImportTemplateLaunchParams{HostID: hostID, Version: &version, Name: uniqueName("operator-template")})
 	requireNoError(t, err, "launch operator template pinned version")
-	if result.SpecID <= 0 || result.PlaygroundID <= 0 {
+	// The template launch endpoint returns a Playground resource, whose identifier is id.
+	if result.SpecID <= 0 || result.ID <= 0 {
 		t.Fatalf("launch must return Spec and Playground IDs: %#v", result)
 	}
-	t.Cleanup(func() { _ = c.Playgrounds.Delete(ctx(), result.PlaygroundID); _ = c.Specs.Delete(ctx(), result.SpecID) })
+	t.Cleanup(func() { _ = c.Playgrounds.Delete(ctx(), result.ID); _ = c.Specs.Delete(ctx(), result.SpecID) })
 	spec, err := c.Specs.Get(ctx(), result.SpecID)
 	requireNoError(t, err, "read launched Spec")
 	if spec.SourceTemplateVersionID == nil || *spec.SourceTemplateVersionID != versionID {
 		t.Fatalf("Spec origin = %v, want selected immutable version %d", spec.SourceTemplateVersionID, versionID)
 	}
-	playground, err := c.Playgrounds.Get(ctx(), result.PlaygroundID)
+	playground, err := c.Playgrounds.Get(ctx(), result.ID)
 	requireNoError(t, err, "read launched Playground")
 	if playground.SpecID == nil || *playground.SpecID != result.SpecID || playground.HostID == nil || *playground.HostID != hostID {
 		t.Fatalf("Playground must reference the launched Spec and selected Host: %#v", playground)
