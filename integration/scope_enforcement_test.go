@@ -8,17 +8,18 @@ import (
 
 // Migrated from: 10-scope-enforcement.spec.js
 func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	readOnly := createScopedKey(t, c, "readonly-enforcement", []string{"hosts:read"})
 
-	t.Run("can list hosts", func(t *testing.T) {
+	runEdition(t, "can list hosts", func(t *testing.T) {
 		t.Parallel()
 		_, err := readOnly.Hosts.List(ctx(), nil)
 		requireNoError(t, err)
 	})
 
-	t.Run("denied write to hosts", func(t *testing.T) {
+	runEdition(t, "denied write to hosts", func(t *testing.T) {
 		t.Parallel()
 		_, err := readOnly.Hosts.Create(ctx(), &fibe.HostCreateParams{
 			Name: "nope", Host: "1.2.3.4", Port: 22, User: "root", SSHPrivateKey: "key",
@@ -26,7 +27,7 @@ func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 		requireAPIError(t, err, fibe.ErrCodeForbidden, 403)
 	})
 
-	t.Run("denied access to other resource types", func(t *testing.T) {
+	runEdition(t, "denied access to other resource types", func(t *testing.T) {
 		endpoints := []struct {
 			name string
 			fn   func() error
@@ -40,7 +41,7 @@ func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 
 		for _, ep := range endpoints {
 			ep := ep
-			t.Run(ep.name, func(t *testing.T) {
+			runEdition(t, ep.name, func(t *testing.T) {
 				t.Parallel()
 				requireAPIError(t, ep.fn(), fibe.ErrCodeForbidden, 403)
 			})
@@ -50,6 +51,7 @@ func TestScopeEnforcement_ReadOnlyKey(t *testing.T) {
 
 // Migrated from: 10-scope-enforcement.spec.js
 func TestScopeEnforcement_AdminWildcardKey(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := superAdminClient(t)
 	wildcard := createScopedKey(t, c, "wildcard-enforcement", []string{"*"})
@@ -72,7 +74,7 @@ func TestScopeEnforcement_AdminWildcardKey(t *testing.T) {
 
 	for _, ep := range endpoints {
 		ep := ep
-		t.Run(ep.name+" accessible with wildcard", func(t *testing.T) {
+		runEdition(t, ep.name+" accessible with wildcard", func(t *testing.T) {
 			t.Parallel()
 			requireNoError(t, ep.fn())
 		})
@@ -81,6 +83,7 @@ func TestScopeEnforcement_AdminWildcardKey(t *testing.T) {
 
 // Migrated from: 10-scope-enforcement.spec.js
 func TestScopeEnforcement_InvalidScopes(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -117,6 +120,7 @@ func TestScopeEnforcement_InvalidScopes(t *testing.T) {
 }
 
 func TestScopeEnforcement_AgentSubResources(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
@@ -140,6 +144,7 @@ func TestScopeEnforcement_AgentSubResources(t *testing.T) {
 }
 
 func TestScopeEnforcement_GranularScopes(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{

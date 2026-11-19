@@ -230,6 +230,7 @@ func opencodeChatCases() []agentRuntimeMatrixCase {
 }
 
 func TestSelectedOpencodeChatCasesHonorsChatFilters(t *testing.T) {
+	requireEdition(t)
 	t.Run("excludes matching OpenCode case", func(t *testing.T) {
 		t.Setenv("CHAT_E2E_CASE", "")
 		t.Setenv("CHAT_E2E_CASE_EXCEPT", "OpenCode Anthropic")
@@ -252,6 +253,7 @@ func TestSelectedOpencodeChatCasesHonorsChatFilters(t *testing.T) {
 }
 
 func TestOpencodeChatCredentialIgnoresExcludedCredentials(t *testing.T) {
+	requireEdition(t)
 	clearOpencodeChatCredentialEnv(t)
 	t.Setenv("CHAT_E2E_CASE", "")
 	t.Setenv("CHAT_E2E_CASE_EXCEPT", "OpenCode Anthropic")
@@ -292,6 +294,7 @@ func clearOpencodeChatCredentialEnv(t *testing.T) {
 }
 
 func TestAgents_Chat(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	t.Run("chat accepts text message", func(t *testing.T) {
@@ -314,6 +317,7 @@ func TestAgents_Chat(t *testing.T) {
 }
 
 func TestAgents_Authenticate(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -343,6 +347,7 @@ func TestAgents_Authenticate(t *testing.T) {
 }
 
 func TestAgents_RevokeGitHubToken(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -361,6 +366,7 @@ func TestAgents_RevokeGitHubToken(t *testing.T) {
 }
 
 func TestAgents_UpdateActivity(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

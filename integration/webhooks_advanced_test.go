@@ -8,6 +8,7 @@ import (
 )
 
 func TestWebhooks_EventTypes(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -37,6 +38,7 @@ func TestWebhooks_EventTypes(t *testing.T) {
 }
 
 func TestWebhooks_DeliveryHistory(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	server, requests := newWebhookCaptureServer(t)
@@ -114,6 +116,7 @@ func TestWebhooks_DeliveryHistory(t *testing.T) {
 }
 
 func TestWebhooks_SecretHandling(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

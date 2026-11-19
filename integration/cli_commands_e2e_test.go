@@ -55,6 +55,7 @@ func parseResourceID(t *testing.T, jsonOutput string) int64 {
 }
 
 func TestCLI_E2E_Commands(t *testing.T) {
+	requireEdition(t)
 	userClient(t) // Ensure server is up and env vars are set
 
 	tests := []struct {
@@ -125,7 +126,7 @@ func TestCLI_E2E_Commands(t *testing.T) {
 
 	for _, tc := range tests {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		runEdition(t, tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			out, err := runCompiledCLI(t, tc.resource, tc.createCmdName)
@@ -164,11 +165,12 @@ func TestCLI_E2E_Commands(t *testing.T) {
 
 // Complex resources that need specific dependencies
 func TestCLI_E2E_ComplexCommands(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
 
-	t.Run("playgrounds", func(t *testing.T) {
+	runEdition(t, "playgrounds", func(t *testing.T) {
 		t.Parallel()
 
 		out, err := runCompiledCLI(t, "playgrounds", "create")
@@ -197,7 +199,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("specs", func(t *testing.T) {
+	runEdition(t, "specs", func(t *testing.T) {
 		t.Parallel()
 
 		out, err := runCompiledCLI(t, "specs", "create")
@@ -228,7 +230,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("repositories", func(t *testing.T) {
+	runEdition(t, "repositories", func(t *testing.T) {
 		t.Parallel()
 
 		out, err := runCompiledCLI(t, "repositories", "create")
@@ -247,7 +249,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("agents", func(t *testing.T) {
+	runEdition(t, "agents", func(t *testing.T) {
 		t.Parallel()
 
 		out, err := runCompiledCLI(t, "agents", "create")
@@ -298,7 +300,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("artefacts", func(t *testing.T) {
+	runEdition(t, "artefacts", func(t *testing.T) {
 		t.Parallel()
 		agentName := uniqueName("cli-e2e-artefact-agent")
 		out, err := runCompiledCLI(t, "agents", "create", "--name", agentName, "--provider", "gemini")
@@ -322,7 +324,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		runCompiledCLI(t, "agents", "delete", strconv.FormatInt(agentID, 10))
 	})
 
-	t.Run("templates_versions", func(t *testing.T) {
+	runEdition(t, "templates_versions", func(t *testing.T) {
 		t.Parallel()
 		tmplName := uniqueName("cli-e2e-tmpl-ver")
 		out, err := runCompiledCLI(t, "templates", "create", "--name", tmplName, "--body", "version: '3'")
@@ -341,7 +343,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		runCompiledCLI(t, "templates", "delete", strconv.FormatInt(tmplID, 10))
 	})
 
-	t.Run("tasks", func(t *testing.T) {
+	runEdition(t, "tasks", func(t *testing.T) {
 		t.Parallel()
 		psName := uniqueName("cli-e2e-job")
 		tmpFile := filepath.Join(t.TempDir(), "job.json")
@@ -377,7 +379,7 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		runCompiledCLI(t, "specs", "delete", strconv.FormatInt(psID, 10))
 	})
 
-	t.Run("gitea_repos", func(t *testing.T) {
+	runEdition(t, "gitea_repos", func(t *testing.T) {
 		t.Parallel()
 		repoName := uniqueName("cli-e2e-gitea")
 		out, err := runCompiledCLI(t, "gitea-repos", "create", "--name", repoName, "--private")
@@ -387,13 +389,13 @@ func TestCLI_E2E_ComplexCommands(t *testing.T) {
 		require.NoError(t, err, "failed to create gitea repo: %s", out)
 	})
 
-	t.Run("monitor", func(t *testing.T) {
+	runEdition(t, "monitor", func(t *testing.T) {
 		t.Parallel()
 		out, err := runCompiledCLI(t, "monitor", "list", "--per-page", "1")
 		require.NoError(t, err, "failed to list monitor: %s", out)
 	})
 
-	t.Run("misc_commands", func(t *testing.T) {
+	runEdition(t, "misc_commands", func(t *testing.T) {
 		t.Parallel()
 
 		out, err := runCompiledCLI(t, "status")

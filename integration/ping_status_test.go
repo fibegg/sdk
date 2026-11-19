@@ -5,6 +5,7 @@ import (
 )
 
 func TestClient_Ping(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -25,6 +26,7 @@ func TestClient_Ping(t *testing.T) {
 }
 
 func TestStatus_Get(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -69,6 +71,7 @@ func TestStatus_Get(t *testing.T) {
 }
 
 func TestClient_LastRequestID(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

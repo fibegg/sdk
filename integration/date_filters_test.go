@@ -9,6 +9,7 @@ import (
 
 // TestDateFilters_CoverageMatrix exercises date filters across list endpoints.
 func TestDateFilters_CoverageMatrix(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -100,7 +101,7 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		runEdition(t, tc.name, func(t *testing.T) {
 			t.Parallel()
 			tc.run(t, past, future)
 		})
@@ -109,6 +110,7 @@ func TestDateFilters_CoverageMatrix(t *testing.T) {
 
 // TestDateFilters_RangeBehavior verifies the after/before range intersects correctly.
 func TestDateFilters_RangeBehavior(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -29,6 +29,7 @@ func runCLIWithStdin(t *testing.T, stdin string, args ...string) (string, error)
 }
 
 func TestCLI_FromFile_JSON(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
@@ -76,6 +77,7 @@ func TestCLI_FromFile_JSON(t *testing.T) {
 }
 
 func TestCLI_FromFile_YAML(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
@@ -120,6 +122,7 @@ func TestCLI_FromFile_YAML(t *testing.T) {
 }
 
 func TestCLI_FromFile_STDIN(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)

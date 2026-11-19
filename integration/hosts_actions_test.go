@@ -23,6 +23,7 @@ func testHostParams(prefix string) *fibe.HostCreateParams {
 }
 
 func TestHosts_GenerateSSHKey(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	hostID := testSSHKeyHostID(t, c)
@@ -68,6 +69,7 @@ func testSSHKeyHostID(t *testing.T, c *fibe.Client) int64 {
 }
 
 func TestHosts_TestConnection(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	hostID := testHostID(t)
@@ -99,6 +101,7 @@ func TestHosts_TestConnection(t *testing.T) {
 }
 
 func TestHosts_StatusTransitions(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -153,6 +156,7 @@ func TestHosts_StatusTransitions(t *testing.T) {
 }
 
 func TestHosts_DeleteConflicts(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	hostID := testHostID(t)
@@ -185,6 +189,7 @@ func TestHosts_DeleteConflicts(t *testing.T) {
 }
 
 func TestHosts_IDOR(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)
@@ -227,6 +232,7 @@ func TestHosts_IDOR(t *testing.T) {
 }
 
 func TestHosts_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

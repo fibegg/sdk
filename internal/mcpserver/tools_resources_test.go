@@ -170,10 +170,12 @@ func TestResourceListDispatchesNewConsolidatedResources(t *testing.T) {
 		{"resource": "webhook_delivery", "params": map[string]any{"webhook_id": 9}},
 	}
 	for _, args := range cases {
-		_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", args)
-		if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
-			t.Fatalf("dispatch %#v failed with non-HTTP error: %v", args, err)
-		}
+		runEdition(t, args["resource"].(string), func(t *testing.T) {
+			_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_list", args)
+			if err != nil && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "status") {
+				t.Fatalf("dispatch %#v failed with non-HTTP error: %v", args, err)
+			}
+		})
 	}
 }
 

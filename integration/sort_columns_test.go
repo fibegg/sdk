@@ -10,15 +10,18 @@ import (
 // TestSortColumns_AllSupportedColumns verifies every documented sort column
 // produces results sorted correctly for both asc and desc directions.
 func TestSortColumns_AllSupportedColumns(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := contractClient(t)
 
 	_ = seedAgent(t, c, fibe.ProviderGemini)
 	_ = seedAgent(t, c, fibe.ProviderClaudeCode)
-	_ = seedSecret(t, c, "sortA")
-	_ = seedSecret(t, c, "sortB")
+	if !communityEdition() {
+		_ = seedSecret(t, c, "sortA")
+		_ = seedSecret(t, c, "sortB")
+	}
 
-	t.Run("agents created_at_asc", func(t *testing.T) {
+	runEdition(t, "agents created_at_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -31,7 +34,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "agents created_at_asc", times, true)
 	})
 
-	t.Run("agents created_at_desc", func(t *testing.T) {
+	runEdition(t, "agents created_at_desc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
@@ -44,7 +47,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "agents created_at_desc", times, false)
 	})
 
-	t.Run("specs created_at_asc", func(t *testing.T) {
+	runEdition(t, "specs created_at_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -57,7 +60,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "specs created_at_asc", times, true)
 	})
 
-	t.Run("repositories created_at_desc", func(t *testing.T) {
+	runEdition(t, "repositories created_at_desc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
@@ -68,7 +71,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "repositories created_at_desc", times, false)
 	})
 
-	t.Run("hosts created_at_asc", func(t *testing.T) {
+	runEdition(t, "hosts created_at_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Hosts.List(ctx(), &fibe.HostListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -79,7 +82,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "hosts created_at_asc", times, true)
 	})
 
-	t.Run("secrets created_at_desc", func(t *testing.T) {
+	runEdition(t, "secrets created_at_desc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
@@ -92,7 +95,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "secrets created_at_desc", times, false)
 	})
 
-	t.Run("api_keys created_at_asc", func(t *testing.T) {
+	runEdition(t, "api_keys created_at_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.APIKeys.List(ctx(), &fibe.APIKeyListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -105,7 +108,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "api_keys created_at_asc", times, true)
 	})
 
-	t.Run("webhooks created_at_asc", func(t *testing.T) {
+	runEdition(t, "webhooks created_at_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.WebhookEndpoints.List(ctx(), &fibe.WebhookEndpointListParams{Sort: "created_at_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -118,7 +121,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 		requireSortedByTime(t, "webhooks created_at_asc", times, true)
 	})
 
-	t.Run("audit_logs created_at_desc is default", func(t *testing.T) {
+	runEdition(t, "audit_logs created_at_desc is default", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.AuditLogs.List(ctx(), &fibe.AuditLogListParams{Sort: "created_at_desc", PerPage: 25})
 		requireNoError(t, err)
@@ -131,6 +134,7 @@ func TestSortColumns_AllSupportedColumns(t *testing.T) {
 }
 
 func TestSortColumns_InvalidSortIsRejected(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

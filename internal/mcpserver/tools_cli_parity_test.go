@@ -201,7 +201,7 @@ func TestCLIParity_ListTools(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.mcpTool+"_"+tc.cliArgs[0], func(t *testing.T) {
+		runEdition(t, tc.mcpTool+"_"+tc.cliArgs[0], func(t *testing.T) {
 			mcpRes, mcpErr := srv.dispatcher.dispatch(context.Background(), tc.mcpTool, tc.mcpArgs)
 			var mcpBytes []byte
 			if mcpErr != nil {
@@ -321,7 +321,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 	resources := []string{"playgrounds", "agents", "hosts", "repositories", "tasks", "artefacts", "specs", "secrets", "webhooks", "templates", "job_envs"}
 
 	for _, res := range resources {
-		t.Run(res, func(t *testing.T) {
+		runEdition(t, res, func(t *testing.T) {
 			idVal, agentID := getParityFixture(t, srv, res)
 
 			mcpRes, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{
@@ -385,7 +385,7 @@ func TestCLIParity_GetTools(t *testing.T) {
 			}
 		})
 
-		t.Run(res+"_not_found", func(t *testing.T) {
+		runEdition(t, res+"_not_found", func(t *testing.T) {
 			invalidID := 999999999
 
 			_, mcpErr := srv.dispatcher.dispatch(context.Background(), "fibe_resource_get", map[string]any{

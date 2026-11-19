@@ -7,6 +7,7 @@ import (
 )
 
 func TestRepoStatus_Check(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -59,6 +60,7 @@ func TestRepoStatus_Check(t *testing.T) {
 }
 
 func TestRepoStatus_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

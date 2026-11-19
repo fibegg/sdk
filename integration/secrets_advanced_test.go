@@ -8,6 +8,7 @@ import (
 )
 
 func TestSecrets_Pagination(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -54,6 +55,7 @@ func TestSecrets_Pagination(t *testing.T) {
 }
 
 func TestSecrets_EncryptionVerification(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -92,6 +94,7 @@ func TestSecrets_EncryptionVerification(t *testing.T) {
 }
 
 func TestAuditLogs_AfterSecretOperations(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

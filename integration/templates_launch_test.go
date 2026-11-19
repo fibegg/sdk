@@ -7,6 +7,7 @@ import (
 )
 
 func TestImportTemplates_Launch(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	hostID := testHostID(t)

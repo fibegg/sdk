@@ -8,6 +8,7 @@ import (
 )
 
 func TestWebhookEndpoints_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
@@ -147,6 +148,7 @@ func TestWebhookEndpoints_CRUD(t *testing.T) {
 }
 
 func TestWebhookToolFilters_Validation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	for _, tc := range []struct {

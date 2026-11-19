@@ -8,6 +8,7 @@ import (
 )
 
 func TestSpec_WithTriggerConfig(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -45,6 +46,7 @@ func TestSpec_WithTriggerConfig(t *testing.T) {
 }
 
 func TestSpec_WithPersistVolumes(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -61,6 +63,7 @@ func TestSpec_WithPersistVolumes(t *testing.T) {
 }
 
 func TestSpec_WithDescription(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -77,6 +80,7 @@ func TestSpec_WithDescription(t *testing.T) {
 }
 
 func TestSpec_WithRegistryCredential(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -102,6 +106,7 @@ func TestSpec_WithRegistryCredential(t *testing.T) {
 }
 
 func TestSpec_ValidateCompose_Invalid(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -137,6 +142,7 @@ func TestSpec_ValidateCompose_Invalid(t *testing.T) {
 }
 
 func TestSpec_UpdatePartialFields(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -166,6 +172,7 @@ func TestSpec_UpdatePartialFields(t *testing.T) {
 }
 
 func TestSpec_ListFilters(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

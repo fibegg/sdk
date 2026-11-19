@@ -10,6 +10,7 @@ import (
 
 // TestPayload_PlaygroundDetail verifies fields available only in detail responses.
 func TestPayload_PlaygroundDetail(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -75,6 +76,7 @@ func TestPayload_PlaygroundDetail(t *testing.T) {
 
 // TestPayload_SpecDetail verifies detailed spec fields.
 func TestPayload_SpecDetail(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -103,6 +105,7 @@ func TestPayload_SpecDetail(t *testing.T) {
 
 // TestPayload_APIKeyTokenExposure verifies token is shown ONCE on create.
 func TestPayload_APIKeyTokenExposure(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -141,6 +144,7 @@ func TestPayload_APIKeyTokenExposure(t *testing.T) {
 
 // TestPayload_WebhookDelivery verifies delivery records have populated fields.
 func TestPayload_WebhookDelivery(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
@@ -184,6 +188,7 @@ func TestPayload_WebhookDelivery(t *testing.T) {
 
 // TestPayload_PlayerMe verifies Me returns expected fields including scopes.
 func TestPayload_PlayerMe(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -220,6 +225,7 @@ func TestPayload_PlayerMe(t *testing.T) {
 
 // TestPayload_SecretValueRoundtrip verifies secret encryption + decryption.
 func TestPayload_SecretValueRoundtrip(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

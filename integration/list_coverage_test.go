@@ -13,11 +13,14 @@ import (
 //  2. page=1, per_page=1 returns at most 1 item and Meta reflects params
 //  3. Meta.Total matches default total (bound check)
 func TestListCoverage_Pagination(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	_ = seedSecret(t, c, "pg1")
-	_ = seedSecret(t, c, "pg2")
+	if !communityEdition() {
+		_ = seedSecret(t, c, "pg1")
+		_ = seedSecret(t, c, "pg2")
+	}
 	_ = seedAgent(t, c, fibe.ProviderGemini)
 	_ = seedAgent(t, c, fibe.ProviderClaudeCode)
 	_ = seedSpec(t, c)
@@ -101,7 +104,7 @@ func TestListCoverage_Pagination(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		runEdition(t, tc.name, func(t *testing.T) {
 			t.Parallel()
 			page, perPage, n, err := tc.call()
 			if err != nil {
@@ -126,6 +129,7 @@ func TestListCoverage_Pagination(t *testing.T) {
 // TestListCoverage_Sorting verifies sort parameter works across list endpoints
 // that support it. It requests both _asc and _desc and verifies ordering.
 func TestListCoverage_Sorting(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -138,31 +142,35 @@ func TestListCoverage_Sorting(t *testing.T) {
 	_ = seedAgent(t, c, fibe.ProviderClaudeCode, func(p *fibe.AgentCreateParams) { p.Name = agentTag + "bravo" })
 
 	secretTag := tag("sortsecret")
-	secretA, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "alpha", Value: "sort-value-a"})
-	requireNoError(t, err, "seed sort secret alpha")
-	secretB, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "bravo", Value: "sort-value-b"})
-	requireNoError(t, err, "seed sort secret bravo")
-	t.Cleanup(func() {
-		if secretA.ID != nil {
-			c.Secrets.Delete(ctx(), *secretA.ID)
-		}
-		if secretB.ID != nil {
-			c.Secrets.Delete(ctx(), *secretB.ID)
-		}
-	})
+	if !communityEdition() {
+		secretA, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "alpha", Value: "sort-value-a"})
+		requireNoError(t, err, "seed sort secret alpha")
+		secretB, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{Key: secretTag + "bravo", Value: "sort-value-b"})
+		requireNoError(t, err, "seed sort secret bravo")
+		t.Cleanup(func() {
+			if secretA.ID != nil {
+				c.Secrets.Delete(ctx(), *secretA.ID)
+			}
+			if secretB.ID != nil {
+				c.Secrets.Delete(ctx(), *secretB.ID)
+			}
+		})
 
+	}
 	specTag := tag("sortspec")
 	_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) { p.Name = specTag + "alpha" })
 	_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) { p.Name = specTag + "bravo" })
 
 	repositoryTag := tag("sortprop")
-	repositoryA := seedWritableGiteaRepository(t, c, "sort-repository-alpha")
-	_, err = c.Repositories.Update(ctx(), repositoryA.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "alpha")})
-	requireNoError(t, err, "name sort repository alpha")
-	repositoryB := seedWritableGiteaRepository(t, c, "sort-repository-bravo")
-	_, err = c.Repositories.Update(ctx(), repositoryB.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "bravo")})
-	requireNoError(t, err, "name sort repository bravo")
+	if !communityEdition() {
+		repositoryA := seedWritableGiteaRepository(t, c, "sort-repository-alpha")
+		_, err := c.Repositories.Update(ctx(), repositoryA.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "alpha")})
+		requireNoError(t, err, "name sort repository alpha")
+		repositoryB := seedWritableGiteaRepository(t, c, "sort-repository-bravo")
+		_, err = c.Repositories.Update(ctx(), repositoryB.ID, &fibe.RepositoryUpdateParams{Name: ptr(repositoryTag + "bravo")})
+		requireNoError(t, err, "name sort repository bravo")
 
+	}
 	hostTag := tag("sorthost")
 	hostParamsA := testHostParams("sort-host-alpha")
 	hostParamsA.Name = hostTag + "alpha"
@@ -177,7 +185,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		c.Hosts.Delete(ctx(), hostB.ID)
 	})
 
-	t.Run("agents sort name_asc", func(t *testing.T) {
+	runEdition(t, "agents sort name_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Name: agentTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -188,7 +196,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		requireSortedByStringLocaleAware(t, "agents name_asc", names, true)
 	})
 
-	t.Run("agents sort created_at_desc", func(t *testing.T) {
+	runEdition(t, "agents sort created_at_desc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Name: agentTag, Sort: "created_at_desc", PerPage: 50})
 		requireNoError(t, err)
@@ -205,7 +213,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		}
 	})
 
-	t.Run("specs sort name_asc", func(t *testing.T) {
+	runEdition(t, "specs sort name_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{Name: specTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -216,7 +224,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		requireSortedByStringLocaleAware(t, "specs name_asc", names, true)
 	})
 
-	t.Run("secrets sort key_asc", func(t *testing.T) {
+	runEdition(t, "secrets sort key_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Secrets.List(ctx(), &fibe.SecretListParams{Key: secretTag, Sort: "key_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -227,7 +235,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		requireSortedByStringLocaleAware(t, "secrets key_asc", keys, true)
 	})
 
-	t.Run("repositories sort name_desc", func(t *testing.T) {
+	runEdition(t, "repositories sort name_desc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Repositories.List(ctx(), &fibe.RepositoryListParams{Name: repositoryTag, Sort: "name_desc", PerPage: 50})
 		requireNoError(t, err)
@@ -238,7 +246,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 		requireSortedByStringLocaleAware(t, "repositories name_desc", names, false)
 	})
 
-	t.Run("hosts sort name_asc", func(t *testing.T) {
+	runEdition(t, "hosts sort name_asc", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.Hosts.List(ctx(), &fibe.HostListParams{Name: hostTag, Sort: "name_asc", PerPage: 50})
 		requireNoError(t, err)
@@ -251,6 +259,7 @@ func TestListCoverage_Sorting(t *testing.T) {
 }
 
 func TestListCoverage_Filtering(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -261,7 +270,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 	})
 	requireNoError(t, err)
 
-	t.Run("agents filter by Q matches name substring", func(t *testing.T) {
+	runEdition(t, "agents filter by Q matches name substring", func(t *testing.T) {
 		t.Parallel()
 		q := "filt-needle"
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Q: q, PerPage: 50})
@@ -277,7 +286,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("agents filter by provider", func(t *testing.T) {
+	runEdition(t, "agents filter by provider", func(t *testing.T) {
 		t.Parallel()
 		_ = seedAgent(t, c, fibe.ProviderGemini)
 		r, err := c.Agents.List(ctx(), &fibe.AgentListParams{Provider: fibe.ProviderGemini, PerPage: 50})
@@ -289,7 +298,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("specs filter by job_mode=true", func(t *testing.T) {
+	runEdition(t, "specs filter by job_mode=true", func(t *testing.T) {
 		t.Parallel()
 		jm := true
 		_ = seedSpec(t, c, func(p *fibe.SpecCreateParams) {
@@ -306,7 +315,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("specs filter by job_mode=false", func(t *testing.T) {
+	runEdition(t, "specs filter by job_mode=false", func(t *testing.T) {
 		t.Parallel()
 		jmf := false
 		r, err := c.Specs.List(ctx(), &fibe.SpecListParams{JobMode: &jmf, PerPage: 50})
@@ -318,7 +327,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("api_keys filter by label substring", func(t *testing.T) {
+	runEdition(t, "api_keys filter by label substring", func(t *testing.T) {
 		t.Parallel()
 		label := uniqueName("lbl-needle")
 		k, err := c.APIKeys.Create(ctx(), &fibe.APIKeyCreateParams{Label: label, Scopes: []string{"agents:read"}})
@@ -341,7 +350,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("audit_logs filter by channel=api", func(t *testing.T) {
+	runEdition(t, "audit_logs filter by channel=api", func(t *testing.T) {
 		t.Parallel()
 		r, err := c.AuditLogs.List(ctx(), &fibe.AuditLogListParams{Channel: "api", PerPage: 25})
 		requireNoError(t, err)
@@ -352,7 +361,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("webhooks filter by enabled", func(t *testing.T) {
+	runEdition(t, "webhooks filter by enabled", func(t *testing.T) {
 		t.Parallel()
 		f := false
 		r, err := c.WebhookEndpoints.List(ctx(), &fibe.WebhookEndpointListParams{Enabled: &f, PerPage: 25})
@@ -364,7 +373,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 		}
 	})
 
-	t.Run("templates filter by system=true", func(t *testing.T) {
+	runEdition(t, "templates filter by system=true", func(t *testing.T) {
 		t.Parallel()
 		tr := true
 		r, err := c.ImportTemplates.List(ctx(), &fibe.ImportTemplateListParams{System: &tr, PerPage: 25})
@@ -379,6 +388,7 @@ func TestListCoverage_Filtering(t *testing.T) {
 
 // TestListCoverage_PaginationBoundaries exercises large page numbers and zero per_page.
 func TestListCoverage_PaginationBoundaries(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

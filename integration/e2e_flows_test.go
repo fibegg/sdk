@@ -16,6 +16,7 @@ import (
 //  4. Verify compose reflects the spec
 //  5. Clean up
 func TestE2E_SpecToPlayground(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -84,6 +85,7 @@ func TestE2E_SpecToPlayground(t *testing.T) {
 // TestE2E_AgentArtefactRoundtrip creates an agent, uploads multiple artefacts with
 // different content types, lists/filters them, downloads one, verifies content matches.
 func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -142,6 +144,7 @@ func TestE2E_AgentArtefactRoundtrip(t *testing.T) {
 
 // TestE2E_SecretRotation verifies full secret lifecycle: create, read, update value, re-read, delete.
 func TestE2E_SecretRotation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -13,6 +13,7 @@ import (
 
 // Migrated from: 14-security-injection.spec.js
 func TestSecurity_SQLInjection(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -23,7 +24,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 		"1; DELETE FROM playgrounds",
 	}
 
-	t.Run("agent name SQL injection", func(t *testing.T) {
+	runEdition(t, "agent name SQL injection", func(t *testing.T) {
 		t.Parallel()
 		for _, payload := range injections {
 			agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
@@ -48,7 +49,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 		}
 	})
 
-	t.Run("secret key SQL injection", func(t *testing.T) {
+	runEdition(t, "secret key SQL injection", func(t *testing.T) {
 		t.Parallel()
 		for _, payload := range injections {
 			s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
@@ -69,7 +70,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 		}
 	})
 
-	t.Run("search param injection", func(t *testing.T) {
+	runEdition(t, "search param injection", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Monitor.List(ctx(), &fibe.MonitorListParams{Q: "' OR '1'='1"})
 		if err != nil {
@@ -83,6 +84,7 @@ func TestSecurity_SQLInjection(t *testing.T) {
 
 // Migrated from: 14-security-injection.spec.js
 func TestSecurity_XSS(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -120,6 +122,7 @@ func TestSecurity_XSS(t *testing.T) {
 
 // Migrated from: 45-security-idor.spec.js
 func TestSecurity_IDOR(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -137,7 +140,7 @@ func TestSecurity_IDOR(t *testing.T) {
 
 	for _, r := range resources {
 		r := r
-		t.Run(r.name+" returns 404 for nonexistent ID", func(t *testing.T) {
+		runEdition(t, r.name+" returns 404 for nonexistent ID", func(t *testing.T) {
 			t.Parallel()
 			err := r.fn(999999999)
 			requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
@@ -147,6 +150,7 @@ func TestSecurity_IDOR(t *testing.T) {
 
 // Migrated from: 21-owasp-security.spec.js
 func TestSecurity_OWASP_BrokenAccessControl(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -165,10 +169,11 @@ func TestSecurity_OWASP_BrokenAccessControl(t *testing.T) {
 
 // Migrated from: 21-owasp-security.spec.js
 func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("API key token not exposed in list", func(t *testing.T) {
+	runEdition(t, "API key token not exposed in list", func(t *testing.T) {
 		t.Parallel()
 		keys, err := c.APIKeys.List(ctx(), nil)
 		requireNoError(t, err)
@@ -180,7 +185,7 @@ func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
 		}
 	})
 
-	t.Run("secret value not in list", func(t *testing.T) {
+	runEdition(t, "secret value not in list", func(t *testing.T) {
 		t.Parallel()
 		s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
 			Key: uniqueName("CRYPTO_TEST"), Value: "super-secret",
@@ -200,6 +205,7 @@ func TestSecurity_OWASP_CryptographicFailures(t *testing.T) {
 }
 
 func TestSecurity_AuthHardening(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -259,6 +265,7 @@ func TestSecurity_AuthHardening(t *testing.T) {
 }
 
 func TestSecurity_RateLimitHeaders(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {

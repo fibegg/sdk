@@ -7,6 +7,7 @@ import (
 )
 
 func TestHostsLifecycle(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

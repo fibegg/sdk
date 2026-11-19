@@ -7,10 +7,11 @@ import (
 )
 
 func TestPagination_Envelope(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("default pagination returns meta", func(t *testing.T) {
+	runEdition(t, "default pagination returns meta", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Secrets.List(ctx(), nil)
 		requireNoError(t, err)
@@ -23,7 +24,7 @@ func TestPagination_Envelope(t *testing.T) {
 		}
 	})
 
-	t.Run("explicit page params", func(t *testing.T) {
+	runEdition(t, "explicit page params", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Secrets.List(ctx(), &fibe.SecretListParams{
 			Page:    1,
@@ -42,7 +43,7 @@ func TestPagination_Envelope(t *testing.T) {
 		}
 	})
 
-	t.Run("page 2 returns different data or empty", func(t *testing.T) {
+	runEdition(t, "page 2 returns different data or empty", func(t *testing.T) {
 		t.Parallel()
 		result, err := c.Secrets.List(ctx(), &fibe.SecretListParams{
 			Page:    2,
@@ -55,7 +56,7 @@ func TestPagination_Envelope(t *testing.T) {
 		}
 	})
 
-	t.Run("consistent envelope across all list endpoints", func(t *testing.T) {
+	runEdition(t, "consistent envelope across all list endpoints", func(t *testing.T) {
 		t.Parallel()
 		endpoints := []struct {
 			name string
@@ -114,7 +115,7 @@ func TestPagination_Envelope(t *testing.T) {
 
 		for _, ep := range endpoints {
 			ep := ep
-			t.Run(ep.name, func(t *testing.T) {
+			runEdition(t, ep.name, func(t *testing.T) {
 				t.Parallel()
 				total, err := ep.call()
 				requireNoError(t, err)
@@ -125,6 +126,7 @@ func TestPagination_Envelope(t *testing.T) {
 }
 
 func TestPagination_Iterator(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

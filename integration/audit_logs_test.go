@@ -7,6 +7,7 @@ import (
 )
 
 func TestAuditLogs_List(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

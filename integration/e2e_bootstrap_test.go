@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fibegg/sdk/internal/testedition"
 )
 
 const (
@@ -26,6 +28,17 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	listing, err := testedition.Prepare("integration", false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	if listing {
+		if testedition.Current() == testedition.Community {
+			os.Exit(0)
+		}
+		os.Exit(m.Run())
+	}
 	if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
 		// Merely having ambient credentials must never turn `go test ./...`
 		// into a live or localhost-mutating test run.
@@ -64,6 +77,11 @@ func bootstrapDockerE2E() (func() error, error) {
 	}
 
 	requestTimeout := minWaitDuration(time.Duration(envInt("FIBE_E2E_BOOTSTRAP_REQUEST_TIMEOUT_SECONDS", 180))*time.Second, 90*time.Second)
+	if communityEdition() {
+		if err := testedition.CheckServer(baseURL); err != nil {
+			return nil, err
+		}
+	}
 	client := &e2eBootstrapClient{baseURL: baseURL, adminToken: adminToken, http: &http.Client{Timeout: requestTimeout}}
 	if err := client.waitForFibe(); err != nil {
 		return nil, err
@@ -78,11 +96,11 @@ func bootstrapDockerE2E() (func() error, error) {
 	userBToken := envDefault("E2E_SDK_USER_B_API_KEY", defaultSDKUserBAPIKey+"_"+tokenSuffix)
 	rateToken := envDefault("E2E_SDK_RATE_LIMIT_API_KEY", defaultSDKRateAPIKey+"_"+tokenSuffix)
 	rootDomain := envDefault("TEST_HOST_ROOT_DOMAIN", dockerE2ERootDomain())
-	bootstrap, err := client.bootstrapSDK(runID, map[string]string{
-		"primary":    token,
-		"user_b":     userBToken,
-		"rate_limit": rateToken,
-	}, map[string]any{
+	tokens := map[string]string{"primary": token, "user_b": userBToken, "rate_limit": rateToken}
+	if communityEdition() {
+		tokens = map[string]string{"primary": token}
+	}
+	bootstrap, err := client.bootstrapSDK(runID, tokens, map[string]any{
 		"host":            envDefault("TEST_HOST_HOST", "dind-sdk"),
 		"port":            envDefault("TEST_HOST_PORT", "22"),
 		"ssh_key_port":    envDefault("TEST_SSH_KEY_HOST_PORT", "2222"),

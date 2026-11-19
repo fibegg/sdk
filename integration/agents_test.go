@@ -7,6 +7,7 @@ import (
 )
 
 func TestAgents_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -112,6 +113,7 @@ func TestAgents_CRUD(t *testing.T) {
 }
 
 func TestAgents_Messages(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -152,6 +154,7 @@ func TestAgents_Messages(t *testing.T) {
 }
 
 func TestAgents_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -193,6 +196,7 @@ func TestAgents_ScopeEnforcement(t *testing.T) {
 }
 
 func TestAgents_GetGitHubTokenForRepo(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -222,6 +226,7 @@ func TestAgents_GetGitHubTokenForRepo(t *testing.T) {
 }
 
 func TestAgents_GetGiteaToken(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

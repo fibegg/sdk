@@ -23,6 +23,7 @@ func seedTemplateCategory(t *testing.T, c *fibe.Client) int64 {
 // TestTemplates_FullLifecycle walks: Create → CreateVersion → TogglePublic → ListVersions →
 // UploadImage → Update → DestroyVersion → Delete
 func TestTemplates_FullLifecycle(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -129,6 +130,7 @@ func TestTemplates_FullLifecycle(t *testing.T) {
 }
 
 func TestTemplates_SearchAndFilters(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

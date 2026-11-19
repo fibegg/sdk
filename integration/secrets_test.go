@@ -7,6 +7,7 @@ import (
 )
 
 func TestSecrets_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -100,6 +101,7 @@ func TestSecrets_CRUD(t *testing.T) {
 }
 
 func TestSecrets_ScopeIsolation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -146,6 +148,7 @@ func TestSecrets_ScopeIsolation(t *testing.T) {
 }
 
 func TestSecrets_ValidationErrors(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

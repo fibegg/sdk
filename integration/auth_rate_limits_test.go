@@ -8,6 +8,7 @@ import (
 )
 
 func TestAuthRateLimits_Headers(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {
@@ -28,6 +29,7 @@ func TestAuthRateLimits_Headers(t *testing.T) {
 }
 
 func TestAuthRateLimits_RateLimitedKey(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	rl := rateLimitClient(t)
 

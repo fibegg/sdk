@@ -8,6 +8,7 @@ import (
 )
 
 func TestAgentMountedFiles(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	mountedFilename := "test.txt"
@@ -49,6 +50,7 @@ func TestAgentMountedFiles(t *testing.T) {
 }
 
 func TestSpecMountedFiles(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	mountedFilename := "nginx.conf"

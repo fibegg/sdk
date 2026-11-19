@@ -7,6 +7,7 @@ import (
 )
 
 func TestRepositories_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

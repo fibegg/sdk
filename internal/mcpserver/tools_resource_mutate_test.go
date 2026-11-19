@@ -315,7 +315,7 @@ func TestResourceMutateDispatchesScopedActions(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.resource+"."+tc.operation, func(t *testing.T) {
+		runEdition(t, tc.resource+"."+tc.operation, func(t *testing.T) {
 			_, err := srv.dispatcher.dispatch(context.Background(), "fibe_resource_mutate", map[string]any{
 				"resource":  tc.resource,
 				"operation": tc.operation,

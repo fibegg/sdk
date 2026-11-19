@@ -9,6 +9,7 @@ import (
 )
 
 func TestArtefacts_FilteringAndSorting(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -137,6 +138,7 @@ func TestArtefacts_FilteringAndSorting(t *testing.T) {
 }
 
 func TestArtefacts_Download(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -184,6 +186,7 @@ func TestArtefacts_Download(t *testing.T) {
 }
 
 func TestArtefacts_Immutability(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -206,6 +209,7 @@ func TestArtefacts_Immutability(t *testing.T) {
 }
 
 func TestArtefacts_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -232,6 +236,7 @@ func TestArtefacts_ScopeEnforcement(t *testing.T) {
 }
 
 func TestArtefacts_IDOR(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)

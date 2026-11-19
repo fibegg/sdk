@@ -8,6 +8,12 @@ on:
         required: true
         default: localhost:3000
 
+      edition:
+        description: Test product edition
+        type: choice
+        options: [full, enterprise, community]
+        default: full
+
 permissions:
   contents: read
 
@@ -23,6 +29,7 @@ jobs:
       - run: go test ./integration/... -v -count=1 -timeout 600s
         env:
           FIBE_INTEGRATION: "1"
+          FIBE_TEST_EDITION: ${{ inputs.edition }}
           FIBE_API_KEY: ${{ secrets.FIBE_API_KEY }}
           USER_B_API_KEY: ${{ secrets.USER_B_API_KEY }}
           RATE_LIMIT_TEST_KEY: ${{ secrets.RATE_LIMIT_TEST_KEY }}

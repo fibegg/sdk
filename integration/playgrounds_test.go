@@ -68,6 +68,7 @@ func setupPlaygroundDeps(t *testing.T, c *fibe.Client) (specID, hostID int64) {
 }
 
 func TestPlaygrounds_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
@@ -156,6 +157,7 @@ func TestPlaygrounds_CRUD(t *testing.T) {
 }
 
 func TestPlaygrounds_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

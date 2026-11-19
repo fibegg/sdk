@@ -33,6 +33,7 @@ type agentRuntimeMatrixCase struct {
 }
 
 func TestAgentRuntimeMatrix(t *testing.T) {
+	requireEdition(t)
 	skipThirdpartyIfDisabled(t)
 
 	cases := []agentRuntimeMatrixCase{
@@ -682,6 +683,7 @@ func agentRuntimeProviderCredentialsMissingMarker(contents ...any) (string, bool
 }
 
 func TestAgentRuntimeProviderFailureDetection(t *testing.T) {
+	requireEdition(t)
 	t.Run("quota marker wins for Gemini terminal quota output", func(t *testing.T) {
 		content := map[string]any{
 			"activity_type": "error",

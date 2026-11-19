@@ -7,6 +7,7 @@ import (
 )
 
 func TestGitHubRepos_CreateFailure(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	skipThirdpartyIfDisabled(t)
 	c := userClient(t)
@@ -37,6 +38,7 @@ func TestGitHubRepos_CreateFailure(t *testing.T) {
 }
 
 func TestGiteaRepos_CreateFailure(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

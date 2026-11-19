@@ -7,6 +7,7 @@ import (
 )
 
 func TestAPIKeys_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -70,6 +71,7 @@ func TestAPIKeys_CRUD(t *testing.T) {
 }
 
 func TestAPIKeys_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

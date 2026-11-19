@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/fibegg/sdk/fibe"
+
+	"github.com/fibegg/sdk/internal/testedition"
 )
 
 var (
@@ -25,6 +27,13 @@ var (
 
 func userClient(t *testing.T) *fibe.Client {
 	t.Helper()
+	if (envBool("FIBE_INTEGRATION") || envBool("FIBE_E2E_BOOTSTRAP") || envBool("SDK_E2E_BOOTSTRAP")) && os.Getenv("FIBE_API_KEY") != "" {
+		domain := os.Getenv("FIBE_DOMAIN")
+		if domain == "" {
+			domain = "localhost:3000"
+		}
+		testedition.VerifyServer(t, integrationClient("", domain, 0).BaseURL())
+	}
 	setupOnce.Do(func() {
 		if !envBool("FIBE_INTEGRATION") && !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") {
 			setupErr = fmt.Errorf("FIBE_INTEGRATION=1 is required for live integration tests")
@@ -85,6 +94,7 @@ func superAdminClient(t *testing.T) *fibe.Client {
 	if domain == "" {
 		domain = "localhost:3000"
 	}
+	testedition.VerifyServer(t, integrationClient("", domain, 0).BaseURL())
 	client := integrationClient(key, domain, 2)
 	me, err := client.APIKeys.Me(ctx())
 	requireNoError(t, err, "validate FIBE_ADMIN_API_KEY")

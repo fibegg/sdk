@@ -8,10 +8,11 @@ import (
 )
 
 func TestErrors_NotFound(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("nonexistent playground", func(t *testing.T) {
+	runEdition(t, "nonexistent playground", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Playgrounds.Get(ctx(), 999999999)
 		apiErr := requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
@@ -20,31 +21,31 @@ func TestErrors_NotFound(t *testing.T) {
 		}
 	})
 
-	t.Run("nonexistent agent", func(t *testing.T) {
+	runEdition(t, "nonexistent agent", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Agents.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent spec", func(t *testing.T) {
+	runEdition(t, "nonexistent spec", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Specs.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent repository", func(t *testing.T) {
+	runEdition(t, "nonexistent repository", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Repositories.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent secret", func(t *testing.T) {
+	runEdition(t, "nonexistent secret", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Secrets.Get(ctx(), 999999999, false)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
 	})
 
-	t.Run("nonexistent webhook endpoint", func(t *testing.T) {
+	runEdition(t, "nonexistent webhook endpoint", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.WebhookEndpoints.Get(ctx(), 999999999)
 		requireAPIError(t, err, fibe.ErrCodeNotFound, 404)
@@ -52,6 +53,7 @@ func TestErrors_NotFound(t *testing.T) {
 }
 
 func TestErrors_Unauthorized(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	bad := c.WithKey("totally-invalid-key")
@@ -73,6 +75,7 @@ func TestErrors_Unauthorized(t *testing.T) {
 }
 
 func TestErrors_Forbidden(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -89,6 +92,7 @@ func TestErrors_Forbidden(t *testing.T) {
 }
 
 func TestErrors_ValidationFailed(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -122,6 +126,7 @@ func TestErrors_ValidationFailed(t *testing.T) {
 }
 
 func TestErrors_ErrorsAs(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -140,6 +145,7 @@ func TestErrors_ErrorsAs(t *testing.T) {
 }
 
 func TestErrors_NotRetryable(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	bad := c.WithKey("bad-key")

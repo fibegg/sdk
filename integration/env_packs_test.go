@@ -84,6 +84,7 @@ func envPackTargetKinds(a *envPackActor) []string {
 // ------------------------------------------------------------------ pack CRUD
 
 func TestEnvPacks_CRUD(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		forEachSurface(t, a, func(t *testing.T, s envPackSurface) {
 			values := map[string]string{
@@ -178,6 +179,7 @@ func TestEnvPacks_CRUD(t *testing.T) {
 }
 
 func TestEnvPacks_SDKRejectsNilAndInvalidValuesBeforeRequest(t *testing.T) {
+	requireEdition(t)
 	a := personalEnvPackActor(t)
 	if _, err := a.client.EnvPacks.Create(ctx(), &fibe.EnvPackCreateParams{Name: uniqueName("nil-env")}); err == nil {
 		t.Fatal("a nil env map must be rejected; use an empty map for no values")
@@ -197,6 +199,7 @@ func TestEnvPacks_SDKRejectsNilAndInvalidValuesBeforeRequest(t *testing.T) {
 }
 
 func TestEnvPacks_ServerRejectsForgedOwnerAndBadValues(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		pack := newEnvPack(t, a, "forged-owner", map[string]string{"KEEP": "me"})
 		other := "Player"
@@ -227,6 +230,7 @@ func TestEnvPacks_ServerRejectsForgedOwnerAndBadValues(t *testing.T) {
 }
 
 func TestEnvPacks_ContextsAreIsolated(t *testing.T) {
+	requireEdition(t)
 	personal := personalEnvPackActor(t)
 	team := teamEnvPackActor(t)
 	personalPack := newEnvPack(t, personal, "isolated-personal", nil)
@@ -244,6 +248,7 @@ func TestEnvPacks_ContextsAreIsolated(t *testing.T) {
 // ------------------------------------------------------- attachment lifecycle
 
 func TestEnvPacks_AttachmentLifecycle(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		for _, kind := range envPackTargetKinds(a) {
 			kind := kind
@@ -350,6 +355,7 @@ func exerciseAttachmentLifecycle(t *testing.T, a *envPackActor, s envPackSurface
 // ----------------------------------------------------------- stable error codes
 
 func TestEnvPacks_StableErrorCodes(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		forEachSurface(t, a, func(t *testing.T, s envPackSurface) {
 			exerciseErrorCodes(t, a, s)
@@ -411,6 +417,7 @@ func exerciseErrorCodes(t *testing.T, a *envPackActor, s envPackSurface) {
 // The CLI and MCP surfaces validate locally, so duplicate, forged and empty
 // selections are sent raw to prove the server enforces the same contract.
 func TestEnvPacks_ServerRejectsInvalidAttachmentLists(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		pack := newEnvPack(t, a, "raw-invalid", nil)
 		specID := newEnvPackSpec(t, a)
@@ -447,6 +454,7 @@ func TestEnvPacks_ServerRejectsInvalidAttachmentLists(t *testing.T) {
 // target authority but no authority over the pack, and that manager can neither
 // acquire nor renew the pack.
 func TestEnvPacks_DelegatedSourceSurvivesTargetOnlyManager(t *testing.T) {
+	requireEdition(t)
 	a := personalEnvPackActor(t)
 	owner := sdkSurface{c: a.client}
 	packA := newEnvPack(t, a, "delegated-a", map[string]string{"TOKEN": uniqueName("delegated-secret")})
@@ -554,6 +562,7 @@ func (p *servicePrincipal) revoke(t *testing.T) {
 // stale state. Revoking a principal revises the Team's authority, so this
 // test is kept to Specs, which have no queued runtime operations.
 func TestEnvPacks_TeamDelegatedGrantInvalidAfterGrantorRevoked(t *testing.T) {
+	requireEdition(t)
 	team := teamEnvPackActor(t)
 	forEachSurface(t, team, func(t *testing.T, s envPackSurface) {
 		name := s.Name()
@@ -598,6 +607,7 @@ func TestEnvPacks_TeamDelegatedGrantInvalidAfterGrantorRevoked(t *testing.T) {
 // ------------------------------------------------------------ launch selection
 
 func TestEnvPacks_LaunchWithAttachments(t *testing.T) {
+	requireEdition(t)
 	a := personalEnvPackActor(t)
 	host := envPackHost(t)
 	forEachSurface(t, a, func(t *testing.T, s envPackSurface) {
@@ -667,6 +677,7 @@ func TestEnvPacks_LaunchWithAttachments(t *testing.T) {
 // ------------------------------------------------------------------ safe rerun
 
 func TestEnvPacks_SafeRerun(t *testing.T) {
+	requireEdition(t)
 	a := personalEnvPackActor(t)
 	host := envPackHost(t)
 	forEachSurface(t, a, func(t *testing.T, s envPackSurface) {
@@ -932,6 +943,7 @@ func newEnvPackSpec(t *testing.T, a *envPackActor) int64 {
 }
 
 func TestEnvPacks_ServiceSpecRejectsAttachments(t *testing.T) {
+	requireEdition(t)
 	forEachEnvPackContext(t, func(t *testing.T, a *envPackActor) {
 		pack := newEnvPack(t, a, "service-spec", map[string]string{"A": "a"})
 		spec := seedSpec(t, a.client)

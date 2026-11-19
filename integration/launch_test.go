@@ -7,10 +7,11 @@ import (
 )
 
 func TestLaunch_Create(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("launch parses compose and creates spec+playground", func(t *testing.T) {
+	runEdition(t, "launch parses compose and creates spec+playground", func(t *testing.T) {
 		// Not parallel: hits shared host slot if FIBE_TEST_HOST_ID set
 		name := uniqueName("launch-real")
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
@@ -40,7 +41,7 @@ func TestLaunch_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("launch with job_mode=true creates task", func(t *testing.T) {
+	runEdition(t, "launch with job_mode=true creates task", func(t *testing.T) {
 		jm := true
 		result, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        uniqueName("launch-job"),
@@ -64,7 +65,7 @@ func TestLaunch_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("launch with empty name returns validation error", func(t *testing.T) {
+	runEdition(t, "launch with empty name returns validation error", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        "",
@@ -75,7 +76,7 @@ func TestLaunch_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("launch with empty compose returns validation error", func(t *testing.T) {
+	runEdition(t, "launch with empty compose returns validation error", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Launch.Create(ctx(), &fibe.LaunchParams{
 			Name:        uniqueName("launch-bad"),

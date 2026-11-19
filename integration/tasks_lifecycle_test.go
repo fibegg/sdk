@@ -8,6 +8,7 @@ import (
 
 // TestTasks_FullLifecycle exercises:
 func TestTasks_FullLifecycle(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	hostID := testHostID(t)
@@ -94,6 +95,7 @@ func TestTasks_FullLifecycle(t *testing.T) {
 }
 
 func TestTasks_ListOnlyShowsJobMode(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -107,6 +109,7 @@ func TestTasks_ListOnlyShowsJobMode(t *testing.T) {
 }
 
 func TestTasks_TriggerAutoName(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

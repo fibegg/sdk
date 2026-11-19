@@ -12,6 +12,7 @@ import (
 )
 
 func TestRequestID_ReturnedInHeader(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
@@ -36,6 +37,7 @@ func TestRequestID_ReturnedInHeader(t *testing.T) {
 }
 
 func TestIdempotencyKey(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")

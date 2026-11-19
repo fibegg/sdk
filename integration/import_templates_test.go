@@ -7,6 +7,7 @@ import (
 )
 
 func TestImportTemplates_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -168,6 +169,7 @@ func TestImportTemplates_CRUD(t *testing.T) {
 }
 
 func TestTemplateCategories_List(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

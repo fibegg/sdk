@@ -8,6 +8,7 @@ import (
 )
 
 func TestHostValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -68,10 +69,11 @@ func TestHostValidation(t *testing.T) {
 }
 
 func TestRepositoryValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("reject missing repository_url", func(t *testing.T) {
+	runEdition(t, "reject missing repository_url", func(t *testing.T) {
 		t.Parallel()
 		_, err := c.Repositories.Create(ctx(), &fibe.RepositoryCreateParams{})
 		if err == nil {
@@ -79,7 +81,7 @@ func TestRepositoryValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("duplicate repo_url handled gracefully", func(t *testing.T) {
+	runEdition(t, "duplicate repo_url handled gracefully", func(t *testing.T) {
 		t.Parallel()
 		url := seedWritableGiteaRepoURL(t, c, "dup-repo")
 		provider := "gitea"
@@ -112,6 +114,7 @@ func TestRepositoryValidation(t *testing.T) {
 }
 
 func TestSpecValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -185,6 +188,7 @@ func TestSpecValidation(t *testing.T) {
 }
 
 func TestSecretValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -212,6 +216,7 @@ func TestSecretValidation(t *testing.T) {
 }
 
 func TestAgentValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -258,6 +263,7 @@ func TestAgentValidation(t *testing.T) {
 }
 
 func TestWebhookValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -300,6 +306,7 @@ func TestWebhookValidation(t *testing.T) {
 }
 
 func TestLaunchValidation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -11,6 +11,7 @@ import (
 )
 
 func TestEdgeCases_ErrorHandling(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -43,10 +44,11 @@ func TestEdgeCases_ErrorHandling(t *testing.T) {
 }
 
 func TestEdgeCases_OversizedInputs(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
-	t.Run("oversized agent name", func(t *testing.T) {
+	runEdition(t, "oversized agent name", func(t *testing.T) {
 		t.Parallel()
 		longName := strings.Repeat("a", 1000)
 		agent, err := c.Agents.Create(ctx(), &fibe.AgentCreateParams{
@@ -59,7 +61,7 @@ func TestEdgeCases_OversizedInputs(t *testing.T) {
 		}
 	})
 
-	t.Run("oversized secret value", func(t *testing.T) {
+	runEdition(t, "oversized secret value", func(t *testing.T) {
 		t.Parallel()
 		bigValue := strings.Repeat("x", 100_000)
 		s, err := c.Secrets.Create(ctx(), &fibe.SecretCreateParams{
@@ -75,6 +77,7 @@ func TestEdgeCases_OversizedInputs(t *testing.T) {
 
 // Migrated from: 17-api-contract.spec.js
 func TestEdgeCases_APIContract(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	t.Run("list endpoints return data+meta envelope", func(t *testing.T) {
@@ -129,6 +132,7 @@ func TestEdgeCases_APIContract(t *testing.T) {
 }
 
 func TestEdgeCases_ContentType(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 	apiKey := os.Getenv("FIBE_API_KEY")
 	if apiKey == "" {

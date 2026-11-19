@@ -12,6 +12,7 @@ import (
 
 // TestPlaygrounds_FullLifecycle exercises the complete real-world playground lifecycle:
 func TestPlaygrounds_FullLifecycle(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 
 	spec := seedSpec(t, c)
@@ -195,6 +196,7 @@ func TestPlaygrounds_FullLifecycle(t *testing.T) {
 
 // TestPlaygrounds_ListFilterIntegration verifies list filters work end-to-end on real playgrounds.
 func TestPlaygrounds_ListFilterIntegration(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -7,6 +7,7 @@ import (
 )
 
 func TestFeedbacks_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -110,6 +111,7 @@ func TestFeedbacks_CRUD(t *testing.T) {
 }
 
 func TestMutters_Read(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

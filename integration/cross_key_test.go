@@ -7,6 +7,7 @@ import (
 )
 
 func TestCrossKey_Isolation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -58,6 +59,7 @@ func TestCrossKey_Isolation(t *testing.T) {
 }
 
 func TestCrossKey_WithKeyConvenience(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -106,6 +108,7 @@ func TestCrossKey_WithKeyConvenience(t *testing.T) {
 }
 
 func TestCrossKey_BaseURLShared(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -11,6 +11,7 @@ import (
 // so that create/update payload shapes are validated end-to-end.
 
 func TestHost_CreateWithDockerhubAuth(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -42,6 +43,7 @@ func TestHost_CreateWithDockerhubAuth(t *testing.T) {
 }
 
 func TestHost_CreateWithDNSProvider(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -72,6 +74,7 @@ func TestHost_CreateWithDNSProvider(t *testing.T) {
 }
 
 func TestHost_CreateWithBuildPlatform(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -99,6 +102,7 @@ func TestHost_CreateWithBuildPlatform(t *testing.T) {
 }
 
 func TestHost_AutoconnectToken(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -145,6 +149,7 @@ func TestHost_AutoconnectToken(t *testing.T) {
 }
 
 func TestHost_UpdatePartialFields(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -197,6 +202,7 @@ func TestHost_UpdatePartialFields(t *testing.T) {
 }
 
 func TestHost_CreateValidationErrors(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

@@ -74,7 +74,21 @@ func ToolsDocsCheck() error {
 }
 
 func IntegrationTest() error {
+	if err := sh.RunV("go", "run", "./scripts/test-edition", "--edition", testEdition(), "--json"); err != nil {
+		return err
+	}
 	return sh.RunV("go", "tool", "gotestsum", "--format", "testname", "--", "-tags=integration", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
+}
+
+// IntegrationList evaluates the same reviewed selection without API or Host access.
+func IntegrationList() error {
+	return sh.RunV("go", "run", "./scripts/test-edition", "--edition", testEdition(), "--list")
+}
+func testEdition() string {
+	if value := os.Getenv("FIBE_TEST_EDITION"); value != "" {
+		return value
+	}
+	return "full"
 }
 
 // ChatE2E runs provider chat runtime E2E tests.

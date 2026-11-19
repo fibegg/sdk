@@ -8,6 +8,7 @@ import (
 )
 
 func TestPlaygrounds_Actions(t *testing.T) {
+	requireEdition(t)
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
 
@@ -92,6 +93,7 @@ func TestPlaygrounds_Actions(t *testing.T) {
 }
 
 func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	badID := int64(999999999)
@@ -146,6 +148,7 @@ func TestPlaygrounds_Actions_NonexistentID(t *testing.T) {
 }
 
 func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
@@ -237,6 +240,7 @@ func TestPlaygrounds_Actions_ScopeEnforcement(t *testing.T) {
 }
 
 func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	specID, hostID := setupPlaygroundDeps(t, c)
@@ -312,6 +316,7 @@ func TestPlaygrounds_CreateWithServiceConfig(t *testing.T) {
 }
 
 func TestPlaygrounds_IDOR(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)

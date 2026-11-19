@@ -10,7 +10,7 @@ import (
 
 func repositoryWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Repository, string) {
 	t.Helper()
-	if os.Getenv("GITEA_HOST") != "" && os.Getenv("GITEA_ADMIN_TOKEN_FILE") != "" {
+	if !communityEdition() && os.Getenv("GITEA_HOST") != "" && os.Getenv("GITEA_ADMIN_TOKEN_FILE") != "" {
 		return ownedEnvDefaultsFixture(t, c)
 	}
 
@@ -77,6 +77,7 @@ func repositoryWithBranchFixture(t *testing.T, c *fibe.Client) (fibe.Repository,
 }
 
 func TestRepositories_EnvDefaults(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -121,6 +122,7 @@ func TestRepositories_EnvDefaults(t *testing.T) {
 }
 
 func TestRepositories_EnvDefaults_NonexistentRepository(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -132,6 +134,7 @@ func TestRepositories_EnvDefaults_NonexistentRepository(t *testing.T) {
 }
 
 func TestRepositories_EnvDefaults_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -169,6 +172,7 @@ func TestRepositories_EnvDefaults_ScopeEnforcement(t *testing.T) {
 }
 
 func TestRepositories_EnvDefaults_IDOR(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	userB := userBClient(t)

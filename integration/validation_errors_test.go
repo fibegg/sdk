@@ -10,6 +10,7 @@ import (
 // TestValidation_EmptyRequiredFields verifies each create endpoint rejects
 // missing required fields with a structured 422/400.
 func TestValidation_EmptyRequiredFields(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -65,7 +66,7 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		runEdition(t, tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.run()
 			if err == nil {
@@ -84,6 +85,7 @@ func TestValidation_EmptyRequiredFields(t *testing.T) {
 
 // TestValidation_NotFoundIDs verifies 404 behavior across Get/Update/Delete operations.
 func TestValidation_NotFoundIDs(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	bogus := int64(999999999)
@@ -112,7 +114,7 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 
 	for _, tc := range cases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		runEdition(t, tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.run()
 			if err == nil {
@@ -134,6 +136,7 @@ func TestValidation_NotFoundIDs(t *testing.T) {
 
 // TestValidation_SecretKeyFormat verifies secret key conventions.
 func TestValidation_SecretKeyFormat(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -175,6 +178,7 @@ func TestValidation_SecretKeyFormat(t *testing.T) {
 
 // TestValidation_ErrorPayloadStructure verifies error responses include RequestID, Code, Message.
 func TestValidation_ErrorPayloadStructure(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

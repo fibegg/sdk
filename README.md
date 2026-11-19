@@ -360,3 +360,7 @@ The link directory's parent must be writable by the agent user: linking stages
 and atomically replaces the whole directory. A writable `/app/playground` under
 a root-owned `/app` is insufficient. Use a directory under writable persistent
 data rather than changing `/app` ownership or permissions.
+
+Integration and E2E tests can select Community with `FIBE_TEST_EDITION=community`.
+See [test edition selection](TEST_EDITIONS.md) for offline listing, scope/fixture
+requirements and case-review rules. The default remains the full suite.

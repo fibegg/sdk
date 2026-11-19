@@ -13,6 +13,7 @@ import (
 // TestArtefact_CreateReturnsPopulatedStruct regression test for the bug where
 // ArtefactService.Create returned (nil, nil) on success.
 func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -40,6 +41,7 @@ func TestArtefact_CreateReturnsPopulatedStruct(t *testing.T) {
 
 // TestArtefact_ContentRoundtrip uploads binary and text content, downloads, verifies bytes.
 func TestArtefact_ContentRoundtrip(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

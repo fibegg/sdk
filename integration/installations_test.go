@@ -7,6 +7,7 @@ import (
 )
 
 func TestInstallations_List(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -44,6 +45,7 @@ func TestInstallations_List(t *testing.T) {
 }
 
 func TestInstallations_Repos(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -111,6 +113,7 @@ func TestInstallations_Repos(t *testing.T) {
 }
 
 func TestInstallations_Token(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

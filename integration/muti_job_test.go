@@ -7,6 +7,7 @@ import (
 )
 
 func TestMutiJob_SpecConfig(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

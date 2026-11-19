@@ -7,6 +7,7 @@ import (
 )
 
 func TestSpecs_CRUD(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -113,6 +114,7 @@ func TestSpecs_CRUD(t *testing.T) {
 }
 
 func TestSpecs_ValidateCompose(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -128,6 +130,7 @@ func TestSpecs_ValidateCompose(t *testing.T) {
 }
 
 func TestSpecs_ScopeEnforcement(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

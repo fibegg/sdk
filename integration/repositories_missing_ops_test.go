@@ -7,6 +7,7 @@ import (
 )
 
 func TestRepositories_Attach(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -35,6 +36,7 @@ func TestRepositories_Attach(t *testing.T) {
 }
 
 func TestRepositories_Mirror(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

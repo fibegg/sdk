@@ -23,6 +23,7 @@ func registryCredentialID(raw any) (string, bool) {
 }
 
 func TestAgents_FullLifecycle(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -100,6 +101,7 @@ func TestAgents_FullLifecycle(t *testing.T) {
 
 // Migrated from: 22-artefacts.spec.js (listing only: upload requires multipart)
 func TestArtefacts_List(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -132,6 +134,7 @@ func TestArtefacts_List(t *testing.T) {
 }
 
 func TestSpecRegistryCredentials(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

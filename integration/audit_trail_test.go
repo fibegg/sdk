@@ -12,6 +12,7 @@ import (
 // TestAuditTrail_SecretCreationLogged verifies that creating a secret appears
 // in the audit log.
 func TestAuditTrail_SecretCreationLogged(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -48,6 +49,7 @@ func TestAuditTrail_SecretCreationLogged(t *testing.T) {
 
 // TestAuditTrail_ActionPrefixFilter filters by action prefix.
 func TestAuditTrail_ActionPrefixFilter(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -69,6 +71,7 @@ func TestAuditTrail_ActionPrefixFilter(t *testing.T) {
 
 // TestAuditTrail_ResourceTypeFilterIsolation ensures filter truly isolates.
 func TestAuditTrail_ResourceTypeFilterIsolation(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 

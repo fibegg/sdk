@@ -30,6 +30,7 @@ type githubFixtureAccess struct {
 }
 
 func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
+	requireEdition(t)
 	if !envBool("FIBE_E2E_BOOTSTRAP") && !envBool("SDK_E2E_BOOTSTRAP") && !envBool("FIBE_GITHUB_FIXTURE_E2E") {
 		t.Skip("Docker E2E GitHub fixture launch test requires FIBE_E2E_BOOTSTRAP, SDK_E2E_BOOTSTRAP, or FIBE_GITHUB_FIXTURE_E2E=1")
 	}

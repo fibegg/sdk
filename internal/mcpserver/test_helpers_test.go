@@ -3,10 +3,14 @@ package mcpserver
 import (
 	"os"
 	"testing"
+
+	"github.com/fibegg/sdk/fibe"
+	"github.com/fibegg/sdk/internal/testedition"
 )
 
 func requireRealServer(t *testing.T) (string, string) {
 	t.Helper()
+	testedition.Require(t, "internal/mcpserver")
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -15,6 +19,7 @@ func requireRealServer(t *testing.T) (string, string) {
 	if apiKey == "" || domain == "" {
 		t.Skip("FIBE_API_KEY and FIBE_DOMAIN must be set for this test")
 	}
+	testedition.VerifyServer(t, fibe.NewClient(fibe.WithDomain(domain)).BaseURL())
 	return apiKey, domain
 }
 

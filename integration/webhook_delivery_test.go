@@ -135,6 +135,7 @@ func formatWebhookDeliveries(deliveries []fibe.WebhookDelivery) string {
 }
 
 func TestWebhook_CreateWithEventFilters(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -161,6 +162,7 @@ func TestWebhook_CreateWithEventFilters(t *testing.T) {
 }
 
 func TestWebhook_TestDeliveryAppearsInHistory(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	server, _ := newWebhookCaptureServer(t)
@@ -191,6 +193,7 @@ func TestWebhook_TestDeliveryAppearsInHistory(t *testing.T) {
 }
 
 func TestWebhook_EventTypesEndpoint(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -215,6 +218,7 @@ func TestWebhook_EventTypesEndpoint(t *testing.T) {
 }
 
 func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 
@@ -262,6 +266,7 @@ func TestWebhook_UpdateEventsAndFilters(t *testing.T) {
 }
 
 func TestWebhook_TestEndpointDeliversSignedPayload(t *testing.T) {
+	requireEdition(t)
 	t.Parallel()
 	c := userClient(t)
 	server, requests := newWebhookCaptureServer(t)

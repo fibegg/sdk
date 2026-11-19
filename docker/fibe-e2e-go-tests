@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Enumeration is offline and must precede wrapper, bootstrap and Host prerequisites.
+if [ "${1:-}" = "--edition-list" ]; then
+  shift
+  exec go run ./scripts/test-edition --edition "${FIBE_TEST_EDITION:-full}" --list "$@"
+fi
+if [ "${1:-}" = "--edition-evaluate" ]; then
+  shift
+  exec go run ./scripts/test-edition --edition "${FIBE_TEST_EDITION:-full}" --json "$@"
+fi
+case "${FIBE_TEST_EDITION:-full}" in
+  full|enterprise|community) ;;
+  *) echo "unknown FIBE_TEST_EDITION: use full, enterprise or community" >&2; exit 2 ;;
+esac
+
 export E2E_RUN_ID="${E2E_RUN_ID:-$(date -u +%Y%m%d%H%M%S)-$$}"
 
 if [ "${1:-}" != "--inside-wrapper" ] && [ "${1:-}" != "--run-go-tests" ]; then
@@ -68,8 +82,10 @@ export FIBE_TEST_GATEWAY_HOST="${FIBE_TEST_GATEWAY_HOST:-$TEST_HOST_HOST}"
 export FIBE_TEST_GATEWAY_URL="${FIBE_TEST_GATEWAY_URL:-http://${FIBE_TEST_GATEWAY_HOST}:80}"
 fibe-e2e-use-dns
 export FIBE_DOMAIN="${FIBE_PACKED_RAILS_URL:-http://fibe-app:3000}"
-export GITEA_HOST="${FIBE_PACKED_GITEA_URL:-http://fibe-app:3001}"
-export GITEA_ADMIN_TOKEN_FILE=/fibe-data/gitea/gitea-admin-token
+if [ "${FIBE_TEST_EDITION:-full}" != "community" ]; then
+  export GITEA_HOST="${FIBE_PACKED_GITEA_URL:-http://fibe-app:3001}"
+  export GITEA_ADMIN_TOKEN_FILE=/fibe-data/gitea/gitea-admin-token
+fi
 wait_for_http "${FIBE_DOMAIN}/up" "packed Fibe Rails"
 wait_for_tcp "$TEST_HOST_HOST" 22 "DinD SSH"
 
