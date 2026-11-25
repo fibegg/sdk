@@ -2,9 +2,10 @@ package mcpserver
 
 import (
 	"fmt"
-	"github.com/fibegg/sdk/internal/testedition"
 	"os"
 	"testing"
+
+	"github.com/fibegg/sdk/internal/testedition"
 )
 
 func TestMain(m *testing.M) {
@@ -13,7 +14,7 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	if listing && testedition.Current() == testedition.Community {
+	if listing && testedition.Current() != testedition.Full {
 		os.Exit(0)
 	}
 	os.Exit(m.Run())

@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/fibegg/sdk/internal/testedition"
 	"github.com/magefile/mage/sh"
 )
 
@@ -77,7 +78,26 @@ func IntegrationTest() error {
 	if err := sh.RunV("go", "run", "./scripts/test-edition", "--edition", testEdition(), "--json"); err != nil {
 		return err
 	}
-	return sh.RunV("go", "tool", "gotestsum", "--format", "testname", "--", "-tags=integration", "./integration/...", "./internal/mcpserver/...", "-count=1", "-timeout", "600s", "-parallel", "8")
+	return runIntegrationTests(nil)
+}
+
+// TestCommunity runs the shared live integration and MCP tests against Community.
+func TestCommunity() error { return testLiveEdition(testedition.Community) }
+
+// TestEnterprise runs the shared and Enterprise-only live integration and MCP tests.
+func TestEnterprise() error { return testLiveEdition(testedition.Enterprise) }
+
+func testLiveEdition(edition string) error {
+	return runIntegrationTests(map[string]string{
+		testedition.Environment: edition,
+		"FIBE_INTEGRATION":      "1",
+	})
+}
+
+func runIntegrationTests(env map[string]string) error {
+	return sh.RunWithV(env, "go", "tool", "gotestsum", "--format", "testname", "--",
+		"-tags=integration", "./integration/...", "./internal/mcpserver/...",
+		"-count=1", "-timeout", "600s", "-parallel", "8")
 }
 
 // IntegrationList evaluates the same reviewed selection without API or Host access.
@@ -85,10 +105,10 @@ func IntegrationList() error {
 	return sh.RunV("go", "run", "./scripts/test-edition", "--edition", testEdition(), "--list")
 }
 func testEdition() string {
-	if value := os.Getenv("FIBE_TEST_EDITION"); value != "" {
+	if value := os.Getenv(testedition.Environment); value != "" {
 		return value
 	}
-	return "full"
+	return testedition.Full
 }
 
 // ChatE2E runs provider chat runtime E2E tests.

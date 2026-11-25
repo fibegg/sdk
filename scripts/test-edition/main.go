@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	edition := flag.String("edition", os.Getenv(testedition.Environment), "full (default), enterprise (alias) or community")
+	edition := flag.String("edition", os.Getenv(testedition.Environment), "community, enterprise or full (legacy default)")
 	pkg := flag.String("package", "", "integration or internal/mcpserver; empty selects both")
 	run := flag.String("run", ".", "Go -run expression")
 	list := flag.Bool("list", false, "print selected package/case names without contacting an API")

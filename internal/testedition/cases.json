@@ -4,7 +4,7 @@
     {
       "package": "integration",
       "name": "TestAPIKeys_CRUD",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create key with specific scopes",
@@ -15,7 +15,7 @@
     {
       "package": "integration",
       "name": "TestAPIKeys_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "read-only key cannot create",
@@ -26,7 +26,7 @@
     {
       "package": "integration",
       "name": "TestAgentMountedFiles",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "add mounted file",
@@ -37,7 +37,7 @@
     {
       "package": "integration",
       "name": "TestAgentRuntimeMatrix",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "Claude API key",
@@ -57,7 +57,7 @@
     {
       "package": "integration",
       "name": "TestAgentRuntimeProviderFailureDetection",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "quota marker wins for Gemini terminal quota output",
@@ -67,7 +67,7 @@
     {
       "package": "integration",
       "name": "TestAgentValidation",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "all valid providers accepted",
@@ -79,7 +79,7 @@
     {
       "package": "integration",
       "name": "TestAgents_Authenticate",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "authenticate accepts arbitrary token without create-time validation",
@@ -89,7 +89,7 @@
     {
       "package": "integration",
       "name": "TestAgents_CRUD",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create agent",
@@ -103,7 +103,7 @@
     {
       "package": "integration",
       "name": "TestAgents_Chat",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "chat accepts text message",
@@ -113,7 +113,7 @@
     {
       "package": "integration",
       "name": "TestAgents_FullLifecycle",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create and get detail",
@@ -124,7 +124,7 @@
     {
       "package": "integration",
       "name": "TestAgents_GetGitHubTokenForRepo",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "get token"
@@ -133,7 +133,7 @@
     {
       "package": "integration",
       "name": "TestAgents_GetGiteaToken",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Managed Gitea repository, mirror or Gitea credential prerequisite.",
       "inventory": [
         "get gitea token"
@@ -142,7 +142,7 @@
     {
       "package": "integration",
       "name": "TestAgents_Messages",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "get empty messages",
@@ -153,7 +153,7 @@
     {
       "package": "integration",
       "name": "TestAgents_RevokeGitHubToken",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "revoke on fresh agent returns graceful response or error"
@@ -162,7 +162,7 @@
     {
       "package": "integration",
       "name": "TestAgents_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "read key can list",
@@ -174,7 +174,7 @@
     {
       "package": "integration",
       "name": "TestAgents_UpdateActivity",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "update activity with JSON and read back"
@@ -183,7 +183,7 @@
     {
       "package": "integration",
       "name": "TestArtefact_ContentRoundtrip",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "dynamic_review": "8ccfc8783baa8f88b0fb4f4dd1671ba502485f234499086d20908d5dd53953e8",
       "inventory": [
@@ -196,13 +196,13 @@
     {
       "package": "integration",
       "name": "TestArtefact_CreateReturnsPopulatedStruct",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "integration",
       "name": "TestArtefacts_Download",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "download returns content",
@@ -212,7 +212,7 @@
     {
       "package": "integration",
       "name": "TestArtefacts_FilteringAndSorting",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "filter by query",
@@ -227,7 +227,7 @@
     {
       "package": "integration",
       "name": "TestArtefacts_IDOR",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires a distinct second Player; Community has one administrator Player.",
       "inventory": [
         "user B cannot list primary agent artefacts"
@@ -236,7 +236,7 @@
     {
       "package": "integration",
       "name": "TestArtefacts_Immutability",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "list returns empty for new agent"
@@ -245,7 +245,7 @@
     {
       "package": "integration",
       "name": "TestArtefacts_List",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "list returns empty for new agent",
@@ -255,7 +255,7 @@
     {
       "package": "integration",
       "name": "TestArtefacts_ScopeEnforcement",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "artefacts:read scope can list",
@@ -265,7 +265,7 @@
     {
       "package": "integration",
       "name": "TestAuditLogs_AfterSecretOperations",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "audit logs contain API channel entries"
@@ -274,7 +274,7 @@
     {
       "package": "integration",
       "name": "TestAuditLogs_List",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "list all audit logs",
@@ -286,31 +286,31 @@
     {
       "package": "integration",
       "name": "TestAuditTrail_ActionPrefixFilter",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestAuditTrail_ResourceTypeFilterIsolation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestAuditTrail_SecretCreationLogged",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestAuthRateLimits_Headers",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestAuthRateLimits_RateLimitedKey",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
@@ -319,11 +319,11 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "secrets": "enterprise",
-        "webhooks": "enterprise",
-        "job-env": "enterprise",
-        "api-keys": "community",
-        "templates": "enterprise"
+        "secrets": "enterprise-only",
+        "webhooks": "enterprise-only",
+        "job-env": "enterprise-only",
+        "api-keys": "shared",
+        "templates": "enterprise-only"
       },
       "dynamic_review": "b969abdd19f1932313dc01e045725e380fe837e8cd21827e15784a311bf1557d"
     },
@@ -333,47 +333,47 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "playgrounds": "community",
-        "specs": "community",
-        "repositories": "enterprise",
-        "agents": "community",
-        "artefacts": "enterprise",
-        "templates_versions": "enterprise",
-        "tasks": "enterprise",
-        "gitea_repos": "enterprise",
-        "monitor": "community",
-        "misc_commands": "community",
-        "agents/mutters": "enterprise"
+        "playgrounds": "shared",
+        "specs": "shared",
+        "repositories": "enterprise-only",
+        "agents": "shared",
+        "artefacts": "enterprise-only",
+        "templates_versions": "enterprise-only",
+        "tasks": "enterprise-only",
+        "gitea_repos": "enterprise-only",
+        "monitor": "shared",
+        "misc_commands": "shared",
+        "agents/mutters": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestCLI_FromFile_JSON",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestCLI_FromFile_STDIN",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestCLI_FromFile_YAML",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestClient_LastRequestID",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestClient_Ping",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "ping succeeds with valid key",
@@ -383,13 +383,13 @@
     {
       "package": "integration",
       "name": "TestCrossKey_BaseURLShared",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestCrossKey_Isolation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "different key same player sees same resources",
@@ -400,7 +400,7 @@
     {
       "package": "integration",
       "name": "TestCrossKey_WithKeyConvenience",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "client1 can access secrets but not agents",
@@ -414,26 +414,26 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agents": "community",
-        "specs": "community",
-        "repositories": "community",
-        "playgrounds": "community",
-        "hosts": "community",
-        "secrets": "enterprise",
-        "audit_logs": "enterprise"
+        "agents": "shared",
+        "specs": "shared",
+        "repositories": "shared",
+        "playgrounds": "shared",
+        "hosts": "shared",
+        "secrets": "enterprise-only",
+        "audit_logs": "enterprise-only"
       },
       "dynamic_review": "f300881638ec10e67b9b37b35693275b3f1079354f6d8ae36a5008211d76dc89"
     },
     {
       "package": "integration",
       "name": "TestDateFilters_RangeBehavior",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes."
     },
     {
       "package": "integration",
       "name": "TestDockerE2EGitHubFixtureLaunchWorkflow",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "repository source launch uses branch path variables subdomains env and service overrides",
@@ -443,25 +443,25 @@
     {
       "package": "integration",
       "name": "TestE2E_AgentArtefactRoundtrip",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "integration",
       "name": "TestE2E_SecretRotation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes."
     },
     {
       "package": "integration",
       "name": "TestE2E_SpecToPlayground",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestEdgeCases_APIContract",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "list endpoints return data+meta envelope",
@@ -472,7 +472,7 @@
     {
       "package": "integration",
       "name": "TestEdgeCases_ContentType",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "wrong content-type still processed"
@@ -481,7 +481,7 @@
     {
       "package": "integration",
       "name": "TestEdgeCases_ErrorHandling",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "nonexistent resource returns structured error",
@@ -496,21 +496,21 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "oversized agent name": "community",
-        "oversized secret value": "enterprise"
+        "oversized agent name": "shared",
+        "oversized secret value": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_AttachmentLifecycle",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "dynamic_review": "684d196cb7116e8c37ae507d52be42f5463502edc3ccc704430f87c3fad8f6d6"
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "list"
@@ -519,31 +519,31 @@
     {
       "package": "integration",
       "name": "TestEnvPacks_ContextsAreIsolated",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_DelegatedSourceSurvivesTargetOnlyManager",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_LaunchWithAttachments",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_SDKRejectsNilAndInvalidValuesBeforeRequest",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_SafeRerun",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "playground",
@@ -553,43 +553,43 @@
     {
       "package": "integration",
       "name": "TestEnvPacks_ServerRejectsForgedOwnerAndBadValues",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_ServerRejectsInvalidAttachmentLists",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_ServiceSpecRejectsAttachments",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_StableErrorCodes",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestEnvPacks_TeamDelegatedGrantInvalidAfterGrantorRevoked",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestErrors_ErrorsAs",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestErrors_Forbidden",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "403 has correct code"
@@ -601,24 +601,24 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "nonexistent playground": "community",
-        "nonexistent agent": "community",
-        "nonexistent spec": "community",
-        "nonexistent repository": "community",
-        "nonexistent secret": "enterprise",
-        "nonexistent webhook endpoint": "enterprise"
+        "nonexistent playground": "shared",
+        "nonexistent agent": "shared",
+        "nonexistent spec": "shared",
+        "nonexistent repository": "shared",
+        "nonexistent secret": "enterprise-only",
+        "nonexistent webhook endpoint": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestErrors_NotRetryable",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestErrors_Unauthorized",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "invalid token gets 401",
@@ -628,7 +628,7 @@
     {
       "package": "integration",
       "name": "TestErrors_ValidationFailed",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "client-side validation",
@@ -638,7 +638,7 @@
     {
       "package": "integration",
       "name": "TestFeedbacks_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "create feedback",
@@ -652,19 +652,19 @@
     {
       "package": "integration",
       "name": "TestGitHubRepos_CreateFailure",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestGiteaRepos_CreateFailure",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Managed Gitea repository, mirror or Gitea credential prerequisite."
     },
     {
       "package": "integration",
       "name": "TestHostValidation",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create with minimum port",
@@ -677,7 +677,7 @@
     {
       "package": "integration",
       "name": "TestHost_AutoconnectToken",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "token with minimal params returns hex token",
@@ -687,7 +687,7 @@
     {
       "package": "integration",
       "name": "TestHost_CreateValidationErrors",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "missing host returns validation error",
@@ -697,25 +697,25 @@
     {
       "package": "integration",
       "name": "TestHost_CreateWithBuildPlatform",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestHost_CreateWithDNSProvider",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestHost_CreateWithDockerhubAuth",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestHost_UpdatePartialFields",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "update port",
@@ -726,13 +726,13 @@
     {
       "package": "integration",
       "name": "TestHostsLifecycle",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestHosts_DeleteConflicts",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "delete host with playgrounds returns 409"
@@ -741,7 +741,7 @@
     {
       "package": "integration",
       "name": "TestHosts_GenerateSSHKey",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "generates and returns public key",
@@ -752,7 +752,7 @@
     {
       "package": "integration",
       "name": "TestHosts_IDOR",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires a distinct second Player; Community has one administrator Player.",
       "inventory": [
         "user B cannot get primary host",
@@ -765,7 +765,7 @@
     {
       "package": "integration",
       "name": "TestHosts_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "read key can list and get",
@@ -778,7 +778,7 @@
     {
       "package": "integration",
       "name": "TestHosts_StatusTransitions",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create with disabled status",
@@ -790,7 +790,7 @@
     {
       "package": "integration",
       "name": "TestHosts_TestConnection",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "returns connection test result",
@@ -801,13 +801,13 @@
     {
       "package": "integration",
       "name": "TestIdempotencyKey",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestImportTemplates_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately.",
       "inventory": [
         "create template",
@@ -825,7 +825,7 @@
     {
       "package": "integration",
       "name": "TestImportTemplates_Launch",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately.",
       "inventory": [
         "launch from template returns playground id or error"
@@ -834,7 +834,7 @@
     {
       "package": "integration",
       "name": "TestInstallations_List",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "list returns envelope",
@@ -844,7 +844,7 @@
     {
       "package": "integration",
       "name": "TestInstallations_Repos",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "repos returns paginated envelope",
@@ -856,7 +856,7 @@
     {
       "package": "integration",
       "name": "TestInstallations_Token",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "installation-wide token",
@@ -866,7 +866,7 @@
     {
       "package": "integration",
       "name": "TestLaunchValidation",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "reject missing compose_yaml",
@@ -880,10 +880,10 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "launch parses compose and creates spec+playground": "community",
-        "launch with job_mode=true creates task": "enterprise",
-        "launch with empty name returns validation error": "community",
-        "launch with empty compose returns validation error": "community"
+        "launch parses compose and creates spec+playground": "shared",
+        "launch with job_mode=true creates task": "enterprise-only",
+        "launch with empty name returns validation error": "shared",
+        "launch with empty compose returns validation error": "shared"
       }
     },
     {
@@ -892,14 +892,14 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agents filter by Q matches name substring": "community",
-        "agents filter by provider": "community",
-        "specs filter by job_mode=true": "enterprise",
-        "specs filter by job_mode=false": "enterprise",
-        "api_keys filter by label substring": "community",
-        "audit_logs filter by channel=api": "enterprise",
-        "webhooks filter by enabled": "enterprise",
-        "templates filter by system=true": "enterprise"
+        "agents filter by Q matches name substring": "shared",
+        "agents filter by provider": "shared",
+        "specs filter by job_mode=true": "enterprise-only",
+        "specs filter by job_mode=false": "enterprise-only",
+        "api_keys filter by label substring": "shared",
+        "audit_logs filter by channel=api": "enterprise-only",
+        "webhooks filter by enabled": "enterprise-only",
+        "templates filter by system=true": "enterprise-only"
       }
     },
     {
@@ -908,23 +908,23 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agents": "community",
-        "specs": "community",
-        "repositories": "community",
-        "playgrounds": "community",
-        "hosts": "community",
-        "secrets": "enterprise",
-        "api_keys": "community",
-        "templates": "enterprise",
-        "webhooks": "enterprise",
-        "audit_logs": "enterprise"
+        "agents": "shared",
+        "specs": "shared",
+        "repositories": "shared",
+        "playgrounds": "shared",
+        "hosts": "shared",
+        "secrets": "enterprise-only",
+        "api_keys": "shared",
+        "templates": "enterprise-only",
+        "webhooks": "enterprise-only",
+        "audit_logs": "enterprise-only"
       },
       "dynamic_review": "542437fb70c569227882ef5c0359ac3e0f541e466a71f29ec6db195b8606cd99"
     },
     {
       "package": "integration",
       "name": "TestListCoverage_PaginationBoundaries",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "page beyond last returns empty data",
@@ -937,18 +937,18 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agents sort name_asc": "community",
-        "agents sort created_at_desc": "community",
-        "specs sort name_asc": "community",
-        "secrets sort key_asc": "enterprise",
-        "repositories sort name_desc": "enterprise",
-        "hosts sort name_asc": "community"
+        "agents sort name_asc": "shared",
+        "agents sort created_at_desc": "shared",
+        "specs sort name_asc": "shared",
+        "secrets sort key_asc": "enterprise-only",
+        "repositories sort name_desc": "enterprise-only",
+        "hosts sort name_asc": "shared"
       }
     },
     {
       "package": "integration",
       "name": "TestMutiJob_SpecConfig",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Task job mode or Task trigger configuration.",
       "inventory": [
         "create spec with muti config"
@@ -957,7 +957,7 @@
     {
       "package": "integration",
       "name": "TestMutters_Read",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "get mutter for agent without data",
@@ -968,13 +968,13 @@
     {
       "package": "integration",
       "name": "TestOpencodeChatCredentialIgnoresExcludedCredentials",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestOperatorTemplate_LaunchPinnedVersion",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Launches an operator-provisioned immutable template version without Bazaar catalogue fixtures; requires template IDs/version and a ready owned Host."
     },
     {
@@ -983,24 +983,24 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "default pagination returns meta": "enterprise",
-        "explicit page params": "enterprise",
-        "page 2 returns different data or empty": "enterprise",
+        "default pagination returns meta": "enterprise-only",
+        "explicit page params": "enterprise-only",
+        "page 2 returns different data or empty": "enterprise-only",
         "consistent envelope across all list endpoints": "mixed",
-        "consistent envelope across all list endpoints/playgrounds": "community",
-        "consistent envelope across all list endpoints/agents": "community",
-        "consistent envelope across all list endpoints/specs": "community",
-        "consistent envelope across all list endpoints/repositories": "community",
-        "consistent envelope across all list endpoints/secrets": "enterprise",
-        "consistent envelope across all list endpoints/api_keys": "community",
-        "consistent envelope across all list endpoints/webhook_endpoints": "enterprise"
+        "consistent envelope across all list endpoints/playgrounds": "shared",
+        "consistent envelope across all list endpoints/agents": "shared",
+        "consistent envelope across all list endpoints/specs": "shared",
+        "consistent envelope across all list endpoints/repositories": "shared",
+        "consistent envelope across all list endpoints/secrets": "enterprise-only",
+        "consistent envelope across all list endpoints/api_keys": "shared",
+        "consistent envelope across all list endpoints/webhook_endpoints": "enterprise-only"
       },
       "dynamic_review": "3dbe83cfe5b30696bfa47ef3f833348d97ade2c104c84a260f158dce74973d35"
     },
     {
       "package": "integration",
       "name": "TestPagination_Iterator",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "collect all via small pages"
@@ -1009,19 +1009,19 @@
     {
       "package": "integration",
       "name": "TestPayload_APIKeyTokenExposure",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestPayload_PlayerMe",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestPayload_PlaygroundDetail",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "Get returns detail fields not in List",
@@ -1032,13 +1032,13 @@
     {
       "package": "integration",
       "name": "TestPayload_SecretValueRoundtrip",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes."
     },
     {
       "package": "integration",
       "name": "TestPayload_SpecDetail",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "Get returns services and mounted_files",
@@ -1048,7 +1048,7 @@
     {
       "package": "integration",
       "name": "TestPayload_WebhookDelivery",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires outgoing user webhooks or delivery history.",
       "inventory": [
         "deliveries list payload has timestamps and status"
@@ -1057,7 +1057,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_Actions",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "status returns valid response",
@@ -1071,7 +1071,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_Actions_NonexistentID",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "status returns 404",
@@ -1087,7 +1087,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_Actions_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "read-only key can get status",
@@ -1104,7 +1104,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_CRUD",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create playground",
@@ -1118,7 +1118,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_CreateWithServiceConfig",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create with _global env_vars",
@@ -1129,7 +1129,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_FullLifecycle",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "status transitions",
@@ -1149,7 +1149,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_IDOR",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires a distinct second Player; Community has one administrator Player.",
       "inventory": [
         "user B cannot get primary playground",
@@ -1164,7 +1164,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_ListFilterIntegration",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "filter by spec_id narrows results",
@@ -1175,7 +1175,7 @@
     {
       "package": "integration",
       "name": "TestPlaygrounds_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "no scope returns 403",
@@ -1186,7 +1186,7 @@
     {
       "package": "integration",
       "name": "TestRepoStatus_Check",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "check with valid github URLs",
@@ -1197,7 +1197,7 @@
     {
       "package": "integration",
       "name": "TestRepoStatus_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "requires appropriate scope"
@@ -1206,7 +1206,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_Attach",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "attach nonexistent repo returns 4xx",
@@ -1216,7 +1216,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Managed Gitea repository, mirror or Gitea credential prerequisite.",
       "inventory": [
         "create repository",
@@ -1231,7 +1231,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_EnvDefaults",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "returns defaults for valid branch",
@@ -1242,7 +1242,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_EnvDefaults_IDOR",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires a distinct second Player; Community has one administrator Player.",
       "inventory": [
         "user B cannot access primary repository env_defaults"
@@ -1251,7 +1251,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_EnvDefaults_NonexistentRepository",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "returns 404 for nonexistent repository"
@@ -1260,7 +1260,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_EnvDefaults_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "read scope can access env_defaults",
@@ -1270,7 +1270,7 @@
     {
       "package": "integration",
       "name": "TestRepositories_Mirror",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Managed Gitea repository, mirror or Gitea credential prerequisite.",
       "inventory": [
         "mirror with invalid URL returns 400",
@@ -1283,14 +1283,14 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "reject missing repository_url": "community",
-        "duplicate repo_url handled gracefully": "enterprise"
+        "reject missing repository_url": "shared",
+        "duplicate repo_url handled gracefully": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestRequestID_ReturnedInHeader",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
@@ -1299,23 +1299,23 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "hosts accessible with wildcard": "community",
-        "specs accessible with wildcard": "community",
-        "repositories accessible with wildcard": "community",
-        "playgrounds accessible with wildcard": "community",
-        "templates accessible with wildcard": "enterprise",
-        "keys accessible with wildcard": "community",
-        "secrets accessible with wildcard": "enterprise",
-        "webhooks accessible with wildcard": "enterprise",
-        "agents accessible with wildcard": "community",
-        "audit_logs accessible with wildcard": "enterprise"
+        "hosts accessible with wildcard": "shared",
+        "specs accessible with wildcard": "shared",
+        "repositories accessible with wildcard": "shared",
+        "playgrounds accessible with wildcard": "shared",
+        "templates accessible with wildcard": "enterprise-only",
+        "keys accessible with wildcard": "shared",
+        "secrets accessible with wildcard": "enterprise-only",
+        "webhooks accessible with wildcard": "enterprise-only",
+        "agents accessible with wildcard": "shared",
+        "audit_logs accessible with wildcard": "enterprise-only"
       },
       "dynamic_review": "8bf1a86d80ba2a1b07cd93477efcb8709dccee2541104c5c482507142af7cdb6"
     },
     {
       "package": "integration",
       "name": "TestScopeEnforcement_AgentSubResources",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "inventory": [
         "agents:read can read feedbacks",
@@ -1325,7 +1325,7 @@
     {
       "package": "integration",
       "name": "TestScopeEnforcement_GranularScopes",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "agent-accessible key",
@@ -1335,7 +1335,7 @@
     {
       "package": "integration",
       "name": "TestScopeEnforcement_InvalidScopes",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "reject nonexistent scope",
@@ -1349,21 +1349,21 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "can list hosts": "community",
-        "denied write to hosts": "community",
+        "can list hosts": "shared",
+        "denied write to hosts": "shared",
         "denied access to other resource types": "mixed",
-        "denied access to other resource types/specs": "community",
-        "denied access to other resource types/repositories": "community",
-        "denied access to other resource types/playgrounds": "community",
-        "denied access to other resource types/templates": "enterprise",
-        "denied access to other resource types/keys": "community"
+        "denied access to other resource types/specs": "shared",
+        "denied access to other resource types/repositories": "shared",
+        "denied access to other resource types/playgrounds": "shared",
+        "denied access to other resource types/templates": "enterprise-only",
+        "denied access to other resource types/keys": "shared"
       },
       "dynamic_review": "99c5f70e2ea955b4716e4c2827b9282709c3c3f687e8cd1039032141b8a06e8d"
     },
     {
       "package": "integration",
       "name": "TestSecretValidation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "reject invalid key format",
@@ -1373,7 +1373,7 @@
     {
       "package": "integration",
       "name": "TestSecrets_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "create secret",
@@ -1386,7 +1386,7 @@
     {
       "package": "integration",
       "name": "TestSecrets_EncryptionVerification",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "value readable via get",
@@ -1396,7 +1396,7 @@
     {
       "package": "integration",
       "name": "TestSecrets_Pagination",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "page 1 with per_page=1",
@@ -1406,7 +1406,7 @@
     {
       "package": "integration",
       "name": "TestSecrets_ScopeIsolation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "read-only key cannot create",
@@ -1417,7 +1417,7 @@
     {
       "package": "integration",
       "name": "TestSecrets_ValidationErrors",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "duplicate key name"
@@ -1426,7 +1426,7 @@
     {
       "package": "integration",
       "name": "TestSecurity_AuthHardening",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "invalid token returns 401",
@@ -1441,19 +1441,19 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "playground returns 404 for nonexistent ID": "community",
-        "agent returns 404 for nonexistent ID": "community",
-        "spec returns 404 for nonexistent ID": "community",
-        "repository returns 404 for nonexistent ID": "community",
-        "secret returns 404 for nonexistent ID": "enterprise",
-        "webhook returns 404 for nonexistent ID": "enterprise"
+        "playground returns 404 for nonexistent ID": "shared",
+        "agent returns 404 for nonexistent ID": "shared",
+        "spec returns 404 for nonexistent ID": "shared",
+        "repository returns 404 for nonexistent ID": "shared",
+        "secret returns 404 for nonexistent ID": "enterprise-only",
+        "webhook returns 404 for nonexistent ID": "enterprise-only"
       },
       "dynamic_review": "e3ddd70b893c536d48bccff7c57841ef79cbd9750fd98fb49dd1177882330a2d"
     },
     {
       "package": "integration",
       "name": "TestSecurity_OWASP_BrokenAccessControl",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "inventory": [
         "different scoped keys cannot cross-access"
@@ -1465,14 +1465,14 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "API key token not exposed in list": "community",
-        "secret value not in list": "enterprise"
+        "API key token not exposed in list": "shared",
+        "secret value not in list": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestSecurity_RateLimitHeaders",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "X-RateLimit-Limit present",
@@ -1487,15 +1487,15 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agent name SQL injection": "community",
-        "secret key SQL injection": "enterprise",
-        "search param injection": "community"
+        "agent name SQL injection": "shared",
+        "secret key SQL injection": "enterprise-only",
+        "search param injection": "shared"
       }
     },
     {
       "package": "integration",
       "name": "TestSecurity_XSS",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "agent name XSS stored literally"
@@ -1504,7 +1504,7 @@
     {
       "package": "integration",
       "name": "TestSelectedOpencodeChatCasesHonorsChatFilters",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "excludes matching OpenCode case",
@@ -1517,27 +1517,27 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agents created_at_asc": "community",
-        "agents created_at_desc": "community",
-        "specs created_at_asc": "community",
-        "repositories created_at_desc": "community",
-        "hosts created_at_asc": "community",
-        "secrets created_at_desc": "enterprise",
-        "api_keys created_at_asc": "community",
-        "webhooks created_at_asc": "enterprise",
-        "audit_logs created_at_desc is default": "enterprise"
+        "agents created_at_asc": "shared",
+        "agents created_at_desc": "shared",
+        "specs created_at_asc": "shared",
+        "repositories created_at_desc": "shared",
+        "hosts created_at_asc": "shared",
+        "secrets created_at_desc": "enterprise-only",
+        "api_keys created_at_asc": "shared",
+        "webhooks created_at_asc": "enterprise-only",
+        "audit_logs created_at_desc is default": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestSortColumns_InvalidSortIsRejected",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestSpecMountedFiles",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "add mounted file",
@@ -1549,7 +1549,7 @@
     {
       "package": "integration",
       "name": "TestSpecRegistryCredentials",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "add registry credential",
@@ -1560,7 +1560,7 @@
     {
       "package": "integration",
       "name": "TestSpecValidation",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "reject missing name",
@@ -1574,7 +1574,7 @@
     {
       "package": "integration",
       "name": "TestSpec_ListFilters",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "name filter finds needle",
@@ -1584,7 +1584,7 @@
     {
       "package": "integration",
       "name": "TestSpec_UpdatePartialFields",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "update description only",
@@ -1594,7 +1594,7 @@
     {
       "package": "integration",
       "name": "TestSpec_ValidateCompose_Invalid",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "invalid YAML produces errors",
@@ -1605,31 +1605,31 @@
     {
       "package": "integration",
       "name": "TestSpec_WithDescription",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestSpec_WithPersistVolumes",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestSpec_WithRegistryCredential",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "integration",
       "name": "TestSpec_WithTriggerConfig",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Task job mode or Task trigger configuration."
     },
     {
       "package": "integration",
       "name": "TestSpecs_CRUD",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "create spec",
@@ -1643,7 +1643,7 @@
     {
       "package": "integration",
       "name": "TestSpecs_ScopeEnforcement",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "wrong scope returns 403",
@@ -1653,7 +1653,7 @@
     {
       "package": "integration",
       "name": "TestSpecs_ValidateCompose",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply.",
       "inventory": [
         "valid compose"
@@ -1665,14 +1665,14 @@
       "edition": "mixed",
       "reason": "Ordinary resource summaries are core; the secret-count child requires Secret Vault.",
       "cases": {
-        "status returns resource summary": "community",
-        "status counts update after creating a secret": "enterprise"
+        "status returns resource summary": "shared",
+        "status counts update after creating a secret": "enterprise-only"
       }
     },
     {
       "package": "integration",
       "name": "TestTasks_FullLifecycle",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "list q finds triggered task",
@@ -1684,25 +1684,25 @@
     {
       "package": "integration",
       "name": "TestTasks_ListOnlyShowsJobMode",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestTasks_TriggerAutoName",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestTemplateCategories_List",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately."
     },
     {
       "package": "integration",
       "name": "TestTemplateVersions_Lifecycle",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately.",
       "inventory": [
         "initial version created with template",
@@ -1716,7 +1716,7 @@
     {
       "package": "integration",
       "name": "TestTemplates_FullLifecycle",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately.",
       "inventory": [
         "create new version",
@@ -1730,7 +1730,7 @@
     {
       "package": "integration",
       "name": "TestTemplates_SearchAndFilters",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue creation, categories or version-management fixtures. Operator-defined template launch is covered separately.",
       "inventory": [
         "search by name finds template",
@@ -1744,24 +1744,24 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agent empty name": "community",
-        "agent invalid provider": "community",
-        "spec empty name": "community",
-        "spec empty compose": "community",
-        "secret empty key": "enterprise",
-        "secret empty value": "enterprise",
-        "repository empty url": "community",
-        "webhook empty url": "enterprise",
-        "webhook empty events": "enterprise",
-        "host empty name": "community",
-        "api_key empty label": "community"
+        "agent empty name": "shared",
+        "agent invalid provider": "shared",
+        "spec empty name": "shared",
+        "spec empty compose": "shared",
+        "secret empty key": "enterprise-only",
+        "secret empty value": "enterprise-only",
+        "repository empty url": "shared",
+        "webhook empty url": "enterprise-only",
+        "webhook empty events": "enterprise-only",
+        "host empty name": "shared",
+        "api_key empty label": "shared"
       },
       "dynamic_review": "08fea64ddb6ad782116dbf55c12682c1c0ba9697db0e36c513cd7529bd5150a9"
     },
     {
       "package": "integration",
       "name": "TestValidation_ErrorPayloadStructure",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
@@ -1770,36 +1770,36 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "agent get": "community",
-        "spec get": "community",
-        "repository get": "community",
-        "playground get": "community",
-        "host get": "community",
-        "secret get": "enterprise",
-        "webhook get": "enterprise",
-        "template get": "enterprise",
-        "playground status": "community",
-        "playground compose": "community",
-        "playground debug": "community",
-        "playground env_metadata": "community",
-        "repository sync": "community",
-        "repository branches": "community",
-        "host test connection": "community",
-        "webhook test": "enterprise"
+        "agent get": "shared",
+        "spec get": "shared",
+        "repository get": "shared",
+        "playground get": "shared",
+        "host get": "shared",
+        "secret get": "enterprise-only",
+        "webhook get": "enterprise-only",
+        "template get": "enterprise-only",
+        "playground status": "shared",
+        "playground compose": "shared",
+        "playground debug": "shared",
+        "playground env_metadata": "shared",
+        "repository sync": "shared",
+        "repository branches": "shared",
+        "host test connection": "shared",
+        "webhook test": "enterprise-only"
       },
       "dynamic_review": "e8d83c98f302f6acfccb46b40568870259738793394b4081ead2f80ea8761416"
     },
     {
       "package": "integration",
       "name": "TestValidation_SecretKeyFormat",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Secret Vault fixtures, resources or scopes.",
       "dynamic_review": "a4e3fe7987a594e65d04be501acbe5f02bb650965835aa41caca669b1fea4123"
     },
     {
       "package": "integration",
       "name": "TestWebhookEndpoints_CRUD",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "create webhook endpoint",
@@ -1815,14 +1815,14 @@
     {
       "package": "integration",
       "name": "TestWebhookToolFilters_Validation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "dynamic_review": "fcc06a56af3e17c8290d7b4ee3ee646c7097312fb4637fc38a919af67237dfb5"
     },
     {
       "package": "integration",
       "name": "TestWebhookValidation",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires outgoing user webhooks or delivery history.",
       "inventory": [
         "reject missing URL",
@@ -1833,31 +1833,31 @@
     {
       "package": "integration",
       "name": "TestWebhook_CreateWithEventFilters",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestWebhook_EventTypesEndpoint",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestWebhook_TestDeliveryAppearsInHistory",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestWebhook_TestEndpointDeliversSignedPayload",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestWebhook_UpdateEventsAndFilters",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "update replaces event list",
@@ -1867,7 +1867,7 @@
     {
       "package": "integration",
       "name": "TestWebhooks_DeliveryHistory",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "test endpoint queues delivery",
@@ -1879,13 +1879,13 @@
     {
       "package": "integration",
       "name": "TestWebhooks_EventTypes",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite."
     },
     {
       "package": "integration",
       "name": "TestWebhooks_SecretHandling",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Requires Enterprise Audit Logs, Secret Vault, ENV packs, Tasks or outgoing webhooks, as named by this suite.",
       "inventory": [
         "secret shown on create only"
@@ -1894,13 +1894,13 @@
     {
       "package": "internal/mcpserver",
       "name": "TestArtefactUploadUsesFilePayload",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestArtefactUploadWorkspaceWrite",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
@@ -1909,28 +1909,28 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "playgrounds": "community",
-        "playgrounds_not_found": "community",
-        "agents": "community",
-        "agents_not_found": "community",
-        "hosts": "community",
-        "hosts_not_found": "community",
-        "repositories": "enterprise",
-        "repositories_not_found": "community",
-        "tasks": "enterprise",
-        "tasks_not_found": "enterprise",
-        "artefacts": "enterprise",
-        "artefacts_not_found": "enterprise",
-        "specs": "community",
-        "specs_not_found": "community",
-        "secrets": "enterprise",
-        "secrets_not_found": "enterprise",
-        "webhooks": "enterprise",
-        "webhooks_not_found": "enterprise",
-        "templates": "enterprise",
-        "templates_not_found": "enterprise",
-        "job_envs": "enterprise",
-        "job_envs_not_found": "enterprise"
+        "playgrounds": "shared",
+        "playgrounds_not_found": "shared",
+        "agents": "shared",
+        "agents_not_found": "shared",
+        "hosts": "shared",
+        "hosts_not_found": "shared",
+        "repositories": "enterprise-only",
+        "repositories_not_found": "shared",
+        "tasks": "enterprise-only",
+        "tasks_not_found": "enterprise-only",
+        "artefacts": "enterprise-only",
+        "artefacts_not_found": "enterprise-only",
+        "specs": "shared",
+        "specs_not_found": "shared",
+        "secrets": "enterprise-only",
+        "secrets_not_found": "enterprise-only",
+        "webhooks": "enterprise-only",
+        "webhooks_not_found": "enterprise-only",
+        "templates": "enterprise-only",
+        "templates_not_found": "enterprise-only",
+        "job_envs": "enterprise-only",
+        "job_envs_not_found": "enterprise-only"
       },
       "dynamic_review": "a6c0ae47373c8b2d137ed660cc684fe76c8b5367bf533d68cc0d32396a60ce01"
     },
@@ -1940,35 +1940,35 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "fibe_resource_list_playgrounds": "community",
-        "fibe_resource_list_agents": "community",
-        "fibe_resource_list_hosts": "community",
-        "fibe_resource_list_repositories": "community",
-        "fibe_resource_list_tasks": "enterprise",
-        "fibe_resource_list_artefacts": "enterprise",
-        "fibe_resource_list_specs": "community",
-        "fibe_resource_list_secrets": "enterprise",
-        "fibe_resource_list_api-keys": "community",
-        "fibe_resource_list_webhooks": "enterprise",
-        "fibe_resource_list_templates": "enterprise",
-        "fibe_resource_list_job-env": "enterprise",
-        "fibe_resource_list_audit-logs": "enterprise",
-        "fibe_resource_list_categories": "enterprise",
-        "fibe_templates_search_templates": "enterprise",
-        "fibe_status_status": "community",
-        "fibe_doctor_doctor": "community",
-        "fibe_schema_schema": "community",
-        "fibe_repo_status_check_repo-status": "community",
-        "fibe_find_github_repos_installations": "community",
-        "fibe_monitor_list_monitor": "community",
-        "fibe_feedbacks_list_feedbacks": "enterprise",
-        "fibe_feedbacks_get_feedbacks": "enterprise",
-        "fibe_mutters_get_mutters": "enterprise",
-        "fibe_playgrounds_logs_playgrounds": "community",
-        "fibe_playgrounds_debug_playgrounds": "community",
-        "fibe_local_playgrounds_info_local": "community",
-        "fibe_resource_list_webhooks#01": "enterprise",
-        "fibe_resource_list_templates#01": "enterprise"
+        "fibe_resource_list_playgrounds": "shared",
+        "fibe_resource_list_agents": "shared",
+        "fibe_resource_list_hosts": "shared",
+        "fibe_resource_list_repositories": "shared",
+        "fibe_resource_list_tasks": "enterprise-only",
+        "fibe_resource_list_artefacts": "enterprise-only",
+        "fibe_resource_list_specs": "shared",
+        "fibe_resource_list_secrets": "enterprise-only",
+        "fibe_resource_list_api-keys": "shared",
+        "fibe_resource_list_webhooks": "enterprise-only",
+        "fibe_resource_list_templates": "enterprise-only",
+        "fibe_resource_list_job-env": "enterprise-only",
+        "fibe_resource_list_audit-logs": "enterprise-only",
+        "fibe_resource_list_categories": "enterprise-only",
+        "fibe_templates_search_templates": "enterprise-only",
+        "fibe_status_status": "shared",
+        "fibe_doctor_doctor": "shared",
+        "fibe_schema_schema": "shared",
+        "fibe_repo_status_check_repo-status": "shared",
+        "fibe_find_github_repos_installations": "shared",
+        "fibe_monitor_list_monitor": "shared",
+        "fibe_feedbacks_list_feedbacks": "enterprise-only",
+        "fibe_feedbacks_get_feedbacks": "enterprise-only",
+        "fibe_mutters_get_mutters": "enterprise-only",
+        "fibe_playgrounds_logs_playgrounds": "shared",
+        "fibe_playgrounds_debug_playgrounds": "shared",
+        "fibe_local_playgrounds_info_local": "shared",
+        "fibe_resource_list_webhooks#01": "enterprise-only",
+        "fibe_resource_list_templates#01": "enterprise-only"
       },
       "dynamic_review": "48ea5e05a5228fe239bf6a2d2e4eb62ccc359f36aeb9d129563c17878fc32ba6"
     },
@@ -1978,65 +1978,65 @@
       "edition": "mixed",
       "reason": "Agent status, Playground list and Agent rename are core; Library Artefact upload and Mutter creation are Enterprise-only.",
       "cases": {
-        "fibe_status": "community",
-        "fibe_resource_list": "community",
-        "fibe_update_name": "community",
-        "fibe_artefact_upload": "enterprise",
-        "fibe_mutter": "enterprise"
+        "fibe_status": "shared",
+        "fibe_resource_list": "shared",
+        "fibe_update_name": "shared",
+        "fibe_artefact_upload": "enterprise-only",
+        "fibe_mutter": "enterprise-only"
       }
     },
     {
       "package": "internal/mcpserver",
       "name": "TestE2E_TemplatesChangeFlow",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Uses Bazaar/Library catalogue and template-change fixtures."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestMutterToolCreatesAgentMutter",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestMuttersGetUsesAgentIDAndFilters",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestPlaygroundActionDispatchesToActionEndpoint",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceDeleteDispatchesTemplateVersionAndSource",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Deletes catalogue template versions and sources."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceDeleteDispatchesWithIDOrName",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceGetDispatchesArtefactAndAttachment",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceGetDispatchesWithIDOrName",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceListDispatchesNewConsolidatedResources",
-      "edition": "enterprise",
+      "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community.",
       "dynamic_review": "4c33c4f3b58e6374eb2901cdc04778bcc75d130a545ffa314b6b1dc13c274874",
       "inventory": [
@@ -2048,13 +2048,13 @@
     {
       "package": "internal/mcpserver",
       "name": "TestResourceListDispatchesToResourceService",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
       "package": "internal/mcpserver",
       "name": "TestResourceMutateDispatchesCreateAndUpdate",
-      "edition": "community",
+      "edition": "shared",
       "reason": "Uses retained core APIs or local SDK validation; ordinary scopes, Host and provider prerequisites still apply."
     },
     {
@@ -2063,21 +2063,21 @@
       "edition": "mixed",
       "reason": "Case-level review: retained core operations remain enabled; Vault, Audit Logs, Tasks/job mode, catalogue administration, outgoing webhooks, Gitea and fixtures requiring them are Enterprise.",
       "cases": {
-        "host.generate_ssh_key": "community",
-        "host.test_connection": "community",
-        "repository.attach": "community",
-        "repository.sync": "community",
-        "repository.mirror": "enterprise",
-        "template.fork": "enterprise",
-        "template.source_refresh": "enterprise",
-        "template.source_set": "enterprise",
-        "template.upgrade_specs": "enterprise",
-        "template_version.toggle_public": "enterprise",
-        "task.trigger": "enterprise",
-        "task.rerun": "enterprise",
-        "webhook.test": "enterprise",
-        "agent.restart_chat": "community",
-        "host.autoconnect_token": "community"
+        "host.generate_ssh_key": "shared",
+        "host.test_connection": "shared",
+        "repository.attach": "shared",
+        "repository.sync": "shared",
+        "repository.mirror": "enterprise-only",
+        "template.fork": "enterprise-only",
+        "template.source_refresh": "enterprise-only",
+        "template.source_set": "enterprise-only",
+        "template.upgrade_specs": "enterprise-only",
+        "template_version.toggle_public": "enterprise-only",
+        "task.trigger": "enterprise-only",
+        "task.rerun": "enterprise-only",
+        "webhook.test": "enterprise-only",
+        "agent.restart_chat": "shared",
+        "host.autoconnect_token": "shared"
       },
       "dynamic_review": "3d708bbaf3183ea3392dedba6f10a53cb7d9af7d9ab545d2c1e3cf6e0c0d558b"
     }

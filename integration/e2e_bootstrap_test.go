@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 		os.Exit(2)
 	}
 	if listing {
-		if testedition.Current() == testedition.Community {
+		if testedition.Current() != testedition.Full {
 			os.Exit(0)
 		}
 		os.Exit(m.Run())

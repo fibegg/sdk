@@ -28,8 +28,18 @@ import (
 )
 
 const Environment = "FIBE_TEST_EDITION"
-const Full = "full"
-const Community = "community"
+
+const (
+	Full       = "full"
+	Community  = "community"
+	Enterprise = "enterprise"
+)
+
+const (
+	Shared         = "shared"
+	EnterpriseOnly = "enterprise-only"
+	mixed          = "mixed" // A suite or subtest group with case-level decisions.
+)
 
 //go:embed cases.json
 var files embed.FS
@@ -55,10 +65,10 @@ type Case struct {
 }
 
 func Mode(value string) (string, error) {
-	if value == "" || value == "enterprise" {
+	if value == "" {
 		return Full, nil
 	}
-	if value != Full && value != Community {
+	if value != Full && value != Community && value != Enterprise {
 		return "", fmt.Errorf("unknown %s %q: use full, enterprise or community", Environment, value)
 	}
 	return value, nil
@@ -107,17 +117,20 @@ func Validate(root string, m Manifest) error {
 		if r.Package != "integration" && r.Package != "internal/mcpserver" {
 			return fmt.Errorf("unknown package %s", r.Package)
 		}
-		if r.Edition != "community" && r.Edition != "enterprise" && r.Edition != "mixed" {
+		if r.Edition != Shared && r.Edition != EnterpriseOnly && r.Edition != mixed {
 			return fmt.Errorf("invalid classification %s", k)
 		}
 		if r.Reason == "" {
 			return fmt.Errorf("missing review reason %s", k)
 		}
-		if r.Edition == "mixed" && len(r.Cases) == 0 {
-			return fmt.Errorf("mixed suite has no case decisions: %s", k)
+		if r.Edition == mixed && (len(r.Cases) == 0 || len(r.Inventory) != 0) {
+			return fmt.Errorf("mixed suite must use case decisions: %s", k)
+		}
+		if r.Edition != mixed && len(r.Cases) != 0 {
+			return fmt.Errorf("only mixed suites may use case decisions: %s", k)
 		}
 		for n, e := range r.Cases {
-			if n == "" || (e != "community" && e != "enterprise" && e != "mixed") {
+			if n == "" || (e != Shared && e != EnterpriseOnly && e != mixed) {
 				return fmt.Errorf("invalid subcase %s/%s", k, n)
 			}
 		}
@@ -148,16 +161,19 @@ func Validate(root string, m Manifest) error {
 				k := pkg + "/" + fn.Name.Name
 				if r, ok := declared[k]; ok {
 					seen[k] = true
-					if pkg == "integration" && !calls(fn, "requireEdition") {
-						return fmt.Errorf("live test has no edition guard: %s", k)
+					if pkg == "integration" && !startsWithEditionGuard(fn) {
+						return fmt.Errorf("live test must start with requireEdition(t): %s", k)
+					}
+					if !live {
+						return fmt.Errorf("classified MCP test must call requireRealServer(t): %s", k)
 					}
 					literals, dynamic, unguarded := subtests(fn)
 					literals = append(literals, literalActionSubtests(fn)...)
-					if r.Edition == "mixed" && unguarded {
+					if r.Edition == mixed && unguarded {
 						return fmt.Errorf("mixed suite has an unguarded t.Run: %s", k)
 					}
 					for _, name := range literals {
-						if r.Edition == "mixed" {
+						if r.Edition == mixed {
 							if _, ok := r.Cases[name]; !ok {
 								return fmt.Errorf("unclassified literal subtest %s/%s", k, name)
 							}
@@ -379,6 +395,22 @@ func literalActionSubtests(fn *ast.FuncDecl) []string {
 	return names
 }
 
+func startsWithEditionGuard(fn *ast.FuncDecl) bool {
+	if fn.Body == nil || len(fn.Body.List) == 0 {
+		return false
+	}
+	stmt, ok := fn.Body.List[0].(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	call, ok := stmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	name, ok := call.Fun.(*ast.Ident)
+	return ok && name.Name == "requireEdition"
+}
+
 func calls(fn *ast.FuncDecl, name string) bool {
 	found := false
 	ast.Inspect(fn, func(n ast.Node) bool {
@@ -404,9 +436,9 @@ func normalized(s string) string {
 func (m Manifest) Cases() []Case {
 	out := []Case{}
 	for _, r := range m.Rules {
-		if r.Edition == "mixed" {
+		if r.Edition == mixed {
 			for n, e := range r.Cases {
-				if e != "mixed" {
+				if e != mixed {
 					out = append(out, Case{r.Package, r.Name + "/" + normalized(n), e, r.Reason})
 				}
 			}
@@ -494,7 +526,7 @@ func (m Manifest) Select(mode, pkg, pattern string) ([]Case, error) {
 		if pkg != "" && c.Package != pkg {
 			continue
 		}
-		if resolved == Community && c.Edition != "community" {
+		if resolved == Community && c.Edition != Shared {
 			continue
 		}
 		match, e := Matches(pattern, c.Name)
@@ -519,7 +551,7 @@ func (m Manifest) Decision(pkg, name string) (string, string, error) {
 		if len(parts) == 1 {
 			return r.Edition, r.Reason, nil
 		}
-		if r.Edition != "mixed" {
+		if r.Edition != mixed {
 			path := strings.Join(parts[1:], "/")
 			for _, n := range r.Inventory {
 				n = normalized(n)
@@ -578,7 +610,7 @@ func Current() string {
 }
 
 // Prepare is called by the actual Go test executable before fixture bootstrap.
-// Community -list enumerates selected cases offline. The default full run is unchanged.
+// An explicit edition makes -list enumerate selected live cases offline.
 func Prepare(pkg string, allowUnit bool) (bool, error) {
 	if !flag.Parsed() {
 		flag.Parse()
@@ -610,7 +642,7 @@ func Prepare(pkg string, allowUnit bool) (bool, error) {
 		}
 		return true, nil
 	}
-	fmt.Fprintf(os.Stderr, "SDK edition=community selected=%d package=%s\n", len(selected), pkg)
+	fmt.Fprintf(os.Stderr, "SDK edition=%s selected=%d package=%s\n", activeMode, len(selected), pkg)
 	return false, nil
 }
 func unitMatches(root, pkg, pattern string) bool {
@@ -645,7 +677,7 @@ func Require(t *testing.T, pkg string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if decision == "enterprise" {
+	if activeMode == Community && decision == EnterpriseOnly {
 		t.Skipf("edition=community: Enterprise prerequisite (%s)", reason)
 	}
 }

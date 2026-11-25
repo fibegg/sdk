@@ -12,6 +12,18 @@ Requires Go 1.26.11 or newer when building from source. See
 [`COMPATIBILITY.md`](COMPATIBILITY.md) for the stable contract and
 [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
+## SDK integration and E2E tests
+
+Set `FIBE_DOMAIN` to the target API URL and `FIBE_API_KEY` to an explicitly
+scoped key for that installation.
+
+| Target edition | Command | Live coverage |
+| --- | --- | --- |
+| Community | `mage testCommunity` | Shared cases |
+| Enterprise | `mage testEnterprise` | Shared and Enterprise-only cases |
+
+See [test editions](TEST_EDITIONS.md) for offline listings and fixture requirements.
+
 ## Install the CLI
 
 ### Homebrew
@@ -360,7 +372,3 @@ The link directory's parent must be writable by the agent user: linking stages
 and atomically replaces the whole directory. A writable `/app/playground` under
 a root-owned `/app` is insufficient. Use a directory under writable persistent
 data rather than changing `/app` ownership or permissions.
-
-Integration and E2E tests can select Community with `FIBE_TEST_EDITION=community`.
-See [test edition selection](TEST_EDITIONS.md) for offline listing, scope/fixture
-requirements and case-review rules. The default remains the full suite.

@@ -1,62 +1,58 @@
 # SDK integration test editions
 
-The SDK supports both application editions. No client API or assertion changes
-with the test edition. An unset `FIBE_TEST_EDITION`, `full`, or `enterprise` runs
-the existing complete suite. `community` selects reviewed supported cases in the
-actual Go integration and live MCP test executables, before fixture creation.
-Unknown values fail. The `enterprise` spelling is an alias for `full`.
+Set `FIBE_DOMAIN` to the target API URL and `FIBE_API_KEY` to a normal-user
+key with explicit scopes. Each command opts in to live tests and uses the same
+URL, key and fixture environment as the Go suites.
+
+| Target edition | Command | Live coverage |
+| --- | --- | --- |
+| Community | `mage testCommunity` | Shared cases |
+| Enterprise | `mage testEnterprise` | Shared and Enterprise-only cases |
+
+For direct Go runs, set `FIBE_TEST_EDITION=community` or
+`FIBE_TEST_EDITION=enterprise`. Existing invocations with the edition unset
+or set to `full` retain the default complete suite.
 
 ```sh
-# Offline evaluation: no API, credentials, bootstrap or Host access.
-go run ./scripts/test-edition --edition community --list
-go run ./scripts/test-edition --edition community --json
-go run ./scripts/test-edition --edition community --package integration \
-  --run '^TestAPIKeys_CRUD$' --json
+# List reviewed cases without an installation or credentials.
+FIBE_TEST_EDITION=community go test ./integration ./internal/mcpserver -list .
+FIBE_TEST_EDITION=enterprise go test ./integration ./internal/mcpserver -list .
 
-# Actual tests; the ordinary live opt-in and credentials are still required.
+# Run a focused Community API-key smoke.
 FIBE_TEST_EDITION=community FIBE_INTEGRATION=1 \
   go test ./integration -run '^TestAPIKeys_CRUD$' -count=1 -parallel=1 -timeout=120s
-FIBE_TEST_EDITION=community go test ./integration -list .
-FIBE_TEST_EDITION=community mage integrationTest
-FIBE_TEST_EDITION=community mage integrationList
 ```
 
-Set `FIBE_DOMAIN` to the Community API URL and `FIBE_API_KEY` to an explicitly
-scoped key. The existing fixture rejects a wildcard key for normal-user tests.
 Community has one administrator Player; the same Player can own an explicitly
 scoped normal key and a separate optional wildcard `FIBE_ADMIN_API_KEY` for
 admin coverage. A second Player is never fabricated. Existing Host, GitHub and
 provider prerequisites still apply and retain their named skips when absent.
 A live Community invocation reads `/route-manifest.json` without credentials
-and fails if it targets an Enterprise executable. Offline listing and default
-full runs never require this endpoint.
+and fails if it targets an Enterprise executable. Offline listing and Enterprise runs omit this check.
 
 For a focused no-Host smoke, `TestAPIKeys_CRUD` needs `keys:manage`, `agents:read`
 and `playgrounds:read`. It creates, lists and deletes API keys using the real SDK.
 Other tests need their own ordinary API scopes; selection does not grant them.
 Only explicitly opted-in integration commands may contact a live API.
 
-`internal/testedition/cases.json` records top-level test decisions, known
-subtest names and the reason for each review. Mixed suites use `runEdition` at
-each case boundary: supported cases run their original assertions, Enterprise
-cases report an edition skip, and unknown case names fail. Shared Enterprise
-fixtures (Vault secrets and managed Gitea sort rows) are created only by a full
-run. API failures in selected cases remain failures. Selection never turns an
-unexpected response into a skip.
+`internal/testedition/cases.json` is the edition declaration for each live
+test. `shared` checks run in both editions. `enterprise-only` checks need
+features such as Teams, invitations, a second Player, or the Library. A
+`mixed` suite is a container whose cases have individual declarations. It
+uses `runEdition` so each subtest is gated before its fixtures and assertions.
+Enterprise fixtures such as Vault secrets and managed Gitea sort rows are
+created only in the complete suite.
 
-Both the offline evaluator and Community Go test startup reject unknown tests,
-unclassified literal subtests, unguarded mixed cases, invalid regular expressions
-and selections containing zero eligible cases. A misspelled subtest suffix also
-fails. `-run` uses Go's slash-separated component expressions and alternatives.
-Enumeration counts named checks, not guaranteed passes: missing credentials,
-Hosts or provider prerequisites remain visible runtime skips. Provider matrices
-retain their existing credential and `CHAT_E2E_CASE` / `CHAT_E2E_CASE_EXCEPT` filters.
+Explicit edition runs validate the inventory before fixture setup. Invalid
+`-run` patterns and selections containing zero eligible cases fail. `-run`
+uses Go's slash-separated component expressions and alternatives. Listings
+count reviewed cases. Missing credentials, Hosts, or provider prerequisites
+can still skip listed cases at runtime. Provider matrices honor the existing
+credential and `CHAT_E2E_CASE` / `CHAT_E2E_CASE_EXCEPT` filters.
 
-The MCP package contains hermetic tests as well as live tests. The evaluator
-lists only live tests there. Direct Go invocations can still select existing
-hermetic tests; a typo matching neither a live nor a hermetic test fails in
-Community mode. Use `go test -c` for compile-only Community checks; an intentionally
-empty `-run '^$'` is an error, not a qualification.
+The MCP package also contains hermetic tests. The explicit edition listings
+show live cases only, and direct `-run` invocations can select hermetic tests.
+Use `go test -c` for compile-only checks with an explicit edition.
 
 ## Standard runners and the external harness
 
@@ -78,9 +74,6 @@ Its ordinary test entry points inherit `FIBE_TEST_EDITION`. Community bootstrap
 requests only the primary role and does not configure a managed Gitea fixture.
 The normal full bootstrap still requests primary, second-user and rate-limit
 fixtures. Container network/Host preparation remains the owning harness's job.
-No released SDK artifact is changed by editing this checkout; candidate harness
-runs must select a committed SDK revision explicitly. There is no SDK release in
-this change.
 
 ## Operator-template launch coverage
 
@@ -98,10 +91,11 @@ by the existing Playground lifecycle tests.
 
 ## Reviewing a new or changed case
 
-Run `go test ./internal/testedition` and offline evaluation after edits. Every new
-integration test and live MCP test needs an explicit rule; every literal
-subtest needs a listed name or mixed decision. Enterprise-only fixture setup
-must stay below the edition gate. Keep retained checks and their assertions.
+Run `go test ./internal/testedition` and offline evaluation after edits. Add a
+manifest rule for each new integration test or live MCP test. Start integration
+tests with `requireEdition(t)` and use `requireRealServer(t)` for live MCP setup.
+List literal subtests in the rule's inventory or assign each its own edition in
+a mixed suite. Keep Enterprise-only fixtures below the edition gate.
 
 Table-driven names cannot all be inferred from a literal `t.Run` call. Only
 those dynamic test functions carry a `dynamic_review` digest of their canonical
@@ -121,7 +115,7 @@ and literal discovery, mixed-case refusals, unknown names, empty selections,
 pattern semantics and Community server verification.
 
 The Library boundary includes Artefacts, Agent-attached Artefacts, Feedbacks and
-Mutters. Their CLI and MCP checks remain in the full suite. Agent chat messages,
+Mutters. Their live CLI and MCP checks require Enterprise. Agent chat messages,
 activity and ordinary mounted files remain Community checks. Mixed Agent flows
 gate only the Library operations and retain the surrounding core assertions.
 The status-summary case remains Community; its sibling that creates a Vault
@@ -133,7 +127,7 @@ existing operator's `FIBE_NATIVE_ADMIN_EMAIL` and `FIBE_NATIVE_ADMIN_PASSWORD`
 (or `FIBE_NATIVE_EMAIL` / `FIBE_NATIVE_PASSWORD`) when running that opted-in
 fixture workflow. The browser identity must match the SDK key's Player. This
 uses an in-memory cookie jar and does not create another Player or write a CLI
-profile. Full-suite fixture setup is unchanged.
+profile. Enterprise uses the existing fixture setup.
 
 Literal keyed action tables whose case names join two fields with a dot are
 also enumerated from the Go AST. A missing classification fails offline even
