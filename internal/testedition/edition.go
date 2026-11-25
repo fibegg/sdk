@@ -709,7 +709,7 @@ func CheckServer(domain string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Community route manifest returned HTTP %d", resp.StatusCode)
+		return fmt.Errorf("route manifest for Community returned HTTP %d", resp.StatusCode)
 	}
 	var manifest struct {
 		Edition string `json:"edition"`
@@ -718,7 +718,7 @@ func CheckServer(domain string) error {
 		return fmt.Errorf("read Community route manifest: %w", err)
 	}
 	if manifest.Edition != Community {
-		return fmt.Errorf("Community tests require edition=community; server reports %q", manifest.Edition)
+		return fmt.Errorf("tests targeting Community require edition=community, server reports %q", manifest.Edition)
 	}
 	return nil
 }

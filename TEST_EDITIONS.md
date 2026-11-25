@@ -28,7 +28,8 @@ scoped normal key and a separate optional wildcard `FIBE_ADMIN_API_KEY` for
 admin coverage. A second Player is never fabricated. Existing Host, GitHub and
 provider prerequisites still apply and retain their named skips when absent.
 A live Community invocation reads `/route-manifest.json` without credentials
-and fails if it targets an Enterprise executable. Offline listing and Enterprise runs omit this check.
+and fails if it targets an Enterprise executable. Offline listing and Enterprise
+runs omit this check.
 
 For a focused no-Host smoke, `TestAPIKeys_CRUD` needs `keys:manage`, `agents:read`
 and `playgrounds:read`. It creates, lists and deletes API keys using the real SDK.
