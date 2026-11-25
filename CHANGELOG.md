@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-11-25
+
+### Added
+
+- Run the shared SDK integration and live MCP tests with `mage testCommunity`
+  or the complete suite with `mage testEnterprise`. Both editions have an
+  offline case listing, and an inventory check requires a declaration for
+  every live case.
+- Cover launching a pinned operator-template version with an owned Host.
+  The Community GitHub fixture uses the existing operator's credentials.
+
 ## [0.3.10] - 2026-11-17
 
 ### Removed
