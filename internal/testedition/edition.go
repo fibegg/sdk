@@ -88,9 +88,13 @@ func Root() (string, error) {
 		return "", err
 	}
 	for {
-		b, e := os.ReadFile(filepath.Join(dir, "go.mod"))
-		if e == nil && strings.Contains(string(b), "module github.com/fibegg/sdk") {
-			return dir, nil
+		root, err := os.OpenRoot(dir)
+		if err == nil {
+			b, err := root.ReadFile("go.mod")
+			_ = root.Close()
+			if err == nil && strings.Contains(string(b), "module github.com/fibegg/sdk") {
+				return dir, nil
+			}
 		}
 		next := filepath.Dir(dir)
 		if next == dir {
@@ -143,11 +147,7 @@ func Validate(root string, m Manifest) error {
 			return err
 		}
 		for _, path := range entries {
-			b, e := os.ReadFile(path)
-			if e != nil {
-				return e
-			}
-			f, e := parser.ParseFile(token.NewFileSet(), path, b, 0)
+			f, e := parser.ParseFile(token.NewFileSet(), path, nil, 0)
 			if e != nil {
 				return e
 			}
