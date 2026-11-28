@@ -172,6 +172,19 @@ func TestMCPEditionDiscovery(t *testing.T) {
 				for _, result := range []string{catalog, schema, help} {
 					require.Contains(t, result, communityNotice)
 				}
+				registry := editionDispatch(t, auto, "fibe_schema", nil)
+				var structured struct {
+					Edition string
+					Schema  map[string]json.RawMessage
+				}
+				require.NoError(t, json.Unmarshal([]byte(registry), &structured))
+				require.Equal(t, communityNotice, structured.Edition)
+				require.Contains(t, structured.Schema, "agent")
+				require.NotContains(t, structured.Schema, "edition")
+				agentList := editionDispatch(t, auto, "fibe_schema", map[string]any{"resource": "agent", "operation": "list"})
+				structured.Schema = nil
+				require.NoError(t, json.Unmarshal([]byte(agentList), &structured))
+				require.NotContains(t, structured.Schema, "edition")
 				testCommunityRefusals(t, auto)
 				require.Zero(t, api.requests.Load())
 				// Full mode leaves the operation on its normal API path.
@@ -230,6 +243,22 @@ func testCommunityRefusals(t *testing.T, s *Server) {
 		require.True(t, result.IsError)
 		require.Equal(t, want, result.Content[0].(mcp.TextContent).Text)
 	}
+	response := s.mcp.HandleMessage(context.Background(), []byte(
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"fibe_templates_search","arguments":{}}}`,
+	))
+	serialized, err := json.Marshal(response)
+	require.NoError(t, err)
+	var reply struct {
+		Result struct {
+			IsError bool
+			Content []struct{ Text string }
+		}
+	}
+	require.NoError(t, json.Unmarshal(serialized, &reply))
+	require.True(t, reply.Result.IsError)
+	require.Len(t, reply.Result.Content, 1)
+	require.Equal(t, "templates search is not available: this server runs the Community edition.", reply.Result.Content[0].Text)
+
 }
 
 func TestMCPEditionChangesWithProfile(t *testing.T) {
@@ -273,17 +302,19 @@ func TestMCPEditionToolAndResourceMappings(t *testing.T) {
 			t.Logf("uncertain tool %s: %s", name, strings.Join(unknown, ", "))
 		}
 	}
+	hidden := map[string]string{}
 	for resource, operations := range resourceschema.Registry() {
 		for operation := range operations {
 			routes := resourceOperationRoutes(resource, operation)
 			require.NotEmpty(t, routes, "%s.%s", resource, operation)
 			if !m.offers(routes) {
-				t.Logf("hidden operation %s.%s: %s", resource, operation, m.absentOperationRoutes(routes))
+				hidden[resource+"."+operation] = m.absentOperationRoutes(routes)
 			} else if unknown := unknownOperationRoutes(routes); len(unknown) > 0 {
 				t.Logf("uncertain operation %s.%s: %s", resource, operation, strings.Join(unknown, ", "))
 			}
 		}
 	}
+	require.Equal(t, editionExpectedOmissions(t).Resources, hidden)
 }
 
 // The declarations identify shared cases, but their tool calls and arguments
@@ -330,6 +361,9 @@ func TestMCPEditionKeepsSharedOperations(t *testing.T) {
 			} else {
 				check(name, nil)
 			}
+		case "TestMCPEditionLiveSurface":
+			check("fibe_status", nil)
+			resource("list", "agents")
 		case "TestPlaygroundActionDispatchesToActionEndpoint":
 			check("fibe_playgrounds_action", nil)
 		case "TestResourceDeleteDispatchesWithIDOrName":
@@ -442,6 +476,7 @@ func TestMCPEditionCLIInventory(t *testing.T) {
 		"auth": true, "completion": true, "config": true, "docs": true, "doctor": true,
 		"local": true, "login": true, "mcp": true, "schema": true, "version": true,
 	}
+	hidden := map[string]string{}
 	for _, command := range tree.Commands {
 		path, ok := strings.CutPrefix(command.Path, "fibe ")
 		if !ok || !command.Runnable {
@@ -453,11 +488,12 @@ func TestMCPEditionCLIInventory(t *testing.T) {
 		}
 		routes := commandRoutes(path)
 		if !m.offers(routes) {
-			t.Logf("hidden command %s: %s", path, m.absentOperationRoutes(routes))
+			hidden[path] = m.absentOperationRoutes(routes)
 		} else if unknown := unknownOperationRoutes(routes); routes == "" || len(unknown) > 0 {
 			t.Logf("uncertain command %s: %s", path, strings.Join(unknown, ", "))
 		}
 	}
+	require.Equal(t, editionExpectedOmissions(t).Commands, hidden)
 }
 
 func TestMCPEditionRetriesAndNotifies(t *testing.T) {
@@ -500,4 +536,19 @@ func TestMCPEditionRetriesAndNotifies(t *testing.T) {
 	require.EqualValues(t, 2, attempts.Load())
 	notifications := collectProgressNotifications(t, session.ch, 1)
 	require.Equal(t, mcp.MethodNotificationToolsListChanged, notifications[0].Method)
+}
+
+func editionExpectedOmissions(t *testing.T) struct {
+	Resources map[string]string
+	Commands  map[string]string
+} {
+	t.Helper()
+	data, err := os.ReadFile("testdata/community-omissions.json")
+	require.NoError(t, err)
+	var want struct {
+		Resources map[string]string
+		Commands  map[string]string
+	}
+	require.NoError(t, json.Unmarshal(data, &want))
+	return want
 }

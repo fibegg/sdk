@@ -165,10 +165,15 @@ func New(cfg Config) *Server {
 
 	opts := []mcpserver.ServerOption{
 		mcpserver.WithToolCapabilities(true),
-		mcpserver.WithToolFilter(s.editionTools),
 		mcpserver.WithResourceCapabilities(false, true),
 	}
 	hooks := &mcpserver.Hooks{}
+	// Filter the advertised list only. Direct calls to previously advertised
+	// tools reach the dispatcher and receive its plain availability error.
+	// This server uses mcp-go's default unpaginated tool list.
+	hooks.AddAfterListTools(func(ctx context.Context, _ any, _ *mcp.ListToolsRequest, result *mcp.ListToolsResult) {
+		result.Tools = s.editionTools(ctx, result.Tools)
+	})
 	hooks.AddOnUnregisterSession(func(_ context.Context, session mcpserver.ClientSession) {
 		s.sessions.drop(session.SessionID())
 		if d := s.editions; d != nil {

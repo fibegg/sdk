@@ -312,19 +312,6 @@ func (m *routeManifest) schemaNotice(result any) any {
 	if m == nil {
 		return result
 	}
-	if registry, ok := result.(map[string]map[string]any); ok {
-		out := make(map[string]any, len(registry)+1)
-		for key, schema := range registry {
-			out[key] = schema
-		}
-		out["edition"] = communityNotice
-		return out
-	}
-	if schema, ok := result.(map[string]any); ok {
-		out := maps.Clone(schema)
-		out["edition"] = communityNotice
-		return out
-	}
 	return map[string]any{"schema": result, "edition": communityNotice}
 }
 
