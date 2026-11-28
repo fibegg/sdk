@@ -4,9 +4,9 @@ package contracts
 import _ "embed"
 
 //go:embed rest.json
-var restJSON []byte
+var restJSON string
 
 // REST returns the REST inventory.
-func REST() []byte {
+func REST() string {
 	return restJSON
 }

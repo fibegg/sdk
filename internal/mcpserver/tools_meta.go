@@ -306,7 +306,7 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 			result := map[string]any{
 				"path":  path,
 				"short": cmd.Short,
-				"long":  cmd.Long,
+				"long":  cliHelpLong(cmd, manifest),
 				"help":  s.renderCLIHelp(cmd, manifest),
 			}
 			if manifest != nil {
@@ -554,6 +554,8 @@ func (s *Server) fibeRunRequiresConfirm(args map[string]any) (bool, error) {
 	if s.cfg.CobraRoot == nil {
 		return false, fmt.Errorf("fibe_run command safety cannot be classified without Cobra command metadata")
 	}
+	s.runMu.Lock()
+	defer s.runMu.Unlock()
 	command, _, err := s.cfg.CobraRoot.Find(strs)
 	if err != nil {
 		return false, fmt.Errorf("fibe_run command safety classification failed: %w", err)

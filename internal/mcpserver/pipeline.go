@@ -222,7 +222,7 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 		return nil, err
 	}
 	if manifest := s.sessionManifest(ctx); manifest != nil {
-		if err := s.preflightPipelineEdition(ctx, manifest, req.Steps); err != nil {
+		if err := s.preflightPipelineEdition(manifest, req.Steps); err != nil {
 			return nil, err
 		}
 	}
@@ -308,7 +308,7 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 
 // Preflight static operations before running earlier steps. Steps whose args
 // or active profile depend on earlier results are checked at dispatch time.
-func (s *Server) preflightPipelineEdition(ctx context.Context, manifest *routeManifest, steps []pipelineStep) error {
+func (s *Server) preflightPipelineEdition(manifest *routeManifest, steps []pipelineStep) error {
 	var profileMayChange bool
 	var walk func([]pipelineStep) error
 	walk = func(steps []pipelineStep) error {
@@ -329,10 +329,12 @@ func (s *Server) preflightPipelineEdition(ctx context.Context, manifest *routeMa
 			}
 			if tool, ok := s.dispatcher.lookup(step.Tool); ok {
 				args := step.Args
-				if step.InputPath != "" {
+				roots := map[string]bool{}
+				collectJSONPathRoots(args, roots)
+				if step.InputPath != "" || len(roots) > 0 {
 					args = nil
 				}
-				if err := s.checkToolEdition(ctx, manifest, tool, args); err != nil {
+				if err := s.checkToolEdition(manifest, tool, args); err != nil {
 					return err
 				}
 			}
@@ -622,7 +624,7 @@ func (r *pipelineRunner) execTool(stepPath string, step pipelineStep, scope map[
 
 	if r.dryRun {
 		if tool, ok := r.srv.dispatcher.lookup(step.Tool); ok {
-			if err := r.srv.checkToolEdition(r.ctx, r.srv.sessionManifest(r.ctx), tool, resolved); err != nil {
+			if err := r.srv.checkToolEdition(r.srv.sessionManifest(r.ctx), tool, resolved); err != nil {
 				return err
 			}
 		}

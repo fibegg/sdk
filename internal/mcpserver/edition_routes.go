@@ -19,7 +19,7 @@ var restRoutes = sync.OnceValue(func() map[string]restOperation {
 	var contract struct {
 		Operations []restOperation `json:"operations"`
 	}
-	if err := json.Unmarshal(contracts.REST(), &contract); err != nil {
+	if err := json.Unmarshal([]byte(contracts.REST()), &contract); err != nil {
 		panic(err)
 	}
 	index := make(map[string]restOperation, len(contract.Operations))
@@ -116,6 +116,7 @@ const (
 // These SDK methods have dynamic, paginated or composed paths that rest.json
 // does not represent as a usable template. Keep these entries to the paths
 // used by their client implementations.
+// #nosec G101 -- the table contains SDK method names and public route templates.
 var restRouteOverrides = map[string]string{
 	"APIKeyService.List":                                      "GET:/api/api_keys",
 	"AgentService.List":                                       "GET:/api/agents",

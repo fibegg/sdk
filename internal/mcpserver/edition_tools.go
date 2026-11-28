@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fibegg/sdk/fibe"
 	"github.com/fibegg/sdk/internal/resourceschema"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -22,8 +23,11 @@ func (s *Server) sessionManifest(ctx context.Context) *routeManifest {
 	st := s.sessionFor(ctx)
 	st.mu.RLock()
 	domain, key := st.domain, st.apiKey
-	if st.client != nil {
-		domain, key = st.effectiveDomain, st.effectiveAPIKey
+	pinned := st.client != nil
+	if pinned {
+		baseURL := st.client.BaseURL()
+		st.mu.RUnlock()
+		return s.manifestFor(baseURL)
 	}
 	st.mu.RUnlock()
 	if domain == "" && (!s.httpMode || key != "" || apiKeyFromContext(ctx) != "") {
@@ -32,7 +36,10 @@ func (s *Server) sessionManifest(ctx context.Context) *routeManifest {
 	if domain == "" || (s.httpMode && !s.domainAllowed(domain)) {
 		domain = s.cfg.Domain
 	}
-	return s.manifestFor(mcpBaseURL(domain))
+	if domain == s.cfg.Domain {
+		return s.manifestFor(s.baseCli.BaseURL())
+	}
+	return s.manifestFor(fibe.NewClient(fibe.WithDisableAutoConfig(), fibe.WithDomain(domain)).BaseURL())
 }
 
 func (s *Server) refreshEdition(ctx context.Context, previous *routeManifest) {
@@ -167,7 +174,7 @@ func (s *Server) editionTools(ctx context.Context, tools []mcp.Tool) []mcp.Tool 
 	return out
 }
 
-func (s *Server) checkToolEdition(ctx context.Context, manifest *routeManifest, t *toolImpl, args map[string]any) error {
+func (s *Server) checkToolEdition(manifest *routeManifest, t *toolImpl, args map[string]any) error {
 	if manifest == nil {
 		return nil
 	}
@@ -191,7 +198,7 @@ func (s *Server) checkToolEdition(ctx context.Context, manifest *routeManifest, 
 	case "fibe_call":
 		if target, ok := s.dispatcher.lookup(argString(args, "tool")); ok && target.name != "fibe_call" && target.name != "fibe_pipeline" {
 			subArgs, _ := args["args"].(map[string]any)
-			return s.checkToolEdition(ctx, manifest, target, subArgs)
+			return s.checkToolEdition(manifest, target, subArgs)
 		}
 	case "fibe_run":
 		return s.checkRunEdition(manifest, args)

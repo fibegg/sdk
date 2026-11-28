@@ -119,7 +119,8 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 		return nil, fmt.Errorf("tool %q requires local access, which is disabled for HTTP MCP transports", name)
 	}
 
-	if err := d.srv.checkToolEdition(ctx, d.srv.sessionManifest(ctx), t, handlerArgs); err != nil {
+	manifest := d.srv.sessionManifest(ctx)
+	if err := d.srv.checkToolEdition(manifest, t, handlerArgs); err != nil {
 		return nil, err
 	}
 
@@ -142,6 +143,15 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	c, err := d.srv.resolveClient(ctx)
 	if err != nil {
 		return nil, err
+	}
+	// A concurrent profile switch can replace the client after preflight.
+	if d.srv.editions != nil {
+		actual := d.srv.manifestFor(c.BaseURL())
+		if actual != manifest {
+			if err := d.srv.checkToolEdition(actual, t, handlerArgs); err != nil {
+				return nil, err
+			}
+		}
 	}
 	result, err := t.handler(ctx, c, handlerArgs)
 	if err != nil {

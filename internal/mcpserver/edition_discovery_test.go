@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/fibegg/sdk/fibe"
 	"github.com/fibegg/sdk/internal/resourceschema"
+	"github.com/fibegg/sdk/internal/testedition"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -179,6 +181,18 @@ func TestMCPEditionDiscovery(t *testing.T) {
 				editionDispatch(t, auto, "fibe_resource_list", map[string]any{"resource": "templates"})
 			}
 			require.EqualValues(t, 1, api.requests.Load())
+
+			siblingStatus, siblingBody := 200, community
+			if tc.name == "community" {
+				siblingStatus, siblingBody = 404, nil
+			}
+			sibling := newEditionTestAPI(t, siblingStatus, siblingBody, false)
+			editionDispatch(t, auto, "fibe_auth_set", map[string]any{"domain": sibling.server.URL, "validate": false})
+			require.Equal(t, tc.name == "community", containsName(editionListedNames(t, auto, ctx), "fibe_templates_search"))
+			editionDispatch(t, auto, "fibe_auth_set", map[string]any{"domain": api.server.URL, "validate": false})
+			require.Equal(t, autoNames, editionListedNames(t, auto, ctx))
+			require.Zero(t, sibling.requests.Load())
+			require.EqualValues(t, 1, sibling.probes.Load())
 			require.EqualValues(t, 1, api.probes.Load(), "a successful or failed probe must be cached")
 		})
 	}
@@ -251,7 +265,9 @@ func TestMCPEditionToolAndResourceMappings(t *testing.T) {
 		tool, _ := s.dispatcher.lookup(name)
 		require.NotEmpty(t, tool.routes, name)
 		if !m.offersTool(tool) {
-			t.Logf("hidden tool %s: %s", name, formatOperationRoutes(tool.routes))
+			t.Logf("hidden tool %s: %s", name, m.absentOperationRoutes(tool.routes))
+		} else if unknown := unknownOperationRoutes(tool.routes); len(unknown) > 0 {
+			t.Logf("uncertain tool %s: %s", name, strings.Join(unknown, ", "))
 		}
 	}
 	for resource, operations := range resourceschema.Registry() {
@@ -259,10 +275,109 @@ func TestMCPEditionToolAndResourceMappings(t *testing.T) {
 			routes := resourceOperationRoutes(resource, operation)
 			require.NotEmpty(t, routes, "%s.%s", resource, operation)
 			if !m.offers(routes) {
-				t.Logf("hidden operation %s.%s: %s", resource, operation, formatOperationRoutes(routes))
+				t.Logf("hidden operation %s.%s: %s", resource, operation, m.absentOperationRoutes(routes))
+			} else if unknown := unknownOperationRoutes(routes); len(unknown) > 0 {
+				t.Logf("uncertain operation %s.%s: %s", resource, operation, strings.Join(unknown, ", "))
 			}
 		}
 	}
+}
+
+// The declarations identify shared cases, but their tool calls and arguments
+// live in Go fixtures. Keep this small cross-reference checked against them.
+func TestMCPEditionKeepsSharedOperations(t *testing.T) {
+	api := newEditionTestAPI(t, 200, fixtureManifest(t, "community"), false)
+	s := newEditionTestServer(t, api.server.URL, "auto", "full")
+	manifest := s.sessionManifest(context.Background())
+	inventory, err := testedition.Load()
+	require.NoError(t, err)
+	shared, err := inventory.Select(testedition.Community, "internal/mcpserver", "")
+	require.NoError(t, err)
+	check := func(name string, args map[string]any) {
+		tool, ok := s.dispatcher.lookup(name)
+		require.True(t, ok, name)
+		require.True(t, manifest.offersTool(tool), name)
+		require.NoError(t, s.checkToolEdition(manifest, tool, args))
+	}
+	resource := func(tool, resource string) {
+		_, _, _, ok := resourceschema.SchemaFor(resource, tool)
+		require.True(t, ok, "%s %s", resource, tool)
+		check("fibe_resource_"+tool, map[string]any{"resource": resource})
+	}
+	mutation := func(resource, operation string) {
+		_, _, _, ok := resourceschema.MutationSchemaFor(resource, operation)
+		require.True(t, ok, "%s %s", resource, operation)
+		check("fibe_resource_mutate", map[string]any{"resource": resource, "operation": operation})
+	}
+	for _, entry := range shared {
+		test, name, _ := strings.Cut(entry.Name, "/")
+		switch test {
+		case "TestCLIParity_GetTools":
+			resource("get", strings.TrimSuffix(name, "_not_found"))
+		case "TestCLIParity_ListTools":
+			if res, ok := strings.CutPrefix(name, "fibe_resource_list_"); ok {
+				resource("list", res)
+			} else {
+				tool := name[:strings.LastIndexByte(name, '_')]
+				check(tool, nil)
+			}
+		case "TestE2EMCPTools":
+			if name == "fibe_resource_list" {
+				resource("list", "playgrounds")
+			} else {
+				check(name, nil)
+			}
+		case "TestPlaygroundActionDispatchesToActionEndpoint":
+			check("fibe_playgrounds_action", nil)
+		case "TestResourceDeleteDispatchesWithIDOrName":
+			mutation("agent", "create")
+			resource("delete", "agent")
+		case "TestResourceGetDispatchesWithIDOrName":
+			mutation("agent", "create")
+			resource("get", "agent")
+		case "TestResourceListDispatchesToResourceService":
+			resource("list", "agent")
+		case "TestResourceMutateDispatchesCreateAndUpdate":
+			mutation("agent", "create")
+			mutation("agent", "update")
+		case "TestResourceMutateDispatchesScopedActions":
+			res, op, ok := strings.Cut(name, ".")
+			require.True(t, ok, entry.Name)
+			mutation(res, op)
+		default:
+			t.Errorf("review the Community operations exercised by %s", entry.Name)
+		}
+	}
+	t.Logf("checked %d declared shared live MCP cases offline", len(shared))
+}
+
+func TestMCPEditionHTTPStartupAndDomain(t *testing.T) {
+	community := newEditionTestAPI(t, 200, fixtureManifest(t, "community"), false)
+	enterprise := newEditionTestAPI(t, 200, fixtureManifest(t, "enterprise"), false)
+	cfg := DefaultConfig()
+	cfg.Domain = enterprise.server.URL
+	cfg.AllowedDomains = []string{community.server.URL}
+	s := New(cfg)
+	require.NoError(t, s.RegisterAll())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- s.ServeHTTP(ctx, "127.0.0.1:0", true) }()
+	require.Eventually(t, func() bool { return enterprise.probes.Load() == 1 }, time.Second, time.Millisecond)
+	cancel()
+	require.ErrorIs(t, <-done, context.Canceled)
+
+	req := httptest.NewRequest(http.MethodPost, "http://localhost/mcp", nil)
+	req.Header.Set("X-Fibe-Domain", community.server.URL)
+	require.Contains(t, editionListedNames(t, s, s.injectAuthFromRequest(context.Background(), req)), "fibe_templates_search")
+	require.Zero(t, community.probes.Load(), "a bare domain header must not trigger discovery")
+	req.Header.Set("Authorization", "Bearer fixture")
+	require.NotContains(t, editionListedNames(t, s, s.injectAuthFromRequest(context.Background(), req)), "fibe_templates_search")
+	require.Contains(t, editionListedNames(t, s, context.Background()), "fibe_templates_search")
+	require.EqualValues(t, 1, community.probes.Load())
+	require.Zero(t, community.requests.Load())
+	require.Zero(t, enterprise.requests.Load())
 }
 
 func TestMCPEditionPathTemplateMatching(t *testing.T) {
@@ -279,13 +394,62 @@ func containsName(names []string, name string) bool {
 	return i < len(names) && names[i] == name
 }
 
-func formatOperationRoutes(routes operationRoutes) string {
+func (m *routeManifest) absentOperationRoutes(routes operationRoutes) string {
 	var out []string
 	for _, clause := range strings.Fields(string(routes)) {
 		for _, id := range strings.Split(clause, "+") {
 			route := operationRoute(id)
-			out = append(out, fmt.Sprintf("%s %s", route.method, route.path))
+			if route.path != "" && !m.paths[route] {
+				out = append(out, fmt.Sprintf("%s %s", route.method, route.path))
+			}
 		}
 	}
 	return strings.Join(out, ", ")
+}
+
+func unknownOperationRoutes(routes operationRoutes) []string {
+	var unknown []string
+	for _, clause := range strings.Fields(string(routes)) {
+		for _, id := range strings.Split(clause, "+") {
+			if id != "-" && operationRoute(id).path == "" {
+				unknown = append(unknown, id)
+			}
+		}
+	}
+	return unknown
+}
+
+func TestMCPEditionCLIInventory(t *testing.T) {
+	api := newEditionTestAPI(t, 200, fixtureManifest(t, "community"), false)
+	s := newEditionTestServer(t, api.server.URL, "auto", "full")
+	m := s.sessionManifest(context.Background())
+	got, err := os.ReadFile(filepath.Join(mcpRepositoryRoot(t), "contracts", "cli-tree.json"))
+	require.NoError(t, err)
+	var tree struct {
+		Commands []struct {
+			Path     string
+			Runnable bool
+		}
+	}
+	require.NoError(t, json.Unmarshal(got, &tree))
+	localOrAuth := map[string]bool{
+		"auth": true, "completion": true, "config": true, "docs": true, "doctor": true,
+		"local": true, "login": true, "mcp": true, "schema": true, "version": true,
+	}
+	for _, command := range tree.Commands {
+		path, ok := strings.CutPrefix(command.Path, "fibe ")
+		if !ok || !command.Runnable {
+			continue
+		}
+		group, _, _ := strings.Cut(path, " ")
+		if localOrAuth[group] {
+			continue
+		}
+		routes := commandRoutes(path)
+		if !m.offers(routes) {
+			t.Logf("hidden command %s: %s", path, m.absentOperationRoutes(routes))
+		} else if unknown := unknownOperationRoutes(routes); routes == "" || len(unknown) > 0 {
+			t.Logf("uncertain command %s: %s", path, strings.Join(unknown, ", "))
+		}
+	}
 }

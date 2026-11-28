@@ -17,6 +17,7 @@ var cliResources = map[string]string{
 
 // These entries describe commands whose SDK operation differs from the
 // resource operation of the same name. Unmapped commands remain available.
+// #nosec G101 -- the table contains command names, SDK method names and public route templates.
 var cliRoutes = map[string]operationRoutes{
 	"agents activity":                      "AgentService.GetActivityByIdentifierWithParams",
 	"agents add-mounted-file":              "AgentService.AddMountedFileByIdentifier",
@@ -184,13 +185,23 @@ func (s *Server) checkRunEdition(manifest *routeManifest, args map[string]any) e
 			routes = "LaunchService.Create"
 		}
 	case "monitor logs":
+		routes = followPlaygroundLogs
 		if cliFlagValue(tokens, "--target") == "task" {
 			routes = followTaskLogs
 		}
+	case "wait":
+		switch strings.ToLower(firstCLIArg(command, remaining)) {
+		case "repository":
+			path, routes = "wait repository", "RepositoryService.GetMirrorStateByIdentifier"
+		case "playground", "pg":
+			path, routes = "wait playground", "PlaygroundService.RuntimeStatusByIdentifier+PlaygroundService.GetByIdentifier"
+		case "task":
+			path, routes = "wait task", "PlaygroundService.StatusByIdentifier"
+		}
 	case "env-packs attachments get", "env-packs attachments set", "env-packs attachments renew",
 		"env-packs attachments reorder", "env-packs attachments detach", "env-packs attachments retarget":
-		if len(remaining) > 0 {
-			routes = selectResourceRoutes("env_pack", "", map[string]any{"target": remaining[0]}, routes)
+		if target := firstCLIArg(command, remaining); target != "" {
+			routes = selectResourceRoutes("env_pack", "", map[string]any{"target": target}, routes)
 		}
 	}
 	if !manifest.offersCommand(command) {
@@ -232,7 +243,7 @@ func (s *Server) renderCLIHelp(cmd *cobra.Command, manifest *routeManifest) stri
 		}
 		lines = append(lines, line)
 	}
-	return strings.Join(lines, "\n")
+	return strings.Replace(strings.Join(lines, "\n"), cmd.Long, cliHelpLong(cmd, manifest), 1)
 }
 
 func cliFlagValue(tokens []string, flag string) string {
@@ -242,6 +253,45 @@ func cliFlagValue(tokens []string, flag string) string {
 		}
 		if value, ok := strings.CutPrefix(token, flag+"="); ok {
 			return value
+		}
+	}
+	return ""
+}
+
+func cliHelpLong(cmd *cobra.Command, manifest *routeManifest) string {
+	if manifest == nil || cmd != cmd.Root() {
+		return cmd.Long
+	}
+	const fullSurface = "It provides complete access to all Fibe resources: playgrounds, tasks, agents,\nspecs, repositories, hosts (servers), secrets, templates,\nwebhooks, and more."
+	return strings.Replace(cmd.Long, fullSurface, "Use the available commands to explore this server’s resources.", 1)
+}
+
+// Cobra.Find leaves flags in its remaining args. Skip known flag values
+// while finding the positional selector, without parsing or mutating flags.
+func firstCLIArg(cmd *cobra.Command, tokens []string) string {
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i]
+		if token == "--" {
+			if i+1 < len(tokens) {
+				return tokens[i+1]
+			}
+			break
+		}
+		if !strings.HasPrefix(token, "-") {
+			return token
+		}
+		if strings.Contains(token, "=") {
+			continue
+		}
+		flag := cmd.Flag(strings.TrimLeft(token, "-"))
+		if flag == nil && len(token) == 2 {
+			flag = cmd.Flags().ShorthandLookup(token[1:])
+			if flag == nil {
+				flag = cmd.InheritedFlags().ShorthandLookup(token[1:])
+			}
+		}
+		if flag != nil && flag.NoOptDefVal == "" {
+			i++
 		}
 	}
 	return ""
