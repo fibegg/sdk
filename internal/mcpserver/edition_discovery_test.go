@@ -108,6 +108,100 @@ func editionDispatch(t *testing.T, s *Server, name string, args map[string]any) 
 	return string(data)
 }
 
+func TestMCPEditionRetiredBrowserRoutesDoNotChangeSDKSurface(t *testing.T) {
+	// Presentation and Agent embed retain their routes. The retirement
+	// only trims their response fields and query parameters.
+	retired := map[apiRoute]bool{
+		routeKey("POST", "/ui-api/v1/playgrounds/{id}/connect_agent"):      true,
+		routeKey("DELETE", "/ui-api/v1/playgrounds/{id}/disconnect_agent"): true,
+		routeKey("GET", "/ui-api/v1/playgrounds/{id}/live"):                true,
+		routeKey("HEAD", "/ui-api/v1/playgrounds/{id}/live"):               true,
+		routeKey("PATCH", "/ui-api/v1/owner_context"):                      true,
+		routeKey("PATCH", "/ui-api/v1/locale"):                             true,
+	}
+	for _, edition := range []string{"community", "enterprise"} {
+		t.Run(edition, func(t *testing.T) {
+			body := fixtureManifest(t, edition)
+			var pruned routeManifest
+			require.NoError(t, json.Unmarshal(body, &pruned))
+			removed := map[apiRoute]bool{}
+			routes := pruned.Routes[:0]
+			for _, route := range pruned.Routes {
+				methods := route.Methods[:0]
+				for _, method := range route.Methods {
+					key := routeKey(method, route.Path)
+					if retired[key] {
+						removed[key] = true
+					} else {
+						methods = append(methods, method)
+					}
+				}
+				if len(methods) != 0 {
+					route.Methods = methods
+					routes = append(routes, route)
+				}
+			}
+			require.Equal(t, retired, removed)
+			pruned.Routes = routes
+			after, err := json.Marshal(pruned)
+			require.NoError(t, err)
+			beforeAPI := newEditionTestAPI(t, http.StatusOK, body, false)
+			afterAPI := newEditionTestAPI(t, http.StatusOK, after, false)
+			before := newEditionTestServer(t, beforeAPI.server.URL, "auto", "full")
+			current := newEditionTestServer(t, afterAPI.server.URL, "auto", "full")
+			ctx := context.Background()
+			list := func(s *Server) []byte {
+				reply := s.mcp.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"tools/list"}`))
+				raw, err := json.Marshal(reply)
+				require.NoError(t, err)
+				return raw
+			}
+			require.Equal(t, list(before), list(current))
+			for _, request := range []struct {
+				name string
+				args map[string]any
+			}{
+				{"fibe_tools_catalog", map[string]any{"include_schema": true}},
+				{"fibe_schema", nil},
+				{"fibe_help", nil},
+			} {
+				require.Equal(t, editionDispatch(t, before, request.name, request.args),
+					editionDispatch(t, current, request.name, request.args), request.name)
+			}
+			for _, fixture := range []struct {
+				server *Server
+				api    *editionTestAPI
+			}{{before, beforeAPI}, {current, afterAPI}} {
+				manifest := fixture.server.sessionManifest(ctx)
+				for _, name := range []string{"fibe_playgrounds_debug", "fibe_playgrounds_logs"} {
+					tool, ok := fixture.server.dispatcher.lookup(name)
+					require.True(t, ok)
+					require.True(t, manifest.offersTool(tool), name)
+				}
+				for _, operation := range []string{"create", "update"} {
+					require.True(t, manifest.offers(resourceOperationRoutes("playground", operation)))
+					for field, value := range map[string]any{"agent_id": 42, "agent": map[string]any{"id": 42}} {
+						payload := map[string]any{"name": "demo", field: value}
+						if operation == "create" {
+							payload["spec_id_or_name"] = "starter"
+							payload["host_id_or_name"] = "demo-host"
+						} else {
+							payload["id_or_name"] = "demo"
+						}
+						_, err := fixture.server.dispatcher.dispatch(ctx, "fibe_resource_mutate", map[string]any{
+							"resource": "playground", "operation": operation, "payload": payload,
+						})
+						require.ErrorContains(t, err, "unsupported field(s): "+field)
+					}
+				}
+				require.Zero(t, fixture.api.requests.Load())
+				editionDispatch(t, fixture.server, "fibe_resource_list", map[string]any{"resource": "agents"})
+				require.EqualValues(t, 1, fixture.api.requests.Load())
+			}
+		})
+	}
+}
+
 func TestMCPEditionDiscovery(t *testing.T) {
 	community := fixtureManifest(t, "community")
 	enterprise := fixtureManifest(t, "enterprise")

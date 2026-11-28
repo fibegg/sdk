@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -239,6 +240,37 @@ func TestPlaygroundGetJSONOnlyServiceURLs(t *testing.T) {
 	first := urls[0].(map[string]any)
 	if first["url"] != "https://demo.example.test" {
 		t.Fatalf("projected service URL = %#v", first)
+	}
+}
+
+func TestPlaygroundDebugBuildLogsUsesRetainedAPI(t *testing.T) {
+	setupAuthTest(t)
+	const line = "retained log line from build 42"
+	var requests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != http.MethodGet || r.URL.RequestURI() != "/api/playgrounds/demo/debug?include_build_logs=true" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.RequestURI())
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"build_logs":[{"id":42,"log":"`+line+`"}]}`)
+	}))
+	defer srv.Close()
+	t.Setenv("FIBE_DOMAIN", srv.URL)
+	t.Setenv("FIBE_API_KEY", "pk_test")
+
+	out, err := captureStdout(func() error {
+		cmd := RootCmd()
+		cmd.SetArgs([]string{"playgrounds", "debug", "demo", "--build-logs", "-o", "json"})
+		return cmd.Execute()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 || !strings.Contains(out, line) {
+		t.Fatalf("requests = %d, expected retained build log in output: %s", requests, out)
 	}
 }
 
