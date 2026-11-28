@@ -13,7 +13,7 @@ import (
 // giving narrow profiles access to the full dispatcher without advertising every schema.
 func (s *Server) registerDiscoveryTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_tools_catalog", description: "[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.", tier: tierMeta,
+		name: "fibe_tools_catalog", routes: "-", description: "[MODE:DIALOG] List every registered Fibe MCP tool, including hidden tools that cannot all be advertised directly.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			tierFilter := strings.ToLower(argString(args, "tier"))
@@ -28,6 +28,7 @@ func (s *Server) registerDiscoveryTools() {
 				}
 			}
 
+			manifest := s.sessionManifest(ctx)
 			advertisedSet := advertisedToolNames(s)
 
 			type entry struct {
@@ -45,7 +46,7 @@ func (s *Server) registerDiscoveryTools() {
 			var out []entry
 			for _, name := range s.dispatcher.names() {
 				t, ok := s.dispatcher.lookup(name)
-				if !ok {
+				if !ok || !manifest.offersTool(t) {
 					continue
 				}
 				tierName := tierToString(t.tier)
@@ -67,17 +68,21 @@ func (s *Server) registerDiscoveryTools() {
 				}
 				if includeSchema {
 					if schema := schemaForTool(s, name); schema != nil {
-						e.InputSchema = schema
+						e.InputSchema = manifest.filterToolSchema(name, schema)
 					}
 				}
 				out = append(out, e)
 			}
 
-			return map[string]any{
+			result := map[string]any{
 				"count":    len(out),
 				"tool_set": s.cfg.ToolSet,
 				"tools":    out,
-			}, nil
+			}
+			if manifest != nil {
+				result["edition"] = communityNotice
+			}
+			return result, nil
 		},
 	}, mcp.NewTool("fibe_tools_catalog",
 		mcp.WithDescription(`List every tool registered on the Fibe MCP server, including tools not advertised in the current tier.
@@ -94,7 +99,7 @@ FILTERS:
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_call", description: "[MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear.", tier: tierMeta,
+		name: "fibe_call", routes: "-", description: "[MODE:SIDEEFFECTS] Invoke a registered Fibe tool that is hidden by the current tool tier. Prefer direct tool calls when the concrete tool is advertised; use fibe_tools_catalog/fibe_schema only when the hidden tool name or args are unclear.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			name := argString(args, "tool")

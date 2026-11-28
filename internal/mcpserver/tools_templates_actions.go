@@ -10,7 +10,7 @@ import (
 
 func (s *Server) registerImportTemplateActionTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_templates_search", description: "[MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering.", tier: tierGreenfield,
+		name: "fibe_templates_search", routes: "ImportTemplateService.SearchWithParams", description: "[MODE:GREENFIELD] Search the import-template catalog by text or PostgreSQL regex. Regex mode requires a 3+ character literal token for indexed prefiltering.", tier: tierGreenfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			q := argString(args, "query")

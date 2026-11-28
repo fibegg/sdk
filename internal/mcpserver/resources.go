@@ -1,7 +1,6 @@
 package mcpserver
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -41,6 +40,9 @@ func (s *Server) registerStaticResources() {
 		if err != nil {
 			return nil, err
 		}
+		if err := s.sessionManifest(ctx).require("status", "StatusService.Get"); err != nil {
+			return nil, err
+		}
 		st, err := c.Status.Get(ctx)
 		if err != nil {
 			return nil, err
@@ -55,7 +57,8 @@ func (s *Server) registerStaticResources() {
 		mcp.WithResourceDescription("The full Fibe resource schema registry, including generic resource list/get/delete schemas."),
 		mcp.WithMIMEType("application/json"),
 	), func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		return jsonResource(req.Params.URI, resourceschema.Registry()), nil
+		manifest := s.sessionManifest(ctx)
+		return jsonResource(req.Params.URI, manifest.schemaNotice(manifest.schemaRegistry())), nil
 	})
 
 	// fibe://pipeline/schema: how to write a fibe_pipeline request
@@ -79,12 +82,13 @@ func (s *Server) registerResourceTemplates() {
 	// Schema per resource and operation. Register the two-segment form
 	// explicitly because RFC 6570 path variables do not consume '/'.
 	schemaHandler := func(ctx context.Context, req mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		manifest := s.sessionManifest(ctx)
 		resource, _ := parseURIPath(req.Params.URI, "fibe://schema/")
 		if resource == "" {
 			return nil, fmt.Errorf("missing resource in URI %q", req.Params.URI)
 		}
 		if resourceschema.NormalizeResource(resource) == "list" {
-			return jsonResource(req.Params.URI, resourceschema.CatalogResponse()), nil
+			return jsonResource(req.Params.URI, manifest.schemaCatalog()), nil
 		}
 		// Allow nested op: fibe://schema/<resource>/<op>
 		op := ""
@@ -100,6 +104,20 @@ func (s *Server) registerResourceTemplates() {
 			entry, _, op, ok := resourceschema.SchemaFor(canonical, op)
 			if !ok {
 				return nil, fmt.Errorf("unknown operation %q for resource %q", op, canonical)
+			}
+			if manifest != nil {
+				entry, err := manifest.schemaForResource(canonical, op)
+				if err != nil {
+					return nil, err
+				}
+				return jsonResource(req.Params.URI, entry), nil
+			}
+			return jsonResource(req.Params.URI, entry), nil
+		}
+		if manifest != nil {
+			entry, err := manifest.schemaForResource(canonical, "")
+			if err != nil {
+				return nil, err
 			}
 			return jsonResource(req.Params.URI, entry), nil
 		}
@@ -129,17 +147,24 @@ func (s *Server) registerResourceTemplates() {
 			return nil, fmt.Errorf("help unavailable: server started without CobraRoot")
 		}
 		parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' })
+		manifest := s.sessionManifest(ctx)
+		s.runMu.Lock()
+		defer s.runMu.Unlock()
 		cmd, _, err := s.cfg.CobraRoot.Find(parts)
 		if err != nil || cmd == nil {
 			return nil, fmt.Errorf("unknown command %q", path)
 		}
-		var buf bytes.Buffer
-		cmd.SetOut(&buf)
-		_ = cmd.Help()
+		if !manifest.offersCommand(cmd) {
+			return nil, unavailable(cliPath(cmd))
+		}
+		help := s.renderCLIHelp(cmd, manifest)
+		if manifest != nil {
+			help = communityNotice + "\n" + help
+		}
 		return []mcp.ResourceContents{mcp.TextResourceContents{
 			URI:      req.Params.URI,
 			MIMEType: "text/plain",
-			Text:     buf.String(),
+			Text:     help,
 		}}, nil
 	})
 

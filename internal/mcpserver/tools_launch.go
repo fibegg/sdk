@@ -14,7 +14,7 @@ import (
 
 func (s *Server) registerLaunchTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_launch", description: "[MODE:GREENFIELD] Launch from exactly one source: template, template version, spec, compose YAML, or repository config.", tier: tierGreenfield,
+		name: "fibe_launch", routes: launchRoutes, description: "[MODE:GREENFIELD] Launch from exactly one source: template, template version, spec, compose YAML, or repository config.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLaunch(ctx, c, args)

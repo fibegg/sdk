@@ -15,7 +15,7 @@ import (
 
 func (s *Server) registerGreenfieldTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_greenfield_create", description: "[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
+		name: "fibe_greenfield_create", routes: "GreenfieldService.Create", description: "[MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally.", tier: tierGreenfield,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			params, waitTimeout, err := greenfieldArgsWithClient(ctx, c, args)

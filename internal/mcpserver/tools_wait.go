@@ -16,7 +16,7 @@ import (
 // hosts can display live updates.
 func (s *Server) registerWaitTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_wait", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready.", tier: tierBrownfield,
+		name: "fibe_playgrounds_wait", routes: "PlaygroundService.RuntimeStatusByIdentifier", description: "[MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runWait(ctx, c, args)

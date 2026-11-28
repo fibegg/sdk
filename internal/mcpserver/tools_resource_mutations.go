@@ -25,7 +25,7 @@ func (s *Server) registerResourceMutationTools() {
 
 func (s *Server) registerResourceMutateTool() {
 	s.addTool(&toolImpl{
-		name:        "fibe_resource_mutate",
+		name: "fibe_resource_mutate", routes: "-",
 		description: "[MODE:SIDEEFFECTS] Create, update, or run a supported resource-scoped mutation with a payload validated against fibe_schema before any API request.",
 		tier:        tierBase,
 		annotations: toolAnnotations{},
@@ -78,6 +78,59 @@ func mutationRequiresConfirm(resource, operation string, payload map[string]any)
 	default:
 		return false
 	}
+}
+
+// mutationRoutes follows dispatchResourceMutation so preflight can run before any API call.
+var mutationRoutes = map[string]operationRoutes{
+	"agent.create":                   "AgentService.Create",
+	"agent.restart_chat":             "AgentService.RestartChatByIdentifier",
+	"agent.update":                   "AgentService.UpdateByIdentifier",
+	"agent.upload_attachment":        "AgentService.UploadReaderByIdentifier",
+	"agent_poke.create":              "AgentService.CreatePokeByIdentifier",
+	"agent_poke.update":              "AgentService.UpdatePokeByIdentifier",
+	"api_key.create":                 "APIKeyService.Create",
+	"env_pack.attachment_detach":     envPackModifyRoutes,
+	"env_pack.attachment_retarget":   envPackModifyRoutes,
+	"env_pack.attachments_reorder":   envPackModifyRoutes,
+	"env_pack.attachments_replace":   envPackReplaceRoutes,
+	"env_pack.create":                "EnvPackService.Create",
+	"env_pack.grant_renew":           envPackRenewRoutes,
+	"env_pack.update":                "EnvPackService.Update",
+	"host.autoconnect_token":         "HostService.AutoconnectToken",
+	"host.create":                    "HostService.Create",
+	"host.generate_ssh_key":          "HostService.GenerateSSHKeyByIdentifier",
+	"host.test_connection":           "HostService.TestConnectionByIdentifier",
+	"host.update":                    "HostService.UpdateByIdentifier",
+	"job_env.create":                 "JobEnvService.Set",
+	"job_env.update":                 "JobEnvService.Update",
+	"playground.action":              "PlaygroundService.ActionByIdentifier",
+	"playground.create":              "PlaygroundService.Create",
+	"playground.rerun":               "PlaygroundService.Rerun",
+	"playground.switch_template":     playgroundSwitchRoutes,
+	"playground.update":              "PlaygroundService.UpdateByIdentifier",
+	"repository.attach":              "RepositoryService.AttachWithParams",
+	"repository.create":              "RepositoryService.Create",
+	"repository.mirror":              "RepositoryService.MirrorWithParams",
+	"repository.sync":                "RepositoryService.SyncByIdentifier",
+	"repository.update":              "RepositoryService.UpdateByIdentifier",
+	"secret.create":                  "SecretService.Create",
+	"secret.update":                  "SecretService.UpdateByIdentifier",
+	"spec.create":                    "SpecService.Create",
+	"spec.update":                    "SpecService.UpdateByIdentifier",
+	"task.rerun":                     "TaskService.RerunWithParamsByIdentifier",
+	"task.trigger":                   "TaskService.Trigger",
+	"template.change":                templateChangeRoutes,
+	"template.create":                "ImportTemplateService.Create",
+	"template.fork":                  "ImportTemplateService.ForkByIdentifier",
+	"template.source_refresh":        "ImportTemplateService.RefreshSourceByIdentifier",
+	"template.source_set":            "ImportTemplateService.SetSourceByIdentifier",
+	"template.update":                templateUpdateRoutes,
+	"template.upgrade_specs":         "ImportTemplateService.UpgradeLinkedSpecsByIdentifier",
+	"template_version.create":        "ImportTemplateService.CreateVersionByIdentifier",
+	"template_version.toggle_public": "ImportTemplateService.TogglePublicByIdentifier",
+	"webhook.create":                 "WebhookEndpointService.Create",
+	"webhook.test":                   "WebhookEndpointService.Test",
+	"webhook.update":                 "WebhookEndpointService.Update",
 }
 
 func dispatchResourceMutation(ctx context.Context, c *fibe.Client, resource, operation string, payload map[string]any) (any, error) {

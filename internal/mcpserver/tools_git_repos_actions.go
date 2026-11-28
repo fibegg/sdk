@@ -12,11 +12,11 @@ import (
 )
 
 func (s *Server) registerGitRepoActionTools() {
-	registerCreate(s, "fibe_github_repos_create", "[MODE:GREENFIELD] Register and connect a new GitHub repository", toolOpts{Tier: tierGreenfield},
+	registerCreate(s, "fibe_github_repos_create", "[MODE:GREENFIELD] Register and connect a new GitHub repository", toolOpts{Tier: tierGreenfield, Routes: "GitHubRepoService.Create"},
 		func(ctx context.Context, c *fibe.Client, p *fibe.GitHubRepoCreateParams) (*fibe.GitHubRepo, error) {
 			return c.GitHubRepos.Create(ctx, p)
 		})
-	registerCreate(s, "fibe_gitea_repos_create", "[MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.", toolOpts{Tier: tierGreenfield},
+	registerCreate(s, "fibe_gitea_repos_create", "[MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template.", toolOpts{Tier: tierGreenfield, Routes: "GiteaRepoService.Create"},
 		func(ctx context.Context, c *fibe.Client, p *fibe.GiteaRepoCreateParams) (*fibe.GiteaRepo, error) {
 			return c.GiteaRepos.Create(ctx, p)
 		})

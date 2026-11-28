@@ -162,6 +162,7 @@ func New(cfg Config) *Server {
 
 	opts := []mcpserver.ServerOption{
 		mcpserver.WithToolCapabilities(true),
+		mcpserver.WithToolFilter(s.editionTools),
 		mcpserver.WithResourceCapabilities(false, true),
 	}
 	hooks := &mcpserver.Hooks{}

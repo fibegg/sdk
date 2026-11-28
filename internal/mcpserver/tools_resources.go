@@ -27,7 +27,7 @@ func (s *Server) registerResourceTools() {
 	deleteResourceSelectors := resourceschema.ResourceSelectorsForOperation("delete")
 
 	s.addTool(&toolImpl{
-		name:        "fibe_resource_list",
+		name: "fibe_resource_list", routes: "-",
 		description: "[MODE:DIALOG] List a supported flat Fibe resource. Use fibe_schema with resource=list to discover resource names, aliases, and list params.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -52,7 +52,7 @@ func (s *Server) registerResourceTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_resource_watch",
+		name: "fibe_resource_watch", routes: "-",
 		description: "[MODE:DIALOG] Watch supported Fibe resource events.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -78,7 +78,7 @@ func (s *Server) registerResourceTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_resource_get",
+		name: "fibe_resource_get", routes: "-",
 		description: "[MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Playground reads include service_urls and service runtime status. Use artefact_attachment or agent_attachment to download attached runtime file content.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -114,7 +114,7 @@ func (s *Server) registerResourceTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_resource_delete",
+		name: "fibe_resource_delete", routes: "-",
 		description: "[MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, name, or key where supported.",
 		tier:        tierBase,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
@@ -153,6 +153,62 @@ func (s *Server) registerResourceTools() {
 		mcp.WithString("template_id_or_name", mcp.Description("Template ID or name for resource-specific deletes such as template_version.")),
 		mcp.WithBoolean("confirm", mcp.Description("Must be true unless server is running with --yolo")),
 	))
+}
+
+// flatResourceRoutes maps the selectors in flatResourceTools to their SDK operations.
+var flatResourceRoutes = map[string]operationRoutes{
+	"agent.delete":            "AgentService.DeleteByIdentifier",
+	"agent.get":               "AgentService.GetByIdentifier",
+	"agent.list":              "AgentService.List",
+	"agent.watch":             "GET:/cable",
+	"agent_attachment.get":    "AgentService.DownloadAttachmentByIdentifier",
+	"agent_poke.delete":       "AgentService.DeletePokeByIdentifier",
+	"agent_poke.get":          "AgentService.GetPokeByIdentifier",
+	"agent_poke.list":         "AgentService.ListPokesByIdentifier",
+	"api_key.delete":          "APIKeyService.Delete",
+	"api_key.list":            "APIKeyService.List",
+	"artefact.get":            "ArtefactService.GetByIdentifier",
+	"artefact.list":           "ArtefactService.ListAll",
+	"artefact_attachment.get": "ArtefactService.DownloadByIdentifier",
+	"audit_log.list":          "AuditLogService.List",
+	"category.list":           "TemplateCategoryService.List",
+	"env_pack.delete":         "EnvPackService.Delete",
+	"env_pack.get":            "EnvPackService.Get",
+	"env_pack.list":           "EnvPackService.List",
+	"host.delete":             "HostService.DeleteByIdentifier",
+	"host.get":                "HostService.GetByIdentifier",
+	"host.list":               "HostService.List",
+	"job_env.delete":          "JobEnvService.Delete",
+	"job_env.get":             "JobEnvService.Get",
+	"job_env.list":            "JobEnvService.List",
+	"memory.delete":           "MemoryService.Delete",
+	"memory.get":              "MemoryService.Get",
+	"memory.list":             "MemoryService.List",
+	"playground.delete":       "PlaygroundService.DeleteByIdentifier",
+	"playground.get":          "PlaygroundService.GetByIdentifier",
+	"playground.list":         "PlaygroundService.List",
+	"repository.delete":       "RepositoryService.DeleteByIdentifier",
+	"repository.get":          "RepositoryService.GetByIdentifier",
+	"repository.list":         "RepositoryService.List",
+	"secret.delete":           "SecretService.DeleteByIdentifier",
+	"secret.get":              "SecretService.GetByIdentifier",
+	"secret.list":             "SecretService.List",
+	"spec.delete":             "SpecService.DeleteByIdentifier",
+	"spec.get":                "SpecService.GetByIdentifier",
+	"spec.list":               "SpecService.List",
+	"task.delete":             "TaskService.DeleteByIdentifier",
+	"task.get":                "TaskService.GetByIdentifier",
+	"task.list":               "TaskService.List",
+	"template.delete":         "ImportTemplateService.DeleteByIdentifier",
+	"template.get":            "ImportTemplateService.GetByIdentifier",
+	"template.list":           "ImportTemplateService.List",
+	"template_source.delete":  "ImportTemplateService.ClearSourceByIdentifier",
+	"template_version.delete": "ImportTemplateVersionService.DeleteByTemplateIdentifier",
+	"template_version.list":   "ImportTemplateService.ListVersionsByIdentifier",
+	"webhook.delete":          "WebhookEndpointService.Delete",
+	"webhook.get":             "WebhookEndpointService.Get",
+	"webhook.list":            "WebhookEndpointService.List",
+	"webhook_delivery.list":   "WebhookEndpointService.ListDeliveries",
 }
 
 func flatResourceTools() map[string]flatResourceTool {

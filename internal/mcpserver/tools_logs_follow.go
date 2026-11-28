@@ -12,7 +12,7 @@ import (
 
 func (s *Server) registerLogsFollowTool() {
 	s.addTool(&toolImpl{
-		name: "fibe_logs_follow", description: "[MODE:BROWNFIELD] Stream live playground or task logs as progress notifications. Omitting service streams all services.", tier: tierBrownfield,
+		name: "fibe_logs_follow", routes: followLogsRoutes, description: "[MODE:BROWNFIELD] Stream live playground or task logs as progress notifications. Omitting service streams all services.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runLogsFollow(ctx, c, args)

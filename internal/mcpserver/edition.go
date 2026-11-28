@@ -79,7 +79,10 @@ func (s *Server) manifestFor(baseURL string) *routeManifest {
 				// An invalid URL or transport error can contain user input.
 				log.Print("[fibe-mcp] DEBUG: route manifest unavailable; using the full tool surface")
 			}
-			return manifest
+			if manifest != nil && manifest.Edition == "community" {
+				return manifest
+			}
+			return nil
 		})
 		d.domains[baseURL] = load
 	}
@@ -113,7 +116,7 @@ func (d *editionDiscovery) fetch(baseURL string) (*routeManifest, error) {
 	}
 	var manifest routeManifest
 	if len(data) > maxManifestSize || json.Unmarshal(data, &manifest) != nil ||
-		(manifest.Edition != "community" && manifest.Edition != "enterprise") ||
+		manifest.Edition == "" ||
 		manifest.Profile == "" || manifest.Major < 1 || manifest.Revision == nil ||
 		*manifest.Revision < 0 || len(manifest.Routes) == 0 {
 		return nil, errors.New("invalid route manifest")

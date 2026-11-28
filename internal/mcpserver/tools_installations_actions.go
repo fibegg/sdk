@@ -9,7 +9,7 @@ import (
 
 func (s *Server) registerInstallationActionTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_find_github_repos", description: "[MODE:DIALOG] Search Personal installations or a selected verified Team installation.", tier: tierOther,
+		name: "fibe_find_github_repos", routes: "GET:/api/github_repositories", description: "[MODE:DIALOG] Search Personal installations or a selected verified Team installation.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			var p fibe.InstallationReposParams

@@ -9,7 +9,7 @@ import (
 
 func (s *Server) registerAgentMutationTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_agents_duplicate",
+		name: "fibe_agents_duplicate", routes: "AgentService.DuplicateByIdentifier",
 		description: "[MODE:OVERSEER] Duplicate an agent configuration.",
 		tier:        tierOverseer,
 		annotations: toolAnnotations{Idempotent: true},

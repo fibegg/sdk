@@ -10,7 +10,7 @@ import (
 
 func (s *Server) registerAgentDefaultsTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_agent_defaults_get",
+		name: "fibe_agent_defaults_get", routes: "AgentDefaultsService.Get",
 		description: "[MODE:DIALOG] Read the authenticated player's agent default overrides.",
 		tier:        tierBase,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -22,7 +22,7 @@ func (s *Server) registerAgentDefaultsTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_agent_defaults_update",
+		name: "fibe_agent_defaults_update", routes: "AgentDefaultsService.Update",
 		description: "[MODE:SIDEEFFECTS] Replace the authenticated player's agent default overrides. Use the same agent_defaults JSON shape as the profile UI.",
 		tier:        tierBase,
 		annotations: toolAnnotations{},
@@ -39,7 +39,7 @@ func (s *Server) registerAgentDefaultsTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_agent_defaults_reset",
+		name: "fibe_agent_defaults_reset", routes: "AgentDefaultsService.Reset",
 		description: "[MODE:SIDEEFFECTS] Clear all player agent default overrides so admin defaults apply.",
 		tier:        tierBase,
 		annotations: toolAnnotations{},

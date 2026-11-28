@@ -16,7 +16,7 @@ import (
 
 func (s *Server) registerMemoryTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_memorize",
+		name: "fibe_memorize", routes: "MemoryService.Memorize",
 		description: "[MODE:SIDEEFFECTS] Create or update agent-generated memories grounded in one local source conversation.",
 		tier:        tierBase,
 		annotations: toolAnnotations{Destructive: false, Idempotent: true},

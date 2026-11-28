@@ -11,7 +11,7 @@ import (
 
 func (s *Server) registerFeedbackMutationTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_feedbacks_list",
+		name: "fibe_feedbacks_list", routes: "GET:/api/agents/{agent}/feedbacks",
 		description: "[MODE:OVERSEER] List all feedback entries associated with an agent.",
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -41,7 +41,7 @@ func (s *Server) registerFeedbackMutationTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_feedbacks_get",
+		name: "fibe_feedbacks_get", routes: "GET:/api/agents/{agent}/feedbacks/{id}",
 		description: "[MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters.",
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},

@@ -60,6 +60,7 @@ func (s *Server) registerTemplateChangeTool(name string, hidden bool) {
 	description := "[MODE:BROWNFIELD] Advanced template change primitive: preview or apply template patches/overwrites, switch specs/playgrounds/tasks to existing template versions, and optionally roll out or trigger a fresh task run."
 	s.addTool(&toolImpl{
 		name:        name,
+		routes:      templateChangeRoutes,
 		description: description,
 		tier:        tierBrownfield,
 		hidden:      hidden,

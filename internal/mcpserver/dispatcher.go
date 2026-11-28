@@ -42,6 +42,7 @@ func newDispatcher(s *Server) *dispatcher {
 // both via direct MCP tool calls and as steps inside fibe_pipeline.
 type toolImpl struct {
 	name        string
+	routes      operationRoutes
 	description string
 	annotations toolAnnotations
 	tier        toolTier // used by FIBE_MCP_TOOLS gating
@@ -116,6 +117,10 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	handlerArgs := stripResponseShapeArgs(args)
 	if d.srv.httpMode && !d.srv.cfg.AllowLocalAccess && isLocalCapability(t, handlerArgs) {
 		return nil, fmt.Errorf("tool %q requires local access, which is disabled for HTTP MCP transports", name)
+	}
+
+	if err := d.srv.checkToolEdition(ctx, d.srv.sessionManifest(ctx), t, handlerArgs); err != nil {
+		return nil, err
 	}
 
 	yolo := d.srv.cfg.Yolo || yoloFromContext(ctx)

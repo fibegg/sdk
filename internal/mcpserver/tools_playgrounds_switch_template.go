@@ -24,6 +24,7 @@ func (s *Server) registerPlaygroundSwitchTemplateTool(name string) {
 
 	s.addTool(&toolImpl{
 		name:        name,
+		routes:      playgroundSwitchRoutes,
 		description: description,
 		tier:        tierBrownfield,
 		annotations: toolAnnotations{},

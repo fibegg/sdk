@@ -13,7 +13,7 @@ import (
 
 func (s *Server) registerAgentActionTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_agents_send_message", description: "[MODE:OVERSEER] Send one text message to an agent chat.", tier: tierOverseer,
+		name: "fibe_agents_send_message", routes: "AgentService.ChatByIdentifier", description: "[MODE:OVERSEER] Send one text message to an agent chat.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -47,7 +47,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_start_chat", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host.", tier: tierOverseer,
+		name: "fibe_agents_start_chat", routes: "AgentService.StartChatByAgentIdentifier", description: "[MODE:SIDEEFFECTS] Start or reconnect an agent chat on host_id_or_name, or on the current Host.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -66,7 +66,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_runtime_status", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state.", tier: tierOverseer,
+		name: "fibe_agents_runtime_status", routes: "AgentService.RuntimeStatusByIdentifier", description: "[MODE:OVERSEER] Check agent reachability, authentication, queue, and processing state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -81,7 +81,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_live_state", description: "[MODE:OVERSEER] Check conversation-scoped agent live stream state.", tier: tierOverseer,
+		name: "fibe_agents_live_state", routes: "AgentService.LiveStateByIdentifier", description: "[MODE:OVERSEER] Check conversation-scoped agent live stream state.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -96,7 +96,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_messages", description: "[MODE:OVERSEER] Read agent messages, optionally scoped to a conversation.", tier: tierOverseer,
+		name: "fibe_agents_messages", routes: "AgentService.GetMessagesByIdentifierWithParams", description: "[MODE:OVERSEER] Read agent messages, optionally scoped to a conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -111,7 +111,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_activity", description: "[MODE:OVERSEER] Read agent activity, optionally scoped to a conversation.", tier: tierOverseer,
+		name: "fibe_agents_activity", routes: "AgentService.GetActivityByIdentifierWithParams", description: "[MODE:OVERSEER] Read agent activity, optionally scoped to a conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -126,7 +126,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_create_conversation", description: "[MODE:SIDEEFFECTS] Create or upsert an agent conversation.", tier: tierOverseer,
+		name: "fibe_agents_create_conversation", routes: "AgentService.CreateConversationByIdentifier", description: "[MODE:SIDEEFFECTS] Create or upsert an agent conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -144,7 +144,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_delete_conversation", description: "[MODE:SIDEEFFECTS] Delete an agent conversation.", tier: tierOverseer,
+		name: "fibe_agents_delete_conversation", routes: "AgentService.DeleteConversationByIdentifier", description: "[MODE:SIDEEFFECTS] Delete an agent conversation.", tier: tierOverseer,
 		annotations: toolAnnotations{Destructive: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -162,7 +162,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_agents_interrupt", description: "[MODE:SIDEEFFECTS] Interrupt a running agent turn.", tier: tierOverseer,
+		name: "fibe_agents_interrupt", routes: "AgentService.InterruptByIdentifier", description: "[MODE:SIDEEFFECTS] Interrupt a running agent turn.", tier: tierOverseer,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -177,7 +177,7 @@ func (s *Server) registerAgentActionTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_update_name", description: "[MODE:DIALOG] Update your own agent name.", tier: tierBase,
+		name: "fibe_update_name", routes: "AgentService.Update", description: "[MODE:DIALOG] Update your own agent name.", tier: tierBase,
 		annotations: toolAnnotations{Idempotent: false},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			agentIDStr := os.Getenv("FIBE_AGENT_ID")

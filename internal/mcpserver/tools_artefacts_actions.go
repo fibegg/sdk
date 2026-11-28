@@ -13,7 +13,7 @@ import (
 
 func (s *Server) registerArtefactActionTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_artefact_upload",
+		name: "fibe_artefact_upload", routes: artefactUploadRoutes,
 		description: "[MODE:SIDEEFFECTS] Upload and save an artefact. Useful when Player asks to create something, implicitly or explicitly",
 		tier:        tierBase,
 		annotations: toolAnnotations{},

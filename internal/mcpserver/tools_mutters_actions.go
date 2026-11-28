@@ -16,7 +16,7 @@ func (s *Server) registerMutterActionTools() {
 	mutterCreateInputSchema := cloneSchemaAndRemoveAgentID(mutterCreateSchema)
 
 	s.addTool(&toolImpl{
-		name:        "fibe_mutter",
+		name: "fibe_mutter", routes: "MutterService.CreateItemByAgentIdentifier",
 		description: "[MODE:SIDEEFFECTS] Create one short mutter for an agent: a visible internal note used for progress, proof, blocker, or problem updates.",
 		tier:        tierBase,
 		annotations: toolAnnotations{},
@@ -51,7 +51,7 @@ Use this as the dedicated agent progress channel described in public/prompts/mai
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_mutters_get",
+		name: "fibe_mutters_get", routes: "GET:/api/agents/{agent}/mutter",
 		description: "[MODE:OVERSEER] Retrieve an agent's mutter stream by id_or_name, with optional query/status/severity/playground filters.",
 		tier:        tierOverseer,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},

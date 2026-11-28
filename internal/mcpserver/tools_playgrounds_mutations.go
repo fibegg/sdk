@@ -10,7 +10,7 @@ import (
 
 func (s *Server) registerPlaygroundMutationTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_action", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.", tier: tierBrownfield,
+		name: "fibe_playgrounds_action", routes: "PlaygroundService.ActionByIdentifier", description: "[MODE:SIDEEFFECTS] Run one playground lifecycle action: rollout, hard_restart, stop, start, retry_compose, enable_maintenance, or disable_maintenance.", tier: tierBrownfield,
 		annotations: toolAnnotations{Destructive: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -37,7 +37,7 @@ func (s *Server) registerPlaygroundMutationTools() {
 	))
 	registerPlaygroundDebugTool := func(name, desc string) {
 		s.addTool(&toolImpl{
-			name: name, description: desc, tier: tierBrownfield,
+			name: name, routes: "PlaygroundService.DebugWithParamsByIdentifier", description: desc, tier: tierBrownfield,
 			annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 			handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 				identifier, err := requiredIdentifier(args, "id_or_name", "")

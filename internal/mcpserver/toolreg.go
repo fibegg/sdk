@@ -24,6 +24,7 @@ func withRawInputSchema(schema map[string]any) mcp.ToolOption {
 
 type toolOpts struct {
 	Tier             toolTier
+	Routes           operationRoutes
 	Idempotent       bool
 	Hidden           bool
 	ExtraSchemaProps []mcp.ToolOption
@@ -73,6 +74,10 @@ func (s *Server) addTool(t *toolImpl, tool mcp.Tool) {
 // toolResultFromError preserves structured fields so MCP clients can classify
 // failures without parsing human-readable messages.
 func toolResultFromError(toolName string, err error) *mcp.CallToolResult {
+	var unavailable unavailableOperation
+	if errors.As(err, &unavailable) {
+		return mcp.NewToolResultError(unavailable.Error())
+	}
 	payload := map[string]any{
 		"tool":    toolName,
 		"message": err.Error(),
@@ -163,6 +168,7 @@ func registerCreate[P any, R any](s *Server, name, description string, opts tool
 		name:        name,
 		description: description,
 		tier:        opts.Tier,
+		routes:      opts.Routes,
 		hidden:      opts.Hidden,
 		annotations: toolAnnotations{Idempotent: opts.Idempotent},
 		handler: func(ctx context.Context, client *fibe.Client, args map[string]any) (any, error) {

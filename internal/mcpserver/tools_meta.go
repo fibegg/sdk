@@ -22,7 +22,7 @@ import (
 // explicit advertised tiers.
 func (s *Server) registerMetaTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_status", description: "[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.", tier: tierMeta,
+		name: "fibe_status", routes: "StatusService.Get", description: "[MODE:DIALOG] Show resource counts, quotas, and rate limits for the account.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return c.Status.Get(ctx)
@@ -32,7 +32,7 @@ func (s *Server) registerMetaTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_doctor", description: "[MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile", tier: tierMeta,
+		name: "fibe_doctor", routes: "-", description: "[MODE:DIALOG] Run self-diagnostic checks: verify API key, connectivity, and display user profile", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			me, err := c.APIKeys.Me(ctx)
@@ -69,7 +69,7 @@ func (s *Server) registerMetaTools() {
 
 	// Validate before replacing session credentials; validate:false skips the ping.
 	s.addTool(&toolImpl{
-		name: "fibe_auth_set", description: "[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.", tier: tierOther,
+		name: "fibe_auth_set", routes: "-", description: "[MODE:SIDEEFFECTS] Set the API key and domain for this MCP session.", tier: tierOther,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, _ *fibe.Client, args map[string]any) (any, error) {
 			apiKey := argString(args, "api_key")
@@ -84,6 +84,7 @@ func (s *Server) registerMetaTools() {
 				}
 			}
 
+			previousManifest := s.sessionManifest(ctx)
 			prev := s.sessionFor(ctx)
 			prev.mu.RLock()
 			prevProfile, prevKey, prevDomain := prev.profile, prev.apiKey, prev.domain
@@ -103,6 +104,7 @@ func (s *Server) registerMetaTools() {
 				}
 			}
 
+			s.refreshEdition(ctx, previousManifest)
 			return map[string]any{
 				"ok":          true,
 				"api_key_set": apiKey != "",
@@ -126,7 +128,7 @@ one-off credentials supplied explicitly by the user.`),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_auth_list", description: "[MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys.", tier: tierMeta,
+		name: "fibe_auth_list", routes: "-", description: "[MODE:DIALOG] List local Fibe auth profiles available to this MCP server without revealing API keys.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			profiles, err := listMCPAuthProfiles()
@@ -142,7 +144,7 @@ one-off credentials supplied explicitly by the user.`),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_auth_status", description: "[MODE:DIALOG] Show the current MCP session auth target and selected profile, if any.", tier: tierMeta,
+		name: "fibe_auth_status", routes: "-", description: "[MODE:DIALOG] Show the current MCP session auth target and selected profile, if any.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			st := s.sessionFor(ctx)
@@ -172,7 +174,7 @@ one-off credentials supplied explicitly by the user.`),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_auth_use", description: "[MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately.", tier: tierMeta,
+		name: "fibe_auth_use", routes: "-", description: "[MODE:SIDEEFFECTS] Switch this MCP session to a local Fibe auth profile by name, rebuilding the session client immediately.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, _ *fibe.Client, args map[string]any) (any, error) {
 			profile := strings.TrimSpace(argString(args, "profile"))
@@ -190,6 +192,7 @@ one-off credentials supplied explicitly by the user.`),
 				}
 			}
 
+			previousManifest := s.sessionManifest(ctx)
 			prev := s.sessionFor(ctx)
 			prev.mu.RLock()
 			prevProfile, prevKey, prevDomain := prev.profile, prev.apiKey, prev.domain
@@ -207,6 +210,7 @@ one-off credentials supplied explicitly by the user.`),
 					return nil, fmt.Errorf("fibe_auth_use validation failed (profile NOT selected): %w", pingErr)
 				}
 			}
+			s.refreshEdition(ctx, previousManifest)
 			return map[string]any{
 				"ok":         true,
 				"profile":    profile,
@@ -227,7 +231,7 @@ selected profile with /api/me before keeping the new session client.`),
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_info", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or HOST_ROOT.", tier: tierBrownfield,
+		name: "fibe_local_playgrounds_info", routes: "-", description: "[MODE:BROWNFIELD] Inspect local playground names, current link state, repo roots, URLs, mounts, or details from /opt/fibe/playgrounds or HOST_ROOT.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			view := strings.ToLower(strings.TrimSpace(argString(args, "view")))
@@ -262,7 +266,7 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_local_playgrounds_link", description: "[MODE:BROWNFIELD] Link local playground mounts into a working directory.", tier: tierBrownfield,
+		name: "fibe_local_playgrounds_link", routes: "-", description: "[MODE:BROWNFIELD] Link local playground mounts into a working directory.", tier: tierBrownfield,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			selector, err := localPlaygroundTargetFromArgs(args)
@@ -282,26 +286,33 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_help", description: "[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes.", tier: tierMeta,
+		name: "fibe_help", routes: "-", description: "[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			path := argString(args, "path")
 			if s.cfg.CobraRoot == nil {
 				return nil, fmt.Errorf("fibe_help not available: server was started without CobraRoot")
 			}
+			manifest := s.sessionManifest(ctx)
+			s.runMu.Lock()
+			defer s.runMu.Unlock()
 			cmd, _, err := s.cfg.CobraRoot.Find(strings.Fields(path))
 			if err != nil || cmd == nil {
 				return nil, fmt.Errorf("unknown command %q", path)
 			}
-			var buf bytes.Buffer
-			cmd.SetOut(&buf)
-			_ = cmd.Help()
-			return map[string]any{
+			if !manifest.offersCommand(cmd) {
+				return nil, unavailable(cliPath(cmd))
+			}
+			result := map[string]any{
 				"path":  path,
 				"short": cmd.Short,
 				"long":  cmd.Long,
-				"help":  buf.String(),
-			}, nil
+				"help":  s.renderCLIHelp(cmd, manifest),
+			}
+			if manifest != nil {
+				result["edition"] = communityNotice
+			}
+			return result, nil
 		},
 	}, mcp.NewTool("fibe_help",
 		mcp.WithDescription("[MODE:DIALOG] Display detailed CLI help documentation for a specific Fibe command path. Extremely useful to look up flag descriptions or expected payload shapes."),
@@ -309,7 +320,7 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_run", description: "[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.", tier: tierMeta,
+		name: "fibe_run", routes: "-", description: "[MODE:SIDEEFFECTS] Last-resort escape hatch: invoke an arbitrary Fibe CLI command when no dedicated MCP tool fits. Use sparingly.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			requiresConfirm, err := s.fibeRunRequiresConfirm(args)
@@ -339,26 +350,33 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 	schemaResourceSelectors := resourceschema.SchemaResourceSelectors()
 	schemaOperations := resourceschema.OperationNames()
 	s.addTool(&toolImpl{
-		name: "fibe_schema", description: "[MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog.", tier: tierMeta,
+		name: "fibe_schema", routes: "-", description: "[MODE:DIALOG] Return JSON Schema definitions and the schema resource catalog.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
+			manifest := s.sessionManifest(ctx)
 			resource := argString(args, "resource")
 			operation := argString(args, "operation")
 			if resource == "" {
-				return resourceschema.Registry(), nil
+				return manifest.schemaNotice(manifest.schemaRegistry()), nil
 			}
 			if resourceschema.NormalizeResource(resource) == "list" {
-				return resourceschema.CatalogResponse(), nil
+				return manifest.schemaCatalog(), nil
 			}
 			ops, canonical, ok := resourceschema.SchemasFor(resource)
 			if !ok {
 				return nil, fmt.Errorf("unknown resource %q; supported resources: %s", resource, resourceschema.ResourceNamesString())
 			}
 			if operation == "" {
+				if manifest != nil {
+					return manifest.schemaForResource(canonical, "")
+				}
 				return ops, nil
 			}
 			if canonical == "compose" && resourceschema.NormalizeResource(operation) == "validate" {
 				if payload, ok := args["payload"].(map[string]any); ok && payload != nil {
+					if err := manifest.require("compose validate", resourceOperationRoutes("compose", "validate")); err != nil {
+						return nil, err
+					}
 					if _, _, err := resourceschema.ValidatePayload("compose", "validate", payload); err != nil {
 						return nil, err
 					}
@@ -380,6 +398,9 @@ Use timeout_ms to bound risky calls that might otherwise outlive the host's tool
 			schema, _, op, ok := resourceschema.SchemaFor(canonical, operation)
 			if !ok {
 				return nil, fmt.Errorf("unknown operation %q for resource %q", op, canonical)
+			}
+			if manifest != nil {
+				return manifest.schemaForResource(canonical, op)
 			}
 			return schema, nil
 		},

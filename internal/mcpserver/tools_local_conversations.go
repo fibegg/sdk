@@ -63,7 +63,7 @@ type localConversationGetMessageResponse struct {
 // filesystem state and never call the Fibe API.
 func (s *Server) registerLocalConversationTools() {
 	s.addTool(&toolImpl{
-		name:        "fibe_local_conversations_list",
+		name: "fibe_local_conversations_list", routes: "-",
 		description: "[MODE:DIALOG] List local Codex, Claude Code, and Claude Desktop conversations from this machine.",
 		tier:        tierLocal,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -101,7 +101,7 @@ Use only with conversation fields: provider, uuid, title, project, last_message_
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_local_conversations_get",
+		name: "fibe_local_conversations_get", routes: "-",
 		description: "[MODE:DIALOG] View one local Codex or Claude conversation by UUID or UUID prefix.",
 		tier:        tierLocal,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
@@ -153,7 +153,7 @@ Message fields for only: id, position, role, type, uuid, timestamp, text, conten
 	))
 
 	s.addTool(&toolImpl{
-		name:        "fibe_local_conversations_get_message",
+		name: "fibe_local_conversations_get_message", routes: "-",
 		description: "[MODE:DIALOG] View one full local conversation message by conversation UUID and message ID.",
 		tier:        tierLocal,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},

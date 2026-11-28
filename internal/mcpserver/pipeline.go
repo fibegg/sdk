@@ -23,7 +23,7 @@ import (
 // fibe_pipeline_result.
 func (s *Server) registerPipelineTools() {
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.", tier: tierMeta,
+		name: "fibe_pipeline", routes: "-", description: "[MODE:SIDEEFFECTS] Execute multiple tool calls in one round trip and pass results between them with JSONPath bindings. Use it to reduce round trips when creating and waiting for jobs.", tier: tierMeta,
 		annotations: toolAnnotations{},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			return s.runPipeline(ctx, args)
@@ -77,7 +77,7 @@ Args may contain JSONPath references starting with "$.", resolved against the ma
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_pipeline_result", description: "[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.", tier: tierMeta,
+		name: "fibe_pipeline_result", routes: "-", description: "[MODE:DIALOG] Look up a cached result from an earlier pipeline execution.", tier: tierMeta,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			pid := argString(args, "pipeline_id")
@@ -221,6 +221,11 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 	if err := s.validatePipeline(req.Steps); err != nil {
 		return nil, err
 	}
+	if manifest := s.sessionManifest(ctx); manifest != nil {
+		if err := s.preflightPipelineEdition(ctx, manifest, req.Steps); err != nil {
+			return nil, err
+		}
+	}
 	maxConcurrency := s.cfg.PipelineMaxConcurrency
 	if maxConcurrency <= 0 {
 		maxConcurrency = 8
@@ -299,6 +304,48 @@ func (s *Server) runPipeline(ctx context.Context, raw map[string]any) (any, erro
 	}
 
 	return resp, nil
+}
+
+// Preflight static operations before running earlier steps. Steps whose args
+// or active profile depend on earlier results are checked at dispatch time.
+func (s *Server) preflightPipelineEdition(ctx context.Context, manifest *routeManifest, steps []pipelineStep) error {
+	var profileMayChange bool
+	var walk func([]pipelineStep) error
+	walk = func(steps []pipelineStep) error {
+		for _, step := range steps {
+			if profileMayChange {
+				return nil
+			}
+			switch step.Tool {
+			case "fibe_auth_set", "fibe_auth_use":
+				profileMayChange = true
+				continue
+			case "fibe_call":
+				target := argString(step.Args, "tool")
+				if target == "fibe_auth_set" || target == "fibe_auth_use" || strings.HasPrefix(target, "$") {
+					profileMayChange = true
+					continue
+				}
+			}
+			if tool, ok := s.dispatcher.lookup(step.Tool); ok {
+				args := step.Args
+				if step.InputPath != "" {
+					args = nil
+				}
+				if err := s.checkToolEdition(ctx, manifest, tool, args); err != nil {
+					return err
+				}
+			}
+			if err := walk(step.Parallel); err != nil {
+				return err
+			}
+			if err := walk(step.Steps); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return walk(steps)
 }
 
 func (s *Server) validatePipeline(steps []pipelineStep) error {
@@ -574,6 +621,11 @@ func (r *pipelineRunner) execTool(stepPath string, step pipelineStep, scope map[
 	}
 
 	if r.dryRun {
+		if tool, ok := r.srv.dispatcher.lookup(step.Tool); ok {
+			if err := r.srv.checkToolEdition(r.ctx, r.srv.sessionManifest(r.ctx), tool, resolved); err != nil {
+				return err
+			}
+		}
 		r.mu.Lock()
 		if step.ID != "" {
 			r.bindings[step.ID] = map[string]any{"dry_run": true, "tool": step.Tool, "args": resolved}
@@ -605,6 +657,10 @@ func (r *pipelineRunner) execTool(stepPath string, step pipelineStep, scope map[
 			}
 			r.mu.Unlock()
 			return nil
+		}
+		var unavailable unavailableOperation
+		if errors.As(err, &unavailable) {
+			return unavailable
 		}
 		return fmt.Errorf("%s: %w", step.Tool, err)
 	}

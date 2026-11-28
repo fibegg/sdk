@@ -14,7 +14,7 @@ import (
 func (s *Server) registerCustomTools() {
 	// Needs: id_or_name (identifier), service (string, optional), tail (int, optional).
 	s.addTool(&toolImpl{
-		name: "fibe_playgrounds_logs", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services.", tier: tierBrownfield,
+		name: "fibe_playgrounds_logs", routes: "PlaygroundService.LogsByIdentifier", description: "[MODE:DIALOG] Retrieve playground logs. Omitting service returns all services.", tier: tierBrownfield,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			identifier, err := requiredIdentifier(args, "id_or_name", "")
@@ -37,7 +37,7 @@ func (s *Server) registerCustomTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_repo_status_check", description: "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.", tier: tierOther,
+		name: "fibe_repo_status_check", routes: "RepoStatusService.Check", description: "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.", tier: tierOther,
 		annotations: toolAnnotations{ReadOnly: true, Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			type input struct {
@@ -60,7 +60,7 @@ func (s *Server) registerCustomTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_get_github_token", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.", tier: tierOther,
+		name: "fibe_get_github_token", routes: "InstallationService.GetGitHubToken", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.", tier: tierOther,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			repo := argString(args, "repo")
