@@ -54,6 +54,9 @@ type Config struct {
 	// named tiers such as "other,meta" are also accepted. Default: full.
 	ToolSet string
 
+	// Edition is auto (default) or full (skip route discovery).
+	Edition string
+
 	// RequireAuth refuses tool calls that could not resolve an API key from
 	// any source (bearer header, fibe_auth_set, env). Recommended for
 	// multi-tenant HTTP/SSE deployments.
@@ -94,6 +97,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		ToolSet:                "full",
+		Edition:                "auto",
 		PipelineCacheSize:      256,
 		PipelineCacheEntryMax:  1 << 20, // 1 MiB
 		PipelineMaxSteps:       25,
@@ -105,9 +109,10 @@ func DefaultConfig() Config {
 
 // Server holds the MCP server instance and shared state.
 type Server struct {
-	cfg     Config
-	mcp     *mcpserver.MCPServer
-	baseCli *fibe.Client // lazily built at Serve() time
+	cfg      Config
+	mcp      *mcpserver.MCPServer
+	baseCli  *fibe.Client // lazily built at Serve() time
+	editions *editionDiscovery
 
 	// cache is the per-server pipeline result store (multi-tenant keyed).
 	cache *pipelineCache
@@ -194,6 +199,7 @@ func (s *Server) RegisterAll() error {
 // stderr. Any stray stdout byte would corrupt the protocol.
 func (s *Server) ServeStdio(ctx context.Context) error {
 	s.baseCli = s.buildBaseClient()
+	s.startEditionDiscovery()
 	if s.audit != nil {
 		defer s.audit.Close()
 	}
