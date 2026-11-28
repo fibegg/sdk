@@ -31,6 +31,11 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 		Annotations: map[string]string{"fibe.gg/safety": "read-only"},
 		Run:         func(*cobra.Command, []string) {},
 	})
+	cfg.CobraRoot.AddCommand(&cobra.Command{
+		Use: "destroy", Short: "Destroy work",
+		Annotations: map[string]string{"fibe.gg/safety": "destructive"},
+		Run:         func(*cobra.Command, []string) {},
+	})
 	s := New(cfg)
 	require.NoError(t, s.RegisterAll())
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,15 +54,17 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 	}, time.Second, 5*time.Millisecond)
 
 	type reply struct {
-		help any
-		err  error
-		rpc  any
+		help         any
+		err          error
+		rpc          any
+		confirmation error
 	}
 	result := make(chan reply, 1)
 	go func() {
 		help, err := s.dispatcher.dispatch(ctx, "fibe_help", map[string]any{"path": "wait"})
 		rpc := s.mcp.HandleMessage(ctx, []byte(`{"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":"fibe://help/wait"}}`))
-		result <- reply{help: help, err: err, rpc: rpc}
+		_, confirmation := s.dispatcher.dispatch(ctx, "fibe_run", map[string]any{"args": []any{"destroy"}})
+		result <- reply{help: help, err: err, rpc: rpc, confirmation: confirmation}
 	}()
 	select {
 	case out := <-result:
@@ -66,6 +73,8 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 		serialized, err := json.Marshal(out.rpc)
 		require.NoError(t, err)
 		require.Contains(t, string(serialized), "Wait for work")
+		var confirm *confirmRequiredError
+		require.ErrorAs(t, out.confirmation, &confirm)
 	case <-time.After(time.Second):
 		t.Fatal("help waited for a running CLI subprocess")
 	}

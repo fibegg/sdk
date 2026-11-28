@@ -554,6 +554,10 @@ func (s *Server) fibeRunRequiresConfirm(args map[string]any) (bool, error) {
 	if s.cfg.CobraRoot == nil {
 		return false, fmt.Errorf("fibe_run command safety cannot be classified without Cobra command metadata")
 	}
+	// Cobra.Find mutates flag metadata. Use the short help lock and
+	// keep confirmation independent of the running subprocess.
+	s.helpMu.Lock()
+	defer s.helpMu.Unlock()
 	command, _, err := s.cfg.CobraRoot.Find(strs)
 	if err != nil {
 		return false, fmt.Errorf("fibe_run command safety classification failed: %w", err)
