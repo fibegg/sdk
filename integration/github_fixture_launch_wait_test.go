@@ -1,0 +1,55 @@
+package integration
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/fibegg/sdk/fibe"
+)
+
+func waitForGitHubFixtureLaunch(t *testing.T, c *fibe.Client, id int64) string {
+	t.Helper()
+
+	const timeout = 105 * time.Second
+	started := time.Now()
+	waitCtx, cancelWait := context.WithDeadline(ctx(), started.Add(timeout))
+	defer cancelWait()
+	deadline, _ := waitCtx.Deadline()
+
+	lastStatus, lastStep := "", ""
+	for time.Now().Before(deadline) {
+		pollCtx, cancelPoll := context.WithTimeout(waitCtx, 5*time.Second)
+		status, err := c.Playgrounds.Status(pollCtx, id)
+		cancelPoll()
+		if err == nil {
+			lastStatus = status.Status
+			lastStep = ""
+			if status.CreationStep != nil {
+				lastStep = *status.CreationStep
+			}
+			switch lastStatus {
+			case "running", "completed":
+				t.Logf("fixture Playground %d reached %q after %s", id, lastStatus, time.Since(started).Round(time.Millisecond))
+				return lastStatus
+			case "error", "failed":
+				return lastStatus
+			}
+		}
+		time.Sleep(minWaitDuration(2*time.Second, time.Until(deadline)))
+	}
+
+	// Playground detail exposes the saved result code as state_reason.
+	diagnosticCtx, cancelDiagnostic := context.WithTimeout(ctx(), 2*time.Second)
+	defer cancelDiagnostic()
+	resultCode := "unavailable"
+	if pg, err := c.Playgrounds.Get(diagnosticCtx, id); err == nil {
+		resultCode = "unset"
+		if pg.StateReason != nil {
+			resultCode = *pg.StateReason
+		}
+	}
+	t.Fatalf("fixture Playground %d timed out after %s: last status=%q creation step=%q saved result code=%q",
+		id, timeout, lastStatus, lastStep, resultCode)
+	return ""
+}

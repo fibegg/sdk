@@ -14,12 +14,11 @@ import (
 )
 
 const (
-	githubFixtureBackendRepo       = "https://github.com/fibegg-fixtures/backend"
-	githubFixtureFrontendRepo      = "https://github.com/fibegg-fixtures/frontend"
-	githubFixtureConfigPath        = "docker-compose.yml"
-	githubFixtureRef               = "main"
-	githubFixtureComposeURL        = "https://raw.githubusercontent.com/fibegg-fixtures/backend/main/docker-compose.yml"
-	githubFixtureLaunchWaitMinutes = 15
+	githubFixtureBackendRepo  = "https://github.com/fibegg-fixtures/backend"
+	githubFixtureFrontendRepo = "https://github.com/fibegg-fixtures/frontend"
+	githubFixtureConfigPath   = "docker-compose.yml"
+	githubFixtureRef          = "main"
+	githubFixtureComposeURL   = "https://raw.githubusercontent.com/fibegg-fixtures/backend/main/docker-compose.yml"
 )
 
 var githubFixtureRepos = []string{githubFixtureBackendRepo, githubFixtureFrontendRepo}
@@ -87,7 +86,7 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 		cleanupLaunchResult(t, c, result)
 		requireLaunchIDs(t, result)
 
-		status := waitForPlaygroundStatusWithin(t, c, result.PlaygroundID, []string{"running", "completed", "error", "failed"}, githubFixtureLaunchWaitTimeout())
+		status := waitForGitHubFixtureLaunch(t, c, result.PlaygroundID)
 		if status != "running" && status != "completed" {
 			t.Fatalf("repository-source fixture playground reached %q, want running/completed", status)
 		}
@@ -160,7 +159,7 @@ func TestDockerE2EGitHubFixtureLaunchWorkflow(t *testing.T) {
 		requireNoError(t, err, "create playground from pasted-compose fixture spec")
 		t.Cleanup(func() { _ = c.Playgrounds.Delete(ctx(), pg.ID) })
 
-		status := waitForPlaygroundStatusWithin(t, c, pg.ID, []string{"running", "completed", "error", "failed"}, githubFixtureLaunchWaitTimeout())
+		status := waitForGitHubFixtureLaunch(t, c, pg.ID)
 		if status != "running" && status != "completed" {
 			t.Fatalf("pasted-compose fixture playground reached %q, want running/completed", status)
 		}
@@ -174,10 +173,6 @@ func githubFixturePAT(t *testing.T) string {
 		t.Skip("GITHUB_PAT is required for real GitHub fixture launch tests")
 	}
 	return pat
-}
-
-func githubFixtureLaunchWaitTimeout() time.Duration {
-	return minWaitDuration(time.Duration(envInt("FIBE_GITHUB_FIXTURE_LAUNCH_WAIT_MINUTES", githubFixtureLaunchWaitMinutes))*time.Minute, 90*time.Second)
 }
 
 func attachGitHubPATToCurrentPlayer(t *testing.T, pat string) {
