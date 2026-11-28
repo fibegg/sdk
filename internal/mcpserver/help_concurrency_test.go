@@ -21,7 +21,7 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 	marker := filepath.Join(dir, "started")
 	t.Setenv("FIBE_TEST_MCP_CHILD_MARKER", marker)
 	exe := filepath.Join(dir, "fibe")
-	require.NoError(t, os.WriteFile(exe, []byte("#!/bin/sh\n: > \"$FIBE_TEST_MCP_CHILD_MARKER\"\nexec sleep 30\n"), 0o700))
+	require.NoError(t, os.WriteFile(exe, []byte("#!/bin/sh\n: > \"$FIBE_TEST_MCP_CHILD_MARKER\"\nexec sleep 60\n"), 0o700))
 
 	cfg := DefaultConfig()
 	cfg.CobraExecutable = exe
@@ -39,19 +39,19 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 	s := New(cfg)
 	require.NoError(t, s.RegisterAll())
 	ctx, cancel := context.WithCancel(context.Background())
-	child := make(chan error, 1)
+	childDone := make(chan struct{})
 	go func() {
-		_, err := s.dispatcher.dispatch(ctx, "fibe_run", map[string]any{"args": []any{"wait"}})
-		child <- err
+		defer close(childDone)
+		_, _ = s.dispatcher.dispatch(ctx, "fibe_run", map[string]any{"args": []any{"wait"}})
 	}()
 	defer func() {
 		cancel()
-		<-child
+		<-childDone
 	}()
 	require.Eventually(t, func() bool {
 		_, err := os.Stat(marker)
 		return err == nil
-	}, time.Second, 5*time.Millisecond)
+	}, 8*time.Second, 5*time.Millisecond)
 
 	type reply struct {
 		help         any
@@ -75,7 +75,12 @@ func TestMCPHelpWhileRunSubprocessIsActive(t *testing.T) {
 		require.Contains(t, string(serialized), "Wait for work")
 		var confirm *confirmRequiredError
 		require.ErrorAs(t, out.confirmation, &confirm)
-	case <-time.After(time.Second):
+		select {
+		case <-childDone:
+			t.Fatal("CLI subprocess finished before the help and confirmation replies")
+		default:
+		}
+	case <-time.After(8 * time.Second):
 		t.Fatal("help waited for a running CLI subprocess")
 	}
 }
