@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-11-28
+
 ### Fixed
 
 - The GitHub fixture launch test waits up to 105 seconds with its own helper and reports the last observed state on a timeout.
