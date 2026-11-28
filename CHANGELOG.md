@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- MCP discovers self-hosted Community route availability and filters tools,
+  schemas, and CLI help for that session. Use `--edition full` or
+  `FIBE_MCP_EDITION=full` to offer the complete configured tiers.
+
 ## [0.3.12] - 2026-11-28
 
 ### Fixed

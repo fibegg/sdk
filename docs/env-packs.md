@@ -40,6 +40,8 @@ fibe tasks rerun 77 --from-file attachments.json
 
 ## MCP
 
+The ENV pack routes are available on Enterprise. See [MCP edition discovery](mcp-editions.md).
+
 `fibe_schema(resource:"env_pack")` discovers schemas. Generic `fibe_resource_list/get/delete` supports `env_pack`. Generic `fibe_resource_mutate` supports pack `create`, `update`, `attachments_replace`, `attachments_reorder`, `attachment_detach`, `attachment_retarget`, and `grant_renew`, plus Playground `rerun` and Task `trigger`/`rerun` selections. `fibe_env_pack_attachments_get` reads target provenance. Mutation dry-runs validate the same nil/empty, key/value, and grant-field rules locally.
 
 All clients share server precedence, authority, and operation snapshots. Pack/list changes take effect only on the next explicit operation. Automatic repair retains the last applied values.

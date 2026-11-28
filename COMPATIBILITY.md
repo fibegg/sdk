@@ -31,6 +31,13 @@ signatures, struct field ordering, JSON tags, public interfaces, HTTP wire
 shapes, CLI commands and flags, and MCP tool names and schemas. Additive APIs
 are allowed.
 
+MCP defaults to `--edition auto`. With a Community route manifest, the
+advertised surface and discovery output omit operations with absent routes.
+Use `--edition full` (or `FIBE_MCP_EDITION=full`) to restore the complete
+configured tiers. Enterprise and installations without a readable route
+manifest retain the existing MCP behavior. Offline contracts still describe
+the complete SDK surface.
+
 Security defects, crashes, resource leaks, unsafe filesystem behavior,
 credential exposure, malformed-input acceptance, and plainly erroneous retry
 behavior may be corrected. Such fixes are documented and covered by contract

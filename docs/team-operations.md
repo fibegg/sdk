@@ -52,8 +52,8 @@ SDK entry points are additive `Client` methods: `TeamServicePrincipals`,
 `AdoptTeamRepositoryOperation`, `TeamGitInstallations`,
 `ConnectTeamGitInstallation` and `RemoveTeamGitInstallation`.
 
-The MCP `other` tier registers matching `fibe_team_*` tools. Select `full` or
-`other,meta` to advertise them. Every tool requires `team_id`; runtime
+The MCP `other` tier registers matching `fibe_team_*` tools. On Enterprise,
+select `full` or `other,meta` to advertise them. See [MCP edition discovery](mcp-editions.md). Every tool requires `team_id`; runtime
 recovery requires `replacement_agent_ids`, including explicit `[]`. Revoke,
 recover, adopt and installation removal require `confirm: true` under
 the existing destructive-operation gate. This confirmation does not replace
