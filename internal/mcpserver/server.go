@@ -134,6 +134,9 @@ type Server struct {
 	// but HTTP/SSE may see concurrent fibe_run invocations.
 	runMu sync.Mutex
 
+	// helpMu protects Cobra help rendering independently of a CLI subprocess.
+	helpMu sync.Mutex
+
 	// audit writes one JSON line per tool invocation when
 	// FIBE_MCP_AUDIT_LOG is set. nil when disabled.
 	audit *AuditLog

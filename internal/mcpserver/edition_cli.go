@@ -164,8 +164,8 @@ func (s *Server) checkRunEdition(manifest *routeManifest, args map[string]any) e
 		}
 		tokens = append(tokens, token)
 	}
-	s.runMu.Lock()
-	defer s.runMu.Unlock()
+	s.helpMu.Lock()
+	defer s.helpMu.Unlock()
 	command, remaining, err := s.cfg.CobraRoot.Find(tokens)
 	if err != nil || command == nil {
 		return nil
@@ -211,7 +211,7 @@ func (s *Server) checkRunEdition(manifest *routeManifest, args map[string]any) e
 }
 
 func (s *Server) renderCLIHelp(cmd *cobra.Command, manifest *routeManifest) string {
-	// Cobra writes via the shared command tree. The caller holds runMu.
+	// Cobra writes via the shared command tree. The caller holds helpMu.
 	var buf bytes.Buffer
 	previous := cmd.OutOrStdout()
 	cmd.SetOut(&buf)

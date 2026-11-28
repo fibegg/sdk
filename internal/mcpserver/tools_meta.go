@@ -294,8 +294,8 @@ Selectors accept local numeric playground ID, compose project/name, spec, or uni
 				return nil, fmt.Errorf("fibe_help not available: server was started without CobraRoot")
 			}
 			manifest := s.sessionManifest(ctx)
-			s.runMu.Lock()
-			defer s.runMu.Unlock()
+			s.helpMu.Lock()
+			defer s.helpMu.Unlock()
 			cmd, _, err := s.cfg.CobraRoot.Find(strings.Fields(path))
 			if err != nil || cmd == nil {
 				return nil, fmt.Errorf("unknown command %q", path)
@@ -554,8 +554,6 @@ func (s *Server) fibeRunRequiresConfirm(args map[string]any) (bool, error) {
 	if s.cfg.CobraRoot == nil {
 		return false, fmt.Errorf("fibe_run command safety cannot be classified without Cobra command metadata")
 	}
-	s.runMu.Lock()
-	defer s.runMu.Unlock()
 	command, _, err := s.cfg.CobraRoot.Find(strs)
 	if err != nil {
 		return false, fmt.Errorf("fibe_run command safety classification failed: %w", err)
@@ -592,7 +590,10 @@ func (s *Server) runCobraSubprocess(ctx context.Context, strs []string, userArgs
 	cmd.Env = env
 	execErr := cmd.Run()
 
-	result := fibeRunResult(strs, userArgs, timeoutMs, stdoutBuf, stderrBuf, execErr, ctx, s.recommendedToolForCLIArgs(userArgs))
+	s.helpMu.Lock()
+	recommended := s.recommendedToolForCLIArgs(userArgs)
+	s.helpMu.Unlock()
+	result := fibeRunResult(strs, userArgs, timeoutMs, stdoutBuf, stderrBuf, execErr, ctx, recommended)
 	result["execution_mode"] = "subprocess"
 	result["executable"] = s.cfg.CobraExecutable
 	return result, nil
@@ -606,6 +607,8 @@ func (s *Server) runCobraInProcess(ctx context.Context, strs []string, userArgs 
 	// this lock.
 	s.runMu.Lock()
 	defer s.runMu.Unlock()
+	s.helpMu.Lock()
+	defer s.helpMu.Unlock()
 
 	// Hijack os.Stdout so fmt.Println calls inside cobra handlers are
 	// captured instead of escaping to stderr (or, worse, to the real

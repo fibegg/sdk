@@ -148,8 +148,8 @@ func (s *Server) registerResourceTemplates() {
 		}
 		parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' })
 		manifest := s.sessionManifest(ctx)
-		s.runMu.Lock()
-		defer s.runMu.Unlock()
+		s.helpMu.Lock()
+		defer s.helpMu.Unlock()
 		cmd, _, err := s.cfg.CobraRoot.Find(parts)
 		if err != nil || cmd == nil {
 			return nil, fmt.Errorf("unknown command %q", path)
