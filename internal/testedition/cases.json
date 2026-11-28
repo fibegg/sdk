@@ -1993,6 +1993,12 @@
     },
     {
       "package": "internal/mcpserver",
+      "name": "TestMCPEditionLiveSurface",
+      "edition": "shared",
+      "reason": "Discovers the live route manifest, inspects the MCP tool list and reads shared Agents."
+    },
+    {
+      "package": "internal/mcpserver",
       "name": "TestMutterToolCreatesAgentMutter",
       "edition": "enterprise-only",
       "reason": "Library Artefacts, feedbacks, mutters and memories are Enterprise-only, including Agent-attached forms; their implementation, routes and library_records storage are absent from Community."
