@@ -2,9 +2,13 @@
 
 `fibe mcp serve` uses `--edition auto` by default. The stdio and HTTP
 transports make an anonymous GET to the API server’s `/route-manifest.json`
-with a short timeout. The process caches the result, including failures, for
-each domain. Switching profiles or API domains selects the cached result or
-probes the new domain.
+with a two-second timeout. Startup begins the request in the background. The
+first response that depends on it waits for the remaining time. The process
+caches HTTP answers by domain and retries transport failures on a later
+request, at most once every 30 seconds. A recovered Community manifest sends
+a tool-list change notification to clients that saw the fallback surface.
+Switching profiles or API domains selects the cached result or probes the new
+domain.
 
 When the server reports Community, MCP filters the selected `--tools` tiers
 by the manifest’s HTTP methods and route templates. The tool catalog, schema,

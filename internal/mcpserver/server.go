@@ -168,6 +168,11 @@ func New(cfg Config) *Server {
 	hooks := &mcpserver.Hooks{}
 	hooks.AddOnUnregisterSession(func(_ context.Context, session mcpserver.ClientSession) {
 		s.sessions.drop(session.SessionID())
+		if d := s.editions; d != nil {
+			d.mu.Lock()
+			delete(d.fallbackSeen, session.SessionID())
+			d.mu.Unlock()
+		}
 		s.cache.DeleteSession(session.SessionID())
 	})
 	opts = append(opts, mcpserver.WithHooks(hooks))
@@ -200,7 +205,8 @@ func (s *Server) RegisterAll() error {
 // stderr. Any stray stdout byte would corrupt the protocol.
 func (s *Server) ServeStdio(ctx context.Context) error {
 	s.baseCli = s.buildBaseClient()
-	s.startEditionDiscovery()
+	stopDiscovery := s.startEditionDiscovery(ctx)
+	defer stopDiscovery()
 	if s.audit != nil {
 		defer s.audit.Close()
 	}

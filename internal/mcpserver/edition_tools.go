@@ -27,7 +27,7 @@ func (s *Server) sessionManifest(ctx context.Context) *routeManifest {
 	if pinned {
 		baseURL := st.client.BaseURL()
 		st.mu.RUnlock()
-		return s.manifestFor(baseURL)
+		return s.manifestFor(ctx, baseURL)
 	}
 	st.mu.RUnlock()
 	if domain == "" && (!s.httpMode || key != "" || apiKeyFromContext(ctx) != "") {
@@ -37,9 +37,9 @@ func (s *Server) sessionManifest(ctx context.Context) *routeManifest {
 		domain = s.cfg.Domain
 	}
 	if domain == s.cfg.Domain {
-		return s.manifestFor(s.baseCli.BaseURL())
+		return s.manifestFor(ctx, s.baseCli.BaseURL())
 	}
-	return s.manifestFor(fibe.NewClient(fibe.WithDisableAutoConfig(), fibe.WithDomain(domain)).BaseURL())
+	return s.manifestFor(ctx, fibe.NewClient(fibe.WithDisableAutoConfig(), fibe.WithDomain(domain)).BaseURL())
 }
 
 func (s *Server) refreshEdition(ctx context.Context, previous *routeManifest) {

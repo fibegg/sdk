@@ -77,7 +77,7 @@ func newEditionTestServer(t *testing.T, domain, mode, tools string) *Server {
 	server := New(cfg)
 	require.NoError(t, server.RegisterAll())
 	server.baseCli = server.buildBaseClient()
-	server.startEditionDiscovery()
+	t.Cleanup(server.startEditionDiscovery(context.Background()))
 	return server
 }
 
@@ -141,11 +141,14 @@ func TestMCPEditionDiscovery(t *testing.T) {
 			require.Zero(t, api.probes.Load())
 			start := time.Now()
 			auto := newEditionTestServer(t, api.server.URL, "auto", "full")
-			require.Less(t, time.Since(start), 2*time.Second)
-			require.EqualValues(t, 1, api.probes.Load())
+			require.Less(t, time.Since(start), routeManifestTimeout/2)
 
 			fullNames := editionListedNames(t, full, ctx)
 			autoNames := editionListedNames(t, auto, ctx)
+			require.EqualValues(t, 1, api.probes.Load())
+			if tc.slow {
+				require.GreaterOrEqual(t, time.Since(start), routeManifestTimeout)
+			}
 			var omitted []string
 			for _, name := range fullNames {
 				if !containsName(autoNames, name) {
@@ -368,6 +371,9 @@ func TestMCPEditionHTTPStartupAndDomain(t *testing.T) {
 	cancel()
 	require.ErrorIs(t, <-done, context.Canceled)
 
+	s = newEditionTestServer(t, enterprise.server.URL, "auto", "full")
+	s.httpMode = true
+	s.cfg.AllowedDomains = []string{community.server.URL}
 	req := httptest.NewRequest(http.MethodPost, "http://localhost/mcp", nil)
 	req.Header.Set("X-Fibe-Domain", community.server.URL)
 	require.Contains(t, editionListedNames(t, s, s.injectAuthFromRequest(context.Background(), req)), "fibe_templates_search")
@@ -452,4 +458,46 @@ func TestMCPEditionCLIInventory(t *testing.T) {
 			t.Logf("uncertain command %s: %s", path, strings.Join(unknown, ", "))
 		}
 	}
+}
+
+func TestMCPEditionRetriesAndNotifies(t *testing.T) {
+	community := fixtureManifest(t, "community")
+	var attempts atomic.Int32
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if attempts.Add(1) == 1 {
+			// End the connection before any HTTP response.
+			conn, _, err := http.NewResponseController(w).Hijack()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_ = conn.Close()
+			return
+		}
+		_, _ = w.Write(community)
+	}))
+	t.Cleanup(api.Close)
+
+	s := newEditionTestServer(t, api.URL, "auto", "full")
+	session := &progressTestSession{ch: make(chan mcp.JSONRPCNotification, 1)}
+	ctx := s.mcp.WithContext(context.Background(), session)
+	require.NoError(t, s.mcp.RegisterSession(ctx, session))
+	t.Cleanup(func() { s.mcp.UnregisterSession(ctx, session.SessionID()) })
+
+	require.Contains(t, editionListedNames(t, s, ctx), "fibe_templates_search")
+	require.Contains(t, editionListedNames(t, s, ctx), "fibe_templates_search")
+	require.EqualValues(t, 1, attempts.Load())
+	func() {
+		s.editions.mu.Lock()
+		defer s.editions.mu.Unlock()
+		probe := s.editions.domains[api.URL]
+		require.WithinDuration(t, time.Now().Add(routeManifestRetryInterval), probe.retryAt, time.Second)
+		probe.retryAt = time.Now().Add(-time.Second)
+	}()
+
+	require.NotContains(t, editionListedNames(t, s, ctx), "fibe_templates_search")
+	require.NotContains(t, editionListedNames(t, s, ctx), "fibe_templates_search")
+	require.EqualValues(t, 2, attempts.Load())
+	notifications := collectProgressNotifications(t, session.ch, 1)
+	require.Equal(t, mcp.MethodNotificationToolsListChanged, notifications[0].Method)
 }

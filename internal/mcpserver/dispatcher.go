@@ -146,7 +146,7 @@ func (d *dispatcher) dispatch(ctx context.Context, name string, args map[string]
 	}
 	// A concurrent profile switch can replace the client after preflight.
 	if d.srv.editions != nil {
-		actual := d.srv.manifestFor(c.BaseURL())
+		actual := d.srv.manifestFor(ctx, c.BaseURL())
 		if actual != manifest {
 			if err := d.srv.checkToolEdition(actual, t, handlerArgs); err != nil {
 				return nil, err

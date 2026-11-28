@@ -38,7 +38,8 @@ func (s *Server) ServeHTTP(ctx context.Context, addr string, streamable bool) er
 
 	s.httpMode = true
 	s.baseCli = s.buildBaseClient()
-	s.startEditionDiscovery()
+	stopDiscovery := s.startEditionDiscovery(ctx)
+	defer stopDiscovery()
 	if s.audit != nil {
 		defer s.audit.Close()
 	}
