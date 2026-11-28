@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-11-28
+
 ### Added
 
 - MCP discovers self-hosted Community route availability and filters tools,
