@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fibegg/sdk/contracts"
+	"github.com/fibegg/sdk/internal/restcontract/embedded"
 )
 
 type restOperation struct {
@@ -19,7 +19,7 @@ var restRoutes = sync.OnceValue(func() map[string]restOperation {
 	var contract struct {
 		Operations []restOperation `json:"operations"`
 	}
-	if err := json.Unmarshal([]byte(contracts.REST()), &contract); err != nil {
+	if err := json.Unmarshal([]byte(embedded.REST()), &contract); err != nil {
 		panic(err)
 	}
 	index := make(map[string]restOperation, len(contract.Operations))

@@ -32,6 +32,7 @@ go run ./internal/cmd/apimanifest
 go run ./internal/cmd/restcontract
 ```
 
-The manifest test fails if regeneration changes tracked output. REST, CLI, and
+The REST generator also updates the compact copy embedded by the internal MCP
+server. The manifest tests fail if regeneration changes tracked output. REST, CLI, and
 MCP golden fixtures remain executable tests; generated documentation must not
 be treated as the Docker Compose schema, which is a separate product surface.

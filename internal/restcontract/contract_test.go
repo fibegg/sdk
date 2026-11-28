@@ -2,10 +2,13 @@ package restcontract
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/fibegg/sdk/internal/restcontract/embedded"
 )
 
 func TestRESTContractIsCurrent(t *testing.T) {
@@ -24,5 +27,12 @@ func TestRESTContractIsCurrent(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatal("REST contract is stale; run go run ./internal/cmd/restcontract")
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, got); err != nil {
+		t.Fatal(err)
+	}
+	if compact.String()+"\n" != embedded.REST() {
+		t.Fatal("embedded REST contract is stale; run go run ./internal/cmd/restcontract")
 	}
 }

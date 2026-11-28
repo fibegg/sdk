@@ -1,5 +1,5 @@
-// Package contracts exposes the checked-in REST inventory to the SDK's MCP server.
-package contracts
+// Package embedded exposes the generated REST inventory to the SDK's MCP server.
+package embedded
 
 import _ "embed"
 
