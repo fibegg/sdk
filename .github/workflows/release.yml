@@ -3,8 +3,17 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag
+        required: true
+        type: string
 
 permissions: {}
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   test:
@@ -12,10 +21,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
+      - name: Identify release source
+        id: source
+        run: |
+          sha=$(git rev-parse HEAD)
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
@@ -34,6 +52,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          ref: ${{ needs.test.outputs.source_sha }}
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
@@ -46,14 +65,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ env.RELEASE_TAG }}
       - name: Generate and upload SBOMs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go install github.com/anchore/syft/cmd/syft@v1.46.0
-          syft scan dir:dist -o spdx-json=dist/fibe_${GITHUB_REF_NAME#v}.spdx.json
-          syft scan dir:dist -o cyclonedx-json=dist/fibe_${GITHUB_REF_NAME#v}.cyclonedx.json
-          gh release upload "$GITHUB_REF_NAME" dist/*.spdx.json dist/*.cyclonedx.json --clobber
+          version="${RELEASE_TAG#v}"
+          syft scan dir:dist -o "spdx-json=dist/fibe_$version.spdx.json"
+          syft scan dir:dist -o "cyclonedx-json=dist/fibe_$version.cyclonedx.json"
+          gh release upload "$RELEASE_TAG" dist/*.spdx.json dist/*.cyclonedx.json --clobber
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
           subject-path: |
@@ -74,7 +95,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ env.RELEASE_TAG }}
         run: |
           version="${TAG#v}"
           gh release download "$TAG" --repo "$REPOSITORY" --pattern "fibe_${version}_linux_amd64.tar.gz" --pattern checksums.txt --pattern "*.spdx.json" --pattern "*.cyclonedx.json"
@@ -101,7 +122,7 @@ jobs:
       - name: Notify Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ env.RELEASE_TAG }}
           REPOSITORY: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
         run: |
