@@ -35,7 +35,7 @@ Generated from the MCP registry.
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |
 | `fibe_feedbacks_list` | brownfield | yes | [MODE:OVERSEER] List all feedback entries associated with an agent. |
 | `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search Personal installations or a selected verified Team installation. |
-| `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential. |
+| `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation. |
 | `fibe_gitea_repos_create` | greenfield | yes | [MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template. |
 | `fibe_github_repos_create` | greenfield | yes | [MODE:GREENFIELD] Register and connect a new GitHub repository |
 | `fibe_greenfield_create` | greenfield | yes | [MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. |
@@ -59,7 +59,7 @@ Generated from the MCP registry.
 | `fibe_playgrounds_logs` | brownfield | yes | [MODE:DIALOG] Retrieve playground logs. Omitting service returns all services. |
 | `fibe_playgrounds_switch_template` | brownfield | yes | [MODE:BROWNFIELD] Switch a deployed playground end-to-end: preserve the playground id, swap it onto a new template shape, provision missing private Gitea/GitHub-backed Repositories for new repos, roll it out, wait, and diagnose failures. Single-call brownfield analog of fibe_greenfield_create. |
 | `fibe_playgrounds_wait` | brownfield | yes | [MODE:DIALOG] Block and poll until a playground reaches a specified target state and, for running playgrounds by default, reported services are ready. |
-| `fibe_repo_status_check` | other | yes | [MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access. |
+| `fibe_repo_status_check` | other | yes | [MODE:DIALOG] Verify repository readiness. Results describe repository access and may include runtime writability or fork and mirror guidance. |
 | `fibe_resource_delete` | base | yes | [MODE:SIDEEFFECTS] Delete a supported flat Fibe resource by ID, name, or key where supported. |
 | `fibe_resource_get` | base | yes | [MODE:DIALOG] Get a supported Fibe resource by ID, name, or key where supported. Playground reads include service_urls and service runtime status. Use artefact_attachment or agent_attachment to download attached runtime file content. |
 | `fibe_resource_list` | base | yes | [MODE:DIALOG] List a supported flat Fibe resource. Use fibe_schema with resource=list to discover resource names, aliases, and list params. |

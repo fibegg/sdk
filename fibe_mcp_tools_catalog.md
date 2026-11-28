@@ -973,7 +973,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.
+[MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation.
 
 ### Input Schema
 ```json
@@ -2675,7 +2675,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** true
 
 ### Description
-[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.
+[MODE:DIALOG] Verify repository readiness. Results describe repository access and may include runtime writability or fork and mirror guidance.
 
 ### Input Schema
 ```json

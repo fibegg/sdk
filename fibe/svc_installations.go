@@ -82,10 +82,9 @@ func (s *InstallationService) Token(ctx context.Context, id int64, repo string) 
 }
 
 // GetGitHubToken returns the server-provided GitHub credential for the given
-// repository. Enterprise resolves a GitHub App installation; standalone Core
-// returns its configured process credential. No installation ID is needed.
-// Enterprise applies the same personal permission and current owner/admin proof
-// as Token; standalone Core retains its configured-credential contract.
+// repository. The server resolves an owned GitHub App installation, verifies
+// repository access, and returns a credential scoped to the repository.
+// No installation ID is needed.
 func (s *InstallationService) GetGitHubToken(ctx context.Context, repo string) (*GitHubToken, error) {
 	values := url.Values{}
 	values.Set("repo", repo)
