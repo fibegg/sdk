@@ -14,9 +14,8 @@ Requires Go 1.26.11 or newer when building from source. See
 
 ## SDK integration and E2E tests
 
-Launch a disposable Playground from the `fibe-community` or `fibe-enterprise`
-template. Set `FIBE_DOMAIN` to that Playground's API URL and `FIBE_API_KEY`
-to an explicitly scoped key issued by that installation.
+Set `FIBE_DOMAIN` to the API URL of a disposable test environment and
+`FIBE_API_KEY` to an explicitly scoped key for that environment.
 
 | Target edition | Command | Live coverage |
 | --- | --- | --- |
@@ -57,12 +56,11 @@ Authenticate the CLI with a named local profile. The default profile targets
 fibe login --api-key "fibe_live_yourkeyhere"
 ```
 
-Use additional profiles for disposable Playgrounds, local servers, or feature
-environments. For a staging profile, set `PLAYGROUND_API_URL` to the
-Playground's API URL and `PLAYGROUND_API_KEY` to a key issued by it.
+Use separate profiles for different API targets. For the example below, set
+`STAGING_API_URL` and `STAGING_API_KEY` for your test environment.
 
 ```bash
-fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"
+fibe auth login --profile staging --domain "$STAGING_API_URL" --api-key "$STAGING_API_KEY"
 fibe auth use staging
 fibe --profile default doctor
 ```
@@ -375,8 +373,8 @@ API-key resource restrictions distinguish omission from an empty list. Omit a
 `[]int64{}` to allow none. A nil slice encodes `null` and is invalid. In the CLI,
 `--granular-scope monitor:read=` allows no monitored agents, while
 `--granular-scope agents:read=12,15` selects those IDs. Repeat the flag for other
-scopes. The API returns normalized restrictions. The compatibility-frozen
-Go `APIKey` response struct ignores that additive response field.
+scopes. The Go `APIKey` response struct ignores normalized restrictions when they
+are included in the API response.
 
 ### Local Playground link directory
 

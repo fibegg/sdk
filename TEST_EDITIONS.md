@@ -1,8 +1,7 @@
 # SDK integration test editions
 
-Launch a disposable Playground from the `fibe-community` or `fibe-enterprise`
-template. Set `FIBE_DOMAIN` to its API URL and `FIBE_API_KEY` to a normal-user
-key issued by that Playground with explicit scopes. Each Mage edition command
+Set `FIBE_DOMAIN` to the API URL of a disposable test environment and
+`FIBE_API_KEY` to a normal-user key with explicit scopes. Each Mage edition command
 opts in to live tests and passes the target, key, and fixture environment to
 the Go suites.
 
@@ -64,8 +63,8 @@ live GitHub Actions workflow honor the same environment variable. The workflow
 also exposes an edition choice, defaulting to `full`. Normal SDK unit tests keep
 all assertions for both editions, including client support for Enterprise APIs.
 
-The native external harness runs the SDK stage in an isolated environment.
-From the workspace root, use:
+The external Docker E2E harness can provision isolated environments and run
+the SDK stage for both editions:
 
 ```sh
 FIBE_WORKSPACE_ROOT="$PWD" node docker-e2e-harness/native/run.mjs --edition both --only sdk
@@ -73,7 +72,7 @@ FIBE_WORKSPACE_ROOT="$PWD" node docker-e2e-harness/native/run.mjs --edition both
 
 Use `--edition community` or `--edition enterprise` to select a single
 edition. The harness supplies the API target, credentials, and Host fixtures.
-For an already running Playground, use the Mage commands above.
+For an existing disposable API target, use the Mage commands above.
 
 The SDK's Docker helper also supports offline enumeration and evaluation:
 

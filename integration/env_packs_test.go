@@ -1,20 +1,18 @@
 package integration
 
-// ENV packs end to end against an Enterprise API. These tests drive the Go SDK,
+// ENV packs end to end against an API that supports ENV packs. These tests drive the Go SDK,
 // the built fibe CLI binary, and the fibe MCP stdio server through the same scenarios
 // for pack CRUD (Personal and Team), attachment set/reorder/retarget/detach/
 // renew, delegated sources, launch with attachments, safe Playground and Task
 // reruns, nil versus empty values, and the four stable error codes.
 //
 // Team coverage requires RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and
-// RUNTIME_OWNER_ID from the native harness or the caller. These SDK cases use
-// Spec targets for Team coverage. Enterprise server coverage is in
-// fibe-enterprise/crates/fibe-api-it-playgrounds/tests/playgrounds/workflows/env_pack_http.rs.
-// The browser flow is in playwright/tests/integration/env-pack-runtime.spec.js.
+// RUNTIME_OWNER_ID from the test environment. These SDK cases use Spec
+// targets for Team coverage.
 // If the Team credential is absent, the cases skip unless
 // FIBE_REQUIRE_TEAM_ENV_PACKS=1 is set.
 //
-// The native SDK stage discovers these cases in ./integration without build
+// The SDK suite discovers these cases in ./integration without build
 // tags. The cases use userClient to require an explicitly opted-in live run.
 
 import (
@@ -830,7 +828,7 @@ func TestEnvPacks_SafeRerun(t *testing.T) {
 
 // =============================================================== support
 
-// Stable Enterprise ENV pack API error codes exercised by these cases.
+// ENV pack API error codes exercised by these cases.
 const (
 	envPackAttachmentInvalid = "env_pack_attachment_invalid"
 	envPackUnavailable       = "env_pack_unavailable"

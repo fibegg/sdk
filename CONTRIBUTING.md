@@ -8,9 +8,8 @@ and focused code changes are welcome.
 1. Search existing issues and open a focused issue for substantial behavior.
 2. Work from a current branch and keep unrelated changes out of the patch.
 3. Preserve the compatibility policy in `COMPATIBILITY.md`.
-4. Run `mage check`. Live tests require `FIBE_INTEGRATION=1` and credentials
-   issued by a disposable Playground launched from the `fibe-community` or
-   `fibe-enterprise` template.
+4. Run `mage check`. Direct live runs require `FIBE_INTEGRATION=1` and credentials
+   scoped to a disposable test environment.
 5. Add or update contract fixtures whenever a supported surface changes.
 
 Commits must include a [Developer Certificate of Origin](DCO.md) sign-off:

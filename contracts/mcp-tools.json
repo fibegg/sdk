@@ -1003,7 +1003,7 @@
     },
     {
       "name": "fibe_repo_status_check",
-      "description": "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access.",
+      "description": "[MODE:DIALOG] Verify repository readiness. Results describe repository access and may include runtime writability or fork and mirror guidance.",
       "tier": "other",
       "read_only": true,
       "idempotent": true,
@@ -1036,7 +1036,7 @@
     },
     {
       "name": "fibe_get_github_token",
-      "description": "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential.",
+      "description": "[MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential.",
       "tier": "other",
       "idempotent": true,
       "input_schema": {

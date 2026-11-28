@@ -51,9 +51,11 @@ metadata is stored in ~/.config/fibe/config.json.
 The default profile targets fibe.gg. FIBE_API_KEY/FIBE_DOMAIN are CI fallbacks
 only when no active profile is configured.
 
+Set STAGING_API_URL and STAGING_API_KEY before using the staging example.
+
 Examples:
   fibe login --api-key fibe_live_...
-  fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"
+  fibe auth login --profile staging --domain "$STAGING_API_URL" --api-key "$STAGING_API_KEY"
   fibe auth use staging
   fibe --profile staging doctor`,
 	}
@@ -82,9 +84,11 @@ Defaults:
   --profile default
   --domain  fibe.gg
 
+Set STAGING_API_URL and STAGING_API_KEY before using the staging example.
+
 Examples:
   fibe login --api-key fibe_live_...
-  fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"`,
+  fibe auth login --profile staging --domain "$STAGING_API_URL" --api-key "$STAGING_API_KEY"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			profile := loginProfileName()
 			if err := validateProfileName(profile); err != nil {

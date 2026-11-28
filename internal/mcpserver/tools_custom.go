@@ -60,7 +60,7 @@ func (s *Server) registerCustomTools() {
 	))
 
 	s.addTool(&toolImpl{
-		name: "fibe_get_github_token", routes: "InstallationService.GetGitHubToken", description: "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation.", tier: tierOther,
+		name: "fibe_get_github_token", routes: "InstallationService.GetGitHubToken", description: "[MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential.", tier: tierOther,
 		annotations: toolAnnotations{Idempotent: true},
 		handler: func(ctx context.Context, c *fibe.Client, args map[string]any) (any, error) {
 			repo := argString(args, "repo")
@@ -70,7 +70,7 @@ func (s *Server) registerCustomTools() {
 			return c.Installations.GetGitHubToken(ctx, repo)
 		},
 	}, mcp.NewTool("fibe_get_github_token",
-		mcp.WithDescription("[MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation. No installation ID needed."),
+		mcp.WithDescription("[MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential."),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("Full repo name, e.g. owner/repo")),
 	))
 }

@@ -973,7 +973,7 @@ Generated from the MCP registry.
 **Tier:** other | **Hidden:** false | **Destructive:** false | **Idempotent:** true | **Read-only:** false
 
 ### Description
-[MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation.
+[MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential.
 
 ### Input Schema
 ```json

@@ -35,7 +35,7 @@ Generated from the MCP registry.
 | `fibe_feedbacks_get` | brownfield | yes | [MODE:OVERSEER] Get one feedback entry for an agent, including player comments about artefacts or mutters. |
 | `fibe_feedbacks_list` | brownfield | yes | [MODE:OVERSEER] List all feedback entries associated with an agent. |
 | `fibe_find_github_repos` | other | yes | [MODE:DIALOG] Search Personal installations or a selected verified Team installation. |
-| `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Get the server-provided GitHub credential scoped to a repository through an owned GitHub App installation. |
+| `fibe_get_github_token` | other | yes | [MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential. |
 | `fibe_gitea_repos_create` | greenfield | yes | [MODE:GREENFIELD] Create a managed Gitea repo and matching Repository. For multi-service switches, batch independent repo creation with fibe_pipeline before seeding source and applying fibe_playgrounds_switch_template. |
 | `fibe_github_repos_create` | greenfield | yes | [MODE:GREENFIELD] Register and connect a new GitHub repository |
 | `fibe_greenfield_create` | greenfield | yes | [MODE:GREENFIELD] Create one or more repositories/Repositories, an app-owned template version, deployed playground, wait for running, and link it locally. |

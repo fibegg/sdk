@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       fibe_domain:
-        description: API URL of a disposable Playground launched from the fibe-community or fibe-enterprise template
+        description: Fibe API URL for a disposable test environment
         required: true
 
       edition:

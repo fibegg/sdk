@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -143,9 +144,30 @@ func assertMCPReleasedSnapshot(t *testing.T, domain, tier, mode string, snapshot
 			require.Len(t, result.Content, 1)
 			content = []byte(result.Content[0].Text)
 		}
-		got := sha256.Sum256(content)
+		got := sha256.Sum256(normalizeReleasedMCPDescriptions(tc.key, content))
 		require.Equal(t, snapshot[tc.key], hex.EncodeToString(got[:]), tc.key)
 	}
+}
+
+// Keep the v0.3.12 bytes as a baseline. Restore only the two reviewed
+// descriptions before comparing; every other field keeps its original bytes.
+func normalizeReleasedMCPDescriptions(surface string, content []byte) []byte {
+	const status = "[MODE:DIALOG] Verify repository readiness. Results describe repository access and may include runtime writability or fork and mirror guidance."
+	const previousStatus = "[MODE:DIALOG] Verify repository readiness. Enterprise may include writability and fork/mirror guidance; standalone Core verifies Git read access."
+	const token = "[MODE:SIDEEFFECTS] Request a GitHub credential for the named repository. The server selects the credential."
+	previousToken := "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves an installation; standalone Core returns its configured credential."
+	switch surface {
+	case "tools":
+		previousToken = "[MODE:SIDEEFFECTS] Get the server-provided GitHub credential for a repository. Enterprise resolves a GitHub App installation; standalone Core returns its configured credential. No installation ID needed."
+	case "catalog":
+	default:
+		return content
+	}
+	replacements := strings.NewReplacer(
+		`"description":`+strconv.Quote(status), `"description":`+strconv.Quote(previousStatus),
+		`"description":`+strconv.Quote(token), `"description":`+strconv.Quote(previousToken),
+	)
+	return []byte(replacements.Replace(string(content)))
 }
 
 func TestMCPEditionFlagAndInstall(t *testing.T) {

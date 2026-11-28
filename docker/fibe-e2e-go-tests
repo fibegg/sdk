@@ -19,7 +19,7 @@ export E2E_RUN_ID="${E2E_RUN_ID:-$(date -u +%Y%m%d%H%M%S)-$$}"
 
 if [ "${1:-}" != "--inside-wrapper" ] && [ "${1:-}" != "--run-go-tests" ]; then
   if [ ! -r /etc/fibe-e2e/check-wrapper.sh ]; then
-    echo "The packed fixture wrapper is required. For native tests, see the SDK stage in TEST_EDITIONS.md." >&2
+    echo "The packed fixture wrapper is required. For other SDK test environments, see TEST_EDITIONS.md." >&2
     exit 2
   fi
   exec /bin/bash /etc/fibe-e2e/check-wrapper.sh app-go-tests "$0" --inside-wrapper
@@ -85,7 +85,7 @@ export TEST_HOST_ROOT_DOMAIN="${TEST_HOST_ROOT_DOMAIN:-sdk.e2e.fibe.test}"
 export FIBE_TEST_GATEWAY_HOST="${FIBE_TEST_GATEWAY_HOST:-$TEST_HOST_HOST}"
 export FIBE_TEST_GATEWAY_URL="${FIBE_TEST_GATEWAY_URL:-http://${FIBE_TEST_GATEWAY_HOST}:80}"
 fibe-e2e-use-dns
-export FIBE_DOMAIN="${FIBE_DOMAIN:-${FIBE_PACKED_RAILS_URL:?Set FIBE_DOMAIN or provide the packed fixture URL}}"
+export FIBE_DOMAIN="${FIBE_DOMAIN:-${FIBE_PACKED_RAILS_URL:-http://fibe-app:3000}}"
 if [ "${FIBE_TEST_EDITION:-full}" != "community" ]; then
   export GITEA_HOST="${GITEA_HOST:-${FIBE_PACKED_GITEA_URL:-http://fibe-app:3001}}"
   export GITEA_ADMIN_TOKEN_FILE="${GITEA_ADMIN_TOKEN_FILE:-/fibe-data/gitea/gitea-admin-token}"
