@@ -14,8 +14,9 @@ Requires Go 1.26.11 or newer when building from source. See
 
 ## SDK integration and E2E tests
 
-Set `FIBE_DOMAIN` to the target API URL and `FIBE_API_KEY` to an explicitly
-scoped key for that installation.
+Launch a disposable Playground from the `fibe-community` or `fibe-enterprise`
+template. Set `FIBE_DOMAIN` to that Playground's API URL and `FIBE_API_KEY`
+to an explicitly scoped key issued by that installation.
 
 | Target edition | Command | Live coverage |
 | --- | --- | --- |
@@ -56,10 +57,12 @@ Authenticate the CLI with a named local profile. The default profile targets
 fibe login --api-key "fibe_live_yourkeyhere"
 ```
 
-Use additional profiles for staging, local, or feature environments:
+Use additional profiles for disposable Playgrounds, local servers, or feature
+environments. For a staging profile, set `PLAYGROUND_API_URL` to the
+Playground's API URL and `PLAYGROUND_API_KEY` to a key issued by it.
 
 ```bash
-fibe auth login --profile staging --domain next.fibe.live --api-key "fibe_test_..."
+fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"
 fibe auth use staging
 fibe --profile default doctor
 ```
@@ -101,7 +104,7 @@ fibe pg create < payload.yml
 fibe pg get demo
 fibe pg get demo -o json --only service_urls
 
-fibe wait playground next --status running --timeout 5m
+fibe wait playground demo --status running --timeout 5m
 ```
 
 Waiting for a running Playground checks service readiness by default: the requested
@@ -372,7 +375,7 @@ API-key resource restrictions distinguish omission from an empty list. Omit a
 `[]int64{}` to allow none. A nil slice encodes `null` and is invalid. In the CLI,
 `--granular-scope monitor:read=` allows no monitored agents, while
 `--granular-scope agents:read=12,15` selects those IDs. Repeat the flag for other
-scopes. Rails returns normalized restrictions; the current compatibility-frozen
+scopes. The API returns normalized restrictions. The compatibility-frozen
 Go `APIKey` response struct ignores that additive response field.
 
 ### Local Playground link directory

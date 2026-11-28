@@ -65,7 +65,7 @@ and installation authority availability. They expose no runtime key IDs, key
 bytes, original recovery authority or installation tokens. Installation token
 export is deliberately outside this management interface.
 
-The executable contract fixtures in `contracts/` describe SDK declarations,
+The [executable contract fixtures](../contracts/) describe SDK declarations,
 REST operations, CLI commands and MCP schemas. Synthetic transport tests exercise
 explicit empty recovery, completed replay/conflict,
 current installation status and matching owner-header proofs.

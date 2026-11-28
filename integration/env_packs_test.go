@@ -1,24 +1,21 @@
 package integration
 
-// ENV packs end to end against a live Rails: the Go SDK, the built fibe CLI
-// binary and the fibe MCP stdio server are driven through the same scenarios
+// ENV packs end to end against an Enterprise API. These tests drive the Go SDK,
+// the built fibe CLI binary, and the fibe MCP stdio server through the same scenarios
 // for pack CRUD (Personal and Team), attachment set/reorder/retarget/detach/
 // renew, delegated sources, launch with attachments, safe Playground and Task
 // reruns, nil versus empty values, and the four stable error codes.
 //
-// Team credential: RUNTIME_API_KEY, RUNTIME_OWNER_TYPE and RUNTIME_OWNER_ID
-// are exported by the mode=sdk bootstrap (a Team credential without a Host,
-// since a second owner's Host would retire the lane's own on the same endpoint).
-// Team coverage here therefore uses Spec targets; Team Playground targets
-// are proven where a Team Host exists, by the Playwright integration flow
-// (integration/env-pack-runtime.spec.js) and the Rails contracts. When the
-// credential is absent Team coverage skips with an explicit reason, and
-// FIBE_REQUIRE_TEAM_ENV_PACKS=1 turns that skip into a failure.
+// Team coverage requires RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and
+// RUNTIME_OWNER_ID from the native harness or the caller. These SDK cases use
+// Spec targets for Team coverage. Enterprise server coverage is in
+// fibe-enterprise/crates/fibe-api-it-playgrounds/tests/playgrounds/workflows/env_pack_http.rs.
+// The browser flow is in playwright/tests/integration/env-pack-runtime.spec.js.
+// If the Team credential is absent, the cases skip unless
+// FIBE_REQUIRE_TEAM_ENV_PACKS=1 is set.
 //
-// The file carries no build tag, like every other file in this package: the
-// app-go-tests lane runs ./integration/... without -tags, so a tag would make
-// it silently skip there. Without FIBE_INTEGRATION/FIBE_E2E_BOOTSTRAP every test
-// skips through userClient.
+// The native SDK stage discovers these cases in ./integration without build
+// tags. The cases use userClient to require an explicitly opted-in live run.
 
 import (
 	"bytes"
@@ -833,7 +830,7 @@ func TestEnvPacks_SafeRerun(t *testing.T) {
 
 // =============================================================== support
 
-// The four stable ENV-pack error codes (EnvPacks::Error in the Rails app).
+// Stable Enterprise ENV pack API error codes exercised by these cases.
 const (
 	envPackAttachmentInvalid = "env_pack_attachment_invalid"
 	envPackUnavailable       = "env_pack_unavailable"
@@ -876,9 +873,8 @@ func teamEnvPackActor(t *testing.T) *envPackActor {
 	userClient(t)
 	key := strings.TrimSpace(os.Getenv("RUNTIME_API_KEY"))
 	if key == "" {
-		reason := "Team context needs RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and RUNTIME_OWNER_ID; " +
-			"the app-go-tests lane bootstraps mode=sdk, which does not export them (only the Playwright bootstrap does). " +
-			"Export them, or set FIBE_REQUIRE_TEAM_ENV_PACKS=1 to fail instead of skipping"
+		reason := "Team context needs RUNTIME_API_KEY, RUNTIME_OWNER_TYPE=Team and RUNTIME_OWNER_ID. " +
+			"Supply the Team fixture variables, or set FIBE_REQUIRE_TEAM_ENV_PACKS=1 to fail instead of skipping"
 		if envBool("FIBE_REQUIRE_TEAM_ENV_PACKS") {
 			t.Fatal(reason)
 		}

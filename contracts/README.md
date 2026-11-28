@@ -4,7 +4,7 @@ This directory is the language-neutral compatibility boundary for the Go SDK
 and any additional SDK implementation.
 
 Team recovery and durable operation parity is additive to the candidate.
-See `docs/team-operations.md` for explicit Team owner proofs, nil versus
+See [Team operations](../docs/team-operations.md) for explicit Team owner proofs, nil versus
 empty recovery selection, replay/conflict and accepted cancellation semantics.
 Public response types intentionally omit runtime key identities and token bytes.
 

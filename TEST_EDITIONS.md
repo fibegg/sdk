@@ -1,8 +1,10 @@
 # SDK integration test editions
 
-Set `FIBE_DOMAIN` to the target API URL and `FIBE_API_KEY` to a normal-user
-key with explicit scopes. Each command opts in to live tests and uses the same
-URL, key and fixture environment as the Go suites.
+Launch a disposable Playground from the `fibe-community` or `fibe-enterprise`
+template. Set `FIBE_DOMAIN` to its API URL and `FIBE_API_KEY` to a normal-user
+key issued by that Playground with explicit scopes. Each Mage edition command
+opts in to live tests and passes the target, key, and fixture environment to
+the Go suites.
 
 | Target edition | Command | Live coverage |
 | --- | --- | --- |
@@ -62,19 +64,24 @@ live GitHub Actions workflow honor the same environment variable. The workflow
 also exposes an edition choice, defaulting to `full`. Normal SDK unit tests keep
 all assertions for both editions, including client support for Enterprise APIs.
 
-The existing Docker runner accepts offline enumeration before its wrapper or
-fixture waits:
+The native external harness runs the SDK stage in an isolated environment.
+From the workspace root, use:
+
+```sh
+FIBE_WORKSPACE_ROOT="$PWD" node docker-e2e-harness/native/run.mjs --edition both --only sdk
+```
+
+Use `--edition community` or `--edition enterprise` to select a single
+edition. The harness supplies the API target, credentials, and Host fixtures.
+For an already running Playground, use the Mage commands above.
+
+The SDK's Docker helper also supports offline enumeration and evaluation:
 
 ```sh
 FIBE_TEST_EDITION=community bash docker/fibe-e2e-go-tests --edition-list
 FIBE_TEST_EDITION=community bash docker/fibe-e2e-go-tests --edition-evaluate \
   --package integration --run '^TestLaunch_Create$'
 ```
-
-Its ordinary test entry points inherit `FIBE_TEST_EDITION`. Community bootstrap
-requests only the primary role and does not configure a managed Gitea fixture.
-The normal full bootstrap still requests primary, second-user and rate-limit
-fixtures. Container network/Host preparation remains the owning harness's job.
 
 ## Operator-template launch coverage
 

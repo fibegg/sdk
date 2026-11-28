@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       fibe_domain:
-        description: Fibe API domain for live integration tests
+        description: API URL of a disposable Playground launched from the fibe-community or fibe-enterprise template
         required: true
-        default: localhost:3000
 
       edition:
         description: Test product edition

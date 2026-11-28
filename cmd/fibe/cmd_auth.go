@@ -53,7 +53,7 @@ only when no active profile is configured.
 
 Examples:
   fibe login --api-key fibe_live_...
-  fibe auth login --profile staging --domain next.fibe.live --api-key fibe_test_...
+  fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"
   fibe auth use staging
   fibe --profile staging doctor`,
 	}
@@ -84,7 +84,7 @@ Defaults:
 
 Examples:
   fibe login --api-key fibe_live_...
-  fibe auth login --profile staging --domain next.fibe.live --api-key fibe_test_...`,
+  fibe auth login --profile staging --domain "$PLAYGROUND_API_URL" --api-key "$PLAYGROUND_API_KEY"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			profile := loginProfileName()
 			if err := validateProfileName(profile); err != nil {
