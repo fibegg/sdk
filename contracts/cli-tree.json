@@ -10899,6 +10899,12 @@
           "usage": "Print the resolved target path and proposed config without writing"
         },
         {
+          "name": "edition",
+          "type": "string",
+          "default": "auto",
+          "usage": "Edition filtering for stdio: auto or full (env: FIBE_MCP_EDITION)"
+        },
+        {
           "name": "env",
           "type": "stringArray",
           "default": "[]",
@@ -11035,6 +11041,12 @@
           "type": "stringSlice",
           "default": "[]",
           "usage": "Additional exact API origin allowed for X-Fibe-Domain (repeatable; env: FIBE_MCP_ALLOWED_DOMAINS)"
+        },
+        {
+          "name": "edition",
+          "type": "string",
+          "default": "auto",
+          "usage": "Edition filtering: auto or full (env: FIBE_MCP_EDITION)"
         },
         {
           "name": "http",

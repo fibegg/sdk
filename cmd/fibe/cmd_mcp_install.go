@@ -42,6 +42,7 @@ type installOptions struct {
 	Domain    string   // literal value to pass through --domain
 	Env       []string // arbitrary KEY=VALUE pairs to inline
 	Profile   string   // profile to pass to "fibe mcp serve"
+	Edition   string   // auto or full (passed as FIBE_MCP_EDITION)
 	ToolSet   string   // full, core, or comma-separated named tiers (passed as FIBE_MCP_TOOLS)
 	Yolo      bool     // sets FIBE_MCP_YOLO=1
 	AuditLog  string   // sets FIBE_MCP_AUDIT_LOG
@@ -232,6 +233,9 @@ func validateRemoteInstallOptions(client string, opts installOptions) error {
 	if len(opts.Env) > 0 {
 		unsupported = append(unsupported, "--env")
 	}
+	if opts.Edition != "" {
+		unsupported = append(unsupported, "--edition")
+	}
 	if opts.ToolSet != "" {
 		unsupported = append(unsupported, "--tools")
 	}
@@ -299,6 +303,9 @@ func resolveInstallEnv(client string, opts installOptions) (map[string]string, [
 	}
 
 	warnings = append(warnings, applyInstallEnvPairs(env, opts.Env)...)
+	if opts.Edition != "" {
+		env["FIBE_MCP_EDITION"] = opts.Edition
+	}
 
 	return env, nil, warnings
 }

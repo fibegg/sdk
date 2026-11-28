@@ -35,6 +35,7 @@ ENV VARS:
   FIBE_DOMAIN               CI fallback API domain when no profile is configured
   FIBE_MCP_YOLO=1           Skip confirm:true gate on destructive tools
   FIBE_MCP_TOOLS            Tool surface: full, core, or comma tiers (e.g. other,meta)
+  FIBE_MCP_EDITION          Edition filtering: auto (default) or full
   FIBE_MCP_REQUIRE_AUTH=1   Refuse calls with no resolved API key (multi-tenant)
   FIBE_MCP_ALLOWED_DOMAINS  Comma-separated exact origins allowed for X-Fibe-Domain
   FIBE_MCP_ALLOW_LOCAL_ACCESS=1  Allow local tools on loopback HTTP only
@@ -66,6 +67,7 @@ func mcpServeCmd() *cobra.Command {
 		httpAddr       string
 		streamableHTTP bool
 		toolSet        string
+		edition        string
 		yolo           bool
 		requireAuth    bool
 		allowedDomains []string
@@ -87,6 +89,8 @@ TOOL SURFACE:
   --tools full             Complete registered tool surface
   --tools core             meta+base+greenfield+brownfield
   --tools other,meta       Comma-separated named tiers
+  --edition auto          Follow the server route manifest (default, env: FIBE_MCP_EDITION)
+  --edition full          Offer all tools in the selected tiers
 
 SAFETY:
   --yolo         Skip the confirm:true gate on destructive tools
@@ -110,7 +114,14 @@ EXAMPLES:
 			if streamableHTTP && httpAddr == "" {
 				return fmt.Errorf("--streamable requires --http")
 			}
+			mode, err := resolveMCPEdition(cmd, edition)
+			if err != nil {
+				return err
+			}
 			cfg := mcpserver.DefaultConfig()
+			if mode != "" {
+				cfg.Edition = mode
+			}
 			auth := resolveCLIAuth()
 			cfg.APIKey = auth.APIKey
 			cfg.Domain = auth.Domain
@@ -175,6 +186,7 @@ EXAMPLES:
 	}
 	cmd.Flags().StringVar(&httpAddr, "http", "", "Listen on host:port for SSE transport (default: stdio)")
 	cmd.Flags().BoolVar(&streamableHTTP, "streamable", false, "Use streamable-HTTP transport instead of SSE (requires --http)")
+	cmd.Flags().StringVar(&edition, "edition", "auto", "Edition filtering: auto or full (env: FIBE_MCP_EDITION)")
 	cmd.Flags().StringVar(&toolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta (env: FIBE_MCP_TOOLS, default: full)")
 	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip confirm:true gate on destructive tools (env: FIBE_MCP_YOLO)")
 	cmd.Flags().BoolVar(&requireAuth, "require-auth", false, "Reject requests with no resolved API key (multi-tenant)")
@@ -238,6 +250,8 @@ TOOL TIERS:
   --tools full             Expose the complete registered tool surface up front (default).
   --tools core             Expose meta+base+greenfield+brownfield.
   --tools other,meta       Expose only the selected named tiers.
+  --edition auto          Follow the server route manifest (default, env: FIBE_MCP_EDITION)
+  --edition full          Offer all tools in the selected tiers
 
 EXAMPLES:
   fibe mcp install --client claude-code
@@ -252,6 +266,11 @@ EXAMPLES:
   fibe mcp install --client codex --transport streamable-http --url http://127.0.0.1:7797/mcp
   fibe mcp install --client antigravity --dry-run`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			edition, err := resolveMCPEdition(cmd, opts.Edition)
+			if err != nil {
+				return err
+			}
+			opts.Edition = edition
 			resolvedProject, err := resolveMCPProjectScope(client, project, userScope)
 			if err != nil {
 				return err
@@ -267,6 +286,7 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.Domain, "domain", "", "Pass a literal domain to mcp serve as an explicit override")
 	cmd.Flags().StringVar(&opts.Profile, "profile", "", "Profile to pin in stdio MCP config (default: active profile)")
 	cmd.Flags().StringArrayVar(&opts.Env, "env", nil, "Additional env var (KEY=VALUE). Repeatable.")
+	cmd.Flags().StringVar(&opts.Edition, "edition", "auto", "Edition filtering for stdio: auto or full (env: FIBE_MCP_EDITION)")
 	cmd.Flags().StringVar(&opts.ToolSet, "tools", "", "Tool surface: full, core, or comma tiers such as other,meta")
 	cmd.Flags().BoolVar(&opts.Yolo, "yolo", false, "Pass FIBE_MCP_YOLO=1 so destructive tools skip the confirm:true gate")
 	cmd.Flags().StringVar(&opts.AuditLog, "audit-log", "", "Write MCP tool-call audit log to this path (or 'stderr')")
@@ -390,6 +410,21 @@ EXAMPLES:
 	cmd.Flags().StringVar(&opts.Transport, "transport", "", "Snippet transport override. Supported: stdio (default) or streamable-http with --url (antigravity, cursor, vscode, codex)")
 	cmd.Flags().StringVar(&opts.URL, "url", "", "URL for URL-backed MCP clients, e.g. http://127.0.0.1:7797/mcp or https://fibe.example.com/mcp")
 	return cmd
+}
+
+func resolveMCPEdition(cmd *cobra.Command, value string) (string, error) {
+	if !cmd.Flags().Changed("edition") {
+		value = os.Getenv("FIBE_MCP_EDITION")
+		if value == "" {
+			return "", nil
+		}
+	}
+	switch value {
+	case "auto", "full":
+		return value, nil
+	default:
+		return "", fmt.Errorf("invalid MCP edition mode; use auto or full for --edition or FIBE_MCP_EDITION")
+	}
 }
 
 func resolveEnv(envKey, flagVal, def string) string {
